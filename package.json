@@ -1,0 +1,24 @@
+{
+  "name": "javelin",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Fast and simple TypeScript Entity-Component System",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "lerna": "^3.10.7"
+  },
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "dependencies": {
+    "typescript": "^3.8.3"
+  },
+  "scripts": {
+    "build": "lerna run build",
+    "test": "lerna run test",
+    "perf": "lerna run perf",
+    "example:basic": "lerna run start --scope=@javelin/example-basic"
+  }
+}
