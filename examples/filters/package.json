@@ -1,5 +1,5 @@
 {
-  "name": "@javelin/example-basic",
+  "name": "@javelin/example-filters",
   "private": true,
   "version": "0.0.0",
   "main": "index.js",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@javelin/ecs": "^0.0.1-alpha.1",
+    "pixi.js": "^5.2.3",
     "webpack-dev-server": "^3.10.3"
   },
   "scripts": {

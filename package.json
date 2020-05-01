@@ -19,6 +19,7 @@
     "build": "lerna run build",
     "test": "lerna run test",
     "perf": "lerna run perf",
-    "example:basic": "lerna run start --scope=@javelin/example-basic"
+    "example:basic": "lerna run start --scope=@javelin/example-basic",
+    "example:filters": "lerna run start --scope=@javelin/example-filters"
   }
 }

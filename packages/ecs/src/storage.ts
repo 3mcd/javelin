@@ -6,7 +6,7 @@ type EntityLocation = ChunkLocation & { archetype: number }
 export class Storage {
   readonly archetypes: Archetype[] = []
   private maxChunkSetSize: number
-  private entityLocations = new Map<number, EntityLocation>()
+  private entityLocations: (EntityLocation | null)[] = []
 
   constructor(maxChunkSetSize: number = 100) {
     this.maxChunkSetSize = maxChunkSetSize
@@ -15,26 +15,29 @@ export class Storage {
   private findArchetype(componentTypes: number[]) {
     const len = componentTypes.length
 
-    let archetype: Archetype | null = null
     for (let i = 0; i < this.archetypes.length; i++) {
-      archetype = this.archetypes[i]
+      const archetype = this.archetypes[i]
       const { layout } = archetype
+
       if (layout.length !== len) {
         continue
       }
+
       let match = true
+
       for (let j = 0; j < len; j++) {
         if (layout.indexOf(componentTypes[j]) === -1) {
           match = false
           break
         }
       }
+
       if (match) {
-        break
+        return archetype
       }
     }
 
-    return archetype
+    return null
   }
 
   private findOrCreateArchetype(components: Component[]) {
@@ -73,10 +76,10 @@ export class Storage {
       components[i]._e = entity
     }
 
-    this.entityLocations.set(entity, {
+    this.entityLocations[entity] = {
       ...chunkLocation,
       archetype: this.archetypes.indexOf(archetype),
-    })
+    }
 
     return entity
   }
@@ -84,9 +87,9 @@ export class Storage {
   add(entity: number, ...components: Component[]) {}
 
   remove(entity: number, ...components: Component[]) {
-    const location = this.entityLocations.get(entity)
+    const location = this.entityLocations[entity]
 
-    if (!location) {
+    if (location === null) {
       throw new Error("Entity does not exist in Storage.")
     }
 
@@ -100,21 +103,21 @@ export class Storage {
       const dest = this.findOrCreateArchetype(components)
       const destChunkLocation = source.swap(location, dest)
 
-      this.entityLocations.set(entity, {
+      this.entityLocations[entity] = {
         ...destChunkLocation,
         archetype: this.archetypes.indexOf(dest),
-      })
+      }
       return
     }
 
     source.remove(location)
-    this.entityLocations.delete(entity)
+    this.entityLocations[entity] = null
   }
 
   addTag(entity: number, tags: number) {
-    const location = this.entityLocations.get(entity)
+    const location = this.entityLocations[entity]
 
-    if (!location) {
+    if (location === null) {
       throw new Error("Cannot tag entity. Entity not registered.")
     }
 
@@ -126,10 +129,10 @@ export class Storage {
   }
 
   removeTag(entity: number, tags: number) {
-    const location = this.entityLocations.get(entity)
+    const location = this.entityLocations[entity]
 
-    if (!location) {
-      throw new Error("Cannot tag entity. Entity not registered.")
+    if (location === null) {
+      throw new Error("Cannot untag entity. Entity not registered.")
     }
 
     // UNSAFE: archetype should exist since a location cannot be generated
@@ -139,10 +142,24 @@ export class Storage {
     archetype.removeTag(location, tags)
   }
 
-  incrementVersion(component: Component) {
-    const location = this.entityLocations.get(component._e)
+  hasTag(entity: number, tags: number) {
+    const location = this.entityLocations[entity]
 
-    if (!location) {
+    if (location === null) {
+      throw new Error("Cannot read tags of entity. Entity not registered.")
+    }
+
+    // UNSAFE: archetype should exist since a location cannot be generated
+    // without a corresponding archetype.
+    const archetype = this.archetypes[location.archetype]!
+
+    return archetype.hasTag(location, tags)
+  }
+
+  incrementVersion(component: Component) {
+    const location = this.entityLocations[component._e]
+
+    if (location === null) {
       throw new Error("Cannot tag entity. Entity not registered.")
     }
 

@@ -11,7 +11,7 @@ import {
 import { graphics } from "./graphics"
 
 const Position = createComponentFactory({
-  type: 2 ** 0,
+  type: 1,
   schema: {
     x: number,
     y: number,
@@ -19,7 +19,7 @@ const Position = createComponentFactory({
 })
 const Velocity = createComponentFactory(
   {
-    type: 2 ** 1,
+    type: 2,
     schema: {
       x: number,
       y: number,
@@ -31,7 +31,7 @@ const Velocity = createComponentFactory(
   },
 )
 const Sleep = createComponentFactory({
-  type: 2 ** 2,
+  type: 3,
   schema: {
     value: number,
   },

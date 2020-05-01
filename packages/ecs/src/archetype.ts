@@ -146,7 +146,7 @@ export class Archetype {
     component._v += 1
   }
 
-  addTag(chunkLocation: ChunkLocation, tag: number) {
+  addTag(chunkLocation: ChunkLocation, tags: number) {
     const chunkSet = this.chunkSets[chunkLocation.chunkSetIndex]
     const chunk = chunkSet.chunks[chunkLocation.chunkIndex]
 
@@ -154,11 +154,11 @@ export class Archetype {
       throw new Error("Chunk has been removed at location.")
     }
 
-    chunkSet.tags |= tag
-    chunk.tags |= tag
+    chunkSet.tags |= tags
+    chunk.tags |= tags
   }
 
-  removeTag(chunkLocation: ChunkLocation, tag: number) {
+  removeTag(chunkLocation: ChunkLocation, tags: number) {
     const chunkSet = this.chunkSets[chunkLocation.chunkSetIndex]
     const chunk = chunkSet.chunks[chunkLocation.chunkIndex]
 
@@ -166,25 +166,38 @@ export class Archetype {
       throw new Error("Chunk has been removed at location.")
     }
 
-    chunk.tags &= ~tag
+    chunk.tags &= ~tags
 
     for (let i = 0; i < chunkSet.chunks.length; i++) {
       const chunk = chunkSet.chunks[i]
 
-      if (chunk !== null && tag & chunk.tags) {
+      if (chunk !== null && tags & chunk.tags) {
         return
       }
     }
 
-    chunkSet.tags &= ~tag
+    chunkSet.tags &= ~tags
+  }
+
+  hasTag(chunkLocation: ChunkLocation, tags: number) {
+    const chunkSet = this.chunkSets[chunkLocation.chunkSetIndex]
+    const chunk = chunkSet.chunks[chunkLocation.chunkIndex]
+
+    if (chunk === null) {
+      throw new Error("Chunk has been removed at location.")
+    }
+
+    return Boolean(tags & chunk.tags)
   }
 
   *read(filters: FilterLike[]) {
+    const len = filters.length
+
     for (let chs = 0; chs < this.chunkSets.length; chs++) {
       const chunkSet = this.chunkSets[chs]
 
       let match = true
-      for (let f = 0; f < filters.length; f++) {
+      for (let f = 0; f < len; f++) {
         if (!filters[f].matchChunkSet(chunkSet)) {
           match = false
           break
@@ -202,7 +215,7 @@ export class Archetype {
         }
 
         let match = true
-        for (let f = 0; f < filters.length; f++) {
+        for (let f = 0; f < len; f++) {
           if (!filters[f].matchChunk(chunk)) {
             match = false
             break
@@ -215,7 +228,7 @@ export class Archetype {
         for (let c = 0; c < components.length; c++) {
           const component = components[c]
 
-          for (let f = 0; f < filters.length; f++) {
+          for (let f = 0; f < len; f++) {
             if (!filters[f].matchComponent(component)) {
               match = false
               break
