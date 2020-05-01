@@ -3,7 +3,7 @@ import { Mutable } from "./types"
 
 export type ComponentProps = { [key: string]: unknown }
 
-export type ComponentSpec<
+export type ComponentType<
   T extends number = number,
   S extends Schema = AnySchema
 > = {
@@ -20,17 +20,17 @@ export type Component<
   _e: number
 } & P
 
-export type ComponentOf<C extends ComponentSpec> = C extends ComponentSpec<
+export type ComponentOf<C extends ComponentType> = C extends ComponentType<
   infer T,
   infer S
 >
-  ? Readonly<Component<T, PropsOfSchema<S>>>
+  ? Component<T, PropsOfSchema<S>>
   : never
 
-export type ComponentsOf<C extends ComponentSpec[]> = {
-  [K in keyof C]: C[K] extends ComponentSpec ? ComponentOf<C[K]> : never
+export type ComponentsOf<C extends ComponentType[]> = {
+  [K in keyof C]: C[K] extends ComponentType ? ComponentOf<C[K]> : never
 }
 
-export type MutableComponentOf<C extends ComponentSpec> = Mutable<
+export type MutableComponentOf<C extends ComponentType> = Mutable<
   ComponentOf<C>
 >

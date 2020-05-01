@@ -1,36 +1,36 @@
-const { Storage } = require("../dist/storage")
-const { Query } = require("../dist/query")
+const { createStorage } = require("../dist/storage")
+const { createQuery } = require("../dist/query")
 const { arrayOf } = require("../dist/util/array")
 const { createComponentFactory } = require("../dist/helpers/component_helpers")
 
 module.exports.run = function run() {
   let n = 100
-  const storage = new Storage()
+  const storage = createStorage()
   const factories = [
-    createComponentFactory({ schema: {}, type: 2 ** 0 }),
-    createComponentFactory({ schema: {}, type: 2 ** 1 }),
-    createComponentFactory({ schema: {}, type: 2 ** 2 }),
-    createComponentFactory({ schema: {}, type: 2 ** 3 }),
+    createComponentFactory({ schema: {}, type: 1 }),
+    createComponentFactory({ schema: {}, type: 2 }),
+    createComponentFactory({ schema: {}, type: 3 }),
+    createComponentFactory({ schema: {}, type: 4 }),
   ]
   const entityComponents = [
-    ...arrayOf(25000, () => [factories[0].create()]),
-    ...arrayOf(25000, () => [factories[0].create(), factories[2].create()]),
-    ...arrayOf(25000, () => [factories[1].create()]),
-    ...arrayOf(25000, () => [
+    ...arrayOf(50000, () => [factories[0].create()]),
+    ...arrayOf(50000, () => [factories[0].create(), factories[2].create()]),
+    ...arrayOf(50000, () => [factories[1].create()]),
+    ...arrayOf(50000, () => [
       factories[0].create(),
       factories[1].create(),
       factories[2].create(),
     ]),
-    ...arrayOf(25000, () => [factories[3].create()]),
-    ...arrayOf(25000, () => [factories[1].create(), factories[3].create()]),
+    ...arrayOf(50000, () => [factories[3].create()]),
+    ...arrayOf(50000, () => [factories[1].create(), factories[3].create()]),
   ]
   const queries = [
     [factories[0]],
     [factories[0], factories[1]],
     [factories[2]],
     [factories[1], factories[3]],
-  ].map(c => new Query(c))
-  const entities = entityComponents.map((c, i) => storage.insert(i, c))
+  ].map(c => createQuery(...c))
+  const entities = entityComponents.map(c => storage.create(c))
 
   let i = n
   let c = 0
@@ -45,11 +45,11 @@ module.exports.run = function run() {
     i--
   }
 
-  for (let i = 0; i < entities.length; i++) {
-    storage.remove(entities[i])
-  }
-
   const end = Date.now()
+
+  for (let i = 0; i < entities.length; i++) {
+    storage.destroy(entities[i])
+  }
 
   console.log(`entities      | ${entityComponents.length}`)
   console.log(`components    | ${factories.length}`)

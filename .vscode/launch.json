@@ -12,6 +12,15 @@
       "preLaunchTask": "npm: build",
       "program": "${workspaceFolder}/packages/ecs/perf/index.js",
       "outFiles": ["${workspaceFolder}/**/*.js"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "example/networking",
+      "skipFiles": ["<node_internals>/**"],
+      "preLaunchTask": "npm: build",
+      "program": "${workspaceFolder}/examples/networking/dist/server/index.js",
+      "outFiles": ["${workspaceFolder}/**/*.js"]
     }
   ]
 }

@@ -4,7 +4,10 @@
     "module": "ESNext",
     "noImplicitAny": true,
     "strictNullChecks": true,
+    "sourceMap": true,
     "declaration": true,
-    "declarationMap": true
-  }
+    "declarationMap": true,
+    "skipLibCheck": true
+  },
+  "exclude": ["node_modules"]
 }

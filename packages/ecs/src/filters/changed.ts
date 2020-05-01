@@ -1,41 +1,31 @@
-import { Filter } from "../filter"
-import { Chunk, ChunkSet } from "../archetype"
-import { Component, ComponentSpec } from "../component"
+import { Component, ComponentType } from "../component"
+import { Filter } from "../query"
 
-export class Changed extends Filter {
-  private visitedChunkSets = new WeakMap<ChunkSet, number>()
-  private visitedChunks = new WeakMap<Chunk, number>()
-  private visitedComponents = new WeakMap<Component, number>()
-  private check = true
-  private componentTypes: number
+export function createChangedFilter(
+  ...componentTypes: ComponentType[]
+): Filter {
+  const check = componentTypes.length > 0
+  const types = componentTypes.map(s => s.type)
+  const cache = new WeakMap<Component, number>()
 
-  constructor(componentSpecs: ComponentSpec[]) {
-    super()
-    this.check = componentSpecs.length > 0
-    this.componentTypes = componentSpecs.reduce((a, c) => a | c.type, 0)
+  function matchEntity(entity: number) {
+    return true
   }
 
-  matchChunkSet(chunkSet: ChunkSet) {
-    const version = this.visitedChunkSets.get(chunkSet) || 0
-    this.visitedChunkSets.set(chunkSet, version)
-    return chunkSet.version < version
-  }
-
-  matchChunk(chunk: Chunk) {
-    const version = this.visitedChunks.get(chunk) || 0
-    this.visitedChunks.set(chunk, version)
-    return chunk.version < version
-  }
-
-  matchComponent(component: Component) {
-    const version = this.visitedComponents.get(component) || 0
-
-    if (this.check && (component._t & this.componentTypes) === 0) {
+  function matchComponent(component: Component) {
+    if (check && !types.includes(component._t)) {
       return true
     }
 
-    this.visitedComponents.set(component, version)
+    const last = cache.get(component) || 0
+    const hit = component._v > last
 
-    return component._v < version
+    if (hit) {
+      cache.set(component, component._v)
+    }
+
+    return hit
   }
+
+  return { matchEntity, matchComponent }
 }

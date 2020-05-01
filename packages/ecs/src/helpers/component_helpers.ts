@@ -1,7 +1,7 @@
 import {
   Component,
   ComponentOf,
-  ComponentSpec,
+  ComponentType,
   MutableComponentOf,
 } from "../component"
 import { createStackPool } from "../pool/stack_pool"
@@ -11,31 +11,29 @@ import {
   resetComponentFromSchema,
 } from "../schema/schema_utils"
 import { noop } from "../util/fp"
-import { Storage } from "../storage"
-import { Mutable } from "../types"
 
-export function createComponentSpec<T extends number, S extends Schema>(
+export function createComponentType<T extends number, S extends Schema>(
   type: T,
   schema: S,
-): ComponentSpec<T, S> {
+): ComponentType<T, S> {
   return { type, schema }
 }
 
-export function createComponentPool<C extends ComponentSpec>(componentSpec: C) {
+export function createComponentPool<C extends ComponentType>(componentType: C) {
   const pool = createStackPool<ComponentOf<C>>(
     () =>
       initializeComponentFromSchema(
-        { _t: componentSpec.type, _v: 0 },
-        componentSpec.schema,
+        { _t: componentType.type, _v: 0 },
+        componentType.schema,
       ) as ComponentOf<C>,
-    c => resetComponentFromSchema(c, componentSpec.schema) as ComponentOf<C>,
+    c => resetComponentFromSchema(c, componentType.schema) as ComponentOf<C>,
     1000,
   )
 
   return pool
 }
 
-type ComponentInitializer<C extends ComponentSpec> = (
+type ComponentInitializer<C extends ComponentType> = (
   component: MutableComponentOf<C>,
   ...args: any[]
 ) => void
@@ -47,22 +45,22 @@ export type ComponentInitializerArgs<I> = I extends (
   ? A
   : never
 
-interface ComponentFactoryLike<
-  C extends ComponentSpec,
-  I extends ComponentInitializer<C>
-> {
+export type ComponentFactoryLike<
+  C extends ComponentType = ComponentType,
+  I extends ComponentInitializer<C> = ComponentInitializer<C>
+> = {
   create(...args: ComponentInitializerArgs<I>): ComponentOf<C>
   destroy(component: ComponentOf<C>): void
-}
+} & C
 
 export function createComponentFactory<
-  C extends ComponentSpec,
+  C extends ComponentType,
   I extends ComponentInitializer<C>
 >(
-  componentSpec: C,
+  componentType: C,
   componentInitializer: I = noop as I,
-): C & ComponentFactoryLike<C, I> {
-  const pool = createComponentPool(componentSpec)
+): ComponentFactoryLike<C, I> {
+  const pool = createComponentPool(componentType)
 
   return {
     create(...args: ComponentInitializerArgs<I>) {
@@ -73,21 +71,13 @@ export function createComponentFactory<
     destroy(component: ComponentOf<C>) {
       pool.release(component)
     },
-    ...componentSpec,
+    ...componentType,
   }
 }
 
-export function isComponentOf(
+export function isComponentOf<T extends ComponentType>(
   component: Component,
-  componentType: ComponentSpec,
-): component is ComponentOf<ComponentSpec> {
-  return component._t === componentType.type
-}
-
-export function mut<C extends Component>(
-  component: C,
-  storage: Storage,
-): Mutable<C> {
-  storage.incrementVersion(component)
-  return component as Mutable<C>
+  componentTypeId: T,
+): component is ComponentOf<T> {
+  return component._t === componentTypeId.type
 }

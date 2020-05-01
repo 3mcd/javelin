@@ -1,0 +1,21 @@
+{
+  "name": "@javelin/hrtime-loop",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "prepare": "yarn build"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "loop",
+    "game",
+    "hires",
+    "hrtime",
+    "high",
+    "resolution"
+  ]
+}

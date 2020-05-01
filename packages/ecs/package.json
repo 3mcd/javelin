@@ -1,13 +1,21 @@
 {
   "name": "@javelin/ecs",
-  "version": "0.0.1-alpha.1",
+  "version": "0.0.1",
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "perf": "yarn build && node perf/index.js"
+    "perf": "yarn build && node perf/index.js",
+    "prepare": "yarn build"
   },
   "files": [
     "dist"
+  ],
+  "keywords": [
+    "ecs",
+    "game",
+    "mog",
+    "multiplayer",
+    "networking"
   ]
 }

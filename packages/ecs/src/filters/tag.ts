@@ -1,18 +1,14 @@
-import { Chunk, ChunkSet } from "../archetype"
-import { Filter } from "../filter"
+import { Filter } from "../query"
+import { Storage } from "../storage"
 
-export class Tag extends Filter {
-  private tags: number
+export function createTagFilter(tag: number, has = true): Filter {
+  const matchEntity = has
+    ? (entity: number, storage: Storage) => storage.hasTag(entity, tag)
+    : (entity: number, storage: Storage) => !storage.hasTag(entity, tag)
 
-  constructor(tags: number) {
-    super()
-    this.tags = tags
+  function matchComponent() {
+    return true
   }
 
-  matchChunkSet(chunkSet: ChunkSet) {
-    return (this.tags & chunkSet.tags) === this.tags
-  }
-  matchChunk(chunk: Chunk) {
-    return (this.tags & chunk.tags) === this.tags
-  }
+  return { matchEntity, matchComponent }
 }
