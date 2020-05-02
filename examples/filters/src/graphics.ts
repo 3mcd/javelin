@@ -1,6 +1,6 @@
 import { Application, Graphics, Text } from "pixi.js"
 
-export const app = new Application({ antialias: true })
+export const app = new Application({ antialias: false })
 export const graphics = new Graphics()
 export const framerate = new Text("0", {
   fontFamily: "Arial",

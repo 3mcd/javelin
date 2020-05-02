@@ -45,7 +45,7 @@ const Wormhole = createComponentFactory(
   (c, r = 0) => (c.radius = r),
 )
 
-const junkCount = 5000
+const junkCount = 10000
 const wormholeCount = 10
 const calcWormholeHorizon = (w: ComponentOf<typeof Wormhole>) => w.radius / 10
 
@@ -83,7 +83,7 @@ function loop() {
 
   for (const [p] of junk.run(storage)) {
     graphics.beginFill(
-      storage.hasTag(p._e, Tags.Influenced) ? 0xff0000 : 0x00ff00,
+      storage.hasTag(p._e, Tags.Influenced) ? 0xff0000 : 0x333333,
     )
     graphics.drawRect(p.x, p.y, 2, 2)
     graphics.endFill()
