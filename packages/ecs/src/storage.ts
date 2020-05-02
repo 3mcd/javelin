@@ -1,16 +1,11 @@
-import { Archetype, ChunkLocation } from "./archetype"
+import { Archetype } from "./archetype"
 import { Component } from "./component"
-
-type EntityLocation = ChunkLocation & { archetype: number }
 
 export class Storage {
   readonly archetypes: Archetype[] = []
-  private maxChunkSetSize: number
-  private entityLocations: (EntityLocation | null)[] = []
-
-  constructor(maxChunkSetSize: number = 100) {
-    this.maxChunkSetSize = maxChunkSetSize
-  }
+  private locations: (number | null)[] = []
+  private tags: number[] = []
+  private nextEntity = 0
 
   private findArchetype(componentTypes: number[]) {
     const len = componentTypes.length
@@ -41,11 +36,11 @@ export class Storage {
   }
 
   private findOrCreateArchetype(components: Component[]) {
-    const layout = components.map(c => c._t)
-    let archetype = this.findArchetype(layout)
+    const componentTypes = components.map(c => c._t)
+    let archetype = this.findArchetype(componentTypes)
 
     if (!archetype) {
-      archetype = new Archetype(this.maxChunkSetSize, layout)
+      archetype = new Archetype(componentTypes)
       this.archetypes.push(archetype)
     }
 
@@ -68,105 +63,48 @@ export class Storage {
     }
   }
 
-  insert(entity: number, components: Component[], tags = 0) {
+  insert(components: Component[], tags = 0) {
     const archetype = this.findOrCreateArchetype(components)
-    const chunkLocation = archetype.insert(components, tags)
+    const entity = this.nextEntity
+
+    this.nextEntity++
+
+    archetype.insert(entity, components)
 
     for (let i = 0; i < components.length; i++) {
       components[i]._e = entity
     }
 
-    this.entityLocations[entity] = {
-      ...chunkLocation,
-      archetype: this.archetypes.indexOf(archetype),
-    }
+    this.tags[entity] = tags
+    this.locations[entity] = this.archetypes.indexOf(archetype)
 
     return entity
   }
 
-  add(entity: number, ...components: Component[]) {}
-
-  remove(entity: number, ...components: Component[]) {
-    const location = this.entityLocations[entity]
-
+  remove(entity: number) {
+    const location = this.locations[entity]
     if (location === null) {
       throw new Error("Entity does not exist in Storage.")
     }
-
-    const source = this.archetypes[location.archetype]
-
+    const source = this.archetypes[location]
     if (source === undefined) {
       throw new Error("Invalid remove. Component archetype does not exist.")
     }
-
-    if (components.length > 0) {
-      const dest = this.findOrCreateArchetype(components)
-      const destChunkLocation = source.swap(location, dest)
-
-      this.entityLocations[entity] = {
-        ...destChunkLocation,
-        archetype: this.archetypes.indexOf(dest),
-      }
-      return
-    }
-
-    source.remove(location)
-    this.entityLocations[entity] = null
+    source.remove(entity)
+    this.locations[entity] = null
   }
 
   addTag(entity: number, tags: number) {
-    const location = this.entityLocations[entity]
-
-    if (location === null) {
-      throw new Error("Cannot tag entity. Entity not registered.")
-    }
-
-    // UNSAFE: archetype should exist since a location cannot be generated
-    // without a corresponding archetype.
-    const archetype = this.archetypes[location.archetype]!
-
-    archetype.addTag(location, tags)
+    this.tags[entity] |= tags
   }
 
   removeTag(entity: number, tags: number) {
-    const location = this.entityLocations[entity]
-
-    if (location === null) {
-      throw new Error("Cannot untag entity. Entity not registered.")
-    }
-
-    // UNSAFE: archetype should exist since a location cannot be generated
-    // without a corresponding archetype.
-    const archetype = this.archetypes[location.archetype]!
-
-    archetype.removeTag(location, tags)
+    this.tags[entity] &= ~tags
   }
 
   hasTag(entity: number, tags: number) {
-    const location = this.entityLocations[entity]
-
-    if (location === null) {
-      throw new Error("Cannot read tags of entity. Entity not registered.")
-    }
-
-    // UNSAFE: archetype should exist since a location cannot be generated
-    // without a corresponding archetype.
-    const archetype = this.archetypes[location.archetype]!
-
-    return archetype.hasTag(location, tags)
+    return (this.tags[entity] & tags) === tags
   }
 
-  incrementVersion(component: Component) {
-    const location = this.entityLocations[component._e]
-
-    if (location === null) {
-      throw new Error("Cannot tag entity. Entity not registered.")
-    }
-
-    // UNSAFE: archetype should exist since a location cannot be generated
-    // without a corresponding archetype.
-    const archetype = this.archetypes[location.archetype]!
-
-    archetype.incrementVersion(location, component)
-  }
+  incrementVersion(component: Component) {}
 }

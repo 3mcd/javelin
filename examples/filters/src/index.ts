@@ -46,28 +46,16 @@ const Wormhole = createComponentFactory(
 )
 
 const junkCount = 10000
-const wormholeCount = 10
 const calcWormholeHorizon = (w: ComponentOf<typeof Wormhole>) => w.radius / 10
 
 for (let i = 0; i < junkCount; i++) {
-  storage.insert(
-    i,
-    [
-      Position.create(Math.random() * 800, Math.random() * 600),
-      Velocity.create(),
-    ],
-    Tags.Junk,
-  )
-}
-
-for (let i = 0; i < wormholeCount; i++) {
-  storage.insert(junkCount + i, [
+  storage.insert([
     Position.create(Math.random() * 800, Math.random() * 600),
-    Wormhole.create(20),
+    Velocity.create(),
   ])
 }
 
-const junk = new Query([Position, Velocity]).filter(Tags.Junk)
+const junk = new Query([Position, Velocity])
 const wormholes = new Query([Position, Wormhole])
 
 let toRemove = new Set<number>()
@@ -83,9 +71,9 @@ function loop() {
 
   for (const [p] of junk.run(storage)) {
     graphics.beginFill(
-      storage.hasTag(p._e, Tags.Influenced) ? 0xff0000 : 0x333333,
+      storage.hasTag(p._e, Tags.Influenced) ? 0xee0000 : 0xeeeeee,
     )
-    graphics.drawRect(p.x, p.y, 2, 2)
+    graphics.drawRect(p.x, p.y, 1, 1)
     graphics.endFill()
   }
 
@@ -107,7 +95,7 @@ function loop() {
         storage.addTag(jp._e, Tags.Influenced)
         if (len < calcWormholeHorizon(w as any)) {
           toRemove.add(jp._e)
-          mut(w, storage).radius += 0.5
+          mut(w, storage).radius += 0.1
         } else {
           const nx = dx / len
           const ny = dy / len
@@ -132,6 +120,25 @@ function loop() {
   tick++
 
   requestAnimationFrame(loop)
+}
+
+let ix = 0
+let iy = 0
+
+function onPointerDown(event: any) {
+  ix = event.data.global.x
+  iy = event.data.global.y
+}
+
+app.renderer.plugins.interaction.on("pointerdown", onPointerDown)
+app.renderer.plugins.interaction.on("pointerup", onClick)
+
+function onClick(event: any) {
+  const dx = event.data.global.x - ix
+  const dy = event.data.global.y - iy
+  const r = Math.sqrt(dx * dx + dy * dy) * 10
+
+  storage.insert([Position.create(ix, iy), Wormhole.create(r)])
 }
 
 loop()
