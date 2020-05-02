@@ -6,18 +6,18 @@ module.exports.run = function run() {
   let n = 100
   const storage = new Storage()
   const components = [
-    { schema: {}, type: 2 ** 0 },
-    { schema: {}, type: 2 ** 1 },
-    { schema: {}, type: 2 ** 2 },
-    { schema: {}, type: 2 ** 3 },
+    { schema: {}, type: 1 },
+    { schema: {}, type: 2 },
+    { schema: {}, type: 3 },
+    { schema: {}, type: 4 },
   ]
   const entityComponents = [
-    ...arrayOf(25000, () => [{ _t: 2 ** 0 }]),
-    ...arrayOf(25000, () => [{ _t: 2 ** 0 }, { _t: 2 ** 2 }]),
-    ...arrayOf(25000, () => [{ _t: 2 ** 1 }]),
-    ...arrayOf(25000, () => [{ _t: 2 ** 0 }, { _t: 2 ** 1 }, { _t: 2 ** 2 }]),
-    ...arrayOf(25000, () => [{ _t: 2 ** 3 }]),
-    ...arrayOf(25000, () => [{ _t: 2 ** 1 }, { _t: 2 ** 3 }]),
+    ...arrayOf(25000, () => [{ _t: 1 }]),
+    ...arrayOf(25000, () => [{ _t: 1 }, { _t: 3 }]),
+    ...arrayOf(25000, () => [{ _t: 2 }]),
+    ...arrayOf(25000, () => [{ _t: 1 }, { _t: 2 }, { _t: 3 }]),
+    ...arrayOf(25000, () => [{ _t: 4 }]),
+    ...arrayOf(25000, () => [{ _t: 2 }, { _t: 4 }]),
   ]
   const queries = [
     [components[0]],
@@ -25,7 +25,7 @@ module.exports.run = function run() {
     [components[2]],
     [components[1], components[3]],
   ].map(c => new Query(c))
-  const entities = entityComponents.map((c, i) => storage.insert(i, c))
+  const entities = entityComponents.map(c => storage.insert(c))
 
   let i = n
   let c = 0

@@ -7,10 +7,10 @@ module.exports.run = function run() {
   let n = 100
   const storage = new Storage()
   const factories = [
-    createComponentFactory({ schema: {}, type: 2 ** 0 }),
-    createComponentFactory({ schema: {}, type: 2 ** 1 }),
-    createComponentFactory({ schema: {}, type: 2 ** 2 }),
-    createComponentFactory({ schema: {}, type: 2 ** 3 }),
+    createComponentFactory({ schema: {}, type: 1 }),
+    createComponentFactory({ schema: {}, type: 2 }),
+    createComponentFactory({ schema: {}, type: 3 }),
+    createComponentFactory({ schema: {}, type: 4 }),
   ]
   const entityComponents = [
     ...arrayOf(25000, () => [factories[0].create()]),
@@ -30,7 +30,7 @@ module.exports.run = function run() {
     [factories[2]],
     [factories[1], factories[3]],
   ].map(c => new Query(c))
-  const entities = entityComponents.map((c, i) => storage.insert(i, c))
+  const entities = entityComponents.map(c => storage.insert(c))
 
   let i = n
   let c = 0
