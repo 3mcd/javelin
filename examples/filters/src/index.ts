@@ -4,7 +4,6 @@ import {
   createQuery,
   createStorage,
   number,
-  changed,
 } from "@javelin/ecs"
 import { app, framerate, graphics } from "./graphics"
 
