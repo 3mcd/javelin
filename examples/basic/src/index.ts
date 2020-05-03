@@ -1,8 +1,10 @@
 import {
+  Component,
+  ComponentOf,
   createComponentFactory,
-  mut,
+  createQuery,
+  createStorage,
   number,
-  Query,
   Storage,
 } from "@javelin/ecs"
 import { graphics } from "./graphics"
@@ -27,22 +29,43 @@ const Velocity = createComponentFactory(
     v.y = y
   },
 )
+const Sleep = createComponentFactory({
+  type: 3,
+  schema: {
+    value: number,
+  },
+})
 
-const storage = new Storage()
+const storage = createStorage()
 
 enum Tags {
   Awake = 1,
 }
 
-for (let i = 0; i < 100000; i++) {
+for (let i = 0; i < 15000; i++) {
   const vx = Math.random() * 50
   const vy = Math.random() * 50
 
-  storage.insert(i, [Position.create(), Velocity.create(vx, vy)], Tags.Awake)
+  storage.insert(
+    [Position.create(), Velocity.create(vx, vy), Sleep.create()],
+    Tags.Awake,
+  )
 }
 
-const bodies = new Query([Position, Velocity])
-const positions = new Query([Position])
+const renderCullingFilter = {
+  match(component: ComponentOf<typeof Position>) {
+    return component.x >= 0 && component.x <= 800 && component.y >= 0
+  },
+}
+
+const awakeFilter = {
+  match(component: Component, storage: Storage) {
+    return storage.hasTag(component._e, Tags.Awake)
+  },
+}
+
+const bodies = createQuery(Position, Velocity, Sleep)
+const positions = createQuery(Position)
 
 const size = 2
 const floorSize = 10
@@ -50,38 +73,50 @@ const floorOffset = 600 - size - floorSize
 
 function loop() {
   // physics system
-  for (const [p, v] of bodies.run(storage)) {
-    const mv = mut(v, storage)
-    const mp = mut(p, storage)
+  for (const [p, v, s] of bodies.run(storage, awakeFilter)) {
+    const { x, y } = p
 
-    mp.x += v.x
-    mp.y += v.y
+    p.x += v.x
+    p.y += v.y
+
+    storage.incrementVersion(p)
+    storage.incrementVersion(v)
+
+    // put entities to sleep that haven't moved recently
+    if (Math.abs(x - p.x) < 0.2 && Math.abs(y - p.y) < 0.2) {
+      if (++s.value >= 5) {
+        storage.removeTag(v._e, Tags.Awake)
+        continue
+      }
+    } else {
+      s.value = 0
+    }
 
     if (p.y >= floorOffset) {
       // collision w/ floor and "restitution"
-      mv.y = -(v.y * 0.5)
-      mv.x *= 0.5
-      mp.y = floorOffset
+      v.y = -(v.y * 0.5)
+      v.x *= 0.5
+      p.y = floorOffset
       continue
     }
 
     if (p.x >= 800 || p.x <= 0) {
       // collision w/ wall and "restitution"
-      mv.x = -(v.x * 0.5)
-      mp.x = Math.max(0, Math.min(p.x, 800))
+      v.x = -(v.x * 0.5)
+      p.x = Math.max(0, Math.min(p.x, 800))
       continue
     }
 
     // gravity
-    mv.y += 0.1
+    v.y += 0.1
   }
 
   // render system
   graphics.clear()
 
-  for (const [p] of positions.run(storage)) {
+  for (const [p] of positions.run(storage, renderCullingFilter)) {
     graphics.beginFill(0x00ff00)
-    graphics.drawRect(p.x, p.y, 2, 2)
+    graphics.drawRect(p.x, p.y, 1, 1)
     graphics.endFill()
   }
 

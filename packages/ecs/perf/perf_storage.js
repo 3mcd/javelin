@@ -1,10 +1,10 @@
-const { Storage } = require("../dist/storage")
-const { Query } = require("../dist/query")
+const { createStorage } = require("../dist/storage")
+const { createQuery } = require("../dist/query")
 const { arrayOf } = require("../dist/util/array")
 
 module.exports.run = function run() {
   let n = 100
-  const storage = new Storage()
+  const storage = createStorage()
   const components = [
     { schema: {}, type: 1 },
     { schema: {}, type: 2 },
@@ -12,19 +12,19 @@ module.exports.run = function run() {
     { schema: {}, type: 4 },
   ]
   const entityComponents = [
-    ...arrayOf(25000, () => [{ _t: 1 }]),
-    ...arrayOf(25000, () => [{ _t: 1 }, { _t: 3 }]),
-    ...arrayOf(25000, () => [{ _t: 2 }]),
-    ...arrayOf(25000, () => [{ _t: 1 }, { _t: 2 }, { _t: 3 }]),
-    ...arrayOf(25000, () => [{ _t: 4 }]),
-    ...arrayOf(25000, () => [{ _t: 2 }, { _t: 4 }]),
+    ...arrayOf(50000, () => [{ _t: 1 }]),
+    ...arrayOf(50000, () => [{ _t: 1 }, { _t: 3 }]),
+    ...arrayOf(50000, () => [{ _t: 2 }]),
+    ...arrayOf(50000, () => [{ _t: 1 }, { _t: 2 }, { _t: 3 }]),
+    ...arrayOf(50000, () => [{ _t: 4 }]),
+    ...arrayOf(50000, () => [{ _t: 2 }, { _t: 4 }]),
   ]
   const queries = [
     [components[0]],
     [components[0], components[1]],
     [components[2]],
     [components[1], components[3]],
-  ].map(c => new Query(c))
+  ].map(c => createQuery(...c))
   const entities = entityComponents.map(c => storage.insert(c))
 
   let i = n
@@ -40,11 +40,11 @@ module.exports.run = function run() {
     i--
   }
 
+  const end = Date.now()
+
   for (let i = 0; i < entities.length; i++) {
     storage.remove(entities[i])
   }
-
-  const end = Date.now()
 
   console.log(`entities      | ${entityComponents.length}`)
   console.log(`components    | ${components.length}`)

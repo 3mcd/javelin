@@ -1,11 +1,11 @@
-const { Storage } = require("../dist/storage")
-const { Query } = require("../dist/query")
+const { createStorage } = require("../dist/storage")
+const { createQuery } = require("../dist/query")
 const { arrayOf } = require("../dist/util/array")
 const { createComponentFactory } = require("../dist/helpers/component_helpers")
 
 module.exports.run = function run() {
   let n = 100
-  const storage = new Storage()
+  const storage = createStorage()
   const factories = [
     createComponentFactory({ schema: {}, type: 1 }),
     createComponentFactory({ schema: {}, type: 2 }),
@@ -13,23 +13,23 @@ module.exports.run = function run() {
     createComponentFactory({ schema: {}, type: 4 }),
   ]
   const entityComponents = [
-    ...arrayOf(25000, () => [factories[0].create()]),
-    ...arrayOf(25000, () => [factories[0].create(), factories[2].create()]),
-    ...arrayOf(25000, () => [factories[1].create()]),
-    ...arrayOf(25000, () => [
+    ...arrayOf(50000, () => [factories[0].create()]),
+    ...arrayOf(50000, () => [factories[0].create(), factories[2].create()]),
+    ...arrayOf(50000, () => [factories[1].create()]),
+    ...arrayOf(50000, () => [
       factories[0].create(),
       factories[1].create(),
       factories[2].create(),
     ]),
-    ...arrayOf(25000, () => [factories[3].create()]),
-    ...arrayOf(25000, () => [factories[1].create(), factories[3].create()]),
+    ...arrayOf(50000, () => [factories[3].create()]),
+    ...arrayOf(50000, () => [factories[1].create(), factories[3].create()]),
   ]
   const queries = [
     [factories[0]],
     [factories[0], factories[1]],
     [factories[2]],
     [factories[1], factories[3]],
-  ].map(c => new Query(c))
+  ].map(c => createQuery(...c))
   const entities = entityComponents.map(c => storage.insert(c))
 
   let i = n
@@ -45,11 +45,11 @@ module.exports.run = function run() {
     i--
   }
 
+  const end = Date.now()
+
   for (let i = 0; i < entities.length; i++) {
     storage.remove(entities[i])
   }
-
-  const end = Date.now()
 
   console.log(`entities      | ${entityComponents.length}`)
   console.log(`components    | ${factories.length}`)

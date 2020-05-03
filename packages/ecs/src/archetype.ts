@@ -1,53 +1,61 @@
 import { Component } from "./component"
 import { mutableRemoveUnordered } from "./util/array"
 
-export class Archetype {
-  readonly layout: number[]
-  readonly table: Readonly<Component>[][] = []
+export interface Archetype {
+  table: ReadonlyArray<ReadonlyArray<Readonly<Component>>>
+  layout: ReadonlyArray<number>
+  entities: ReadonlyArray<number>
+  indices: ReadonlyArray<number>
+  insert(entity: number, components: Component[]): void
+  remove(entity: number): void
+}
 
-  entities: number[] = []
-  indices: number[] = []
-  head: number = -1
+export function createArchetype(componentTypes: number[]): Archetype {
+  const table: Readonly<Component>[][] = []
+  const entities: number[] = []
+  const indices: number[] = []
+  const layout = componentTypes.slice().sort((a, b) => a - b)
 
-  constructor(componentTypes: number[]) {
-    this.layout = componentTypes.slice().sort((a, b) => a - b)
+  let head: number = -1
 
-    for (let i = 0; i < this.layout.length; i++) {
-      this.table[i] = []
-    }
+  for (let i = 0; i < layout.length; i++) {
+    table[i] = []
   }
 
-  insert(entity: number, components: Component[]) {
-    const next = this.head + 1
+  function insert(entity: number, components: Component[]) {
+    const next = head + 1
 
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      this.table[this.layout.indexOf(component._t)][next] = component
+      table[layout.indexOf(component._t)][next] = component
     }
 
-    this.entities.push(entity)
-    this.indices[entity] = next
+    entities.push(entity)
+    indices[entity] = next
 
-    this.head = next
-
-    return entity
+    head = next
   }
 
-  swap(entity: number, dest: Archetype) {
-    // TODO
-  }
+  function remove(entity: number) {
+    const index = indices[entity]
 
-  remove(entity: number) {
-    const index = this.indices[entity]
+    indices[head] = index
 
-    this.indices[this.head] = index
-
-    for (let i = 0; i < this.table.length; i++) {
-      const components = this.table[i]
-      components[index] = components[this.head]
+    for (let i = 0; i < table.length; i++) {
+      const components = table[i]
+      components[index] = components[head]
     }
 
-    mutableRemoveUnordered(this.entities, entity)
-    this.head--
+    mutableRemoveUnordered(entities, entity)
+    head--
+  }
+
+  return {
+    table,
+    layout,
+    indices,
+    entities,
+    insert,
+    remove,
   }
 }

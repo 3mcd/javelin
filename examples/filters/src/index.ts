@@ -1,20 +1,18 @@
 import {
   ComponentOf,
   createComponentFactory,
-  mut,
+  createQuery,
+  createStorage,
   number,
-  Query,
-  Storage,
+  changed,
 } from "@javelin/ecs"
-import { graphics, framerate, app } from "./graphics"
+import { app, framerate, graphics } from "./graphics"
 
 enum Tags {
-  Junk = 1,
-  Wormhole = 2,
-  Influenced = 4,
+  Influenced = 1,
 }
 
-const storage = new Storage()
+const storage = createStorage()
 const Position = createComponentFactory(
   {
     type: 1,
@@ -45,7 +43,7 @@ const Wormhole = createComponentFactory(
   (c, r = 0) => (c.radius = r),
 )
 
-const junkCount = 10000
+const junkCount = 15000
 const calcWormholeHorizon = (w: ComponentOf<typeof Wormhole>) => w.radius / 10
 
 for (let i = 0; i < junkCount; i++) {
@@ -55,8 +53,8 @@ for (let i = 0; i < junkCount; i++) {
   ])
 }
 
-const junk = new Query([Position, Velocity])
-const wormholes = new Query([Position, Wormhole])
+const junk = createQuery(Position, Velocity)
+const wormholes = createQuery(Position, Wormhole)
 
 let toRemove = new Set<number>()
 let tick = 0
@@ -95,13 +93,14 @@ function loop() {
         storage.addTag(jp._e, Tags.Influenced)
         if (len < calcWormholeHorizon(w as any)) {
           toRemove.add(jp._e)
-          mut(w, storage).radius += 0.1
+          Position.destroy(jp)
+          w.radius += 0.1
         } else {
           const nx = dx / len
           const ny = dy / len
-          const mjv = mut(jv, storage)
-          mjv.x += nx / 100
-          mjv.y += ny / 100
+
+          jv.x += nx / 100
+          jv.y += ny / 100
         }
       }
     }
@@ -109,9 +108,9 @@ function loop() {
 
   // physics system
   for (const [p, v] of junk.run(storage)) {
-    const mp = mut(p, storage)
-    mp.x += v.x
-    mp.y += v.y
+    p.x += v.x
+    p.y += v.y
+    storage.incrementVersion(p)
   }
 
   toRemove.forEach(e => storage.remove(e))

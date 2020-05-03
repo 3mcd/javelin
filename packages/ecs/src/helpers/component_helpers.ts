@@ -83,11 +83,3 @@ export function isComponentOf(
 ): component is ComponentOf<ComponentSpec> {
   return component._t === componentType.type
 }
-
-export function mut<C extends Component>(
-  component: C,
-  storage: Storage,
-): Mutable<C> {
-  storage.incrementVersion(component)
-  return component as Mutable<C>
-}

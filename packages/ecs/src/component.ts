@@ -24,7 +24,7 @@ export type ComponentOf<C extends ComponentSpec> = C extends ComponentSpec<
   infer T,
   infer S
 >
-  ? Readonly<Component<T, PropsOfSchema<S>>>
+  ? Component<T, PropsOfSchema<S>>
   : never
 
 export type ComponentsOf<C extends ComponentSpec[]> = {

@@ -1,17 +1,28 @@
-import { Archetype } from "./archetype"
+import { Archetype, createArchetype } from "./archetype"
 import { Component } from "./component"
 
-export class Storage {
-  readonly archetypes: Archetype[] = []
-  private locations: (number | null)[] = []
-  private tags: number[] = []
-  private nextEntity = 0
+export interface Storage {
+  archetypes: ReadonlyArray<Archetype>
+  insert(components: Component[], tag?: number): number
+  remove(entity: number): void
+  addTag(entity: number, tag: number): void
+  removeTag(entity: number, tag: number): void
+  hasTag(eentity: number, tag: number): boolean
+  incrementVersion(component: Component): void
+}
 
-  private findArchetype(componentTypes: number[]) {
+export function createStorage(): Storage {
+  const archetypes: Archetype[] = []
+  const locations: (number | null)[] = []
+  const tags: number[] = []
+
+  let nextEntity = 0
+
+  function findArchetype(componentTypes: number[]) {
     const len = componentTypes.length
 
-    for (let i = 0; i < this.archetypes.length; i++) {
-      const archetype = this.archetypes[i]
+    for (let i = 0; i < archetypes.length; i++) {
+      const archetype = archetypes[i]
       const { layout } = archetype
 
       if (layout.length !== len) {
@@ -35,76 +46,78 @@ export class Storage {
     return null
   }
 
-  private findOrCreateArchetype(components: Component[]) {
+  function findOrCreateArchetype(components: Component[]) {
     const componentTypes = components.map(c => c._t)
-    let archetype = this.findArchetype(componentTypes)
+    let archetype = findArchetype(componentTypes)
 
     if (!archetype) {
-      archetype = new Archetype(componentTypes)
-      this.archetypes.push(archetype)
+      archetype = createArchetype(componentTypes)
+      archetypes.push(archetype)
     }
 
     return archetype
   }
 
-  *getArchetypes(componentTypes: number[]) {
-    for (let i = 0; i < this.archetypes.length; i++) {
-      const archetype = this.archetypes[i]
-      let match = true
-      for (let j = 0; j < componentTypes.length; j++) {
-        if (archetype.layout.indexOf(componentTypes[j]) === -1) {
-          match = false
-          break
-        }
-      }
-      if (match) {
-        yield archetype
-      }
-    }
-  }
+  function insert(components: Component[], tag = 0) {
+    const archetype = findOrCreateArchetype(components)
+    const entity = nextEntity
 
-  insert(components: Component[], tags = 0) {
-    const archetype = this.findOrCreateArchetype(components)
-    const entity = this.nextEntity
-
-    this.nextEntity++
+    nextEntity++
 
     archetype.insert(entity, components)
 
     for (let i = 0; i < components.length; i++) {
-      components[i]._e = entity
+      const component = components[i]
+      component._e = entity
+      component._v = 0
     }
 
-    this.tags[entity] = tags
-    this.locations[entity] = this.archetypes.indexOf(archetype)
+    tags[entity] = tag
+    locations[entity] = archetypes.indexOf(archetype)
 
     return entity
   }
 
-  remove(entity: number) {
-    const location = this.locations[entity]
+  function remove(entity: number) {
+    const location = locations[entity]
+
     if (location === null) {
       throw new Error("Entity does not exist in Storage.")
     }
-    const source = this.archetypes[location]
+
+    const source = archetypes[location]
+
     if (source === undefined) {
       throw new Error("Invalid remove. Component archetype does not exist.")
     }
+
     source.remove(entity)
-    this.locations[entity] = null
+    locations[entity] = null
   }
 
-  addTag(entity: number, tags: number) {
-    this.tags[entity] |= tags
+  function addTag(entity: number, tag: number) {
+    tags[entity] |= tag
   }
 
-  removeTag(entity: number, tags: number) {
-    this.tags[entity] &= ~tags
+  function removeTag(entity: number, tag: number) {
+    tags[entity] &= ~tag
   }
 
-  hasTag(entity: number, tags: number) {
-    return (this.tags[entity] & tags) === tags
+  function hasTag(entity: number, tag: number) {
+    return (tags[entity] & tag) === tag
   }
 
-  incrementVersion(component: Component) {}
+  function incrementVersion(component: Component) {
+    component._v++
+  }
+
+  return {
+    insert,
+    remove,
+    addTag,
+    removeTag,
+    hasTag,
+    archetypes,
+    incrementVersion,
+  }
 }
