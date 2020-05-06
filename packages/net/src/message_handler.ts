@@ -1,6 +1,12 @@
 import { NetworkMessage, NetworkMessageType } from "./protocol"
 import { Storage } from "@javelin/ecs"
 
+/**
+ * Create a message handler that can apply Javelin protocol messages to an ECS
+ * Storage. Also manages a map of remote entities to their local counterparts.
+ *
+ * @param storage Storage to apply messages to
+ */
 export function createMessageHandler(storage: Storage) {
   const remoteToLocal = new Map<number, number>()
 
