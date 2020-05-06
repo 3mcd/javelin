@@ -15,7 +15,7 @@ jobs:
       - name: Configure CI Git User
         run: |
           git config --global user.name '3mcd'
-          git config --global user.email 'eric.g.mcdaniel@gmail.com'
+          git config --global user.email '3mcd@users.noreply.github.com'
           git remote set-url origin https://$GITHUB_ACTOR:$GITHUB_PAT@github.com/3mcd/javelin
         env:
           GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
@@ -29,8 +29,7 @@ jobs:
       - name: Authenticate with Registry
         run: |
           yarn logout
-          echo "@javelin:registry=http://registry.npmjs.org/" > .npmrc
-          echo "registry=http://registry.npmjs.org/" >> .npmrc
+          echo "registry=http://registry.npmjs.org/" > .npmrc
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> .npmrc
           npm whoami
         env:
@@ -38,7 +37,7 @@ jobs:
 
       - name: Publish package
         run: |
-          npx lerna publish --yes --message 'chore: release'
+          yarn lerna publish from-package --yes --message 'chore: release'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_PAT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
