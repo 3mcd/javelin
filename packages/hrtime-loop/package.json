@@ -17,5 +17,8 @@
     "hrtime",
     "high",
     "resolution"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }
