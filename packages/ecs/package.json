@@ -17,5 +17,8 @@
     "mog",
     "multiplayer",
     "networking"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }
