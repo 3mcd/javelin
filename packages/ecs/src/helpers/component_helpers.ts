@@ -38,18 +38,18 @@ type ComponentInitializer<C extends ComponentType> = (
   ...args: any[]
 ) => void
 
-export type ComponentInitializerArgs<I> = I extends (
-  component: Component,
+export type ComponentInitializerArgs<I, C extends ComponentType> = I extends (
+  component: ComponentOf<C>,
   ...args: infer A
-) => unknown
+) => void
   ? A
-  : never
+  : never[]
 
 export type ComponentFactoryLike<
   C extends ComponentType = ComponentType,
   I extends ComponentInitializer<C> = ComponentInitializer<C>
 > = {
-  create(...args: ComponentInitializerArgs<I>): ComponentOf<C>
+  create(...args: ComponentInitializerArgs<I, C>): ComponentOf<C>
   destroy(component: ComponentOf<C>): void
 } & C
 
@@ -63,7 +63,7 @@ export function createComponentFactory<
   const pool = createComponentPool(componentType)
 
   return {
-    create(...args: ComponentInitializerArgs<I>) {
+    create(...args: ComponentInitializerArgs<I, C>) {
       const component = pool.retain()
       componentInitializer(component, ...args)
       return component

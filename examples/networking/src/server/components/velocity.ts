@@ -8,7 +8,7 @@ export const Velocity = createComponentFactory(
       y: number,
     },
   },
-  (v, x = 0, y = 0) => {
+  (v, x: number = 0, y: number = 0) => {
     v.x = x
     v.y = y
   },
