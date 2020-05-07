@@ -1,6 +1,6 @@
 {
   "name": "@javelin/hrtime-loop",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
