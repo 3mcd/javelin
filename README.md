@@ -1,3 +1,5 @@
+![CD](https://github.com/3mcd/javelin/workflows/CD/badge.svg?branch=master)
+
 # javelin
 
 A suite of packages used to create multiplayer games in TypeScript.
@@ -7,9 +9,8 @@ A suite of packages used to create multiplayer games in TypeScript.
 ## Getting Started
 
 ```sh
-yarn
-yarn build
-yarn example:networking
+npm i @javelin/ecs
+npm i @javelin/net
 ```
 
 ## Packages
@@ -32,5 +33,12 @@ yarn example:networking
 | `yarn example:networking` | An example of synchronizing entities over WebRTC |
 
 ## Development
+
+
+```sh
+yarn
+yarn build
+yarn example:networking
+```
 
 Note that when developing, changes to code in local, dependent packages will not automatically refresh development apps. Just build the dependent packages and restart the dev server process when you want to test a change.
