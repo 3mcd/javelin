@@ -29,7 +29,8 @@ jobs:
       - name: Authenticate with Registry
         run: |
           yarn logout
-          echo "registry=http://registry.npmjs.org/" > .npmrc
+          echo "@javelin:registry=http://registry.npmjs.org/" > .npmrc
+          echo "registry=http://registry.npmjs.org/" >> .npmrc
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> .npmrc
           npm whoami
         env:
