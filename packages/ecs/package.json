@@ -4,8 +4,8 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
     "perf": "yarn build && node perf/index.js",
+    "build": "tsc",
     "prepare": "yarn build"
   },
   "files": [
