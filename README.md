@@ -1,4 +1,5 @@
 ![CD](https://github.com/3mcd/javelin/workflows/CD/badge.svg?branch=master)
+[![codecov](https://codecov.io/gh/3mcd/javelin/branch/next/graph/badge.svg)](https://codecov.io/gh/3mcd/javelin)
 
 # javelin
 
@@ -33,7 +34,6 @@ npm i @javelin/net
 | `yarn example:networking` | An example of synchronizing entities over WebRTC |
 
 ## Development
-
 
 ```sh
 yarn

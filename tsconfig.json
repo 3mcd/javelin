@@ -5,6 +5,7 @@
     "module": "ESNext",
     "esModuleInterop": true,
     "noImplicitAny": true,
+    "moduleResolution": "node",
     "strictNullChecks": true,
     "sourceMap": true,
     "declaration": true,

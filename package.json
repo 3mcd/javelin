@@ -14,12 +14,15 @@
     "jest": "^25.5.4",
     "lerna": "^3.20.2",
     "ts-jest": "^25.5.0",
+    "typedoc": "^0.17.6",
+    "typedoc-plugin-external-module-map": "^1.2.1",
     "typescript": "^3.8.3"
   },
   "scripts": {
     "build": "lerna run build",
     "test": "jest",
     "perf": "lerna run perf",
+    "docs": "typedoc --out docs --target es6 --theme default --external-modulemap  \".*/packages/([\\w\\-_]+)/\"",
     "example:basic": "lerna run start --scope=@javelin/example-basic --stream",
     "example:filters": "lerna run start --scope=@javelin/example-filters --stream",
     "example:networking": "lerna run start --scope=@javelin/example-networking --stream"
