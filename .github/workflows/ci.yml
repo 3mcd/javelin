@@ -21,9 +21,10 @@ jobs:
       - run: yarn
       - run: yarn build
       - run: yarn test --coverage
-    steps:
+
       - uses: actions/checkout@v2
-      - uses: codecov/codecov-action@v1
+      - name: Publish code coverage report
+        uses: codecov/codecov-action@v1
         with:
           file: ./coverage/clover.xml
           flags: unittests # optional
