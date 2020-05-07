@@ -17,8 +17,8 @@ export function createChangedFilter(
       return true
     }
 
-    const last = cache.get(component) || 0
-    const hit = component._v > last
+    const last = cache.get(component)
+    const hit = component._v > (last === undefined ? -1 : last)
 
     if (hit) {
       cache.set(component, component._v)
