@@ -34,12 +34,14 @@ export interface Archetype {
    *
    * @param entity Entity to associate components with
    * @param components Array of components
+   * @returns void
    */
   insert(entity: number, components: Component[]): void
   /**
    * Remove an entity from the Archetype.
    *
    * @param entity Entity to associate components with
+   * @returns void
    */
   remove(entity: number): void
 }

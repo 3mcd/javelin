@@ -43,3 +43,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_PAT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Generate typedoc
+        run: yarn docs
+
+      - name: Publish docs to GitHub Pages
+        uses: tsunematsu21/actions-publish-gh-pages@v1.0.1
+        with:
+          dir: docs
+          branch: gh-pages
+          token: ${{ secrets.ACCESS_TOKEN }}
