@@ -10,12 +10,15 @@
     "examples/*"
   ],
   "dependencies": {
+    "@types/jest": "^25.2.1",
+    "jest": "^25.5.4",
     "lerna": "^3.20.2",
+    "ts-jest": "^25.5.0",
     "typescript": "^3.8.3"
   },
   "scripts": {
     "build": "lerna run build",
-    "test": "lerna run test",
+    "test": "jest",
     "perf": "lerna run perf",
     "example:basic": "lerna run start --scope=@javelin/example-basic --stream",
     "example:filters": "lerna run start --scope=@javelin/example-filters --stream",
