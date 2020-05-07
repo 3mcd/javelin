@@ -7,8 +7,7 @@
     "version": {
       "allowBranch": "master",
       "conventionalCommits": true,
-      "exact": true,
-      "message": "chore(release): %s"
+      "exact": true
     }
   },
   "ignoreChanges": ["**/__fixtures__/**", "**/__tests__/**", "**/*.md"]
