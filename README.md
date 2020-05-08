@@ -3,9 +3,7 @@
 
 # javelin
 
-A suite of packages used to create multiplayer games in TypeScript.
-
-**Note: This project is in alpha and will likely break occasionally.**
+A collection of packages for web multiplayer online game development.
 
 ## Getting Started
 
@@ -36,9 +34,9 @@ npm i @javelin/net
 ## Development
 
 ```sh
-yarn
-yarn build
-yarn example:networking
+npm i
+npm run build
+npm run example:networking
 ```
 
 Note that when developing, changes to code in local, dependent packages will not automatically refresh development apps. Just build the dependent packages and restart the dev server process when you want to test a change.
