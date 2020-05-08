@@ -1,4 +1,4 @@
-![CD](https://github.com/3mcd/javelin/workflows/CD/badge.svg?branch=master)
+![CD](https://github.com/3mcd/javelin/workflows/CD/badge.svg?branch=release/next)
 [![codecov](https://codecov.io/gh/3mcd/javelin/branch/next/graph/badge.svg)](https://codecov.io/gh/3mcd/javelin)
 
 # javelin
