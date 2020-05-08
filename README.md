@@ -5,14 +5,9 @@
 
 # javelin
 
-A collection of packages for web multiplayer online game development.
+Javelin is a suite of packages used to build multiplayer games for the web.
 
-## Getting Started
-
-```sh
-npm i @javelin/ecs
-npm i @javelin/net
-```
+The primary goals of Javelin are speed, minimalism, and ease-of-use. A secondary goal is to provide examples of client-side prediction, input reconciliation, and other algorithms commonly used in fast-paced online games.
 
 ## Packages
 
@@ -21,6 +16,14 @@ npm i @javelin/net
 | [@javelin/ecs](./packages/ecs)                 | Entity-Component System              |
 | [@javelin/net](./packages/net)                 | Network protocol and utils           |
 | [@javelin/hrtime-loop](./packages/hrtime-loop) | High-resolution game loop for NodeJS |
+
+## Examples
+
+| Example                             | Description                                               |
+| ----------------------------------- | --------------------------------------------------------- |
+| [basic](./examples/basic)           | A basic ECS example                                       |
+| [filters](./examples/filters)       | Demonstration of query filters                            |
+| [networking](./examples/networking) | Entity/component synchronization over WebRTC datachannels |
 
 ## Scripts
 
