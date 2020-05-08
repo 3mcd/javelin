@@ -1,7 +1,7 @@
 {
   "name": "@javelin/example-basic",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
@@ -12,7 +12,7 @@
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
-    "@javelin/ecs": "0.1.1",
+    "@javelin/ecs": "0.1.2",
     "pixi.js": "^5.2.3",
     "webpack-dev-server": "^3.10.3"
   },
