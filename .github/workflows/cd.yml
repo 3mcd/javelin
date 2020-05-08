@@ -98,13 +98,3 @@ jobs:
               repo: context.repo.repo,
               body: 'https://github.com/${{ github.repository }}/releases/tag/v${{ env.CURRENT_VERSION }} is released 🎉'
             })
-
-      - name: Build Documentation
-        run: yarn docs
-
-      - name: Publish Documentation
-        uses: tsunematsu21/actions-publish-gh-pages@v1.0.1
-        with:
-          dir: docs
-          branch: gh-pages
-          token: ${{ secrets.ACCESS_TOKEN }}
