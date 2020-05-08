@@ -1,8 +1,7 @@
 {
   "name": "javelin",
   "private": true,
-  "version": "0.0.1",
-  "description": "Fast and simple TypeScript Entity-Component System",
+  "version": "0.0.0",
   "main": "index.js",
   "license": "MIT",
   "workspaces": [

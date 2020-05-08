@@ -1,17 +1,23 @@
 # `@javelin/ecs`
 
-A simple, performant ECS for TypeScript.
+A TypeScript Entity-Component System (ECS) for Node and web browsers.
+
+## Primer
+
+ECS is a pattern commonly used in game development to associate components (state) with stateless entities (game objects). Systems then operate on collections of entities of shared composition.
+
+For example, a system could add a `Burn` component to entities with `Position` and `Health` components when their position intersects with a lava pit.
 
 ## Features
 
 - **Performant**
-  - Entities are organized based on their component makeup into Archetypes. This helps performance since the core model of ECS is to iterate over entities with like components.
+  - Entities are organized by component makeup into Archetypes for fast iteration
+  - Entities can be tagged with bit flags for quick filtering
 - **Ergonomic**
-  - Minimal API.
-  - Data-oriented design: no classes or inheritance.
-  - Tag entities with bit flags for basic filtering.
+  - Minimal API
+  - No classes or inheritance
 - **Unopinionated**
-  - Leaves many decisions up to you. For example, a helper for creating component instances is provided, but not required for library use.
+  - Leaves many opinions up to you, meaning it can be integrated with other packages or pre-existing projects
 
 ## Performance
 
@@ -90,14 +96,14 @@ const position = Position.create()
 const entity = storage.create([position])
 ```
 
-Components created via factory are automatically pooled, but you must manually release the component back to the pool when it should be discarded:
+Components created via factory are automatically pooled; however, you must manually release the component back to the pool when it should be discarded:
 
 ```ts
 storage.destroy(entity)
 Position.destroy(position)
 ```
 
-The ECS can do this automatically if you register the component factory via the `storage.registerComponentFactory` method.
+`Storage` can do this automatically if you register the component factory via the `storage.registerComponentFactory` method.
 
 ```ts
 storage.registerComponentFactory(Position)
@@ -186,8 +192,8 @@ storage.hasTag(entity, Tags.Awake) // -> false
 
 ```ts
 enum Tags {
-  Nasty = 1, // 2^0
-  Goopy = 2, // 2^1
+  Nasty = 2 ** 0,
+  Goopy = 2 ** 1,
 }
 
 const nastyAndGoopy = createTagFilter(Tags.Nasty | Tags.Goopy)
