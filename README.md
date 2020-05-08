@@ -1,6 +1,8 @@
 ![CD](https://github.com/3mcd/javelin/workflows/CD/badge.svg?branch=release/next)
 [![codecov](https://codecov.io/gh/3mcd/javelin/branch/next/graph/badge.svg)](https://codecov.io/gh/3mcd/javelin)
 
+<img src="./logo.png" width="100px" align="left">
+
 # javelin
 
 A collection of packages for web multiplayer online game development.
