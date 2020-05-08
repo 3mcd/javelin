@@ -34,9 +34,9 @@ npm i @javelin/net
 ## Development
 
 ```sh
-npm i
-npm run build
-npm run example:networking
+yarn --ignore-engines
+yarn build
+yarn example:networking
 ```
 
 Note that when developing, changes to code in local, dependent packages will not automatically refresh development apps. Just build the dependent packages and restart the dev server process when you want to test a change.
