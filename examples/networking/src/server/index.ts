@@ -6,7 +6,7 @@ import {
   createTagFilter,
   mutableEmpty,
 } from "@javelin/ecs"
-import { createPriorityAccumulator, protocol } from "@javelin/net"
+import { createMessageProducer, protocol } from "@javelin/net"
 import { createHrtimeLoop } from "@javelin/hrtime-loop"
 import { encode } from "@msgpack/msgpack"
 import { Server } from "@web-udp/server"
@@ -21,20 +21,15 @@ import { Client, ConnectionMetadata } from "./types"
 
 const PORT = 8000
 const TICK_RATE = 60
-const SEND_RATE = 20
-const MAX_UPDATE_SIZE = 1500
 
 const server = createServer()
 const udp = new Server({ server })
 const storage = createStorage()
-const config = [{ componentType: Position, priority: 1 }]
-const unreliable = config.filter(c => c.priority > 0)
-const priorities = createPriorityAccumulator(
-  new Map(unreliable.map(c => [c.componentType.type, c.priority])),
-)
-const queryAll = createQuery(...config.map(c => c.componentType))
-const queryUnreliable = createQuery(...unreliable.map(c => c.componentType))
-const added = createAddedFilter()
+const producer = createMessageProducer({
+  components: [{ type: Position, priority: 1 }],
+  unreliableSendRate: 20,
+  maxUpdateSize: 1500,
+})
 const removed = createTagFilter(Tags.Removing)
 const clients: Client[] = []
 const systems: System[] = [spawn, physics]
@@ -62,18 +57,6 @@ function findOrCreateClient(sessionId: string) {
   return client
 }
 
-function getInitialCreatedMessage() {
-  const created: Component[][] = []
-
-  for (const results of queryAll.run(storage)) {
-    created.push(results.slice())
-  }
-
-  const message = encode(protocol.insert(created))
-
-  return message
-}
-
 udp.connections.subscribe(connection => {
   if (!isConnectionMetadata(connection.metadata)) {
     console.error("Invalid connection metadata.")
@@ -91,7 +74,9 @@ udp.connections.subscribe(connection => {
 
   if (connectionType === ConnectionType.Reliable) {
     client.reliable = connection
-    client.reliable.send(getInitialCreatedMessage())
+    for (const m of producer.all(storage)) {
+      client.reliable.send(encode(m))
+    }
   } else {
     client.unreliable = connection
   }
@@ -101,12 +86,6 @@ udp.connections.subscribe(connection => {
 })
 
 const tickRateMs = 1000 / TICK_RATE
-const sendRateMs = 1000 / SEND_RATE
-
-let previousSendTime = BigInt(0)
-
-const payloadCreated: Component[][] = []
-const payloadUpdated: Component[] = []
 const payloadRemoved: number[] = []
 
 const loop = createHrtimeLoop(tickRateMs, clock => {
@@ -116,44 +95,30 @@ const loop = createHrtimeLoop(tickRateMs, clock => {
     systems[i](storage, clock.dt)
   }
 
-  for (const results of queryUnreliable.run(storage)) {
-    for (let i = 0; i < unreliable.length; i++) {
-      priorities.update(results[i])
-    }
-  }
+  const created = producer.added(storage)
+  const changed = producer.changed(storage)
+  const updated = producer.unreliable(storage)
 
-  for (const [p] of queryAll.run(storage, removed)) {
-    storage.destroy(p._e)
-    payloadRemoved.push(p._e)
-  }
+  // for (const [p] of queryAll.run(storage, removed)) {
+  //   storage.destroy(p._e)
+  //   payloadRemoved.push(p._e)
+  // }
 
-  for (const results of queryAll.run(storage, added)) {
-    payloadCreated.push(results.slice())
-  }
-
-  if (time - previousSendTime >= sendRateMs) {
-    for (const component of priorities) {
-      payloadUpdated.push(component)
-      if (payloadUpdated.length >= MAX_UPDATE_SIZE) {
-        break
-      }
-    }
-    previousSendTime = time
-  }
-
-  const messageCreated = encode(protocol.insert(payloadCreated))
-  const messageRemoved = encode(protocol.remove(payloadRemoved))
+  const messageCreated = created.length > 0 ? encode(created) : null
+  const messageChanged = changed.length > 0 ? encode(changed) : null
+  // const messageRemoved = encode(protocol.remove(payloadRemoved))
 
   for (let i = 0; i < clients.length; i++) {
     const { reliable, unreliable } = clients[i]
-    if (payloadCreated.length > 0) reliable?.send(messageCreated)
-    if (payloadRemoved.length > 0) reliable?.send(messageRemoved)
-    if (payloadUpdated.length > 0)
-      unreliable?.send(encode(protocol.update(payloadUpdated, {})))
+    if (messageCreated) reliable?.send(messageCreated)
+    if (messageChanged) reliable?.send(messageChanged)
+    // if (messageRemoved) reliable?.send(messageRemoved)
+
+    unreliable?.send(encode(updated.next({}).value))
   }
 
-  mutableEmpty(payloadUpdated)
-  mutableEmpty(payloadCreated)
+  updated.return()
+
   mutableEmpty(payloadRemoved)
 })
 
