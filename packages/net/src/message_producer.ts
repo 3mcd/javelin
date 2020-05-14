@@ -1,11 +1,12 @@
 import {
-  ComponentType,
-  createQuery,
-  createAddedFilter,
-  Storage,
-  createChangedFilter,
   Component,
+  ComponentType,
+  createAddedFilter,
+  createChangedFilter,
+  createDestroyedFilter,
+  createQuery,
   mutableEmpty,
+  World,
 } from "@javelin/ecs"
 import { createPriorityAccumulator } from "./priority_accumulator"
 import { protocol } from "./protocol"
@@ -32,56 +33,89 @@ export function createMessageProducer(config: PriorityConfig) {
   const queryAll = createQuery(...config.components.map(c => c.type))
   const queryReliable = createQuery(...componentsReliable.map(c => c.type))
   const queryUnreliable = createQuery(...componentsUnreliable.map(c => c.type))
+  const filterCreated = createAddedFilter()
   const filterChanged = createChangedFilter()
-  const filterAdded = createAddedFilter()
+  const filterDestroyed = createDestroyedFilter()
 
   const payloadCreated: Component[][] = []
+  const payloadDestroyed: number[] = []
   const payloadReliable: Component[] = []
   const payloadUnreliable: Component[] = []
-  const payloadRemoved: number[] = []
 
   let previousSendTime = 0
 
-  function all(storage: Storage) {
-    for (const r of queryAll.run(storage)) {
+  function all(world: World) {
+    mutableEmpty(payloadCreated)
+
+    for (const r of world.query(queryAll)) {
       payloadCreated.push(r.slice())
     }
 
-    const message = protocol.insert(payloadCreated)
+    if (payloadCreated.length > 0) {
+      const message = protocol.create(payloadCreated)
 
-    mutableEmpty(payloadCreated)
+      return [message]
+    }
 
-    return [message]
+    return []
   }
 
-  function added(storage: Storage) {
-    for (const r of queryAll.run(storage, filterAdded)) {
+  function created(world: World) {
+    mutableEmpty(payloadCreated)
+
+    for (const r of world.queryEphemeral(queryAll, filterCreated)) {
       payloadCreated.push(r.slice())
     }
 
-    const message = protocol.insert(payloadCreated)
+    if (payloadCreated.length > 0) {
+      const message = protocol.create(payloadCreated)
 
-    mutableEmpty(payloadCreated)
+      return [message]
+    }
 
-    return [message]
+    return []
   }
 
-  function changed(storage: Storage) {
-    for (const r of queryReliable.run(storage, filterChanged)) {
+  function changed(world: World) {
+    mutableEmpty(payloadReliable)
+
+    for (const r of world.query(queryReliable, filterChanged)) {
       for (let i = 0; i < componentsReliable.length; i++) {
         payloadReliable.push(r[i])
       }
     }
 
-    const message = protocol.change(payloadReliable)
+    if (payloadReliable.length > 0) {
+      const message = protocol.change(payloadReliable)
 
-    mutableEmpty(payloadReliable)
+      return [message]
+    }
 
-    return [message]
+    return []
   }
 
-  function* unreliable(storage: Storage, time = Date.now()) {
-    for (const results of queryUnreliable.run(storage)) {
+  function destroyed(world: World) {
+    mutableEmpty(payloadDestroyed)
+
+    for (const r of world.queryEphemeral(queryAll, filterDestroyed)) {
+      for (let i = 0; i < config.components.length; i++) {
+        payloadDestroyed.push(r[i]._e)
+      }
+    }
+
+    if (payloadDestroyed.length > 0) {
+      const message = protocol.destroy(payloadDestroyed)
+
+      return [message]
+    }
+
+    return []
+  }
+
+  function* unreliable(world: World, time = Date.now()) {
+    mutableEmpty(payloadUnreliable)
+
+    for (const results of world.query(queryUnreliable)) {
       for (let i = 0; i < componentsUnreliable.length; i++) {
         priorities.update(results[i])
       }
@@ -93,8 +127,11 @@ export function createMessageProducer(config: PriorityConfig) {
 
     previousSendTime = time
 
+    let i = config.maxUpdateSize
+
     for (const c of priorities) {
       payloadUnreliable.push(c)
+      if (--i <= 0) break
     }
 
     let metadata
@@ -102,14 +139,13 @@ export function createMessageProducer(config: PriorityConfig) {
     while ((metadata = yield protocol.update(payloadUnreliable, metadata))) {
       yield protocol.update(payloadUnreliable, metadata)
     }
-
-    mutableEmpty(payloadUnreliable)
   }
 
   return {
     all,
-    added,
+    created,
     changed,
+    destroyed,
     unreliable,
   }
 }

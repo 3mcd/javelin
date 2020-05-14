@@ -1,7 +1,7 @@
+import { World } from "@javelin/ecs"
 import { NetworkMessage, NetworkMessageType } from "./protocol"
-import { Storage } from "@javelin/ecs"
 
-export function createMessageHandler(storage: Storage) {
+export function createMessageHandler(world: World) {
   const remoteToLocal = new Map<number, number>()
 
   function applyMessage(message: NetworkMessage) {
@@ -12,25 +12,25 @@ export function createMessageHandler(storage: Storage) {
         for (let i = 0; i < entityComponents.length; i++) {
           const components = entityComponents[i]
           const remote = components[0]._e
-          const local = storage.create(components.map(c => ({ ...c })))
+          const local = world.create(components.map(c => ({ ...c })))
 
           remoteToLocal.set(remote, local)
         }
         break
       }
-      case NetworkMessageType.Remove: {
+      case NetworkMessageType.Destroy: {
         const entities = message[1]
 
         for (let i = 0; i < entities.length; i++) {
           const remote = entities[i]
           const local = remoteToLocal.get(remote)
 
-          if (!local) {
+          if (typeof local !== "number") {
             continue
           }
 
           remoteToLocal.delete(remote)
-          storage.destroy(local)
+          world.destroy(local)
         }
         break
       }
@@ -45,7 +45,7 @@ export function createMessageHandler(storage: Storage) {
             continue
           }
 
-          storage.patch({ ...component, _e: local })
+          world.storage.patch({ ...component, _e: local })
         }
         break
     }

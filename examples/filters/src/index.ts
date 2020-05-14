@@ -2,11 +2,15 @@ import {
   ComponentOf,
   createComponentFactory,
   createQuery,
-  createStorage,
   createTagFilter,
+  createWorld,
   number,
 } from "@javelin/ecs"
-import { graphics } from "./graphics"
+import { app, framerate, graphics } from "./graphics"
+
+enum Tags {
+  Awake = 1,
+}
 
 const Position = createComponentFactory({
   type: 1,
@@ -35,29 +39,6 @@ const Sleep = createComponentFactory({
   },
 })
 
-const storage = createStorage()
-
-enum Tags {
-  Awake = 1,
-}
-
-for (let i = 0; i < 15000; i++) {
-  const vx = Math.random() * 50
-  const vy = Math.random() * 50
-
-  storage.create([Position.create(), Velocity.create(vx, vy), Sleep.create()])
-  storage.addTag(i, Tags.Awake)
-}
-
-const renderCullingFilter = {
-  matchEntity() {
-    return true
-  },
-  matchComponent(component: ComponentOf<typeof Position>) {
-    return component.x >= 0 && component.x <= 800 && component.y >= 0
-  },
-}
-
 const awake = createTagFilter(Tags.Awake)
 const bodies = createQuery(Position, Velocity, Sleep)
 const positions = createQuery(Position)
@@ -66,9 +47,9 @@ const size = 2
 const floorSize = 10
 const floorOffset = 600 - size - floorSize
 
-function loop() {
+function physics() {
   // physics system
-  for (const [p, v, s] of bodies.run(storage, awake)) {
+  for (const [p, v, s] of world.query(bodies, awake)) {
     const { x, y } = p
 
     p.x += v.x
@@ -77,7 +58,7 @@ function loop() {
     // put entities to sleep that haven't moved recently
     if (Math.abs(x - p.x) < 0.2 && Math.abs(y - p.y) < 0.2) {
       if (++s.value >= 5) {
-        storage.removeTag(v._e, Tags.Awake)
+        world.storage.removeTag(v._e, Tags.Awake)
         continue
       }
     } else {
@@ -102,17 +83,52 @@ function loop() {
     // gravity
     v.y += 0.1
   }
+}
 
+function render() {
   // render system
   graphics.clear()
 
-  for (const [p] of positions.run(storage, renderCullingFilter)) {
+  for (const [p] of world.query(positions, renderCullingFilter)) {
     graphics.beginFill(0x00ff00)
     graphics.drawRect(p.x, p.y, 1, 1)
     graphics.endFill()
   }
+}
+
+const world = createWorld([physics, render])
+
+for (let i = 0; i < 15000; i++) {
+  const vx = Math.random() * 50
+  const vy = Math.random() * 50
+
+  world.create(
+    [Position.create(), Velocity.create(vx, vy), Sleep.create()],
+    Tags.Awake,
+  )
+}
+
+const renderCullingFilter = {
+  matchEntity() {
+    return true
+  },
+  matchComponent(component: ComponentOf<typeof Position>) {
+    return component.x >= 0 && component.x <= 800 && component.y >= 0
+  },
+}
+
+let tick = 0
+let previousTime = 0
+
+function loop(time = previousTime) {
+  world.tick(time - (previousTime || time))
+
+  if (++tick % 60 === 0) {
+    framerate.text = `${app.ticker.FPS.toFixed(0)}`
+  }
 
   requestAnimationFrame(loop)
+  previousTime = time
 }
 
 loop()

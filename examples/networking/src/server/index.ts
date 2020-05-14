@@ -1,22 +1,14 @@
-import {
-  createAddedFilter,
-  Component,
-  createQuery,
-  createStorage,
-  createTagFilter,
-  mutableEmpty,
-} from "@javelin/ecs"
-import { createMessageProducer, protocol } from "@javelin/net"
-import { createHrtimeLoop } from "@javelin/hrtime-loop"
+import { createWorld, mutableEmpty } from "@javelin/ecs"
+import { createHrtimeLoop, Clock } from "@javelin/hrtime-loop"
+import { createMessageProducer } from "@javelin/net"
 import { encode } from "@msgpack/msgpack"
 import { Server } from "@web-udp/server"
 import { createServer } from "http"
 import { Position } from "../common/components"
-import { ConnectionType, System } from "../common/types"
+import { ConnectionType } from "../common/types"
 import { Sleep, Velocity } from "./components"
 import { createJunk } from "./entities"
 import { physics, spawn } from "./systems"
-import { Tags } from "./tags"
 import { Client, ConnectionMetadata } from "./types"
 
 const PORT = 8000
@@ -24,19 +16,17 @@ const TICK_RATE = 60
 
 const server = createServer()
 const udp = new Server({ server })
-const storage = createStorage()
-const producer = createMessageProducer({
+const world = createWorld([spawn, physics])
+const messages = createMessageProducer({
   components: [{ type: Position, priority: 1 }],
-  unreliableSendRate: 20,
-  maxUpdateSize: 1500,
+  unreliableSendRate: (1 / 20) * 1000,
+  maxUpdateSize: 1000,
 })
-const removed = createTagFilter(Tags.Removing)
 const clients: Client[] = []
-const systems: System[] = [spawn, physics]
 
-storage.registerComponentFactory(Position)
-storage.registerComponentFactory(Velocity)
-storage.registerComponentFactory(Sleep)
+world.storage.registerComponentFactory(Position)
+world.storage.registerComponentFactory(Velocity)
+world.storage.registerComponentFactory(Sleep)
 
 function isConnectionMetadata(obj: any): obj is ConnectionMetadata {
   return (
@@ -74,7 +64,8 @@ udp.connections.subscribe(connection => {
 
   if (connectionType === ConnectionType.Reliable) {
     client.reliable = connection
-    for (const m of producer.all(storage)) {
+
+    for (const m of messages.all(world)) {
       client.reliable.send(encode(m))
     }
   } else {
@@ -88,44 +79,53 @@ udp.connections.subscribe(connection => {
 const tickRateMs = 1000 / TICK_RATE
 const payloadRemoved: number[] = []
 
-const loop = createHrtimeLoop(tickRateMs, clock => {
-  const time = clock.now
+const tick = (dt: number) => {
+  world.tick(dt)
 
-  for (let i = 0; i < systems.length; i++) {
-    systems[i](storage, clock.dt)
-  }
+  const created = messages.created(world)
+  const changed = messages.changed(world)
+  const updated = messages.unreliable(world)
+  const destroyed = messages.destroyed(world)
 
-  const created = producer.added(storage)
-  const changed = producer.changed(storage)
-  const updated = producer.unreliable(storage)
-
-  // for (const [p] of queryAll.run(storage, removed)) {
-  //   storage.destroy(p._e)
-  //   payloadRemoved.push(p._e)
-  // }
-
-  const messageCreated = created.length > 0 ? encode(created) : null
-  const messageChanged = changed.length > 0 ? encode(changed) : null
-  // const messageRemoved = encode(protocol.remove(payloadRemoved))
+  const messageCreated = created.length > 0 ? created.map(m => encode(m)) : null
+  const messageChanged = changed.length > 0 ? changed.map(m => encode(m)) : null
+  const messageDestroyed =
+    destroyed.length > 0 ? destroyed.map(m => encode(m)) : null
 
   for (let i = 0; i < clients.length; i++) {
     const { reliable, unreliable } = clients[i]
-    if (messageCreated) reliable?.send(messageCreated)
-    if (messageChanged) reliable?.send(messageChanged)
-    // if (messageRemoved) reliable?.send(messageRemoved)
 
-    unreliable?.send(encode(updated.next({}).value))
+    if (messageCreated) messageCreated.forEach(m => reliable?.send(m))
+    if (messageChanged) messageChanged.forEach(m => reliable?.send(m))
+    if (messageDestroyed) messageDestroyed.forEach(m => reliable?.send(m))
+
+    const update = updated.next({}).value
+
+    if (update) {
+      unreliable?.send(encode(update))
+    }
   }
 
   updated.return()
 
   mutableEmpty(payloadRemoved)
-})
+}
 
+// high-resolution game loop
+const loop = createHrtimeLoop(tickRateMs, clock => tick(clock.dt))
 loop.start()
 
+//// setInterval game loop
+// let previousTime = 0
+
+// setInterval(() => {
+//   const now = Date.now()
+//   tick(now - previousTime)
+//   previousTime = now
+// }, tickRateMs)
+
 for (let i = 0; i < 1000; i++) {
-  createJunk(storage)
+  createJunk(world)
 }
 
 server.listen(PORT)

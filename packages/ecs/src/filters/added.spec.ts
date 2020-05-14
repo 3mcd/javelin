@@ -1,20 +1,20 @@
-import { createStorage, Storage } from "../storage"
+import { createWorld, World } from "../world"
 import { createAddedFilter } from "./added"
 
-jest.mock("../storage")
+jest.mock("../world")
 
 describe("createAddedFilter", () => {
-  let storage: Storage
+  let world: World
 
   beforeEach(() => {
-    storage = createStorage()
+    world = createWorld([])
   })
 
   it("always matches entities", () => {
     const filter = createAddedFilter()
     const entity = 1
 
-    expect(filter.matchEntity(entity, storage)).toBe(true)
+    expect(filter.matchEntity(entity, world)).toBe(true)
   })
   it("matches only filtered components", () => {
     const filter = createAddedFilter()
@@ -24,8 +24,8 @@ describe("createAddedFilter", () => {
       _v: 0,
     }
 
-    expect(filter.matchComponent(component, storage)).toBe(true)
-    expect(filter.matchComponent(component, storage)).toBe(false)
-    expect(filter.matchComponent(component, storage)).toBe(false)
+    expect(filter.matchComponent(component, world)).toBe(true)
+    expect(filter.matchComponent(component, world)).toBe(false)
+    expect(filter.matchComponent(component, world)).toBe(false)
   })
 })

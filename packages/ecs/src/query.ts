@@ -2,6 +2,7 @@ import { Archetype } from "./archetype"
 import { ComponentsOf, ComponentType, Component } from "./component"
 import { Storage } from "./storage"
 import { arrayOf } from "./util/array"
+import { World } from "./world"
 
 /**
  * A Filter is an object containing methods used to filter queries by entity
@@ -14,18 +15,18 @@ export interface Filter {
    * excluded if one of it's components fail to pass the matchComponent filter.
    *
    * @param entity Subject entity
-   * @param storage Storage of query
+   * @param world World of query
    */
-  matchEntity(entity: number, storage: Storage): boolean
+  matchEntity(entity: number, world: World): boolean
 
   /**
    * Filter by individual component. Return true if the associated entity's
    * components should be included in query results.
    *
    * @param component Subject entity's component
-   * @param storage Storage of query
+   * @param world World of query
    */
-  matchComponent(component: Component, storage: Storage): boolean
+  matchComponent(component: Component, world: World): boolean
 }
 
 /**
@@ -37,10 +38,10 @@ export interface QueryLike<T extends ComponentType[]> {
    * Execute the query against a Storage. Optionally executed with filters to
    * further refine the results.
    *
-   * @param storage Storage instance
+   * @param world Storage instance
    * @param filters Zero or more filters
    */
-  run(storage: Storage, ...filters: Filter[]): IterableIterator<ComponentsOf<T>>
+  run(world: World, ...filters: Filter[]): IterableIterator<ComponentsOf<T>>
 }
 
 /**
@@ -64,8 +65,10 @@ export function createQuery<T extends ComponentType[]>(
   // tmpResult.
   const tmpReadIndices: number[] = []
 
-  function* run(storage: Storage, ...filters: Filter[]) {
-    const { archetypes } = storage
+  function* run(world: World, ...filters: Filter[]) {
+    const {
+      storage: { archetypes },
+    } = world
     const filterLen = filters.length
 
     if (queryLayout.length === 0) {
@@ -108,7 +111,7 @@ export function createQuery<T extends ComponentType[]>(
         let match = true
 
         for (let f = 0; f < filterLen; f++) {
-          match = filters[f].matchEntity(entity, storage)
+          match = filters[f].matchEntity(entity, world)
           if (!match) break
         }
 
@@ -119,7 +122,7 @@ export function createQuery<T extends ComponentType[]>(
 
           // Execute component filters.
           for (let f = 0; f < filterLen; f++) {
-            match = filters[f].matchComponent(component, storage)
+            match = filters[f].matchComponent(component, world)
             if (!match) break
           }
 

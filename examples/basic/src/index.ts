@@ -2,7 +2,7 @@ import {
   ComponentOf,
   createComponentFactory,
   createQuery,
-  createStorage,
+  createWorld,
   number,
 } from "@javelin/ecs"
 import { app, framerate, graphics } from "./graphics"
@@ -11,7 +11,6 @@ enum Tags {
   Influenced = 1,
 }
 
-const storage = createStorage()
 const Position = createComponentFactory(
   {
     type: 1,
@@ -25,6 +24,7 @@ const Position = createComponentFactory(
     c.y = y
   },
 )
+
 const Velocity = createComponentFactory({
   type: 2,
   schema: {
@@ -32,6 +32,7 @@ const Velocity = createComponentFactory({
     y: number,
   },
 })
+
 const Wormhole = createComponentFactory(
   {
     type: 3,
@@ -42,56 +43,35 @@ const Wormhole = createComponentFactory(
   (c, r = 0) => (c.radius = r),
 )
 
-const junkCount = 15000
-const calcWormholeHorizon = (w: ComponentOf<typeof Wormhole>) => w.radius / 10
-
-for (let i = 0; i < junkCount; i++) {
-  storage.create([
-    Position.create(Math.random() * 800, Math.random() * 600),
-    Velocity.create(),
-  ])
-}
-
-const junk = createQuery(Position, Velocity)
-const wormholes = createQuery(Position, Wormhole)
-
-let toRemove = new Set<number>()
-let tick = 0
-
-function loop() {
-  // render system
-  graphics.clear()
-
-  if (tick % 60 === 0) {
-    framerate.text = `${app.ticker.FPS.toFixed(0)}`
-  }
-
-  for (const [p] of junk.run(storage)) {
+function render() {
+  for (const [p] of world.query(junk)) {
     graphics.beginFill(
-      storage.hasTag(p._e, Tags.Influenced) ? 0xee0000 : 0xeeeeee,
+      world.storage.hasTag(p._e, Tags.Influenced) ? 0xee0000 : 0xeeeeee,
     )
     graphics.drawRect(p.x, p.y, 1, 1)
     graphics.endFill()
   }
 
-  for (const [p, w] of wormholes.run(storage)) {
+  for (const [p, w] of world.query(wormholes)) {
     graphics.beginFill(0x000000)
     graphics.lineStyle(1, 0x333333, 1)
     graphics.drawCircle(p.x, p.y, calcWormholeHorizon(w as any))
     graphics.endFill()
   }
+}
 
+function attract() {
   // wormhole system
-  for (const [jp, jv] of junk.run(storage)) {
-    for (const [wp, w] of wormholes.run(storage)) {
+  for (const [jp, jv] of world.query(junk)) {
+    for (const [wp, w] of world.query(wormholes)) {
       const dx = wp.x - jp.x
       const dy = wp.y - jp.y
       const len = Math.sqrt(dx * dx + dy * dy)
 
       if (len <= w.radius) {
-        storage.addTag(jp._e, Tags.Influenced)
+        world.storage.addTag(jp._e, Tags.Influenced)
         if (len < calcWormholeHorizon(w as any)) {
-          toRemove.add(jp._e)
+          world.destroy(jp._e)
           w.radius += 0.1
         } else {
           const nx = dx / len
@@ -103,17 +83,44 @@ function loop() {
       }
     }
   }
+}
 
+function physics() {
   // physics system
-  for (const [p, v] of junk.run(storage)) {
+  for (const [p, v] of world.query(junk)) {
     p.x += v.x
     p.y += v.y
   }
+}
 
-  toRemove.forEach(e => storage.destroy(e))
-  toRemove.clear()
+const world = createWorld([render, attract, physics])
+
+const junkCount = 15000
+const calcWormholeHorizon = (w: ComponentOf<typeof Wormhole>) => w.radius / 10
+
+for (let i = 0; i < junkCount; i++) {
+  world.create([
+    Position.create(Math.random() * 1680, Math.random() * 916),
+    Velocity.create(),
+  ])
+}
+
+const junk = createQuery(Position, Velocity)
+const wormholes = createQuery(Position, Wormhole)
+
+let tick = 0
+
+function loop() {
+  // render system
+  graphics.clear()
+
+  if (tick % 60 === 0) {
+    framerate.text = `${app.ticker.FPS.toFixed(0)}`
+  }
 
   tick++
+
+  world.tick(0)
 
   requestAnimationFrame(loop)
 }
@@ -134,7 +141,7 @@ function onClick(event: any) {
   const dy = event.data.global.y - iy
   const r = Math.sqrt(dx * dx + dy * dy) * 10
 
-  storage.create([Position.create(ix, iy), Wormhole.create(r)])
+  world.create([Position.create(ix, iy), Wormhole.create(r)])
 }
 
 loop()

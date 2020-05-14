@@ -4,27 +4,12 @@ import { createArchetype } from "./archetype"
 jest.mock("./archetype")
 
 describe("createStorage", () => {
-  it("returns a new entity for each call to create", () => {
-    const storage = createStorage()
-    const entityA = storage.create([{ _t: 0, _e: -1, _v: 0 }])
-    const entityB = storage.create([{ _t: 0, _e: -1, _v: 0 }])
-
-    expect(entityA).toBe(0)
-    expect(entityB).toBe(1)
-  })
-  it("updates inserted components' _e properties", () => {
-    const storage = createStorage()
-    const component = { _t: 0, _e: -1, _v: 0 }
-    const entity = storage.create([component])
-
-    expect(component._e).toBe(entity)
-  })
   it("creates a new archetype for each unique combination of components", () => {
     const storage = createStorage()
 
-    storage.create([{ _t: 0, _e: -1, _v: 0 }])
-    storage.create([{ _t: 1, _e: -1, _v: 0 }])
-    storage.create([
+    storage.create(1, [{ _t: 0, _e: -1, _v: 0 }])
+    storage.create(2, [{ _t: 1, _e: -1, _v: 0 }])
+    storage.create(3, [
       { _t: 0, _e: -1, _v: 0 },
       { _t: 1, _e: -1, _v: 0 },
     ])
@@ -35,7 +20,7 @@ describe("createStorage", () => {
   })
   it("also removes entity from archetype when removed", () => {
     const storage = createStorage()
-    const entity = storage.create([{ _t: 0, _e: -1, _v: 0 }])
+    const entity = storage.create(1, [{ _t: 0, _e: -1, _v: 0 }])
 
     storage.destroy(entity)
 
@@ -53,7 +38,7 @@ describe("createStorage", () => {
       table: [[components[0]]],
       indices: [0],
     }))
-    const entity = storage.create(components)
+    const entity = storage.create(1, components)
 
     expect(storage.archetypes.length).toBe(1)
     expect(storage.archetypes[0].layout).toEqual([0])

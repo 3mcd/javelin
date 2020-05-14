@@ -1,4 +1,4 @@
-import { createQuery, createTagFilter, Storage } from "@javelin/ecs"
+import { createQuery, createTagFilter, World } from "@javelin/ecs"
 import { Position } from "../../common/components"
 import { Sleep, Velocity } from "../components"
 import { Tags } from "../tags"
@@ -7,11 +7,11 @@ const size = 2
 const floorSize = 10
 const floorOffset = 600 - size - floorSize
 
-const query = createQuery(Position, Velocity, Sleep)
+const bodies = createQuery(Position, Velocity, Sleep)
 const awake = createTagFilter(Tags.Awake)
 
-export function physics(storage: Storage) {
-  for (const [p, v, s] of query.run(storage, awake)) {
+export function physics(dt: number, world: World) {
+  for (const [p, v, s] of world.query(bodies, awake)) {
     const { x, y } = p
 
     p.x += v.x
@@ -20,7 +20,7 @@ export function physics(storage: Storage) {
     // put entities to sleep that haven't moved recently
     if (Math.abs(x - p.x) < 0.2 && Math.abs(y - p.y) < 0.2) {
       if (++s.value >= 5) {
-        storage.removeTag(v._e, Tags.Awake)
+        world.storage.removeTag(v._e, Tags.Awake)
         continue
       }
     } else {

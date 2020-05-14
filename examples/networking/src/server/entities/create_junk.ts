@@ -1,17 +1,15 @@
-import { Storage } from "@javelin/ecs"
+import { World } from "@javelin/ecs"
 import { Position } from "../../common/components"
 import { Sleep, Velocity } from "../components"
 import { Tags } from "../tags"
 
-export function createJunk(storage: Storage) {
+export function createJunk(world: World) {
   const vx = Math.random() * 50
   const vy = Math.random() * 50
-  const entity = storage.create([
-    Position.create(),
-    Velocity.create(vx, vy),
-    Sleep.create(),
-  ])
-  storage.addTag(entity, Tags.Awake)
+  const entity = world.create(
+    [Position.create(), Velocity.create(vx, vy), Sleep.create()],
+    Tags.Awake,
+  )
 
   return entity
 }

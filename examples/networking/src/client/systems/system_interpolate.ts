@@ -1,15 +1,15 @@
-import { createQuery, Storage } from "@javelin/ecs"
+import { createQuery, World } from "@javelin/ecs"
 import { PositionBuffer } from "../components/position_buffer"
 
 const buffers = createQuery(PositionBuffer)
 
 let adaptiveSendRate = 20
 
-export function interpolate(storage: Storage) {
+export function interpolate(dt: number, world: World) {
   const time = Date.now()
   const renderTime = time - 1000 / 1
 
-  for (const [buffer] of buffers.run(storage)) {
+  for (const [buffer] of world.query(buffers)) {
     // Drop older positions.
     while (buffer.updates.length >= 2 && buffer.updates[1][0] <= renderTime) {
       buffer.updates.shift()
