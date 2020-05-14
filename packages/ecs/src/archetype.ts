@@ -64,23 +64,29 @@ export function createArchetype(layout: number[]): Archetype {
   }
 
   let head = -1
+  let i
+  let component
 
   function insert(entity: number, components: Component[]) {
     head++
-    for (let i = 0; i < components.length; i++) {
-      const component = components[i]
+    for (i = 0; i < components.length; i++) {
+      component = components[i]
       table[layout.indexOf(component._t)][head] = component
     }
     entities[head] = entity
     indices[entity] = head
   }
+
+  let index
+  let components
+
   function remove(entity: number) {
-    const index = indices[entity]
+    index = indices[entity]
 
     if (index === head) {
-      for (const components of table) components[head] = null
+      for (components of table) components[head] = null
     } else {
-      for (const components of table) {
+      for (components of table) {
         // Overwrite the entity with the head entity's component.
         components[index] = components[head]
         // Unset the head entity's component. Unnecessary since the component

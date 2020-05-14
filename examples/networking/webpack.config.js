@@ -4,7 +4,7 @@ const { CleanWebpackPlugin } = require("clean-webpack-plugin")
 
 module.exports = {
   mode: "development",
-  entry: "./src/client/index.ts",
+  entry: "./src/index.ts",
   devtool: "source-map",
   module: {
     rules: [
@@ -18,7 +18,7 @@ module.exports = {
   plugins: [
     new CleanWebpackPlugin({ cleanStaleWebpackAssets: false }),
     new HtmlWebpackPlugin({
-      title: "Development",
+      template: "index.html",
     }),
   ],
   resolve: {

@@ -5,7 +5,7 @@ import {
   createWorld,
   number,
 } from "@javelin/ecs"
-import { app, framerate, graphics } from "./graphics"
+import { context, canvas } from "./graphics"
 
 enum Tags {
   Influenced = 1,
@@ -43,42 +43,60 @@ const Wormhole = createComponentFactory(
   (c, r = 0) => (c.radius = r),
 )
 
+let junkPosition
+let junkVelocity
+let wormholePosition
+let wormhole
+
 function render() {
-  for (const [p] of world.query(junk)) {
-    graphics.beginFill(
-      world.storage.hasTag(p._e, Tags.Influenced) ? 0xee0000 : 0xeeeeee,
-    )
-    graphics.drawRect(p.x, p.y, 1, 1)
-    graphics.endFill()
+  context.clearRect(0, 0, window.innerWidth, window.innerHeight)
+
+  for ([junkPosition] of world.query(junk)) {
+    context.fillStyle = world.storage.hasTag(junkPosition._e, Tags.Influenced)
+      ? "#00ff00"
+      : "#eeeeee"
+    context.fillRect(junkPosition.x, junkPosition.y, 1, 1)
   }
 
-  for (const [p, w] of world.query(wormholes)) {
-    graphics.beginFill(0x000000)
-    graphics.lineStyle(1, 0x333333, 1)
-    graphics.drawCircle(p.x, p.y, calcWormholeHorizon(w as any))
-    graphics.endFill()
+  for ([wormholePosition, wormhole] of world.query(wormholes)) {
+    context.fillStyle = "#000000"
+    context.strokeStyle = "#333333"
+    context.arc(
+      wormholePosition.x,
+      wormholePosition.y,
+      calcWormholeHorizon(wormhole as any),
+      0,
+      2 * Math.PI,
+    )
   }
 }
 
+let dx
+let dy
+let len
+
+let nx
+let ny
+
 function attract() {
   // wormhole system
-  for (const [jp, jv] of world.query(junk)) {
-    for (const [wp, w] of world.query(wormholes)) {
-      const dx = wp.x - jp.x
-      const dy = wp.y - jp.y
-      const len = Math.sqrt(dx * dx + dy * dy)
+  for ([junkPosition, junkVelocity] of world.query(junk)) {
+    for ([wormholePosition, wormhole] of world.query(wormholes)) {
+      dx = wormholePosition.x - junkPosition.x
+      dy = wormholePosition.y - junkPosition.y
+      len = Math.sqrt(dx * dx + dy * dy)
 
-      if (len <= w.radius) {
-        world.storage.addTag(jp._e, Tags.Influenced)
-        if (len < calcWormholeHorizon(w as any)) {
-          world.destroy(jp._e)
-          w.radius += 0.1
+      if (len <= wormhole.radius) {
+        world.storage.addTag(junkPosition._e, Tags.Influenced)
+        if (len < calcWormholeHorizon(wormhole as any)) {
+          world.destroy(junkPosition._e)
+          wormhole.radius += 0.25
         } else {
-          const nx = dx / len
-          const ny = dy / len
+          nx = dx / len
+          ny = dy / len
 
-          jv.x += nx / 100
-          jv.y += ny / 100
+          junkVelocity.x += nx / 100
+          junkVelocity.y += ny / 100
         }
       }
     }
@@ -87,16 +105,17 @@ function attract() {
 
 function physics() {
   // physics system
-  for (const [p, v] of world.query(junk)) {
-    p.x += v.x
-    p.y += v.y
+  for ([junkPosition, junkVelocity] of world.query(junk)) {
+    junkPosition.x += junkVelocity.x
+    junkPosition.y += junkVelocity.y
   }
 }
 
-const world = createWorld([render, attract, physics])
+const world = createWorld([attract, physics])
 
 const junkCount = 15000
-const calcWormholeHorizon = (w: ComponentOf<typeof Wormhole>) => w.radius / 10
+const calcWormholeHorizon = (wormhole: ComponentOf<typeof Wormhole>) =>
+  wormhole.radius / 10
 
 for (let i = 0; i < junkCount; i++) {
   world.create([
@@ -108,18 +127,7 @@ for (let i = 0; i < junkCount; i++) {
 const junk = createQuery(Position, Velocity)
 const wormholes = createQuery(Position, Wormhole)
 
-let tick = 0
-
 function loop() {
-  // render system
-  graphics.clear()
-
-  if (tick % 60 === 0) {
-    framerate.text = `${app.ticker.FPS.toFixed(0)}`
-  }
-
-  tick++
-
   world.tick(0)
 
   requestAnimationFrame(loop)
@@ -128,17 +136,17 @@ function loop() {
 let ix = 0
 let iy = 0
 
-function onPointerDown(event: any) {
-  ix = event.data.global.x
-  iy = event.data.global.y
+canvas.addEventListener("mousedown", onMouseDown)
+canvas.addEventListener("mouseup", onMouseUp)
+
+function onMouseDown(event: MouseEvent) {
+  ix = event.x
+  iy = event.y
 }
 
-app.renderer.plugins.interaction.on("pointerdown", onPointerDown)
-app.renderer.plugins.interaction.on("pointerup", onClick)
-
-function onClick(event: any) {
-  const dx = event.data.global.x - ix
-  const dy = event.data.global.y - iy
+function onMouseUp(event: MouseEvent) {
+  const dx = event.x - ix
+  const dy = event.y - iy
   const r = Math.sqrt(dx * dx + dy * dy) * 10
 
   world.create([Position.create(ix, iy), Wormhole.create(r)])

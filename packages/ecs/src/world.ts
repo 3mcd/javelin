@@ -34,37 +34,41 @@ type DestroyOp = [WorldOpType.Destroy, number]
 
 type WorldOp = CreateOp | InsertOp | DestroyOp
 
+const opPool = createStackPool<WorldOp>(
+  () => ([] as any) as WorldOp,
+  op => op,
+  1000,
+)
+
 export const createWorld = <T>(systems: System<T>[]): World<T> => {
-  const opPool = createStackPool<WorldOp>(
-    () => ([] as any) as WorldOp,
-    op => op,
-    1000,
-  )
   const ops: WorldOp[] = []
   const storage = createStorage()
   const created = new Set<number>()
   const destroyed = new Set<number>()
 
   let nextEntity = 0
+  let op: WorldOp | undefined
 
-  function processOps() {
-    let op: WorldOp | undefined
+  let i
 
+  function tick(data: T) {
+    // Clean up entities
+    destroyed.forEach(storage.destroy)
+    destroyed.clear()
+    created.clear()
+
+    // Process all world operations
     while ((op = ops.pop())) {
       switch (op[0]) {
         case WorldOpType.Create: {
-          const [, entity, components, tags] = op
-
-          components.forEach(c => (c._e = entity))
-          storage.create(entity, components as Component[], tags)
-          created.add(entity)
+          op[2].forEach(c => (c._e = op![1]))
+          storage.create(op[1], op[2] as Component[], op[3])
+          created.add(op[1])
           break
         }
         case WorldOpType.Insert: {
-          const [, entity, components] = op
-
-          components.forEach(c => (c._e = entity))
-          storage.insert(entity, ...(components as Component[]))
+          op[2].forEach(c => (c._e = op![1]))
+          storage.insert(op[1], ...(op[2] as Component[]))
           break
         }
         case WorldOpType.Destroy:
@@ -76,19 +80,9 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
 
       opPool.release(op)
     }
-  }
-
-  function tick(data: T) {
-    // Clean up entities
-    destroyed.forEach(e => storage.destroy(e))
-    destroyed.clear()
-    created.clear()
-
-    // Process all world operations
-    processOps()
 
     // Execute all systems
-    for (let i = 0; i < systems.length; i++) {
+    for (i = 0; i < systems.length; i++) {
       systems[i](data, world)
     }
   }
@@ -135,18 +129,12 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
     },
   }
 
-  function query<T extends ComponentType[]>(
-    query: QueryLike<T>,
-    ...filters: Filter[]
-  ) {
-    return query.run(world, concreteFilter, ...filters)
+  function query<T extends ComponentType[]>(q: QueryLike<T>) {
+    return q.filter(concreteFilter).run(world)
   }
 
-  function queryEphemeral<T extends ComponentType[]>(
-    query: QueryLike<T>,
-    ...filters: Filter[]
-  ) {
-    return query.run(world, ...filters)
+  function queryEphemeral<T extends ComponentType[]>(q: QueryLike<T>) {
+    return q.run(world)
   }
 
   const world: World<T> = {

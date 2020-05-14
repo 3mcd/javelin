@@ -1,26 +1,10 @@
-import { Application, Graphics, Text } from "pixi.js"
+export const canvas = document.createElement("canvas")
+export const context = canvas.getContext("2d")!
 
-export const app = new Application({
-  antialias: false,
-  backgroundColor: 0x0a0a0a,
-  width: 1680,
-  height: 916,
-})
-export const graphics = new Graphics()
-export const framerate = new Text("0", {
-  fontFamily: "Arial",
-  fontSize: 24,
-  fill: 0xffffff,
-})
+canvas.width = window.innerWidth
+canvas.height = window.innerHeight
 
-framerate.x = 0
+canvas.style.width = "100%"
+canvas.style.height = "100%"
 
-const $render = document.createElement("div")
-
-$render.setAttribute("id", "render")
-$render.appendChild(app.view)
-
-document.body.appendChild($render)
-
-app.stage.addChild(graphics)
-app.stage.addChild(framerate)
+document.body.appendChild(canvas)

@@ -41,7 +41,9 @@ export interface QueryLike<T extends ComponentType[]> {
    * @param world Storage instance
    * @param filters Zero or more filters
    */
-  run(world: World, ...filters: Filter[]): IterableIterator<ComponentsOf<T>>
+  run(world: World): IterableIterator<ComponentsOf<T>>
+
+  filter(filter: Filter): QueryLike<T>
 }
 
 /**
@@ -65,25 +67,53 @@ export function createQuery<T extends ComponentType[]>(
   // tmpResult.
   const tmpReadIndices: number[] = []
 
-  function* run(world: World, ...filters: Filter[]) {
-    const {
-      storage: { archetypes },
-    } = world
-    const filterLen = filters.length
+  let archetypes: ReadonlyArray<Archetype>
+  let filterLen
+  let i
+  let j
+  let k
+  let f
+
+  let archetype
+  let layout, entities, indices, table
+  let entitiesLength
+  let match
+
+  let entity
+  let index
+
+  let component
+
+  const filters: Filter[] = []
+
+  function filter(f: Filter) {
+    if (filters.indexOf(f) > -1) {
+      return query
+    }
+    filters.push(f)
+    return query
+  }
+
+  function* run(world: World) {
+    archetypes = world.storage.archetypes
+    filterLen = filters.length
 
     if (queryLayout.length === 0) {
       return
     }
 
-    for (let i = 0; i < archetypes.length; i++) {
-      const archetype = archetypes[i]
-      const { layout, entities, indices, table } = archetype
-      const entitiesLength = entities.length
+    for (i = 0; i < archetypes.length; i++) {
+      archetype = archetypes[i]
+      layout = archetype.layout
+      entities = archetype.entities
+      indices = archetype.indices
+      table = archetype.table
+      entitiesLength = entities.length
 
       // Only consider archetypes that include the provided component types.
-      let match = true
+      match = true
 
-      for (let j = 0; j < len; j++) {
+      for (j = 0; j < len; j++) {
         if (layout.indexOf(queryLayout[j]) === -1) {
           match = false
           break
@@ -97,38 +127,38 @@ export function createQuery<T extends ComponentType[]>(
       // The consumer expects the yielded tuples of components to be in the
       // same order as the query, so we calculate the index of each outgoing
       // component.
-      for (let i = 0; i < len; i++) {
-        tmpReadIndices[i] = (archetype as Archetype).layout.indexOf(
-          queryLayout[i],
+      for (k = 0; k < len; k++) {
+        tmpReadIndices[k] = (archetype as Archetype).layout.indexOf(
+          queryLayout[k],
         )
       }
 
-      for (let i = 0; i < entitiesLength; i++) {
-        const entity = entities[i]
-        const index = indices[entity]
+      for (j = 0; j < entitiesLength; j++) {
+        entity = entities[j]
+        index = indices[entity]
 
         // Execute entity filters.
-        let match = true
+        match = true
 
-        for (let f = 0; f < filterLen; f++) {
+        for (f = 0; f < filterLen; f++) {
           match = filters[f].matchEntity(entity, world)
           if (!match) break
         }
 
         if (!match) continue
 
-        for (let j = 0; j < len; j++) {
-          const component = table[tmpReadIndices[j]][index]!
+        for (k = 0; k < len; k++) {
+          component = table[tmpReadIndices[k]][index]!
 
           // Execute component filters.
-          for (let f = 0; f < filterLen; f++) {
+          for (f = 0; f < filterLen; f++) {
             match = filters[f].matchComponent(component, world)
             if (!match) break
           }
 
           if (!match) break
 
-          tmpResult[j] = component
+          tmpResult[k] = component
         }
 
         // Yield result if the entity and its components pass the filter.
@@ -139,5 +169,7 @@ export function createQuery<T extends ComponentType[]>(
     }
   }
 
-  return { run }
+  const query = { run, filter }
+
+  return query
 }
