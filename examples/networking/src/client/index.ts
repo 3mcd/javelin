@@ -20,7 +20,8 @@ const world = createWorld([interpolate, render])
 const messages: ArrayBuffer[] = []
 const messageHandler = createMessageHandler(world)
 
-world.storage.registerComponentFactory(PositionBuffer)
+world.registerComponentFactory(Position)
+world.registerComponentFactory(PositionBuffer)
 
 function handleMessage(message: NetworkMessage) {
   messageHandler.applyMessage(message)
@@ -50,7 +51,7 @@ function handleMessage(message: NetworkMessage) {
         if (isComponentOf(component, Position)) {
           const entity = messageHandler.remoteToLocal.get(component._e)
 
-          if (!entity) continue
+          if (!entity || world.isEphemeral(entity)) continue
 
           const buffer = world.storage.findComponent(entity, PositionBuffer)
 

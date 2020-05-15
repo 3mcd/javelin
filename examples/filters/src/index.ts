@@ -6,7 +6,7 @@ import {
   createWorld,
   number,
 } from "@javelin/ecs"
-import { app, framerate, graphics } from "./graphics"
+import { context } from "./graphics"
 
 enum Tags {
   Awake = 1,
@@ -27,9 +27,9 @@ const Velocity = createComponentFactory(
       y: number,
     },
   },
-  (v, x = 0, y = 0) => {
-    v.x = x
-    v.y = y
+  (velocity, x = 0, y = 0) => {
+    velocity.x = x
+    velocity.y = y
   },
 )
 const Sleep = createComponentFactory({
@@ -39,9 +39,19 @@ const Sleep = createComponentFactory({
   },
 })
 
-const awake = createTagFilter(Tags.Awake)
-const bodies = createQuery(Position, Velocity, Sleep)
-const positions = createQuery(Position)
+const renderCullingFilter = {
+  matchEntity() {
+    return true
+  },
+  matchComponent(component: ComponentOf<typeof Position>) {
+    return component.x >= 0 && component.x <= 800 && component.y >= 0
+  },
+}
+
+const awake = createQuery(Position, Velocity, Sleep).filter(
+  createTagFilter(Tags.Awake),
+)
+const culled = createQuery(Position).filter(renderCullingFilter)
 
 const size = 2
 const floorSize = 10
@@ -49,8 +59,11 @@ const floorOffset = 600 - size - floorSize
 
 function physics() {
   // physics system
-  for (const [p, v, s] of world.query(bodies, awake)) {
-    const { x, y } = p
+  for (const [position, velocity, sleep] of world.query(awake)) {
+    const { x, y } = position
+    const p = world.mut(position)
+    const v = world.mut(velocity)
+    const s = world.mut(sleep)
 
     p.x += v.x
     p.y += v.y
@@ -58,7 +71,7 @@ function physics() {
     // put entities to sleep that haven't moved recently
     if (Math.abs(x - p.x) < 0.2 && Math.abs(y - p.y) < 0.2) {
       if (++s.value >= 5) {
-        world.storage.removeTag(v._e, Tags.Awake)
+        world.removeTag(v._e, Tags.Awake)
         continue
       }
     } else {
@@ -76,7 +89,7 @@ function physics() {
     if (p.x >= 800 || p.x <= 0) {
       // collision w/ wall and "restitution"
       v.x = -(v.x * 0.5)
-      p.x = Math.max(0, Math.min(p.x, 800))
+      p.x = Math.max(0, Math.min(position.x, 800))
       continue
     }
 
@@ -86,13 +99,11 @@ function physics() {
 }
 
 function render() {
-  // render system
-  graphics.clear()
+  context.clearRect(0, 0, window.innerWidth, window.innerHeight)
 
-  for (const [p] of world.query(positions, renderCullingFilter)) {
-    graphics.beginFill(0x00ff00)
-    graphics.drawRect(p.x, p.y, 1, 1)
-    graphics.endFill()
+  for (const [position] of world.query(culled)) {
+    context.fillStyle = "#00ff00"
+    context.fillRect(position.x, position.y, 1, 1)
   }
 }
 
@@ -108,27 +119,12 @@ for (let i = 0; i < 15000; i++) {
   )
 }
 
-const renderCullingFilter = {
-  matchEntity() {
-    return true
-  },
-  matchComponent(component: ComponentOf<typeof Position>) {
-    return component.x >= 0 && component.x <= 800 && component.y >= 0
-  },
-}
-
-let tick = 0
 let previousTime = 0
 
 function loop(time = previousTime) {
   world.tick(time - (previousTime || time))
 
-  if (++tick % 60 === 0) {
-    framerate.text = `${app.ticker.FPS.toFixed(0)}`
-  }
-
   requestAnimationFrame(loop)
-  previousTime = time
 }
 
 loop()

@@ -1,5 +1,5 @@
 import { createWorld, mutableEmpty } from "@javelin/ecs"
-import { createHrtimeLoop, Clock } from "@javelin/hrtime-loop"
+import { createHrtimeLoop } from "@javelin/hrtime-loop"
 import { createMessageProducer } from "@javelin/net"
 import { encode } from "@msgpack/msgpack"
 import { Server } from "@web-udp/server"
@@ -24,9 +24,9 @@ const messages = createMessageProducer({
 })
 const clients: Client[] = []
 
-world.storage.registerComponentFactory(Position)
-world.storage.registerComponentFactory(Velocity)
-world.storage.registerComponentFactory(Sleep)
+world.registerComponentFactory(Position)
+world.registerComponentFactory(Velocity)
+world.registerComponentFactory(Sleep)
 
 function isConnectionMetadata(obj: any): obj is ConnectionMetadata {
   return (

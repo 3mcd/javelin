@@ -38,7 +38,7 @@ describe("createStorage", () => {
       table: [[components[0]]],
       indices: [0],
     }))
-    const entity = storage.create(1, components)
+    const entity = storage.create(0, components)
 
     expect(storage.archetypes.length).toBe(1)
     expect(storage.archetypes[0].layout).toEqual([0])

@@ -13,12 +13,12 @@ describe("createTagFilter", () => {
   it("matches entities tagged with the provided bit flag", () => {
     const filter = createTagFilter(2)
 
-    world.storage.hasTag = jest.fn((e, t) => e === 0 && t === 2)
+    world.hasTag = jest.fn((e, t) => e === 0 && t === 2)
 
     expect(filter.matchEntity(0, world)).toBe(true)
     expect(filter.matchEntity(0, world)).toBe(true)
 
-    world.storage.hasTag = jest.fn((e, t) => false)
+    world.hasTag = jest.fn((e, t) => false)
 
     expect(filter.matchEntity(0, world)).toBe(false)
   })

@@ -1,2 +1,2 @@
-export * from "./system_interpolate"
-export * from "./system_render"
+export * from "./interpolate"
+export * from "./render"

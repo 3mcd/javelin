@@ -7,27 +7,31 @@ const size = 2
 const floorSize = 10
 const floorOffset = 600 - size - floorSize
 
-const bodies = createQuery(Position, Velocity, Sleep)
-const awake = createTagFilter(Tags.Awake)
+const awake = createQuery(Position, Velocity, Sleep).filter(
+  createTagFilter(Tags.Awake),
+)
 
 export function physics(dt: number, world: World) {
-  for (const [p, v, s] of world.query(bodies, awake)) {
-    const { x, y } = p
+  for (const [position, velocity, sleep] of world.query(awake)) {
+    const { x, y } = position
+    const p = world.mut(position)
+    const v = world.mut(velocity)
+    const s = world.mut(sleep)
 
-    p.x += v.x
-    p.y += v.y
+    p.x += velocity.x
+    p.y += velocity.y
 
     // put entities to sleep that haven't moved recently
-    if (Math.abs(x - p.x) < 0.2 && Math.abs(y - p.y) < 0.2) {
+    if (Math.abs(x - position.x) < 0.2 && Math.abs(y - position.y) < 0.2) {
       if (++s.value >= 5) {
-        world.storage.removeTag(v._e, Tags.Awake)
+        world.removeTag(velocity._e, Tags.Awake)
         continue
       }
     } else {
       s.value = 0
     }
 
-    if (p.y >= floorOffset) {
+    if (position.y >= floorOffset) {
       // collision w/ floor and "restitution"
       v.y = -(v.y * 0.5)
       v.x *= 0.5
@@ -35,10 +39,10 @@ export function physics(dt: number, world: World) {
       continue
     }
 
-    if (p.x >= 800 || p.x <= 0) {
+    if (position.x >= 800 || position.x <= 0) {
       // collision w/ wall and "restitution"
       v.x = -(v.x * 0.5)
-      p.x = Math.max(0, Math.min(p.x, 800))
+      p.x = Math.max(0, Math.min(position.x, 800))
       continue
     }
 

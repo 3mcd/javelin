@@ -21,21 +21,25 @@ export type PriorityConfig = {
 }
 
 export function createMessageProducer(config: PriorityConfig) {
-  const componentsReliable = config.components.filter(
-    c => typeof c.priority !== "number",
-  )
-  const componentsUnreliable = config.components.filter(
+  const componentTypesReliable = config.components
+    .filter(c => typeof c.priority !== "number")
+    .map(c => c.type)
+  const configUnreliable = config.components.filter(
     c => typeof c.priority === "number" && c.priority > 0,
   )
   const priorities = createPriorityAccumulator(
-    new Map(componentsUnreliable.map(c => [c.type.type, c.priority!])),
+    new Map(configUnreliable.map(c => [c.type.type, c.priority!])),
   )
-  const queryAll = createQuery(...config.components.map(c => c.type))
-  const queryReliable = createQuery(...componentsReliable.map(c => c.type))
-  const queryUnreliable = createQuery(...componentsUnreliable.map(c => c.type))
-  const filterCreated = createAddedFilter()
-  const filterChanged = createChangedFilter()
-  const filterDestroyed = createDestroyedFilter()
+  const allComponents = config.components.map(c => c.type)
+  const queryAll = createQuery(...allComponents)
+  const queryUnreliable = createQuery(...configUnreliable.map(c => c.type))
+  const queryAdded = createQuery(...allComponents).filter(createAddedFilter())
+  const queryDestroyed = createQuery(...allComponents).filter(
+    createDestroyedFilter(),
+  )
+  const queryReliableChanged = createQuery(...componentTypesReliable).filter(
+    createChangedFilter(),
+  )
 
   const payloadCreated: Component[][] = []
   const payloadDestroyed: number[] = []
@@ -63,7 +67,7 @@ export function createMessageProducer(config: PriorityConfig) {
   function created(world: World) {
     mutableEmpty(payloadCreated)
 
-    for (const r of world.queryEphemeral(queryAll, filterCreated)) {
+    for (const r of world.query(queryAdded)) {
       payloadCreated.push(r.slice())
     }
 
@@ -79,8 +83,8 @@ export function createMessageProducer(config: PriorityConfig) {
   function changed(world: World) {
     mutableEmpty(payloadReliable)
 
-    for (const r of world.query(queryReliable, filterChanged)) {
-      for (let i = 0; i < componentsReliable.length; i++) {
+    for (const r of world.query(queryReliableChanged)) {
+      for (let i = 0; i < componentTypesReliable.length; i++) {
         payloadReliable.push(r[i])
       }
     }
@@ -97,7 +101,7 @@ export function createMessageProducer(config: PriorityConfig) {
   function destroyed(world: World) {
     mutableEmpty(payloadDestroyed)
 
-    for (const r of world.queryEphemeral(queryAll, filterDestroyed)) {
+    for (const r of world.query(queryDestroyed)) {
       for (let i = 0; i < config.components.length; i++) {
         payloadDestroyed.push(r[i]._e)
       }
@@ -116,7 +120,7 @@ export function createMessageProducer(config: PriorityConfig) {
     mutableEmpty(payloadUnreliable)
 
     for (const results of world.query(queryUnreliable)) {
-      for (let i = 0; i < componentsUnreliable.length; i++) {
+      for (let i = 0; i < configUnreliable.length; i++) {
         priorities.update(results[i])
       }
     }

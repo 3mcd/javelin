@@ -66,24 +66,6 @@ export function createQuery<T extends ComponentType[]>(
   // being iterated. This lets us map the components to the correct index in
   // tmpResult.
   const tmpReadIndices: number[] = []
-
-  let archetypes: ReadonlyArray<Archetype>
-  let filterLen
-  let i
-  let j
-  let k
-  let f
-
-  let archetype
-  let layout, entities, indices, table
-  let entitiesLength
-  let match
-
-  let entity
-  let index
-
-  let component
-
   const filters: Filter[] = []
 
   function filter(f: Filter) {
@@ -95,25 +77,22 @@ export function createQuery<T extends ComponentType[]>(
   }
 
   function* run(world: World) {
-    archetypes = world.storage.archetypes
-    filterLen = filters.length
+    const { archetypes } = world.storage
+    const filterLen = filters.length
 
     if (queryLayout.length === 0) {
       return
     }
 
-    for (i = 0; i < archetypes.length; i++) {
-      archetype = archetypes[i]
-      layout = archetype.layout
-      entities = archetype.entities
-      indices = archetype.indices
-      table = archetype.table
-      entitiesLength = entities.length
+    for (let i = 0; i < archetypes.length; i++) {
+      const archetype = archetypes[i]
+      const { layout, entities, indices, table } = archetype
+      const entitiesLength = entities.length
 
       // Only consider archetypes that include the provided component types.
-      match = true
+      let match = true
 
-      for (j = 0; j < len; j++) {
+      for (let j = 0; j < len; j++) {
         if (layout.indexOf(queryLayout[j]) === -1) {
           match = false
           break
@@ -127,31 +106,31 @@ export function createQuery<T extends ComponentType[]>(
       // The consumer expects the yielded tuples of components to be in the
       // same order as the query, so we calculate the index of each outgoing
       // component.
-      for (k = 0; k < len; k++) {
+      for (let k = 0; k < len; k++) {
         tmpReadIndices[k] = (archetype as Archetype).layout.indexOf(
           queryLayout[k],
         )
       }
 
-      for (j = 0; j < entitiesLength; j++) {
-        entity = entities[j]
-        index = indices[entity]
+      for (let j = 0; j < entitiesLength; j++) {
+        const entity = entities[j]
+        const index = indices[entity]
 
         // Execute entity filters.
         match = true
 
-        for (f = 0; f < filterLen; f++) {
+        for (let f = 0; f < filterLen; f++) {
           match = filters[f].matchEntity(entity, world)
           if (!match) break
         }
 
         if (!match) continue
 
-        for (k = 0; k < len; k++) {
-          component = table[tmpReadIndices[k]][index]!
+        for (let k = 0; k < len; k++) {
+          const component = table[tmpReadIndices[k]][index]!
 
           // Execute component filters.
-          for (f = 0; f < filterLen; f++) {
+          for (let f = 0; f < filterLen; f++) {
             match = filters[f].matchComponent(component, world)
             if (!match) break
           }

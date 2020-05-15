@@ -10,13 +10,15 @@ describe("createAddedFilter", () => {
     world = createWorld([])
   })
 
-  it("always matches entities", () => {
+  it("matches only added entities", () => {
     const filter = createAddedFilter()
     const entity = 1
 
+    ;(world.created as Set<number>).add(entity)
+
     expect(filter.matchEntity(entity, world)).toBe(true)
   })
-  it("matches only filtered components", () => {
+  it("always matches components", () => {
     const filter = createAddedFilter()
     const component = {
       _t: 0,
@@ -25,7 +27,5 @@ describe("createAddedFilter", () => {
     }
 
     expect(filter.matchComponent(component, world)).toBe(true)
-    expect(filter.matchComponent(component, world)).toBe(false)
-    expect(filter.matchComponent(component, world)).toBe(false)
   })
 })

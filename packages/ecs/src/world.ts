@@ -1,23 +1,29 @@
-import { Component, ComponentType } from "./component"
+import { Component, ComponentType, ComponentsOf } from "./component"
 import { createStorage, Storage } from "./storage"
 import { createStackPool } from "./pool/stack_pool"
-import { QueryLike, Filter } from "./query"
+import { QueryLike } from "./query"
+import { Mutable } from "./types"
+import { ComponentFactoryLike } from "./helpers"
 
 type QueryMethod = <T extends ComponentType[]>(
   query: QueryLike<T>,
-  ...filters: Filter[]
-) => ReturnType<QueryLike<T>["run"]>
+) => IterableIterator<ComponentsOf<T>>
 
 export type World<T = any> = {
   tick(data: T): void
   create(components: ReadonlyArray<Component>, tags?: number): number
   insert(entity: number, ...components: ReadonlyArray<Component>): void
   destroy(entity: number): void
-  created: Set<number>
-  destroyed: Set<number>
+  created: ReadonlySet<number>
+  destroyed: ReadonlySet<number>
   storage: Storage
   query: QueryMethod
-  queryEphemeral: QueryMethod
+  isEphemeral(entity: number): boolean
+  addTag(entity: number, tags: number): void
+  removeTag(entity: number, tags: number): void
+  hasTag(entity: number, tags: number): boolean
+  mut<C extends Component>(component: C): Mutable<C>
+  registerComponentFactory(factory: ComponentFactoryLike): void
 }
 
 export type System<T> = (data: T, world: World<T>) => void
@@ -34,40 +40,45 @@ type DestroyOp = [WorldOpType.Destroy, number]
 
 type WorldOp = CreateOp | InsertOp | DestroyOp
 
-const opPool = createStackPool<WorldOp>(
-  () => ([] as any) as WorldOp,
-  op => op,
-  1000,
-)
-
 export const createWorld = <T>(systems: System<T>[]): World<T> => {
   const ops: WorldOp[] = []
+  const opPool = createStackPool<WorldOp>(
+    () => ([] as any) as WorldOp,
+    op => op,
+    1000,
+  )
   const storage = createStorage()
   const created = new Set<number>()
   const destroyed = new Set<number>()
+  const ephemeral = new Set<number>()
 
   let nextEntity = 0
-  let op: WorldOp | undefined
-
-  let i
 
   function tick(data: T) {
     // Clean up entities
     destroyed.forEach(storage.destroy)
     destroyed.clear()
     created.clear()
+    ephemeral.clear()
+
+    let i = 0
+    let op: WorldOp | undefined
 
     // Process all world operations
-    while ((op = ops.pop())) {
+    while ((op = ops[i++])) {
       switch (op[0]) {
         case WorldOpType.Create: {
-          op[2].forEach(c => (c._e = op![1]))
+          for (let i = 0; i < op[2].length; i++) {
+            op[2][i]._e = op[1]
+          }
           storage.create(op[1], op[2] as Component[], op[3])
           created.add(op[1])
           break
         }
         case WorldOpType.Insert: {
-          op[2].forEach(c => (c._e = op![1]))
+          for (let i = 0; i < op[2].length; i++) {
+            op[2][i]._e = op[1]
+          }
           storage.insert(op[1], ...(op[2] as Component[]))
           break
         }
@@ -81,8 +92,10 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
       opPool.release(op)
     }
 
+    ops.length = 0
+
     // Execute all systems
-    for (i = 0; i < systems.length; i++) {
+    for (let i = 0; i < systems.length; i++) {
       systems[i](data, world)
     }
   }
@@ -96,7 +109,9 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
     op[2] = components
     op[3] = tags
 
-    ops.unshift(op)
+    ops.push(op)
+    created.add(entity)
+    ephemeral.add(entity)
 
     return entity
   }
@@ -108,7 +123,7 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
     op[1] = entity
     op[2] = components
 
-    ops.unshift(op)
+    ops.push(op)
   }
 
   function destroy(entity: number) {
@@ -117,25 +132,24 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
     op[0] = WorldOpType.Destroy
     op[1] = entity
 
-    ops.unshift(op)
+    ops.push(op)
+    ephemeral.add(entity)
   }
 
-  const concreteFilter = {
-    matchEntity(entity: number) {
-      return !(created.has(entity) || destroyed.has(entity))
-    },
-    matchComponent() {
-      return true
-    },
+  function isEphemeral(entity: number) {
+    return ephemeral.has(entity)
   }
 
   function query<T extends ComponentType[]>(q: QueryLike<T>) {
-    return q.filter(concreteFilter).run(world)
-  }
-
-  function queryEphemeral<T extends ComponentType[]>(q: QueryLike<T>) {
     return q.run(world)
   }
+
+  function mut<C extends Component>(component: C) {
+    storage.incrementVersion(component)
+    return component as Mutable<C>
+  }
+
+  const { addTag, removeTag, hasTag, registerComponentFactory } = storage
 
   const world: World<T> = {
     create,
@@ -146,7 +160,12 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
     destroyed,
     storage,
     query,
-    queryEphemeral,
+    isEphemeral,
+    addTag,
+    removeTag,
+    hasTag,
+    mut,
+    registerComponentFactory,
   }
 
   return world

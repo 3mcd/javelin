@@ -5,8 +5,7 @@ import { Tags } from "../tags"
 
 let elapsed = 0
 
-const asleep = createTagFilter(Tags.Awake, false)
-const positions = createQuery(Position)
+const asleep = createQuery(Position).filter(createTagFilter(Tags.Awake, false))
 
 export function spawn(dt: number, world: World) {
   elapsed += Math.max(dt, 0)
@@ -20,7 +19,7 @@ export function spawn(dt: number, world: World) {
 
     let i = 0
 
-    for (const [{ _e }] of world.query(positions, asleep)) {
+    for (const [{ _e }] of world.query(asleep)) {
       world.destroy(_e)
       if (++i >= 100) break
     }
