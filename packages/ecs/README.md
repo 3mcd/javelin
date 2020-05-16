@@ -19,33 +19,6 @@ For example, a system could add a `Burn` component to entities with `Position` a
 - **Unopinionated**
   - Leaves many opinions up to you, meaning it can be integrated with other packages or pre-existing projects
 
-## Performance
-
-Run `yarn perf` to run performance tests.
-
-Example perf on 2018 MacBook Pro where 350k entities are iterated per tick at 60 FPS:
-
-```
-========================================
-perf_storage
-========================================
-entities      | 300000
-components    | 4
-queries       | 4
-ticks         | 100
-iter_tick     | 353500
-avg_tick      | 13.7ms
-========================================
-perf_storage_pooled
-========================================
-entities      | 300000
-components    | 4
-queries       | 4
-ticks         | 100
-iter_tick     | 353500
-avg_tick      | 14.62ms
-```
-
 ## Basics
 
 ### Entity and component creation
@@ -58,7 +31,7 @@ import { createWorld } from "@javelin/ecs"
 const world = createWorld()
 ```
 
-Entities are created with the `world.create()` method.
+Entities are created with the `world.create` method.
 
 ```ts
 const entity = world.create([
@@ -67,7 +40,7 @@ const entity = world.create([
 ])
 ```
 
-Components are simple JS objects other than a few reserved properties:
+Components are unremarkable objects other than a few reserved properties:
 
 - `_t` is a unique integer identifying the component's type
 - `_e` references the entity the component is actively associated with
@@ -77,6 +50,12 @@ A position component assigned to entity `5` that has been modified three times m
 
 ```ts
 { _t: 1, _e: 5, _v: 3, x: 123.4, y: 567.8 }
+```
+
+Entities are removed via the `world.destroy` method:
+
+```ts
+world.destroy(entity)
 ```
 
 The `createComponentFactory` helper is provided to make component creation easier.
@@ -248,4 +227,31 @@ const moved2 = world.query(createQuery(Position).filter(changed()))
 
 for (const [position] of world.query(moved1)) // 100 iterations
 for (const [position] of world.query(moved2)) // 100 iterations
+```
+
+## Performance
+
+Run `yarn perf` to run performance tests.
+
+Example perf on 2018 MacBook Pro where 350k entities are iterated per tick at 60 FPS:
+
+```
+========================================
+perf_storage
+========================================
+entities      | 300000
+components    | 4
+queries       | 4
+ticks         | 100
+iter_tick     | 353500
+avg_tick      | 13.7ms
+========================================
+perf_storage_pooled
+========================================
+entities      | 300000
+components    | 4
+queries       | 4
+ticks         | 100
+iter_tick     | 353500
+avg_tick      | 14.62ms
 ```
