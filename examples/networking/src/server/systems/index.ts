@@ -1,2 +1,2 @@
-export * from "./system_physics"
-export * from "./system_spawn"
+export * from "./physics"
+export * from "./spawn"

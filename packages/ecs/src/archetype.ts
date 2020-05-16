@@ -74,8 +74,11 @@ export function createArchetype(layout: number[]): Archetype {
     entities[head] = entity
     indices[entity] = head
   }
+
+  let index
+
   function remove(entity: number) {
-    const index = indices[entity]
+    index = indices[entity]
 
     if (index === head) {
       for (const components of table) components[head] = null

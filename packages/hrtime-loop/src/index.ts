@@ -4,12 +4,12 @@ export type Clock = {
   tick: number
 }
 
-export const NS_PER_MS = BigInt(1e6)
-
 enum LoopState {
   Stopped,
   Running,
 }
+
+export const NS_PER_MS = BigInt(1e6)
 
 /**
  * This loop uses the fairly performant setImmediate scheduler in conjunction
@@ -33,14 +33,18 @@ export const createHrtimeLoop = (
   let previous: bigint = BigInt(0)
   let state = LoopState.Stopped
 
-  const start = () => {
+  function start() {
     if (state === LoopState.Running) return
 
     state = LoopState.Running
     loop()
   }
-  const stop = () => state === LoopState.Stopped
-  const loop = () => {
+
+  function stop() {
+    state = LoopState.Stopped
+  }
+
+  function loop() {
     if (state === LoopState.Stopped) return
 
     const time = process.hrtime.bigint()

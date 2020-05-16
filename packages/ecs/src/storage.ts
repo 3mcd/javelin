@@ -11,10 +11,11 @@ export interface Storage {
   /**
    * Create a new entity.
    *
-   * @param components Array of components to associate with the new entity
+   * @param entity Entity
+   * @param components Array of components to associate with the entity
    * @param tag Initial tag (bit flags) of the entity
    */
-  create(components: Component[], tag?: number): number
+  create(entity: number, components: Component[], tag?: number): number
 
   /**
    * Insert components into an existing entity.
@@ -102,8 +103,6 @@ export function createStorage(): Storage {
   const tagsByEntity: number[] = []
   const factoriesByType = new Map<number, ComponentFactoryLike>()
 
-  let nextEntity = 0
-
   /**
    * Locate an archetype for a collection of components.
    *
@@ -155,18 +154,10 @@ export function createStorage(): Storage {
     return archetype
   }
 
-  function create(components: Component[], tag = 0) {
+  function create(entity: number, components: Component[], tag = 0) {
     const archetype = findOrCreateArchetype(components)
-    const entity = nextEntity++
 
     archetype.insert(entity, components)
-
-    for (let i = 0; i < components.length; i++) {
-      const component = components[i]
-
-      component._e = entity
-      component._v = 0
-    }
 
     tagsByEntity[entity] = tag
     archetypeIndicesByEntity[entity] = archetypes.indexOf(archetype)

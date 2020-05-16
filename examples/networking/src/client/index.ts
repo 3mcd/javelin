@@ -1,4 +1,4 @@
-import { createStorage, isComponentOf } from "@javelin/ecs"
+import { createWorld, isComponentOf } from "@javelin/ecs"
 import {
   createMessageHandler,
   NetworkMessage,
@@ -7,7 +7,7 @@ import {
 import { decode } from "@msgpack/msgpack"
 import { Client } from "@web-udp/client"
 import { Position } from "../common/components"
-import { ConnectionType, System } from "../common/types"
+import { ConnectionType } from "../common/types"
 import { PositionBuffer } from "./components/position_buffer"
 import { app, framerate, updateBytesTransferred } from "./graphics"
 import { interpolate, render } from "./systems"
@@ -16,12 +16,12 @@ import { uuidv4 } from "./uuid"
 const udp = new Client({
   url: `ws://${window.location.hostname}:8000`,
 })
-const storage = createStorage()
+const world = createWorld([interpolate, render])
 const messages: ArrayBuffer[] = []
-const messageHandler = createMessageHandler(storage)
-const systems: System[] = [interpolate, render]
+const messageHandler = createMessageHandler(world)
 
-storage.registerComponentFactory(PositionBuffer)
+world.registerComponentFactory(Position)
+world.registerComponentFactory(PositionBuffer)
 
 function handleMessage(message: NetworkMessage) {
   messageHandler.applyMessage(message)
@@ -35,7 +35,7 @@ function handleMessage(message: NetworkMessage) {
 
         if (!position) continue
 
-        storage.insert(
+        world.insert(
           messageHandler.remoteToLocal.get(position._e)!,
           PositionBuffer.create(),
         )
@@ -51,9 +51,9 @@ function handleMessage(message: NetworkMessage) {
         if (isComponentOf(component, Position)) {
           const entity = messageHandler.remoteToLocal.get(component._e)
 
-          if (!entity) continue
+          if (!entity || world.isEphemeral(entity)) continue
 
-          const buffer = storage.findComponent(entity, PositionBuffer)
+          const buffer = world.storage.findComponent(entity, PositionBuffer)
 
           buffer.updates.push([Date.now(), component.x, component.y])
         }
@@ -79,9 +79,7 @@ function loop(time = 0) {
     handleMessage(decode(message) as NetworkMessage)
   }
 
-  for (let i = 0; i < systems.length; i++) {
-    systems[i](storage, deltaTime)
-  }
+  world.tick(deltaTime)
 
   previousTime = time
   requestAnimationFrame(loop)

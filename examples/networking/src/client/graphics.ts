@@ -13,12 +13,12 @@ export const framerate = new Text("0", {
 
 framerate.x = 0
 
-const $render = document.createElement("div")
+const stage = document.createElement("div")
 
-$render.setAttribute("id", "render")
-$render.appendChild(app.view)
+stage.setAttribute("id", "render")
+stage.appendChild(app.view)
 
-document.body.appendChild($render)
+document.body.appendChild(stage)
 
 app.stage.addChild(graphics)
 app.stage.addChild(framerate)
@@ -27,9 +27,9 @@ let previous = Date.now()
 let elapsed = 0
 let transferred = 0
 
-const $bandwidth = document.createElement("div")
+const bandwidth = document.createElement("div")
 
-document.body.appendChild($bandwidth)
+document.body.appendChild(bandwidth)
 
 export function updateBytesTransferred(bytes: number) {
   const now = Date.now()
@@ -40,6 +40,6 @@ export function updateBytesTransferred(bytes: number) {
 
   if (deltaTime > 1000) {
     previous = now
-    $bandwidth.innerText = `${String(transferred / elapsed)} kb per second`
+    bandwidth.innerText = `${(transferred / elapsed).toFixed(2)} kb per second`
   }
 }

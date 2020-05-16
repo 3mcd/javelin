@@ -2,6 +2,7 @@ import { Archetype } from "./archetype"
 import { ComponentsOf, ComponentType, Component } from "./component"
 import { Storage } from "./storage"
 import { arrayOf } from "./util/array"
+import { World } from "./world"
 
 /**
  * A Filter is an object containing methods used to filter queries by entity
@@ -14,18 +15,18 @@ export interface Filter {
    * excluded if one of it's components fail to pass the matchComponent filter.
    *
    * @param entity Subject entity
-   * @param storage Storage of query
+   * @param world World of query
    */
-  matchEntity(entity: number, storage: Storage): boolean
+  matchEntity(entity: number, world: World): boolean
 
   /**
    * Filter by individual component. Return true if the associated entity's
    * components should be included in query results.
    *
    * @param component Subject entity's component
-   * @param storage Storage of query
+   * @param world World of query
    */
-  matchComponent(component: Component, storage: Storage): boolean
+  matchComponent(component: Component, world: World): boolean
 }
 
 /**
@@ -37,10 +38,12 @@ export interface QueryLike<T extends ComponentType[]> {
    * Execute the query against a Storage. Optionally executed with filters to
    * further refine the results.
    *
-   * @param storage Storage instance
+   * @param world Storage instance
    * @param filters Zero or more filters
    */
-  run(storage: Storage, ...filters: Filter[]): IterableIterator<ComponentsOf<T>>
+  run(world: World): IterableIterator<ComponentsOf<T>>
+
+  filter(filter: Filter): QueryLike<T>
 }
 
 /**
@@ -63,9 +66,18 @@ export function createQuery<T extends ComponentType[]>(
   // being iterated. This lets us map the components to the correct index in
   // tmpResult.
   const tmpReadIndices: number[] = []
+  const filters: Filter[] = []
 
-  function* run(storage: Storage, ...filters: Filter[]) {
-    const { archetypes } = storage
+  function filter(f: Filter) {
+    if (filters.indexOf(f) > -1) {
+      return query
+    }
+    filters.push(f)
+    return query
+  }
+
+  function* run(world: World) {
+    const { archetypes } = world.storage
     const filterLen = filters.length
 
     if (queryLayout.length === 0) {
@@ -94,38 +106,38 @@ export function createQuery<T extends ComponentType[]>(
       // The consumer expects the yielded tuples of components to be in the
       // same order as the query, so we calculate the index of each outgoing
       // component.
-      for (let i = 0; i < len; i++) {
-        tmpReadIndices[i] = (archetype as Archetype).layout.indexOf(
-          queryLayout[i],
+      for (let k = 0; k < len; k++) {
+        tmpReadIndices[k] = (archetype as Archetype).layout.indexOf(
+          queryLayout[k],
         )
       }
 
-      for (let i = 0; i < entitiesLength; i++) {
-        const entity = entities[i]
+      for (let j = 0; j < entitiesLength; j++) {
+        const entity = entities[j]
         const index = indices[entity]
 
         // Execute entity filters.
-        let match = true
+        match = true
 
         for (let f = 0; f < filterLen; f++) {
-          match = filters[f].matchEntity(entity, storage)
+          match = filters[f].matchEntity(entity, world)
           if (!match) break
         }
 
         if (!match) continue
 
-        for (let j = 0; j < len; j++) {
-          const component = table[tmpReadIndices[j]][index]!
+        for (let k = 0; k < len; k++) {
+          const component = table[tmpReadIndices[k]][index]!
 
           // Execute component filters.
           for (let f = 0; f < filterLen; f++) {
-            match = filters[f].matchComponent(component, storage)
+            match = filters[f].matchComponent(component, world)
             if (!match) break
           }
 
           if (!match) break
 
-          tmpResult[j] = component
+          tmpResult[k] = component
         }
 
         // Yield result if the entity and its components pass the filter.
@@ -136,5 +148,7 @@ export function createQuery<T extends ComponentType[]>(
     }
   }
 
-  return { run }
+  const query = { run, filter }
+
+  return query
 }

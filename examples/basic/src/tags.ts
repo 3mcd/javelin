@@ -1,3 +1,3 @@
 export enum Tags {
-  Awake = 1,
+  Influenced = 1,
 }

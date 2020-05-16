@@ -28,7 +28,9 @@ export type ComponentOf<C extends ComponentType> = C extends ComponentType<
   : never
 
 export type ComponentsOf<C extends ComponentType[]> = {
-  [K in keyof C]: C[K] extends ComponentType ? ComponentOf<C[K]> : never
+  [K in keyof C]: C[K] extends ComponentType
+    ? Readonly<ComponentOf<C[K]>>
+    : never
 }
 
 export type MutableComponentOf<C extends ComponentType> = Mutable<

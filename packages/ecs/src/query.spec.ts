@@ -1,16 +1,16 @@
 import { createQuery } from "./query"
-import { createStorage } from "./storage"
+import { createWorld } from "./world"
 import { createArchetype, Archetype } from "./archetype"
 import { Component } from "./component"
 
 jest.mock("./archetype")
-jest.mock("./storage")
+jest.mock("./world")
 
 describe("createQuery", () => {
   it("queries collections of components", () => {
     const A = { type: 0, schema: {} }
     const B = { type: 1, schema: {} }
-    const storage = createStorage()
+    const world = createWorld([])
     const table = [
       [
         { _t: 1, _e: 2, _v: 0 },
@@ -24,7 +24,7 @@ describe("createQuery", () => {
       ],
     ]
 
-    ;(storage as any).archetypes = [
+    ;(world as any).storage.archetypes = [
       {
         ...createArchetype([0]),
         layout: [1, 0],
@@ -39,7 +39,7 @@ describe("createQuery", () => {
     let resultsA = []
     let resultsB = []
 
-    for (const [a, b] of query.run(storage)) {
+    for (const [a, b] of query.run(world)) {
       resultsA.push(a)
       resultsB.push(b)
     }
@@ -51,7 +51,7 @@ describe("createQuery", () => {
   })
   it("supports filtering of entities and components", () => {
     const A = { type: 0, schema: {} }
-    const storage = createStorage()
+    const world = createWorld([])
     const table = [
       [
         { _t: 0, _e: 2, _v: 0 },
@@ -68,7 +68,7 @@ describe("createQuery", () => {
       },
     }
 
-    ;(storage as any).archetypes = [
+    ;(world as any).storage.archetypes = [
       {
         ...createArchetype([0]),
         layout: [0],
@@ -78,11 +78,11 @@ describe("createQuery", () => {
       } as Archetype,
     ]
 
-    const query = createQuery(A)
+    const query = createQuery(A).filter(filter)
 
     let results = []
 
-    for (const [a] of query.run(storage, filter)) {
+    for (const [a] of query.run(world)) {
       results.push(a)
     }
 

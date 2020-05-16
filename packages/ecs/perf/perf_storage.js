@@ -1,10 +1,10 @@
-const { createStorage } = require("../dist/storage")
+const { createWorld } = require("../dist/world")
 const { createQuery } = require("../dist/query")
 const { arrayOf } = require("../dist/util/array")
 
 module.exports.run = function run() {
   let n = 100
-  const storage = createStorage()
+  const world = createWorld([])
   const componentTypes = [
     { schema: {}, type: 1 },
     { schema: {}, type: 2 },
@@ -25,18 +25,22 @@ module.exports.run = function run() {
     [componentTypes[2]],
     [componentTypes[1], componentTypes[3]],
   ].map(c => createQuery(...c))
+
   console.time("create")
-  const entities = components.map(c => storage.create(c))
+  const entities = components.map(c => world.create(c))
   console.timeEnd("create")
 
   let i = n
   let c = 0
   const start = Date.now()
 
+  world.tick()
+  world.tick()
+
   console.time("run")
   while (i >= 0) {
     for (let j = 0; j < queries.length; j++) {
-      for (const _ of queries[j].run(storage)) {
+      for (const _ of world.query(queries[j])) {
         c++
       }
     }
@@ -48,7 +52,7 @@ module.exports.run = function run() {
 
   console.time("destroy")
   for (let i = 0; i < entities.length; i++) {
-    storage.destroy(entities[i])
+    world.destroy(entities[i])
   }
   console.timeEnd("destroy")
 

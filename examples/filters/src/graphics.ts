@@ -1,13 +1,10 @@
-import { Application, Graphics, Text } from "pixi.js"
+export const canvas = document.createElement("canvas")
+export const context = canvas.getContext("2d")!
 
-export const app = new Application({ antialias: false })
-export const graphics = new Graphics()
+canvas.width = 800
+canvas.height = 600
 
-const $render = document.createElement("div")
+canvas.style.width = "800"
+canvas.style.height = "600"
 
-$render.setAttribute("id", "render")
-$render.appendChild(app.view)
-
-document.body.appendChild($render)
-
-app.stage.addChild(graphics)
+document.body.appendChild(canvas)

@@ -1,7 +1,7 @@
 export interface StackPool<T> {
-  allocate: () => void
-  retain: () => T
-  release: (obj: T) => void
+  allocate(): void
+  retain(): T
+  release(obj: T): void
 }
 
 export function createStackPool<T>(

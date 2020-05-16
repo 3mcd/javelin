@@ -2,18 +2,22 @@ import { Component } from "@javelin/ecs"
 
 export enum NetworkMessageType {
   Create,
-  Remove,
+  Destroy,
+  Change,
   Update,
 }
 
 export const protocol = {
-  insert(
+  create(
     components: Component[][],
   ): [NetworkMessageType.Create, Component[][]] {
     return [NetworkMessageType.Create, components]
   },
-  remove(entities: number[]): [NetworkMessageType.Remove, number[]] {
-    return [NetworkMessageType.Remove, entities]
+  destroy(entities: number[]): [NetworkMessageType.Destroy, number[]] {
+    return [NetworkMessageType.Destroy, entities]
+  },
+  change(components: Component[]): [NetworkMessageType.Change, Component[]] {
+    return [NetworkMessageType.Change, components]
   },
   update<T>(
     components: Component[],

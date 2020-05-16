@@ -50,18 +50,18 @@ avg_tick      | 14.62ms
 
 ### Entity and component creation
 
-Entities are integers. Components are associated with entities by a container cleverly named `Storage`.
+Entities are integers. Components are associated with entities inside of a `World`.
 
 ```ts
-import { createStorage } from "@javelin/ecs"
+import { createWorld } from "@javelin/ecs"
 
-const storage = createStorage()
+const world = createWorld()
 ```
 
-Entities are created with the `storage.create()` method.
+Entities are created with the `world.create()` method.
 
 ```ts
-const entity = storage.create([
+const entity = world.create([
   { _t: 1, x: 0, y: 0 }, // Position
   { _t: 2, x: 0, y: 0 }, // Velocity
 ])
@@ -93,26 +93,26 @@ const Position = createComponentFactory({
 })
 
 const position = Position.create()
-const entity = storage.create([position])
+const entity = world.create([position])
 ```
 
 Components created via factory are automatically pooled; however, you must manually release the component back to the pool when it should be discarded:
 
 ```ts
-storage.destroy(entity)
+world.destroy(entity)
 Position.destroy(position)
 ```
 
-`Storage` can do this automatically if you register the component factory via the `storage.registerComponentFactory` method.
+`World` can do this automatically if you register the component factory via the `world.registerComponentFactory` method.
 
 ```ts
-storage.registerComponentFactory(Position)
-storage.destroy(entity) // position automatically released
+world.registerComponentFactory(Position)
+world.destroy(entity) // position automatically released
 ```
 
 ### Querying and iteration
 
-The ECS has no concept of systems. A system is just the code in your program that executes queries and reads/writes component state.
+A system is just a function executed each simulation tick. Systems execute queries to access entities' components.
 
 Queries are created with the `createQuery` function, which takes one or more component types (or factories).
 
@@ -120,10 +120,10 @@ Queries are created with the `createQuery` function, which takes one or more com
 const players = createQuery(Position, Player)
 ```
 
-The query can then be executed for a given storage (your game usually has one storage):
+The query can then be executed for a given world:
 
 ```ts
-for (const [position, player] of players.run(storage)) {
+for (const [position, player] of world.query(players)) {
   // render each player with a name tag
   draw(position, player.name)
 }
@@ -131,44 +131,40 @@ for (const [position, player] of players.run(storage)) {
 
 ### Filtering and change detection
 
-As alluded to earlier, components are versioned. The version of a component can be incremented using the `storage.incrementVersion()` method, which just increments the component's `_v` property:
+Queried components are readonly by default. A mutable copy of the component can be obtained via the `world.mut(entity)` method.
 
 ```ts
 const burning = query(Health, Burn)
 
-for (const [health, burn] of burning.run(storage)) {
-  health.value -= burn.damagePerTick
-  storage.incrementVersion(health)
+for (const [health, burn] of world.query(burning)) {
+  world.mut(health).value -= burn.damagePerTick
 }
 ```
 
-A component's version can be useful when you want to query components that have changed since your game's last tick.
-
-`createChangedFilter` produces a filter that excludes entities whose components haven't changed since the entity was last iterated with the filter instance. This filter uses the component's version (`_v`) to this end.
+As alluded to earlier, components are versioned. `world.mut` simply increments the component's `_v` property. `createChangedFilter` produces a filter that excludes entities whose components haven't changed since the entity was last iterated with the filter instance. This filter uses the component's version (`_v`) to this end.
 
 ```ts
 import { createChangedFilter, query } from "@javelin/ecs"
 
 // ...
-const healthy = query(Player, Health)
-const changed = createChangedFilter(Health)
+const healthy = query(Player, Health).filter(createChangedFilter(Health))
 
-for (const [health] of healthy.run(storage, changed)) {
+for (const [health] of world.query(healthy)) {
   // `health` has changed since last tick
 }
 ```
 
-A query can take one or more filters as arguments to `run`.
+A query can take one or more filters as arguments to `filter`.
 
 ```ts
-bodies.run(storage, changed, awake, ...);
+query.filter(changed, awake, ...);
 ```
 
-The ECS also provides `createAddedFilter` to detect newly added entities, and `createTagFilter` to find tagged entities, which are discussed below.
+The ECS also provides `createAddedFilter` to detect newly created entities, `createDestroyedFilter` to detect recently destroyed entities, and `createTagFilter` to isolate entities by tags, which are discussed below.
 
 ### Tagging
 
-Entities can be tagged with bit flags via the `storage.tag` method.
+Entities can be tagged with bit flags via the `world.addTag` method.
 
 ```ts
 enum Tags {
@@ -176,16 +172,16 @@ enum Tags {
   Dying = 2,
 }
 
-storage.tag(entity, Tags.Awake | Tags.Dying)
+world.addTag(entity, Tags.Awake | Tags.Dying)
 ```
 
-The `storage.hasTag` method can be used to check if an entity has a tag. `storage.removeTag` removes tags from an entity.
+The `world.hasTag` method can be used to check if an entity has a tag. `world.removeTag` removes tags from an entity.
 
 ```ts
-storage.hasTag(entity, Tags.Awake) // -> true
-storage.hasTag(entity, Tags.Dying) // -> true
-storage.removeTag(entity, Tags.Awake)
-storage.hasTag(entity, Tags.Awake) // -> false
+world.hasTag(entity, Tags.Awake) // -> true
+world.hasTag(entity, Tags.Dying) // -> true
+world.removeTag(entity, Tags.Awake)
+world.hasTag(entity, Tags.Awake) // -> false
 ```
 
 `createTagFilter` produces a filter that will exclude entities which do not have the provided tag(s):
@@ -196,42 +192,12 @@ enum Tags {
   Goopy = 2 ** 1,
 }
 
-const nastyAndGoopy = createTagFilter(Tags.Nasty | Tags.Goopy)
+const nastyAndGoopy = createQuery(Player).filter(
+  createTagFilter(Tags.Nasty | Tags.Goopy),
+)
 
-for (const [player] of createQuery(Player).run(storage, nastyAndGoopy)) {
+for (const [player] of world.query(nastyAndGoopy)) {
   // `player` belongs to an entity with Nasty and Goopy tags
-}
-```
-
-## Recipes
-
-### Detecting removed entities
-
-When interfacing with third-party libraries with their own state, you will often want to clean up library objects when an entity is removed. This is pretty easy to do with tags and queries.
-
-```ts
-enum Tag {
-  Removing = 1,
-}
-
-const bodies = query(Body)
-const removed = createTagFilter(Tag.Removing)
-const p2BodiesByEntityId = {}
-
-function physicsSystem() {
-  for (const [body] of bodies.run(storage, removed)) {
-    p2World.removeBody(p2BodiesByEntityId[body._e])
-  }
-}
-
-const players = query(Body, Health)
-
-function damageSystem() {
-  for (const [body, health] of players.run(storage)) {
-    if (health <= 0) {
-      storage.addTag(body._e, Tag.Removing)
-    }
-  }
 }
 ```
 
@@ -239,13 +205,13 @@ function damageSystem() {
 
 ### Storing query results
 
-The tuple of components yielded by `query.run()` is re-used each iteration. This means that you can't store the results of a query for use later like this:
+The tuple of components yielded by `world.query()` is re-used each iteration. This means that you can't store the results of a query for use later like this:
 
 ```ts
 const results = []
 
-for (const r of query.run(storage)) {
-  results.push(r)
+for (const s of world.query(shocked)) {
+  results.push(s)
 }
 
 // Every index of `results` corresponds to the same array!
@@ -254,10 +220,10 @@ for (const r of query.run(storage)) {
 The same applies to `Array.from()`, or any other method that expands an iterator into another container. If you _do_ need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
 
 ```ts
-const positions = []
+const shocked = []
 
-for (const [position] of query.run(storage)) {
-  positions.push(position)
+for (const [enemy] of world.query(shocked)) {
+  shocked.push(enemy)
 }
 ```
 
@@ -268,28 +234,18 @@ Try nested queries before you prematurely optimize. Iteration is pretty fast tha
 A filter does not have access to the query that executed it, meaning it can't track state for multiple queries. For example, if two queries use the same `changed` filter, no entities will be yielded by the second query unless entities were added between the first and second queries.
 
 ```ts
-const changed1 = changed()
+const moved = world.query(createQuery(Position).filter(changed()))
 
-for (const [position] of query(Position).run(storage, changed1)) {
-  // 100 iterations
-}
-// No new entities...
-for (const [position] of query(Position).run(storage, changed1)) {
-  // 0 iterations
-}
+for (const [position] of world.query(moved)) // 100 iterations
+for (const [position] of world.query(moved)) // 0 iterations
 ```
 
 The solution is to simply use a unique filter per query.
 
 ```ts
-const changed1 = changed()
-const changed2 = changed()
+const moved1 = world.query(createQuery(Position).filter(changed()))
+const moved2 = world.query(createQuery(Position).filter(changed()))
 
-for (const [position] of query(Position).run(storage, changed1)) {
-  // 100 iterations
-}
-
-for (const [position] of query(Position).run(storage, changed2)) {
-  // 100 iterations
-}
+for (const [position] of world.query(moved1)) // 100 iterations
+for (const [position] of world.query(moved2)) // 100 iterations
 ```

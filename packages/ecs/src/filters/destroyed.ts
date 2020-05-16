@@ -1,9 +1,9 @@
 import { Filter } from "../query"
 import { World } from "../world"
 
-export function createAddedFilter(): Filter {
+export function createDestroyedFilter(): Filter {
   function matchEntity(entity: number, world: World) {
-    return world.created.has(entity)
+    return world.destroyed.has(entity)
   }
 
   function matchComponent() {
