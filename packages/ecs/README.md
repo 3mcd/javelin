@@ -40,11 +40,11 @@ const entity = world.create([
 ])
 ```
 
-Components are unremarkable objects other than a few reserved properties:
+Components are just plain objects; unremarkable, other than a few reserved properties:
 
-- `_t` is a unique integer identifying the component's type
-- `_e` references the entity the component is actively associated with
-- `_v` maintains the current version of the component, which is useful for change detection
+- `_t` is a unique integer identifying the component's **type**
+- `_e` references the **entity** the component is actively associated with
+- `_v` maintains the current **version** of the component, which is useful for change detection
 
 A position component assigned to entity `5` that has been modified three times might look like:
 
@@ -52,7 +52,7 @@ A position component assigned to entity `5` that has been modified three times m
 { _t: 1, _e: 5, _v: 3, x: 123.4, y: 567.8 }
 ```
 
-Entities are removed via the `world.destroy` method:
+Entities can be removed (and all components subsequently de-referenced) via the `world.destroy` method:
 
 ```ts
 world.destroy(entity)
@@ -110,7 +110,7 @@ for (const [position, player] of world.query(players)) {
 
 ### Filtering and change detection
 
-Queried components are readonly by default. A mutable copy of the component can be obtained via the `world.mut(entity)` method.
+Queried components are readonly by default. A mutable copy of a component can be obtained via `world.mut(entity)`.
 
 ```ts
 const burning = query(Health, Burn)
@@ -120,7 +120,7 @@ for (const [health, burn] of world.query(burning)) {
 }
 ```
 
-As alluded to earlier, components are versioned. `world.mut` simply increments the component's `_v` property. `createChangedFilter` produces a filter that excludes entities whose components haven't changed since the entity was last iterated with the filter instance. This filter uses the component's version (`_v`) to this end.
+Components are versioned as alluded to earlier. `world.mut` simply increments the component's `_v` property. `createChangedFilter` produces a filter that excludes entities whose components haven't changed since the entity was last iterated with the filter instance. This filter uses the component's version (`_v`) to this end.
 
 ```ts
 import { createChangedFilter, query } from "@javelin/ecs"
