@@ -33,3 +33,12 @@ export const boolean = createDataType<boolean>({
     c[key] = value
   },
 })
+
+export const string = createDataType<string>({
+  create(value = "") {
+    return value
+  },
+  reset(c, key, value = "") {
+    c[key] = value
+  },
+})
