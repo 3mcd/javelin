@@ -30,15 +30,19 @@ export function createMessageProducer(config: PriorityConfig) {
   const priorities = createPriorityAccumulator(
     new Map(configUnreliable.map(c => [c.type.type, c.priority!])),
   )
+
   const allComponents = config.components.map(c => c.type)
-  const queryAll = createQuery(...allComponents)
-  const queryUnreliable = createQuery(...configUnreliable.map(c => c.type))
-  const queryAdded = createQuery(...allComponents).filter(createAddedFilter())
-  const queryDestroyed = createQuery(...allComponents).filter(
-    createDestroyedFilter(),
+
+  const queryAll = allComponents.map(c => createQuery(c))
+  const queryUnreliable = configUnreliable.map(c => createQuery(c.type))
+  const queryAdded = allComponents.map(c =>
+    createQuery(c).filter(createAddedFilter()),
   )
-  const queryReliableChanged = createQuery(...componentTypesReliable).filter(
-    createChangedFilter(),
+  const queryDestroyed = allComponents.map(c =>
+    createQuery(c).filter(createDestroyedFilter()),
+  )
+  const queryReliableChanged = componentTypesReliable.map(c =>
+    createQuery(c).filter(createChangedFilter()),
   )
 
   const payloadCreated: Component[][] = []
@@ -51,8 +55,10 @@ export function createMessageProducer(config: PriorityConfig) {
   function all(world: World) {
     mutableEmpty(payloadCreated)
 
-    for (const r of world.query(queryAll)) {
-      payloadCreated.push(r.slice())
+    for (const query of queryAll) {
+      for (const r of world.query(query)) {
+        payloadCreated.push(r.slice())
+      }
     }
 
     if (payloadCreated.length > 0) {
@@ -67,8 +73,10 @@ export function createMessageProducer(config: PriorityConfig) {
   function created(world: World) {
     mutableEmpty(payloadCreated)
 
-    for (const r of world.query(queryAdded)) {
-      payloadCreated.push(r.slice())
+    for (const query of queryAdded) {
+      for (const r of world.query(query)) {
+        payloadCreated.push(r.slice())
+      }
     }
 
     if (payloadCreated.length > 0) {
@@ -83,9 +91,11 @@ export function createMessageProducer(config: PriorityConfig) {
   function changed(world: World) {
     mutableEmpty(payloadReliable)
 
-    for (const r of world.query(queryReliableChanged)) {
-      for (let i = 0; i < componentTypesReliable.length; i++) {
-        payloadReliable.push(r[i])
+    for (const query of queryReliableChanged) {
+      for (const r of world.query(query)) {
+        for (let i = 0; i < componentTypesReliable.length; i++) {
+          payloadReliable.push(r[i])
+        }
       }
     }
 
@@ -101,9 +111,11 @@ export function createMessageProducer(config: PriorityConfig) {
   function destroyed(world: World) {
     mutableEmpty(payloadDestroyed)
 
-    for (const r of world.query(queryDestroyed)) {
-      for (let i = 0; i < config.components.length; i++) {
-        payloadDestroyed.push(r[i]._e)
+    for (const query of queryDestroyed) {
+      for (const r of world.query(query)) {
+        for (let i = 0; i < config.components.length; i++) {
+          payloadDestroyed.push(r[i]._e)
+        }
       }
     }
 
@@ -119,9 +131,11 @@ export function createMessageProducer(config: PriorityConfig) {
   function* unreliable(world: World, time = Date.now()) {
     mutableEmpty(payloadUnreliable)
 
-    for (const results of world.query(queryUnreliable)) {
-      for (let i = 0; i < configUnreliable.length; i++) {
-        priorities.update(results[i])
+    for (const query of queryUnreliable) {
+      for (const results of world.query(query)) {
+        for (let i = 0; i < configUnreliable.length; i++) {
+          priorities.update(results[i])
+        }
       }
     }
 
