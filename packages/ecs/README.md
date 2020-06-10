@@ -139,7 +139,12 @@ A query can take one or more filters as arguments to `filter`.
 query.filter(changed, awake, ...);
 ```
 
-The ECS also provides `createAddedFilter` to detect newly created entities, `createDestroyedFilter` to detect recently destroyed entities, and `createTagFilter` to isolate entities by tags, which are discussed below.
+The ECS also provides the following filters
+
+- `createCommittedFilter` ignores "ephemeral" entities, i.e. entities that were added or destroyed last tick
+- `createAddedFilter` detects newly created entities
+- `createDestroyedFilter` detects recently destroyed entities
+- `createTagFilter` isolates entities by tags, which are discussed below
 
 ### Tagging
 
