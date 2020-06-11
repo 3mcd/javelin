@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 0.3.0 (2020-06-11)
+
+
+### Features
+
+* major net package cleanup; introduced mut() wrapper ([#38](https://github.com/3mcd/javelin/issues/38)) ([2d00a51](https://github.com/3mcd/javelin/commit/2d00a5118be77976ada9cf6fb30fb410e44edac7))
+
+
+
+
+
 ## 0.2.2 (2020-06-10)
 
 **Note:** Version bump only for package @javelin/example-basic
