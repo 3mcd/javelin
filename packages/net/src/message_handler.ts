@@ -40,7 +40,7 @@ export function createMessageHandler(world: World) {
   function updateComponent(component: Component) {
     const local = remoteToLocal.get(component._e)
 
-    if (!local) {
+    if (local === undefined) {
       return
     }
 
