@@ -2,9 +2,10 @@ import {
   ComponentOf,
   createComponentFactory,
   createQuery,
-  createTagFilter,
+  tag,
   createWorld,
   number,
+  mut,
 } from "@javelin/ecs"
 import { context } from "./graphics"
 
@@ -39,7 +40,7 @@ const Sleep = createComponentFactory({
   },
 })
 
-const renderCullingFilter = {
+const culling = {
   matchEntity() {
     return true
   },
@@ -48,10 +49,10 @@ const renderCullingFilter = {
   },
 }
 
-const awake = createQuery(Position, Velocity, Sleep).filter(
-  createTagFilter(Tags.Awake),
+const awake = createQuery(mut(Position), mut(Velocity), mut(Sleep)).filter(
+  tag(Tags.Awake),
 )
-const culled = createQuery(Position).filter(renderCullingFilter)
+const culled = createQuery(Position).filter(culling)
 
 const size = 2
 const floorSize = 10
@@ -61,40 +62,37 @@ function physics() {
   // physics system
   for (const [position, velocity, sleep] of world.query(awake)) {
     const { x, y } = position
-    const p = world.mut(position)
-    const v = world.mut(velocity)
-    const s = world.mut(sleep)
 
-    p.x += v.x
-    p.y += v.y
+    position.x += velocity.x
+    position.y += velocity.y
 
     // put entities to sleep that haven't moved recently
-    if (Math.abs(x - p.x) < 0.2 && Math.abs(y - p.y) < 0.2) {
-      if (++s.value >= 5) {
-        world.removeTag(v._e, Tags.Awake)
+    if (Math.abs(x - position.x) < 0.2 && Math.abs(y - position.y) < 0.2) {
+      if (++sleep.value >= 5) {
+        world.removeTag(velocity._e, Tags.Awake)
         continue
       }
     } else {
-      s.value = 0
+      sleep.value = 0
     }
 
-    if (p.y >= floorOffset) {
+    if (position.y >= floorOffset) {
       // collision w/ floor and "restitution"
-      v.y = -(v.y * 0.5)
-      v.x *= 0.5
-      p.y = floorOffset
+      velocity.y = -(velocity.y * 0.5)
+      velocity.x *= 0.5
+      position.y = floorOffset
       continue
     }
 
-    if (p.x >= 800 || p.x <= 0) {
+    if (position.x >= 800 || position.x <= 0) {
       // collision w/ wall and "restitution"
-      v.x = -(v.x * 0.5)
-      p.x = Math.max(0, Math.min(position.x, 800))
+      velocity.x = -(velocity.x * 0.5)
+      position.x = Math.max(0, Math.min(position.x, 800))
       continue
     }
 
     // gravity
-    v.y += 0.1
+    velocity.y += 0.1
   }
 }
 

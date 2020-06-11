@@ -1,8 +1,17 @@
 import { Archetype } from "./archetype"
-import { ComponentsOf, ComponentType, Component } from "./component"
-import { Storage } from "./storage"
+import { Component, ComponentOf, ComponentType } from "./component"
 import { arrayOf } from "./util/array"
 import { World } from "./world"
+
+export type Selector = (ComponentType | MutableComponentSelector)[]
+export type MutableComponentSelector<T extends ComponentType = ComponentType> = { mutable: true; type: T }
+export type SelectorResult<S extends Selector> = {
+  [K in keyof S]: S[K] extends MutableComponentSelector
+    ? ComponentOf<S[K]["type"]>
+    : S[K] extends ComponentType
+    ? Readonly<ComponentOf<S[K]>>
+    : never
+}
 
 /**
  * A Filter is an object containing methods used to filter queries by entity
@@ -33,7 +42,7 @@ export interface Filter {
  * A Query is executed against a Storage to yield tuples of components that
  * match the provided component makeup and pass any provided filters.
  */
-export interface QueryLike<T extends ComponentType[]> {
+export interface QueryLike<S extends Selector> {
   /**
    * Execute the query against a Storage. Optionally executed with filters to
    * further refine the results.
@@ -41,25 +50,24 @@ export interface QueryLike<T extends ComponentType[]> {
    * @param world Storage instance
    * @param filters Zero or more filters
    */
-  run(world: World): IterableIterator<ComponentsOf<T>>
+  run(world: World): IterableIterator<SelectorResult<S>>
 
-  filter(filter: Filter): QueryLike<T>
+  filter(filter: Filter | (() => Filter)): QueryLike<S>
 }
 
 /**
  * Create a Query with a given set of component types.
  *
- * @param componentTypes Component makeup of entities
+ * @param selector Component makeup of entities
  */
-export function createQuery<T extends ComponentType[]>(
-  ...componentTypes: T
-): QueryLike<T> {
-  const len = componentTypes.length
+export function createQuery<S extends Selector>(...selector: S): QueryLike<S> {
+  const len = selector.length
+  const componentTypes = selector.map(s => ("mutable" in s ? s.type : s))
   const queryLayout = componentTypes.map(s => s.type)
   // Temporary array of components yielded by the query. This array is reused
   // for each resulting tuple, meaning it should not be stored by the consumer
   // between iterations (unless copied, i.e. results.slice()).
-  const tmpResult = arrayOf(componentTypes.length) as ComponentsOf<T>
+  const tmpResult = arrayOf(componentTypes.length) as SelectorResult<S>
   // Temporary array of integers where each index corresponds to the index of
   // the outgoing component (i.e. queryLayout index), and each value
   // corresponds to the index of that component in the archetype currently
@@ -68,11 +76,15 @@ export function createQuery<T extends ComponentType[]>(
   const tmpReadIndices: number[] = []
   const filters: Filter[] = []
 
-  function filter(f: Filter) {
-    if (filters.indexOf(f) > -1) {
+  function filter(f: Filter | (() => Filter)) {
+    const filter = typeof f === "function" ? f() : f
+
+    if (filters.indexOf(filter) > -1) {
       return query
     }
-    filters.push(f)
+
+    filters.push(filter)
+
     return query
   }
 
@@ -137,7 +149,9 @@ export function createQuery<T extends ComponentType[]>(
 
           if (!match) break
 
-          tmpResult[k] = component
+          // TODO: Unsure how to get this working.
+          ;(tmpResult as any)[k] =
+            "mutable" in selector[k] ? world.mut(component) : component
         }
 
         // Yield result if the entity and its components pass the filter.
@@ -151,4 +165,11 @@ export function createQuery<T extends ComponentType[]>(
   const query = { run, filter }
 
   return query
+}
+
+export function mut<T extends ComponentType>(componentType: T): MutableComponentSelector<T> {
+  return {
+    mutable: true as true,
+    type: componentType,
+  }
 }

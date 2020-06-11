@@ -1,7 +1,7 @@
 import { Filter } from "../query"
 import { World } from "../world"
 
-export function createAddedFilter(): Filter {
+export function created(): Filter {
   function matchEntity(entity: number, world: World) {
     return world.created.has(entity)
   }

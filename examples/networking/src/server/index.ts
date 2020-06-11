@@ -17,7 +17,8 @@ const TICK_RATE = 60
 const server = createServer()
 const udp = new Server({ server })
 const world = createWorld([spawn, physics])
-const messages = createMessageProducer({
+const producer = createMessageProducer({
+  encode,
   components: [{ type: Position, priority: 1 }],
   unreliableSendRate: (1 / 20) * 1000,
   maxUpdateSize: 1000,
@@ -64,10 +65,7 @@ udp.connections.subscribe(connection => {
 
   if (connectionType === ConnectionType.Reliable) {
     client.reliable = connection
-
-    for (const m of messages.all(world)) {
-      client.reliable.send(encode(m))
-    }
+    client.reliable.send(encode(producer.all(world)))
   } else {
     client.unreliable = connection
   }
@@ -82,22 +80,17 @@ const payloadRemoved: number[] = []
 const tick = (dt: number) => {
   world.tick(dt)
 
-  const created = messages.created(world)
-  const changed = messages.changed(world)
-  const updated = messages.unreliable(world)
-  const destroyed = messages.destroyed(world)
-
-  const messageCreated = created.length > 0 ? created.map(m => encode(m)) : null
-  const messageChanged = changed.length > 0 ? changed.map(m => encode(m)) : null
-  const messageDestroyed =
-    destroyed.length > 0 ? destroyed.map(m => encode(m)) : null
+  const created = producer.created(world)
+  const changed = producer.changed(world)
+  const updated = producer.unreliable(world)
+  const destroyed = producer.destroyed(world)
 
   for (let i = 0; i < clients.length; i++) {
     const { reliable, unreliable } = clients[i]
 
-    if (messageCreated) messageCreated.forEach(m => reliable?.send(m))
-    if (messageChanged) messageChanged.forEach(m => reliable?.send(m))
-    if (messageDestroyed) messageDestroyed.forEach(m => reliable?.send(m))
+    if (created) reliable?.send(created)
+    if (changed) reliable?.send(changed)
+    if (destroyed) reliable?.send(destroyed)
 
     const update = updated.next({}).value
 
@@ -111,20 +104,10 @@ const tick = (dt: number) => {
   mutableEmpty(payloadRemoved)
 }
 
-// high-resolution game loop
 const loop = createHrtimeLoop(tickRateMs, clock => tick(clock.dt))
 loop.start()
 
-//// setInterval game loop
-// let previousTime = 0
-
-// setInterval(() => {
-//   const now = Date.now()
-//   tick(now - previousTime)
-//   previousTime = now
-// }, tickRateMs)
-
-for (let i = 0; i < 1000; i++) {
+for (let i = 0; i < 10; i++) {
   createJunk(world)
 }
 

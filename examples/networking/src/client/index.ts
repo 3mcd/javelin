@@ -1,4 +1,4 @@
-import { createWorld, isComponentOf } from "@javelin/ecs"
+import { ComponentOf, createWorld, isComponentOf } from "@javelin/ecs"
 import {
   createMessageHandler,
   NetworkMessage,
@@ -12,6 +12,7 @@ import { PositionBuffer } from "./components/position_buffer"
 import { app, framerate, updateBytesTransferred } from "./graphics"
 import { interpolate, render } from "./systems"
 import { uuidv4 } from "./uuid"
+import { ConnectionOptions } from "@web-udp/client/lib/provider"
 
 const udp = new Client({
   url: `ws://${window.location.hostname}:8000`,
@@ -23,43 +24,47 @@ const messageHandler = createMessageHandler(world)
 world.registerComponentFactory(Position)
 world.registerComponentFactory(PositionBuffer)
 
+function createPositionBuffer(entity: number) {
+  const local = messageHandler.remoteToLocal.get(entity)
+
+  if (typeof local !== "number") {
+    throw new Error("Entity was not created.")
+  }
+
+  world.insert(local, PositionBuffer.create())
+}
+
+function updatePositionBuffer(component: ComponentOf<typeof Position>) {
+  const entity = messageHandler.remoteToLocal.get(component._e)
+
+  if (!entity || world.isEphemeral(entity)) {
+    return
+  }
+
+  const buffer = world.storage.findComponent(entity, PositionBuffer)
+  const update = [Date.now(), component.x, component.y]
+
+  buffer.updates.push(update)
+}
+
 function handleMessage(message: NetworkMessage) {
   messageHandler.applyMessage(message)
 
   switch (message[0]) {
-    case NetworkMessageType.Create: {
-      const entityComponents = message[1]
-      // Each remote transform is assigned a PositionBuffer
-      for (let i = 0; i < entityComponents.length; i++) {
-        const position = entityComponents[i].find(c => c._t === Position.type)
-
-        if (!position) continue
-
-        world.insert(
-          messageHandler.remoteToLocal.get(position._e)!,
-          PositionBuffer.create(),
-        )
-      }
-      break
-    }
-    case NetworkMessageType.Update: {
-      const components = message[1]
-
-      for (let i = 0; i < components.length; i++) {
-        const component = components[i]
-
+    case NetworkMessageType.Create:
+      message[1].forEach(component => {
         if (isComponentOf(component, Position)) {
-          const entity = messageHandler.remoteToLocal.get(component._e)
-
-          if (!entity || world.isEphemeral(entity)) continue
-
-          const buffer = world.storage.findComponent(entity, PositionBuffer)
-
-          buffer.updates.push([Date.now(), component.x, component.y])
+          createPositionBuffer(component._e)
         }
-      }
+      })
       break
-    }
+    case NetworkMessageType.Update:
+      message[1].forEach(component => {
+        if (isComponentOf(component, Position)) {
+          updatePositionBuffer(component)
+        }
+      })
+      break
   }
 }
 
@@ -86,29 +91,33 @@ function loop(time = 0) {
   tick++
 }
 
+const sessionId = localStorage.getItem("sessionId") || uuidv4()
+localStorage.setItem("sessionId", sessionId)
+
+const reliableOptions: ConnectionOptions = {
+  binaryType: "arraybuffer",
+  metadata: {
+    sessionId,
+    connectionType: ConnectionType.Reliable,
+  },
+  UNSAFE_ordered: true,
+}
+
+const unreliableOptions: ConnectionOptions = {
+  binaryType: "arraybuffer",
+  metadata: {
+    sessionId,
+    connectionType: ConnectionType.Unreliable,
+  },
+}
+
 async function main() {
-  const sessionId = localStorage.getItem("sessionId") || uuidv4()
-  const reliable = await udp.connect({
-    binaryType: "arraybuffer",
-    metadata: {
-      sessionId,
-      connectionType: ConnectionType.Reliable,
-    },
-    UNSAFE_ordered: true,
-  })
-  const unreliable = await udp.connect({
-    binaryType: "arraybuffer",
-    metadata: {
-      sessionId,
-      connectionType: ConnectionType.Unreliable,
-    },
-  })
+  const reliable = await udp.connect(reliableOptions)
+  const unreliable = await udp.connect(unreliableOptions)
   const handleMessage = (message: any) => messages.unshift(message)
 
   reliable.messages.subscribe(handleMessage)
   unreliable.messages.subscribe(handleMessage)
-
-  localStorage.setItem("sessionId", sessionId)
 
   loop()
 }

@@ -1,13 +1,13 @@
-import { Component, ComponentType, ComponentsOf } from "./component"
+import { Component, ComponentType } from "./component"
 import { createStorage, Storage } from "./storage"
 import { createStackPool } from "./pool/stack_pool"
-import { QueryLike } from "./query"
+import { QueryLike, Selector, SelectorResult } from "./query"
 import { Mutable } from "./types"
 import { ComponentFactoryLike } from "./helpers"
 
-type QueryMethod = <T extends ComponentType[]>(
-  query: QueryLike<T>,
-) => IterableIterator<ComponentsOf<T>>
+type QueryMethod = <S extends Selector>(
+  query: QueryLike<S>,
+) => IterableIterator<SelectorResult<S>>
 
 export type World<T = any> = {
   tick(data: T): void
@@ -36,9 +36,8 @@ enum WorldOpType {
 
 type CreateOp = [WorldOpType.Create, number, ReadonlyArray<Component>, number?]
 type InsertOp = [WorldOpType.Insert, number, ReadonlyArray<Component>]
-type DestroyOp = [WorldOpType.Destroy, number]
 
-type WorldOp = CreateOp | InsertOp | DestroyOp
+type WorldOp = CreateOp | InsertOp
 
 export const createWorld = <T>(systems: System<T>[]): World<T> => {
   const ops: WorldOp[] = []
@@ -50,7 +49,6 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
   const storage = createStorage()
   const created = new Set<number>()
   const destroyed = new Set<number>()
-  const ephemeral = new Set<number>()
 
   let nextEntity = 0
 
@@ -59,7 +57,6 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
     destroyed.forEach(storage.destroy)
     destroyed.clear()
     created.clear()
-    ephemeral.clear()
 
     let i = 0
     let op: WorldOp | undefined
@@ -82,9 +79,6 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
           storage.insert(op[1], ...(op[2] as Component[]))
           break
         }
-        case WorldOpType.Destroy:
-          destroyed.add(op[1])
-          break
         default:
           break
       }
@@ -111,7 +105,6 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
 
     ops.push(op)
     created.add(entity)
-    ephemeral.add(entity)
 
     return entity
   }
@@ -127,20 +120,14 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
   }
 
   function destroy(entity: number) {
-    const op = opPool.retain() as DestroyOp
-
-    op[0] = WorldOpType.Destroy
-    op[1] = entity
-
-    ops.push(op)
-    ephemeral.add(entity)
+    destroyed.add(entity)
   }
 
   function isEphemeral(entity: number) {
-    return ephemeral.has(entity)
+    return created.has(entity) || destroyed.has(entity)
   }
 
-  function query<T extends ComponentType[]>(q: QueryLike<T>) {
+  function query<S extends Selector>(q: QueryLike<S>) {
     return q.run(world)
   }
 

@@ -1,9 +1,9 @@
 import { createWorld, World } from "../world"
-import { createChangedFilter } from "./changed"
+import { changed } from "./changed"
 
 jest.mock("../world")
 
-describe("createChangedFilter", () => {
+describe("changed", () => {
   let world: World
 
   beforeEach(() => {
@@ -11,13 +11,13 @@ describe("createChangedFilter", () => {
   })
 
   it("always matches entities", () => {
-    const filter = createChangedFilter()
+    const filter = changed()
     const entity = 1
 
     expect(filter.matchEntity(entity, world)).toBe(true)
   })
   it("matches only changed components", () => {
-    const filter = createChangedFilter()
+    const filter = changed()
     const component = {
       _t: 0,
       _e: 0,

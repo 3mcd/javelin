@@ -1,9 +1,7 @@
 import { Component, ComponentType } from "../component"
 import { Filter } from "../query"
 
-export function createChangedFilter(
-  ...componentTypes: ComponentType[]
-): Filter {
+export function changed(...componentTypes: ComponentType[]): Filter {
   const check = componentTypes.length > 0
   const types = componentTypes.map(s => s.type)
   const cache = new WeakMap<Component, number>()

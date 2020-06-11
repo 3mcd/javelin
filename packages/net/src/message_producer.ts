@@ -1,17 +1,21 @@
 import {
+  changed,
   Component,
   ComponentType,
-  createAddedFilter,
-  createChangedFilter,
-  createDestroyedFilter,
+  created,
   createQuery,
+  destroyed,
   mutableEmpty,
+  QueryLike,
   World,
 } from "@javelin/ecs"
 import { createPriorityAccumulator } from "./priority_accumulator"
-import { protocol } from "./protocol"
+import { NetworkMessage, protocol } from "./protocol"
 
-export type PriorityConfig = {
+export type NetworkMessageEncoder<E = any> = (message: NetworkMessage) => E
+
+export type ProducerConfig<E> = {
+  encode?(message: NetworkMessage): E
   components: {
     type: ComponentType
     priority?: number
@@ -20,150 +24,95 @@ export type PriorityConfig = {
   maxUpdateSize: number
 }
 
-export function createMessageProducer(config: PriorityConfig) {
+function createMessageFactory<
+  Fn extends (components: Component[]) => NetworkMessage
+>(
+  create: Fn,
+  queries: QueryLike<ComponentType[]>[],
+  encode: NetworkMessageEncoder,
+): (world: World) => ReturnType<Fn> {
+  const payload: Component[] = []
+
+  return function messageFactory(world: World) {
+    mutableEmpty(payload)
+
+    for (const query of queries) {
+      for (const [c] of world.query(query)) {
+        payload.push(c)
+      }
+    }
+
+    return payload.length > 0 && encode(create(payload))
+  }
+}
+
+export function createMessageProducer<E>(config: ProducerConfig<E>) {
+  const { encode = _ => _, unreliableSendRate, maxUpdateSize } = config
+  const all = config.components.map(c => c.type)
   const componentTypesReliable = config.components
     .filter(c => typeof c.priority !== "number")
     .map(c => c.type)
-  const configUnreliable = config.components.filter(
+  const unreliableConfig = config.components.filter(
     c => typeof c.priority === "number" && c.priority > 0,
   )
+  const unreliableQuery = unreliableConfig.map(c => createQuery(c.type))
+  const unreliablePayload: Component[] = []
   const priorities = createPriorityAccumulator(
-    new Map(configUnreliable.map(c => [c.type.type, c.priority!])),
+    new Map(unreliableConfig.map(c => [c.type.type, c.priority!])),
   )
-
-  const allComponents = config.components.map(c => c.type)
-
-  const queryAll = allComponents.map(c => createQuery(c))
-  const queryUnreliable = configUnreliable.map(c => createQuery(c.type))
-  const queryAdded = allComponents.map(c =>
-    createQuery(c).filter(createAddedFilter()),
-  )
-  const queryDestroyed = allComponents.map(c =>
-    createQuery(c).filter(createDestroyedFilter()),
-  )
-  const queryReliableChanged = componentTypesReliable.map(c =>
-    createQuery(c).filter(createChangedFilter()),
-  )
-
-  const payloadCreated: Component[][] = []
-  const payloadDestroyed: number[] = []
-  const payloadReliable: Component[] = []
-  const payloadUnreliable: Component[] = []
 
   let previousSendTime = 0
 
-  function all(world: World) {
-    mutableEmpty(payloadCreated)
-
-    for (const query of queryAll) {
-      for (const r of world.query(query)) {
-        payloadCreated.push(r.slice())
-      }
-    }
-
-    if (payloadCreated.length > 0) {
-      const message = protocol.create(payloadCreated)
-
-      return [message]
-    }
-
-    return []
-  }
-
-  function created(world: World) {
-    mutableEmpty(payloadCreated)
-
-    for (const query of queryAdded) {
-      for (const r of world.query(query)) {
-        payloadCreated.push(r.slice())
-      }
-    }
-
-    if (payloadCreated.length > 0) {
-      const message = protocol.create(payloadCreated)
-
-      return [message]
-    }
-
-    return []
-  }
-
-  function changed(world: World) {
-    mutableEmpty(payloadReliable)
-
-    for (const query of queryReliableChanged) {
-      for (const r of world.query(query)) {
-        for (let i = 0; i < componentTypesReliable.length; i++) {
-          payloadReliable.push(r[i])
-        }
-      }
-    }
-
-    if (payloadReliable.length > 0) {
-      const message = protocol.change(payloadReliable)
-
-      return [message]
-    }
-
-    return []
-  }
-
-  function destroyed(world: World) {
-    mutableEmpty(payloadDestroyed)
-
-    for (const query of queryDestroyed) {
-      for (const r of world.query(query)) {
-        for (let i = 0; i < config.components.length; i++) {
-          payloadDestroyed.push(r[i]._e)
-        }
-      }
-    }
-
-    if (payloadDestroyed.length > 0) {
-      const message = protocol.destroy(payloadDestroyed)
-
-      return [message]
-    }
-
-    return []
-  }
-
   function* unreliable(world: World, time = Date.now()) {
-    mutableEmpty(payloadUnreliable)
+    mutableEmpty(unreliablePayload)
 
-    for (const query of queryUnreliable) {
-      for (const results of world.query(query)) {
-        for (let i = 0; i < configUnreliable.length; i++) {
-          priorities.update(results[i])
-        }
+    for (const query of unreliableQuery) {
+      for (const [c] of world.query(query)) {
+        priorities.update(c)
       }
     }
 
-    if (time - previousSendTime < config.unreliableSendRate) {
+    if (time - previousSendTime < unreliableSendRate) {
       return
     }
 
     previousSendTime = time
 
-    let i = config.maxUpdateSize
+    let i = maxUpdateSize
 
     for (const c of priorities) {
-      payloadUnreliable.push(c)
+      unreliablePayload.push(c)
       if (--i <= 0) break
     }
 
     let metadata
 
-    while ((metadata = yield protocol.update(payloadUnreliable, metadata))) {
-      yield protocol.update(payloadUnreliable, metadata)
+    while ((metadata = yield protocol.update(unreliablePayload, metadata))) {
+      yield protocol.update(unreliablePayload, metadata)
     }
   }
 
   return {
-    all,
-    created,
-    changed,
-    destroyed,
+    all: createMessageFactory(
+      protocol.create,
+      all.map(c => createQuery(c)),
+      encode,
+    ),
+    created: createMessageFactory(
+      protocol.create,
+      all.map(c => createQuery(c).filter(created)),
+      encode,
+    ),
+    changed: createMessageFactory(
+      protocol.change,
+      componentTypesReliable.map(c => createQuery(c).filter(changed)),
+      encode,
+    ),
+    destroyed: createMessageFactory(
+      result => protocol.destroy(result.map(c => c._e)),
+      all.map(c => createQuery(c).filter(destroyed)),
+      encode,
+    ),
     unreliable,
   }
 }
