@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.3.1 (2020-06-11)
+
+
+### Bug Fixes
+
+* restore destroy op ([#41](https://github.com/3mcd/javelin/issues/41)) ([de36f73](https://github.com/3mcd/javelin/commit/de36f73df579cd071f57d79de1c85dd7106f4999))
+
+
+
+
+
 # 0.3.0 (2020-06-11)
 
 
