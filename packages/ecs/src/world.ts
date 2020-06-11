@@ -36,8 +36,9 @@ enum WorldOpType {
 
 type CreateOp = [WorldOpType.Create, number, ReadonlyArray<Component>, number?]
 type InsertOp = [WorldOpType.Insert, number, ReadonlyArray<Component>]
+type DestroyOp = [WorldOpType.Destroy, number]
 
-type WorldOp = CreateOp | InsertOp
+type WorldOp = CreateOp | InsertOp | DestroyOp
 
 export const createWorld = <T>(systems: System<T>[]): World<T> => {
   const ops: WorldOp[] = []
@@ -79,6 +80,9 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
           storage.insert(op[1], ...(op[2] as Component[]))
           break
         }
+        case WorldOpType.Destroy:
+          destroyed.add(op[1])
+          break
         default:
           break
       }
@@ -120,7 +124,12 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
   }
 
   function destroy(entity: number) {
-    destroyed.add(entity)
+    const op = opPool.retain() as DestroyOp
+
+    op[0] = WorldOpType.Destroy
+    op[1] = entity
+
+    ops.push(op)
   }
 
   function isEphemeral(entity: number) {
