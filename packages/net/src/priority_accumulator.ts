@@ -24,18 +24,20 @@ export function createPriorityAccumulator(priorities: Map<number, number>) {
     }
   }
 
+  function* iterate() {
+    results.sort((a, b) => weights.get(a)! - weights.get(b)!)
+
+    let component: Component | undefined
+
+    while ((component = results.pop())) {
+      weights.set(component, 0)
+      yield component
+    }
+  }
+
   return {
     update,
     remove,
-    *[Symbol.iterator]() {
-      results.sort((a, b) => weights.get(a)! - weights.get(b)!)
-
-      let component: Component | undefined
-
-      while ((component = results.pop())) {
-        weights.set(component, 0)
-        yield component
-      }
-    },
+    [Symbol.iterator]: iterate,
   }
 }

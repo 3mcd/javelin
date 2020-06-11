@@ -110,9 +110,23 @@ for (const [position, player] of world.query(players)) {
 
 ### Filtering and change detection
 
-Queried components are readonly by default. A mutable copy of a component can be obtained via `world.mut(entity)`.
+Queried components are readonly by default. A mutable copy of a component can be obtained via `mut(ComponentType)`.
 
 ```ts
+import { query, mut } from "@javelin/ecs"
+
+const burning = query(mut(Health), Burn)
+
+for (const [health, burn] of world.query(burning)) {
+  health.value -= burn.damagePerTick
+}
+```
+
+Components are versioned as alluded to earlier. `world.mut` simply increments the component's `_v` property. If you are optimizing query performance and want to conditionally mutate a component (i.e. you are using a generic query), you can manually call `world.mut(component)` to obtain a mutable reference, e.g.:
+
+```ts
+import { query, mut } from "@javelin/ecs"
+
 const burning = query(Health, Burn)
 
 for (const [health, burn] of world.query(burning)) {
@@ -120,13 +134,13 @@ for (const [health, burn] of world.query(burning)) {
 }
 ```
 
-Components are versioned as alluded to earlier. `world.mut` simply increments the component's `_v` property. `createChangedFilter` produces a filter that excludes entities whose components haven't changed since the entity was last iterated with the filter instance. This filter uses the component's version (`_v`) to this end.
+`changed` produces a filter that excludes entities whose components haven't changed since the entity was last iterated with the filter instance. This filter uses the component's version (`_v`) to this end.
 
 ```ts
-import { createChangedFilter, query } from "@javelin/ecs"
+import { changed, query } from "@javelin/ecs"
 
 // ...
-const healthy = query(Player, Health).filter(createChangedFilter(Health))
+const healthy = query(Player, Health).filter(changed(Health))
 
 for (const [health] of world.query(healthy)) {
   // `health` has changed since last tick
@@ -141,10 +155,10 @@ query.filter(changed, awake, ...);
 
 The ECS also provides the following filters
 
-- `createCommittedFilter` ignores "ephemeral" entities, i.e. entities that were added or destroyed last tick
-- `createAddedFilter` detects newly created entities
-- `createDestroyedFilter` detects recently destroyed entities
-- `createTagFilter` isolates entities by tags, which are discussed below
+- `committed` ignores "ephemeral" entities, i.e. entities that were created or destroyed last tick
+- `created` detects newly created entities
+- `destroyed` detects recently destroyed entities
+- `tag` isolates entities by tags, which are discussed below
 
 ### Tagging
 
@@ -168,7 +182,7 @@ world.removeTag(entity, Tags.Awake)
 world.hasTag(entity, Tags.Awake) // -> false
 ```
 
-`createTagFilter` produces a filter that will exclude entities which do not have the provided tag(s):
+`tag` produces a filter that will exclude entities which do not have the provided tag(s):
 
 ```ts
 enum Tags {
@@ -176,9 +190,7 @@ enum Tags {
   Goopy = 2 ** 1,
 }
 
-const nastyAndGoopy = createQuery(Player).filter(
-  createTagFilter(Tags.Nasty | Tags.Goopy),
-)
+const nastyAndGoopy = createQuery(Player).filter(tag(Tags.Nasty | Tags.Goopy))
 
 for (const [player] of world.query(nastyAndGoopy)) {
   // `player` belongs to an entity with Nasty and Goopy tags
@@ -215,10 +227,10 @@ Try nested queries before you prematurely optimize. Iteration is pretty fast tha
 
 ### Filter state
 
-A filter does not have access to the query that executed it, meaning it can't track state for multiple queries. For example, if two queries use the same `changed` filter, no entities will be yielded by the second query unless entities were added between the first and second queries.
+A filter does not have access to the query that executed it, meaning it can't track state for multiple queries. For example, if two queries use the same `changed` filter, no entities will be yielded by the second query unless entities were created between the first and second queries.
 
 ```ts
-const moved = world.query(createQuery(Position).filter(changed()))
+const moved = world.query(createQuery(Position).filter(changed))
 
 for (const [position] of world.query(moved)) // 100 iterations
 for (const [position] of world.query(moved)) // 0 iterations
@@ -227,8 +239,8 @@ for (const [position] of world.query(moved)) // 0 iterations
 The solution is to simply use a unique filter per query.
 
 ```ts
-const moved1 = world.query(createQuery(Position).filter(changed()))
-const moved2 = world.query(createQuery(Position).filter(changed()))
+const moved1 = world.query(createQuery(Position).filter(changed))
+const moved2 = world.query(createQuery(Position).filter(changed))
 
 for (const [position] of world.query(moved1)) // 100 iterations
 for (const [position] of world.query(moved2)) // 100 iterations

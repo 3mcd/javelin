@@ -1,17 +1,17 @@
 import { createWorld, World } from "../world"
-import { createAddedFilter } from "./added"
+import { created } from "./created"
 
 jest.mock("../world")
 
-describe("createAddedFilter", () => {
+describe("created", () => {
   let world: World
 
   beforeEach(() => {
     world = createWorld([])
   })
 
-  it("matches only added entities", () => {
-    const filter = createAddedFilter()
+  it("matches only created entities", () => {
+    const filter = created()
     const entity = 1
 
     ;(world.created as Set<number>).add(entity)
@@ -19,7 +19,7 @@ describe("createAddedFilter", () => {
     expect(filter.matchEntity(entity, world)).toBe(true)
   })
   it("always matches components", () => {
-    const filter = createAddedFilter()
+    const filter = created()
     const component = {
       _t: 0,
       _e: 0,

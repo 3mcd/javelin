@@ -8,9 +8,7 @@ export enum NetworkMessageType {
 }
 
 export const protocol = {
-  create(
-    components: Component[][],
-  ): [NetworkMessageType.Create, Component[][]] {
+  create(components: Component[]): [NetworkMessageType.Create, Component[]] {
     return [NetworkMessageType.Create, components]
   },
   destroy(entities: number[]): [NetworkMessageType.Destroy, number[]] {

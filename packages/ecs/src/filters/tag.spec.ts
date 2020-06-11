@@ -1,9 +1,9 @@
 import { createWorld, World } from "../world"
-import { createTagFilter } from "./tag"
+import { tag } from "./tag"
 
 jest.mock("../world")
 
-describe("createTagFilter", () => {
+describe("tag", () => {
   let world: World
 
   beforeEach(() => {
@@ -11,7 +11,7 @@ describe("createTagFilter", () => {
   })
 
   it("matches entities tagged with the provided bit flag", () => {
-    const filter = createTagFilter(2)
+    const filter = tag(2)
 
     world.hasTag = jest.fn((e, t) => e === 0 && t === 2)
 
@@ -23,7 +23,7 @@ describe("createTagFilter", () => {
     expect(filter.matchEntity(0, world)).toBe(false)
   })
   it("always matches components", () => {
-    const filter = createTagFilter(2)
+    const filter = tag(2)
     const component = { _t: 0, _e: 0, _v: 0 }
 
     expect(filter.matchComponent(component, world)).toBe(true)

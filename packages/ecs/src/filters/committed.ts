@@ -1,9 +1,9 @@
 import { World } from "../world"
 
-export function createCommittedFilter() {
+export function committed() {
   return {
     matchEntity(entity: number, world: World) {
-      return !world.destroyed.has(entity)
+      return !world.isEphemeral(entity)
     },
     matchComponent() {
       return true
