@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.3.2 (2020-06-11)
+
+
+### Bug Fixes
+
+* fix change handler falsy bug ([#44](https://github.com/3mcd/javelin/issues/44)) ([c135489](https://github.com/3mcd/javelin/commit/c1354894b4c091d2f1cb7b92612d9082708f3598))
+
+
+
+
+
 ## 0.3.1 (2020-06-11)
 
 
