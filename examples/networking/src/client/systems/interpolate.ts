@@ -7,7 +7,7 @@ let adaptiveSendRate = 20
 
 export function interpolate(dt: number, world: World) {
   const time = Date.now()
-  const renderTime = time - 1000 / 1
+  const renderTime = time - 1000 / adaptiveSendRate
 
   for (let [buffer] of world.query(buffers)) {
     // Drop older positions.

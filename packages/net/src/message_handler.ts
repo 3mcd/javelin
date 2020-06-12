@@ -1,4 +1,4 @@
-import { World, mutableEmpty, Component } from "@javelin/ecs"
+import { Component, World } from "@javelin/ecs"
 import { NetworkMessage, NetworkMessageType } from "./protocol"
 
 export function createMessageHandler(world: World) {
