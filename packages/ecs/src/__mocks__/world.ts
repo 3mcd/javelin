@@ -6,6 +6,7 @@ export const createWorld = jest.fn(
     let e = 0
     return {
       insert: jest.fn(),
+      addSystem: jest.fn(),
       create: jest.fn(() => e++),
       destroy: jest.fn(),
       addTag: jest.fn(),
