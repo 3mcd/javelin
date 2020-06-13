@@ -11,6 +11,7 @@ type QueryMethod = <S extends Selector>(
 
 export type World<T = any> = {
   tick(data: T): void
+  addSystem(system: System<T>): void
   create(components: ReadonlyArray<Component>, tags?: number): number
   insert(entity: number, ...components: ReadonlyArray<Component>): void
   destroy(entity: number): void
@@ -98,6 +99,10 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
     }
   }
 
+  function addSystem(system: System<T>) {
+    systems.push(system);
+  }
+
   function create(components: ReadonlyArray<Component>, tags?: number) {
     const entity = nextEntity++
     const op = opPool.retain() as CreateOp
@@ -152,6 +157,7 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
     insert,
     destroy,
     tick,
+    addSystem,
     created,
     destroyed,
     storage,
