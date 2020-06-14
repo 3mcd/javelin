@@ -9,7 +9,8 @@ enum LoopState {
   Running,
 }
 
-export const NS_PER_MS = BigInt(1e6)
+export const NS_PER_MS = 1e6
+export const NS_PER_MS_BIGINT = BigInt(1e6)
 
 /**
  * This loop uses the fairly performant setImmediate scheduler in conjunction
@@ -53,8 +54,8 @@ export const createHrtimeLoop = (
     remaining -= diff
 
     if (remaining <= 0) {
-      clock.dt = Number((remaining + nsPerTick) / NS_PER_MS)
-      clock.now = time / NS_PER_MS
+      clock.dt = Number(remaining + nsPerTick) / NS_PER_MS
+      clock.now = time / NS_PER_MS_BIGINT
       clock.tick = clock.tick + 1
 
       callback(clock)
@@ -63,7 +64,7 @@ export const createHrtimeLoop = (
     } else if (remaining < Number(nsPerTick) / 8) {
       setImmediate(loop)
     } else {
-      setTimeout(loop, Number(remaining / NS_PER_MS))
+      setTimeout(loop, Number(remaining) / NS_PER_MS)
     }
 
     previous = time
