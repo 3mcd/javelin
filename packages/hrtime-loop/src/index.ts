@@ -1,77 +1,52 @@
 export type Clock = {
-  now: bigint
+  now: number
   dt: number
   tick: number
 }
 
-enum LoopState {
-  Stopped,
-  Running,
-}
+export function createHrtimeLoop(
+  tickRate: number,
+  callback: (clock: { dt: number }) => void,
+) {
+  const clock: Clock = { dt: 0, now: 0, tick: 0 }
 
-export const NS_PER_MS = 1e6
-export const NS_PER_MS_BIGINT = BigInt(1e6)
+  let running = false
+  let previousTick = Date.now()
 
-/**
- * This loop uses the fairly performant setImmediate scheduler in conjunction
- * with the lower-resolution setTimeout to maintain high precision and
- * performance.
- *
- * @param rate Target duration of each tick in milliseconds, e.g. 16.666666
- * @param callback Function to execute each tick
- */
-export const createHrtimeLoop = (
-  rate: number,
-  callback: (clock: Clock) => unknown,
-) => {
-  const nsPerTick = BigInt(Math.floor(rate * Number(NS_PER_MS)))
-  const clock: Clock = {
-    now: BigInt(0),
-    dt: 0,
-    tick: -1,
+  function loop() {
+    if (!running) {
+      return
+    }
+
+    const now = Date.now()
+
+    if (previousTick + tickRate <= now) {
+      const delta = 1000 / (now - previousTick)
+
+      previousTick = now
+
+      clock.dt = delta
+      clock.now = now
+      clock.tick += 1
+
+      callback(clock)
+    }
+
+    if (Date.now() - previousTick < tickRate - 16) {
+      setTimeout(loop)
+    } else {
+      setImmediate(loop)
+    }
   }
-  let remaining = nsPerTick
-  let previous: bigint = BigInt(0)
-  let state = LoopState.Stopped
 
   function start() {
-    if (state === LoopState.Running) return
-
-    state = LoopState.Running
+    running = true
     loop()
   }
 
   function stop() {
-    state = LoopState.Stopped
+    running = false
   }
 
-  function loop() {
-    if (state === LoopState.Stopped) return
-
-    const time = process.hrtime.bigint()
-    const diff = time - (previous || time)
-
-    remaining -= diff
-
-    if (remaining <= 0) {
-      clock.dt = Number(remaining + nsPerTick) / NS_PER_MS
-      clock.now = time / NS_PER_MS_BIGINT
-      clock.tick = clock.tick + 1
-
-      callback(clock)
-      setImmediate(loop)
-      remaining = nsPerTick
-    } else if (remaining < Number(nsPerTick) / 8) {
-      setImmediate(loop)
-    } else {
-      setTimeout(loop, Number(remaining) / NS_PER_MS)
-    }
-
-    previous = time
-  }
-
-  return {
-    start,
-    stop,
-  }
+  return { start, stop }
 }
