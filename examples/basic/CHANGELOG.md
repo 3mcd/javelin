@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.3.4 (2020-06-14)
+
+
+### Bug Fixes
+
+* use Number for clock.dt ([55ce8d2](https://github.com/3mcd/javelin/commit/55ce8d2acd482008fc28c85ef760bc6050011dc3))
+
+
+
+
+
 ## 0.3.3 (2020-06-13)
 
 **Note:** Version bump only for package @javelin/example-basic
