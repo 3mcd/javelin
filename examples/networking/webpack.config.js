@@ -23,6 +23,11 @@ module.exports = {
   ],
   resolve: {
     extensions: [".tsx", ".ts", ".js"],
+    alias: {
+      "@javelin/devtool": path.resolve(
+        "../../node_modules/@javelin/devtool/src",
+      ),
+    },
   },
   output: {
     filename: "bundle.js",

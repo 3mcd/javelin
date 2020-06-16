@@ -9,16 +9,17 @@
     "html-webpack-plugin": "^4.2.1",
     "ts-loader": "^7.0.2",
     "webpack": "^4.43.0",
-    "webpack-cli": "^3.3.11"
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.10.3"
   },
   "dependencies": {
+    "@javelin/devtool": "0.4.0",
     "@javelin/ecs": "0.4.0",
     "@javelin/hrtime-loop": "0.4.0",
     "@javelin/net": "0.4.0",
     "@msgpack/msgpack": "^1.12.1",
-    "@web-udp/client": "^4.0.2",
-    "@web-udp/server": "^4.0.2",
-    "webpack-dev-server": "^3.10.3"
+    "@web-udp/client": "^4.1.0",
+    "@web-udp/server": "^4.1.0"
   },
   "scripts": {
     "start": "webpack-dev-server & yarn start:server",

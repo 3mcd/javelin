@@ -10,12 +10,12 @@ import {
   World,
 } from "@javelin/ecs"
 import { createPriorityAccumulator } from "./priority_accumulator"
-import { NetworkMessage, protocol } from "./protocol"
+import { JavelinMessage, protocol } from "./protocol"
 
-export type NetworkMessageEncoder<E = any> = (message: NetworkMessage) => E
+export type NetworkMessageEncoder<E = any> = (message: JavelinMessage) => E
 
 export type ProducerConfig<E> = {
-  encode?(message: NetworkMessage): E
+  encode?(message: JavelinMessage): E
   components: {
     type: ComponentType
     priority?: number
@@ -25,7 +25,7 @@ export type ProducerConfig<E> = {
 }
 
 function createMessageFactory<
-  Fn extends (components: Component[]) => NetworkMessage
+  Fn extends (components: Component[]) => JavelinMessage
 >(
   create: Fn,
   queries: QueryLike<ComponentType[]>[],
