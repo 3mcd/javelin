@@ -1,5 +1,5 @@
 import { Component, World } from "@javelin/ecs"
-import { NetworkMessage, NetworkMessageType } from "./protocol"
+import { JavelinMessage, JavelinMessageType } from "./protocol"
 
 export function createMessageHandler(world: World) {
   const remoteToLocal = new Map<number, number>()
@@ -47,15 +47,15 @@ export function createMessageHandler(world: World) {
     world.storage.patch({ ...component, _e: local })
   }
 
-  function applyMessage(message: NetworkMessage) {
+  function applyMessage(message: JavelinMessage) {
     switch (message[0]) {
-      case NetworkMessageType.Create:
+      case JavelinMessageType.Create:
         handleCreateMessage(message[1])
         break
-      case NetworkMessageType.Destroy:
+      case JavelinMessageType.Destroy:
         message[1].forEach(destroyEntity)
         break
-      case NetworkMessageType.Update:
+      case JavelinMessageType.Update:
         message[1].forEach(updateComponent)
         break
     }

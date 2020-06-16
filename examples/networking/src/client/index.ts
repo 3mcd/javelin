@@ -1,18 +1,19 @@
+import { createDevTool } from "@javelin/devtool"
 import { ComponentOf, createWorld, isComponentOf } from "@javelin/ecs"
 import {
   createMessageHandler,
-  NetworkMessage,
-  NetworkMessageType,
+  JavelinMessage,
+  JavelinMessageType,
 } from "@javelin/net"
-import { decode } from "@msgpack/msgpack"
+import { decode, encode } from "@msgpack/msgpack"
 import { Client } from "@web-udp/client"
+import { ConnectionOptions } from "@web-udp/client/lib/provider"
 import { Position } from "../common/components"
 import { ConnectionType } from "../common/types"
 import { PositionBuffer } from "./components/position_buffer"
 import { app, framerate, updateBytesTransferred } from "./graphics"
 import { interpolate, render } from "./systems"
 import { uuidv4 } from "./uuid"
-import { ConnectionOptions } from "@web-udp/client/lib/provider"
 
 const udp = new Client({
   url: `ws://${window.location.hostname}:8000`,
@@ -47,18 +48,18 @@ function updatePositionBuffer(component: ComponentOf<typeof Position>) {
   buffer.updates.push(update)
 }
 
-function handleMessage(message: NetworkMessage) {
+function handleMessage(message: JavelinMessage) {
   messageHandler.applyMessage(message)
 
   switch (message[0]) {
-    case NetworkMessageType.Create:
+    case JavelinMessageType.Create:
       message[1].forEach(component => {
         if (isComponentOf(component, Position)) {
           createPositionBuffer(component._e)
         }
       })
       break
-    case NetworkMessageType.Update:
+    case JavelinMessageType.Update:
       message[1].forEach(component => {
         if (isComponentOf(component, Position)) {
           updatePositionBuffer(component)
@@ -81,7 +82,7 @@ function loop(time = 0) {
 
   while ((message = messages.pop())) {
     updateBytesTransferred(message.byteLength)
-    handleMessage(decode(message) as NetworkMessage)
+    handleMessage(decode(message) as JavelinMessage)
   }
 
   world.tick(deltaTime)
@@ -111,13 +112,33 @@ const unreliableOptions: ConnectionOptions = {
   },
 }
 
-async function main() {
-  const reliable = await udp.connect(reliableOptions)
-  const unreliable = await udp.connect(unreliableOptions)
-  const handleMessage = (message: any) => messages.unshift(message)
+const devtoolOptions: ConnectionOptions = {
+  binaryType: "arraybuffer",
+  metadata: {
+    isDevtool: true,
+  },
+  UNSAFE_ordered: true,
+}
 
-  reliable.messages.subscribe(handleMessage)
-  unreliable.messages.subscribe(handleMessage)
+async function main() {
+  const connectionReliable = await udp.connect(reliableOptions)
+  const connectionUnreliable = await udp.connect(unreliableOptions)
+  const connectionDevtool = await udp.connect(devtoolOptions)
+  const handleMessage = (message: any) => messages.unshift(message)
+  const devtool = createDevTool(undefined, message =>
+    connectionDevtool.send(encode(message)),
+  )
+
+  function handleDevtoolMessage(data: any) {
+    const message = decode(data) as JavelinMessage
+    devtool.handle(message)
+  }
+
+  devtool.mount(document.getElementById("devtool")!)
+
+  connectionReliable.messages.subscribe(handleMessage)
+  connectionUnreliable.messages.subscribe(handleMessage)
+  connectionDevtool.messages.subscribe(handleDevtoolMessage)
 
   loop()
 }

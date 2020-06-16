@@ -7,6 +7,10 @@ export type Client = {
   reliable?: Connection
 }
 
+export type DevtoolMetadata = {
+  isDevtool: true
+}
+
 export type ConnectionMetadata = {
   sessionId: string
   connectionType: ConnectionType

@@ -1,0 +1,37 @@
+{
+  "name": "@javelin/devtool",
+  "version": "0.4.0",
+  "main": "dist/javelin-devtool.js",
+  "module": "dist/javelin-devtool.es5.js",
+  "typings": "dist/index.d.ts",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/mithril": "^2.0.3",
+    "rollup": "^2.16.1",
+    "rollup-plugin-sourcemaps": "^0.6.2",
+    "rollup-plugin-terser": "^6.1.0",
+    "rollup-plugin-typescript2": "^0.27.1"
+  },
+  "peerDependencies": {
+    "@javelin/ecs": ">=0.0.1"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "prepare": "yarn build"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "ecs",
+    "game",
+    "mog",
+    "multiplayer",
+    "networking"
+  ],
+  "dependencies": {
+    "@javelin/ecs": "0.4.0",
+    "@javelin/net": "^0.4.0",
+    "mithril": "^2.0.4"
+  }
+}

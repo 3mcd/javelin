@@ -1,31 +1,38 @@
 import { Component } from "@javelin/ecs"
 
-export enum NetworkMessageType {
+export enum JavelinMessageType {
   Create,
   Destroy,
   Change,
   Update,
 }
 
+export type Create = [JavelinMessageType.Create, Component[]]
+export type Destroy = [JavelinMessageType.Destroy, number[]]
+export type Change = [JavelinMessageType.Change, Component[]]
+export type Update<T> = [JavelinMessageType.Update, Component[], T]
+
 export const protocol = {
-  create(components: Component[]): [NetworkMessageType.Create, Component[]] {
-    return [NetworkMessageType.Create, components]
-  },
-  destroy(entities: number[]): [NetworkMessageType.Destroy, number[]] {
-    return [NetworkMessageType.Destroy, entities]
-  },
-  change(components: Component[]): [NetworkMessageType.Change, Component[]] {
-    return [NetworkMessageType.Change, components]
-  },
-  update<T>(
-    components: Component[],
-    metadata: T,
-  ): [NetworkMessageType.Update, Component[], T] {
-    return [NetworkMessageType.Update, components, metadata]
-  },
+  create: (components: Component[]): Create => [
+    JavelinMessageType.Create,
+    components,
+  ],
+  destroy: (entities: number[]): Destroy => [
+    JavelinMessageType.Destroy,
+    entities,
+  ],
+  change: (components: Component[]): Change => [
+    JavelinMessageType.Change,
+    components,
+  ],
+  update: <T>(components: Component[], metadata: T): Update<T> => [
+    JavelinMessageType.Update,
+    components,
+    metadata,
+  ],
 }
 
-export type Protocol = typeof protocol
-export type NetworkMessage = {
-  [K in keyof Protocol]: ReturnType<Protocol[K]>
-}[keyof Protocol]
+export type JavelinProtocol = typeof protocol
+export type JavelinMessage = {
+  [K in keyof JavelinProtocol]: ReturnType<JavelinProtocol[K]>
+}[keyof JavelinProtocol]

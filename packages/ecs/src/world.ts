@@ -25,6 +25,7 @@ export type World<T = any> = {
   hasTag(entity: number, tags: number): boolean
   mut<C extends Component>(component: C): Mutable<C>
   registerComponentFactory(factory: ComponentFactoryLike): void
+  registeredComponentFactories: ComponentFactoryLike[]
 }
 
 export type System<T> = (data: T, world: World<T>) => void
@@ -51,6 +52,7 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
   const storage = createStorage()
   const created = new Set<number>()
   const destroyed = new Set<number>()
+  const registeredComponentFactories: ComponentFactoryLike[] = []
 
   let nextEntity = 0
 
@@ -100,7 +102,7 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
   }
 
   function addSystem(system: System<T>) {
-    systems.push(system);
+    systems.push(system)
   }
 
   function create(components: ReadonlyArray<Component>, tags?: number) {
@@ -150,7 +152,12 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
     return component as Mutable<C>
   }
 
-  const { addTag, removeTag, hasTag, registerComponentFactory } = storage
+  function registerComponentFactory(factory: ComponentFactoryLike) {
+    storage.registerComponentFactory(factory)
+    registeredComponentFactories.push(factory)
+  }
+
+  const { addTag, removeTag, hasTag } = storage
 
   const world: World<T> = {
     create,
@@ -168,6 +175,7 @@ export const createWorld = <T>(systems: System<T>[]): World<T> => {
     hasTag,
     mut,
     registerComponentFactory,
+    registeredComponentFactories,
   }
 
   return world
