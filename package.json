@@ -1,5 +1,5 @@
 {
-  "name": "@javelin/devtool",
+  "name": "javelin",
   "private": true,
   "version": "0.4.0",
   "main": "index.js",

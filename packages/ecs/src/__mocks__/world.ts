@@ -20,6 +20,7 @@ export const createWorld = jest.fn(
       query: jest.fn(),
       isEphemeral: jest.fn(),
       registerComponentFactory: jest.fn(),
+      registeredComponentFactories: [],
     }
   },
 )
