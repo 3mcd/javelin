@@ -1,6 +1,6 @@
 {
   "name": "@javelin/devtool",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "main": "dist/javelin-devtool.js",
   "module": "dist/javelin-devtool.es5.js",
   "typings": "dist/index.d.ts",
@@ -30,8 +30,8 @@
     "networking"
   ],
   "dependencies": {
-    "@javelin/ecs": "0.4.0",
-    "@javelin/net": "^0.4.0",
+    "@javelin/ecs": "0.4.1",
+    "@javelin/net": "0.4.1",
     "mithril": "^2.0.4"
   }
 }

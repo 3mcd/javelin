@@ -11,11 +11,12 @@ The primary goals of Javelin are speed, minimalism, and ease-of-use. A secondary
 
 ## Packages
 
-| Package                                        | Description                          |
-| ---------------------------------------------- | ------------------------------------ |
-| [@javelin/ecs](./packages/ecs)                 | Entity-Component System              |
-| [@javelin/net](./packages/net)                 | Network protocol and utils           |
-| [@javelin/hrtime-loop](./packages/hrtime-loop) | High-resolution game loop for NodeJS |
+| Package                                        | Description                                                      |
+| ---------------------------------------------- | ---------------------------------------------------------------- |
+| [@javelin/ecs](./packages/ecs)                 | Build games using the Entity-Component System pattern            |
+| [@javelin/net](./packages/net)                 | Synchronize `@javelin/ecs` instances between client and server   |
+| [@javelin/devtool](./packages/devtool)         | Inspect and manipulate remote and local `@javelin/ecs` instances |
+| [@javelin/hrtime-loop](./packages/hrtime-loop) | Create a smooth, high-resolution game loop in NodeJS             |
 
 ## Examples
 
