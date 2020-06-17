@@ -14,13 +14,18 @@ export type AnySchema = {
 export type PropsOfSchema<S extends Schema> = S extends DataType<infer T>
   ? T
   : {
-      [K in keyof S]: S[K] extends SchemaKey<infer T> ? T : never
+      [K in keyof S]: S[K] extends Schema
+        ? PropsOfSchema<S[K]>
+        : S[K] extends SchemaKey<infer T>
+        ? T
+        : never
     }
 
 export const $isDataType = Symbol("isDataType")
 
 export type DataType<T> = {
   [$isDataType]: true
+  name: string
   create(defaultValue: T): T
   reset(
     component: { [key: string]: unknown },

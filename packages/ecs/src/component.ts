@@ -7,6 +7,7 @@ export type ComponentType<
   T extends number = number,
   S extends Schema = AnySchema
 > = {
+  name?: string
   type: T
   schema: S
 }

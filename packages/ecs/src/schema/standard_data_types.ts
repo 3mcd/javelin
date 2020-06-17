@@ -4,6 +4,7 @@ import { DataType } from "./schema_types"
 
 export const array = <T>(type: DataType<T>) =>
   createDataType<T[]>({
+    name: "array",
     create(value = []) {
       return value
     },
@@ -17,6 +18,7 @@ export const array = <T>(type: DataType<T>) =>
   })
 
 export const number = createDataType<number>({
+  name: "number",
   create(value = 0) {
     return value
   },
@@ -26,6 +28,7 @@ export const number = createDataType<number>({
 })
 
 export const boolean = createDataType<boolean>({
+  name: "boolean",
   create(value = false) {
     return value
   },
@@ -35,6 +38,7 @@ export const boolean = createDataType<boolean>({
 })
 
 export const string = createDataType<string>({
+  name: "string",
   create(value = "") {
     return value
   },

@@ -1,7 +1,12 @@
 import { Component, World } from "@javelin/ecs"
 import { JavelinMessage, JavelinMessageType } from "./protocol"
 
-export function createMessageHandler(world: World) {
+export type MessageHandler = {
+  applyMessage: (message: JavelinMessage) => void
+  remoteToLocal: Map<number, number>
+}
+
+export function createMessageHandler(world: World): MessageHandler {
   const remoteToLocal = new Map<number, number>()
 
   function handleCreateMessage(components: Component[]) {

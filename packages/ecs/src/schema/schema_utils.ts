@@ -7,9 +7,9 @@ import {
 } from "./schema_types"
 
 export function createDataType<T>(
-  schema: Omit<DataType<T>, typeof $isDataType>,
+  config: Omit<DataType<T>, typeof $isDataType>,
 ): DataType<T> {
-  return { ...schema, [$isDataType]: true }
+  return { ...config, [$isDataType]: true }
 }
 
 export function isDataType(obj: any): obj is DataType<any> {
@@ -52,7 +52,7 @@ export function resetComponentFromSchema<S extends Schema>(
       value.reset(component, prop, undefined)
     } else if ("type" in value && isDataType(value.type)) {
       // DataType with defaultValue
-      const { type, defaultValue } = schema
+      const { type, defaultValue } = value
 
       ;(type as DataType<unknown>).reset(component, prop, defaultValue)
     } else {

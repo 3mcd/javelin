@@ -1,43 +1,28 @@
 import m from "mithril"
 import { World } from "@javelin/ecs"
 import { JavelinMessage } from "@javelin/net"
+import { WorldPanel } from "./world_panel"
+
+export type WorldConfig = { name: string; world: World }
 
 export function Devtool(
-  world: World,
-  onMessage?: (message: JavelinMessage) => any,
+  worlds: WorldConfig[],
+  onMessage?: (world: World, message: JavelinMessage) => unknown,
 ) {
-  const {
-    storage: { archetypes },
-  } = world
-
-  let value = ""
+  let world = worlds[0]
 
   return {
     view() {
-      const components = new Set()
-
-      archetypes.forEach(a => {
-        a.layout.forEach(t => components.add(t))
-      })
-
-      return m("div", { class: "Devtool" }, [
-        m("ul", [
-          m("li", `archetypes: ${archetypes.length}`),
-          m("li", `componentTypes: ${components.size}`),
-        ]),
-        m("input", {
-          oninput: (e: InputEvent) => {
-            value = (<HTMLInputElement>e.target).value
-          },
-        }),
+      return m("div.Devtool", [
         m(
-          "button",
+          "select",
           {
-            onclick: () =>
-              typeof onMessage === "function" && onMessage(JSON.parse(value)),
+            onchange: (e: InputEvent) =>
+              (world = worlds[(<HTMLSelectElement>e.target).selectedIndex]),
           },
-          "Submit",
+          worlds.map(world => m("option", world.name)),
         ),
+        m(WorldPanel(world.name, world.world)),
       ])
     },
   }

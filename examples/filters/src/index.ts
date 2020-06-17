@@ -14,6 +14,7 @@ enum Tags {
 }
 
 const Position = createComponentFactory({
+  name: "position",
   type: 1,
   schema: {
     x: number,
@@ -22,6 +23,7 @@ const Position = createComponentFactory({
 })
 const Velocity = createComponentFactory(
   {
+    name: "velocity",
     type: 2,
     schema: {
       x: number,
@@ -34,6 +36,7 @@ const Velocity = createComponentFactory(
   },
 )
 const Sleep = createComponentFactory({
+  name: "sleep",
   type: 3,
   schema: {
     value: number,

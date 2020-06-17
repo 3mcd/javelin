@@ -1,6 +1,7 @@
-import { createComponentFactory, number } from "@javelin/ecs"
+import { createComponentFactory, number, ComponentOf } from "@javelin/ecs"
 
 export const Velocity = createComponentFactory({
+  name: "velocity",
   type: 2,
   schema: {
     x: number,

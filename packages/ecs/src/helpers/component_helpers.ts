@@ -49,6 +49,7 @@ export type ComponentFactoryLike<
   C extends ComponentType = ComponentType,
   I extends ComponentInitializer<C> = ComponentInitializer<C>
 > = {
+  name?: string
   create(...args: ComponentInitializerArgs<I, C>): ComponentOf<C>
   destroy(component: ComponentOf<C>): void
 } & C
@@ -63,6 +64,7 @@ export function createComponentFactory<
   const pool = createComponentPool(componentType)
 
   return {
+    name: componentType.name,
     create(...args: ComponentInitializerArgs<I, C>) {
       const component = pool.retain()
       componentInitializer(component, ...args)
