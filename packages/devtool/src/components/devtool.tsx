@@ -6,10 +6,21 @@ import { Routes } from "../routes"
 import { ReactElement } from "react"
 
 const DevtoolContainer = styled.div`
-  padding: 16px;
   background: #efefef;
   font-family: Helvetica, sans-serif;
   color: #222;
+`
+
+const DevtoolContent = styled.div`
+  padding: 8px;
+`
+
+const DevtoolBar = styled(DevtoolContent)`
+  background: #fefefe;
+`
+
+const WorldSelectDropdown = styled.select`
+  margin-right: 8px;
 `
 
 function WorldSelect() {
@@ -26,13 +37,13 @@ function WorldSelect() {
   const world = matches ? matches[1] : ""
 
   return (
-    <select value={world} onChange={onSelectChange}>
+    <WorldSelectDropdown value={world} onChange={onSelectChange}>
       {worlds.map(world => (
         <option key={world.name} value={world.name}>
           {world.name}
         </option>
       ))}
-    </select>
+    </WorldSelectDropdown>
   )
 }
 
@@ -48,13 +59,11 @@ function Breadcrumbs() {
     // Trim leading slash
     .replace(/^\//, "")
     .split("/")
-    // Ignore world name segment
-    .slice(1)
     .reduce(
       (a, segment) => {
         a.currentPath += `${segment}/`
         a.links.push(
-          <BreadcrumbLink key={a.currentPath} to={a.currentPath}>
+          <BreadcrumbLink key={a.currentPath} to={`/${a.currentPath}`}>
             {segment}
           </BreadcrumbLink>,
         )
@@ -75,9 +84,13 @@ export function Devtool() {
   return (
     <DevtoolContainer>
       <MemoryRouter initialEntries={[`/${worlds[0].name}`]}>
-        <WorldSelect />
-        <Breadcrumbs />
-        <Routes />
+        <DevtoolBar>
+          <WorldSelect />
+          <Breadcrumbs />
+        </DevtoolBar>
+        <DevtoolContent>
+          <Routes />
+        </DevtoolContent>
       </MemoryRouter>
     </DevtoolContainer>
   )
