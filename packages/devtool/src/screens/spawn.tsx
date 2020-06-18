@@ -1,9 +1,9 @@
-import { SerializedComponentType, protocol } from "@javelin/net"
-import React, { useEffect, useReducer, useCallback } from "react"
+import { protocol } from "@javelin/net"
+import React, { useCallback, useEffect, useReducer } from "react"
+import { useParams } from "react-router-dom"
 import { Screen } from "../components/screen"
 import { useWorld } from "../context/world_provider"
 import { WorldConfig } from "../types"
-import { useLocation, useParams } from "react-router-dom"
 
 type FormState = {
   world: string
@@ -42,11 +42,11 @@ function reducer(state: FormState, action: FormAction): FormState {
   }
 }
 
-const initialize = (world: WorldConfig) => {
+function initialize(world: WorldConfig) {
   const fields = world.model.reduce(
-    (a, x) => ({
+    (a, componentType) => ({
       ...a,
-      [x.name!]: Object.entries(x.schema).reduce(
+      [componentType.name]: Object.entries(componentType.schema).reduce(
         (a, [key]) => ({ ...a, [key]: "" }),
         {},
       ),
@@ -87,10 +87,13 @@ export function Spawn() {
         _t: type.type,
         _v: 0,
         _e: 0,
-        ...Object.entries(state.fields[key]).reduce((a, [key, value]) => {
-          a[key] = castValueToDataType(type.schema[key], value)
-          return a
-        }, {} as { [key: string]: unknown }),
+        ...Object.entries(state.fields[key]).reduce(
+          (componentProps, [key, value]) => {
+            componentProps[key] = castValueToDataType(type.schema[key], value)
+            return componentProps
+          },
+          {} as { [key: string]: unknown },
+        ),
       }
 
       components.push(component)
