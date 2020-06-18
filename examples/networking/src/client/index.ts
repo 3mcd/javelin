@@ -140,7 +140,11 @@ async function main() {
 
   function handleDevtoolMessage(data: any) {
     const message = decode(data) as JavelinMessage
-    remoteWorldHandler.applyMessage(message)
+    if (message[0] === JavelinMessageType.Model) {
+      devtool.setModel(remoteWorld, message[1])
+    } else {
+      remoteWorldHandler.applyMessage(message)
+    }
   }
 
   devtool.mount(document.getElementById("devtool")!)

@@ -72,13 +72,7 @@ function findOrCreateClient(sessionId: string) {
 
 function registerDevtool(connection: Connection) {
   devtools.push(connection)
-  setTimeout(
-    () =>
-      connection.send(
-        encode(protocol.model(world.registeredComponentFactories)),
-      ),
-    250,
-  )
+  setTimeout(() => connection.send(encode(protocol.model(world))), 250)
   connection.messages.subscribe(data => {
     handler.applyMessage(decode(data) as JavelinMessage)
   })

@@ -7,14 +7,17 @@ import {
   DataType,
   SchemaKey,
   isDataType,
+  World,
 } from "@javelin/ecs"
 
 export enum JavelinMessageType {
-  Model,
+  // Core messages
   Create,
   Destroy,
   Change,
   Update,
+  // Debug messages
+  Model,
 }
 
 export type SerializedComponentType<
@@ -22,16 +25,18 @@ export type SerializedComponentType<
 > = {
   name: C["name"]
   type: C["type"]
-  schema: PropsOfSchema<C["schema"]>
+  schema: SerializedSchema<C["schema"]>
 }
 
-export type Model = [JavelinMessageType.Model, SerializedComponentType[]]
 export type Create = [JavelinMessageType.Create, Component[]]
 export type Destroy = [JavelinMessageType.Destroy, number[]]
 export type Change = [JavelinMessageType.Change, Component[]]
 export type Update<T> = [JavelinMessageType.Update, Component[], T]
+export type Model = [JavelinMessageType.Model, SerializedComponentType[]]
 
-export type SerializedSchema<S extends Schema> = S extends DataType<infer T>
+export type SerializedSchema<S extends Schema = {}> = S extends DataType<
+  infer T
+>
   ? T
   : {
       [K in keyof S]: S[K] extends Schema
@@ -41,7 +46,9 @@ export type SerializedSchema<S extends Schema> = S extends DataType<infer T>
         : never
     }
 
-function serializeSchema<S extends Schema>(schema: S): SerializedSchema<S> {
+export function serializeSchema<S extends Schema>(
+  schema: S,
+): SerializedSchema<S> {
   const out: any = {}
 
   for (const prop in schema) {
@@ -59,15 +66,15 @@ function serializeSchema<S extends Schema>(schema: S): SerializedSchema<S> {
   return out as SerializedSchema<S>
 }
 
+export function serializeWorldModel(world: World): SerializedComponentType[] {
+  return world.registeredComponentFactories.map(t => ({
+    name: t.name,
+    type: t.type,
+    schema: serializeSchema(t.schema),
+  }))
+}
+
 export const protocol = {
-  model: (types: ComponentType[]): Model => [
-    JavelinMessageType.Model,
-    types.map(t => ({
-      name: t.name,
-      type: t.type,
-      schema: serializeSchema(t.schema),
-    })),
-  ],
   create: (components: Component[]): Create => [
     JavelinMessageType.Create,
     components,
@@ -84,6 +91,10 @@ export const protocol = {
     JavelinMessageType.Update,
     components,
     metadata,
+  ],
+  model: (world: World): Model => [
+    JavelinMessageType.Model,
+    serializeWorldModel(world),
   ],
 }
 
