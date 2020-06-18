@@ -1,12 +1,11 @@
 import {
   Component,
   ComponentFactoryLike,
-  PropsOfSchema,
-  ComponentType,
-  Schema,
+  ComponentWithoutEntity,
   DataType,
-  SchemaKey,
   isDataType,
+  Schema,
+  SchemaKey,
   World,
 } from "@javelin/ecs"
 
@@ -16,6 +15,7 @@ export enum JavelinMessageType {
   Destroy,
   Change,
   Update,
+  Spawn,
   // Debug messages
   Model,
 }
@@ -32,6 +32,7 @@ export type Create = [JavelinMessageType.Create, Component[]]
 export type Destroy = [JavelinMessageType.Destroy, number[]]
 export type Change = [JavelinMessageType.Change, Component[]]
 export type Update<T> = [JavelinMessageType.Update, Component[], T]
+export type Spawn = [JavelinMessageType.Spawn, ComponentWithoutEntity[]]
 export type Model = [JavelinMessageType.Model, SerializedComponentType[]]
 
 export type SerializedSchema<S extends Schema = {}> = S extends DataType<
@@ -91,6 +92,10 @@ export const protocol = {
     JavelinMessageType.Update,
     components,
     metadata,
+  ],
+  spawn: (components: ComponentWithoutEntity[]): Spawn => [
+    JavelinMessageType.Spawn,
+    components,
   ],
   model: (world: World): Model => [
     JavelinMessageType.Model,

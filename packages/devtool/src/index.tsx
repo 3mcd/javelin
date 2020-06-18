@@ -36,7 +36,7 @@ export function createDevtool(options: DevtoolOptions): Devtool {
 
   function Root() {
     const onMessage = (world: WorldConfig, message: JavelinMessage) =>
-      options.onMessage(options.worlds[worlds.indexOf(world)], message)
+      options.onMessage(options.worlds[world.name], message)
 
     return (
       <WorldProvider worlds={worlds} onMessage={onMessage}>

@@ -85,8 +85,6 @@ export function Spawn() {
       const type = world.model.find(type => type.name === key)!
       const component = {
         _t: type.type,
-        _v: 0,
-        _e: 0,
         ...Object.entries(state.fields[key]).reduce(
           (componentProps, [key, value]) => {
             componentProps[key] = castValueToDataType(type.schema[key], value)
@@ -99,9 +97,9 @@ export function Spawn() {
       components.push(component)
     }
 
-    sendMessage(world, protocol.create(components))
+    sendMessage(world, protocol.spawn(components))
     dispatch({ type: "reset", payload: world })
-  }, [state])
+  }, [state, world])
 
   const fields =
     state.world === world.name

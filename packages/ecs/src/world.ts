@@ -1,4 +1,4 @@
-import { Component, ComponentType } from "./component"
+import { Component, ComponentType, ComponentWithoutEntity } from "./component"
 import { createStorage, Storage } from "./storage"
 import { createStackPool } from "./pool/stack_pool"
 import { QueryLike, Selector, SelectorResult } from "./query"
@@ -12,7 +12,10 @@ type QueryMethod = <S extends Selector>(
 export type World<T = any> = {
   tick(data: T): void
   addSystem(system: System<T>): void
-  create(components: ReadonlyArray<Component>, tags?: number): number
+  create(
+    components: ReadonlyArray<ComponentWithoutEntity>,
+    tags?: number,
+  ): number
   insert(entity: number, ...components: ReadonlyArray<Component>): void
   destroy(entity: number): void
   created: ReadonlySet<number>
