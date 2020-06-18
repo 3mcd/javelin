@@ -10,6 +10,7 @@ import {
 import { Devtool } from "./components/devtool"
 import { WorldConfig } from "./types"
 import { WorldProvider } from "./context/world_provider"
+import { useCallback } from "react"
 
 export type WorldsConfig = { [name: string]: World }
 
@@ -34,8 +35,11 @@ export function createDevtool(options: DevtoolOptions): Devtool {
   )
 
   function Root() {
+    const onMessage = (world: WorldConfig, message: JavelinMessage) =>
+      options.onMessage(options.worlds[worlds.indexOf(world)], message)
+
     return (
-      <WorldProvider worlds={worlds}>
+      <WorldProvider worlds={worlds} onMessage={onMessage}>
         <Devtool />
       </WorldProvider>
     )

@@ -48,6 +48,7 @@ function Breadcrumbs() {
     // Trim leading slash
     .replace(/^\//, "")
     .split("/")
+    // Ignore world name segment
     .slice(1)
     .reduce(
       (a, segment) => {

@@ -1,5 +1,5 @@
-import { SerializedComponentType } from "@javelin/net"
-import React, { useEffect, useReducer } from "react"
+import { SerializedComponentType, protocol } from "@javelin/net"
+import React, { useEffect, useReducer, useCallback } from "react"
 import { Screen } from "../components/screen"
 import { useWorld } from "../context/world_provider"
 import { WorldConfig } from "../types"
@@ -65,12 +65,42 @@ function getInputTypeForDataType(dataTypeName: string) {
   }
 }
 
+function castValueToDataType(dataTypeName: string, value: string) {
+  if (dataTypeName === "number") {
+    return Number(value)
+  } else {
+    return value
+  }
+}
+
 export function Spawn() {
   const { world: worldName } = useParams()
-  const { worlds } = useWorld()
+  const { worlds, sendMessage } = useWorld()
   const world = worlds.find(w => w.name === worldName)!
   const [state, dispatch] = useReducer(reducer, {}, () => initialize(world))
-  const form =
+  const spawn = useCallback(() => {
+    const components = []
+
+    for (const key in state.fields) {
+      const type = world.model.find(type => type.name === key)!
+      const component = {
+        _t: type.type,
+        _v: 0,
+        _e: 0,
+        ...Object.entries(state.fields[key]).reduce((a, [key, value]) => {
+          a[key] = castValueToDataType(type.schema[key], value)
+          return a
+        }, {} as { [key: string]: unknown }),
+      }
+
+      components.push(component)
+    }
+
+    sendMessage(world, protocol.create(components))
+    dispatch({ type: "reset", payload: world })
+  }, [state])
+
+  const fields =
     state.world === world.name
       ? world.model.map(type => {
           const entries = Object.entries(type.schema)
@@ -106,5 +136,10 @@ export function Spawn() {
     dispatch({ type: "reset", payload: world })
   }, [world])
 
-  return <Screen title="Spawn">{form}</Screen>
+  return (
+    <Screen title="Spawn">
+      {fields}
+      <button onClick={spawn}>Spawn</button>
+    </Screen>
+  )
 }
