@@ -2,7 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "dist",
-    "module": "commonjs"
+    "module": "commonjs",
+    "jsx": "react"
   },
   "include": ["src"],
   "exclude": ["**/*.spec.ts"]

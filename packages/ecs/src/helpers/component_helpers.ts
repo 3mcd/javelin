@@ -13,10 +13,11 @@ import {
 import { noop } from "../util/fp"
 
 export function createComponentType<T extends number, S extends Schema>(
+  name: string,
   type: T,
   schema: S,
 ): ComponentType<T, S> {
-  return { type, schema }
+  return { name, type, schema }
 }
 
 export function createComponentPool<C extends ComponentType>(componentType: C) {
@@ -49,6 +50,7 @@ export type ComponentFactoryLike<
   C extends ComponentType = ComponentType,
   I extends ComponentInitializer<C> = ComponentInitializer<C>
 > = {
+  name: string
   create(...args: ComponentInitializerArgs<I, C>): ComponentOf<C>
   destroy(component: ComponentOf<C>): void
 } & C

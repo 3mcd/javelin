@@ -4,6 +4,7 @@ import {
   createMessageProducer,
   createMessageHandler,
   JavelinMessage,
+  protocol,
 } from "@javelin/net"
 import { encode, decode } from "@msgpack/msgpack"
 import { Server } from "@web-udp/server"
@@ -28,13 +29,13 @@ world.registerComponentFactory(Position)
 world.registerComponentFactory(Velocity)
 world.registerComponentFactory(Sleep)
 
-const clientMessages = createMessageProducer({
+const clientMessageProducer = createMessageProducer({
   encode,
   components: [{ type: Position, priority: 1 }],
   unreliableSendRate: (1 / 20) * 1000,
   maxUpdateSize: 1000,
 })
-const devtoolMessages = createMessageProducer({
+const devtoolMessageProducer = createMessageProducer({
   encode,
   components: world.registeredComponentFactories.map(type => ({
     type,
@@ -71,6 +72,7 @@ function findOrCreateClient(sessionId: string) {
 
 function registerDevtool(connection: Connection) {
   devtools.push(connection)
+  setTimeout(() => connection.send(encode(protocol.model(world))), 250)
   connection.messages.subscribe(data => {
     handler.applyMessage(decode(data) as JavelinMessage)
   })
@@ -80,10 +82,10 @@ function registerDevtool(connection: Connection) {
 }
 
 function sendDevtoolMessages() {
-  const created = devtoolMessages.created(world)
-  const changed = devtoolMessages.changed(world)
-  const updated = devtoolMessages.unreliable(world)
-  const destroyed = devtoolMessages.destroyed(world)
+  const created = devtoolMessageProducer.created(world)
+  const changed = devtoolMessageProducer.changed(world)
+  const updated = devtoolMessageProducer.unreliable(world)
+  const destroyed = devtoolMessageProducer.destroyed(world)
 
   for (let i = 0; i < devtools.length; i++) {
     const devtool = devtools[i]
@@ -102,10 +104,10 @@ function sendDevtoolMessages() {
 }
 
 function sendClientMessages() {
-  const created = clientMessages.created(world)
-  const changed = clientMessages.changed(world)
-  const updated = clientMessages.unreliable(world)
-  const destroyed = clientMessages.destroyed(world)
+  const created = clientMessageProducer.created(world)
+  const changed = clientMessageProducer.changed(world)
+  const updated = clientMessageProducer.unreliable(world)
+  const destroyed = clientMessageProducer.destroyed(world)
 
   for (let i = 0; i < clients.length; i++) {
     const { reliable, unreliable } = clients[i]
@@ -146,7 +148,7 @@ udp.connections.subscribe(connection => {
 
   if (connectionType === ConnectionType.Reliable) {
     client.reliable = connection
-    client.reliable.send(encode(clientMessages.all(world)))
+    client.reliable.send(encode(clientMessageProducer.all(world)))
   } else {
     client.unreliable = connection
   }

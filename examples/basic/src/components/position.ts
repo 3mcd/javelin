@@ -2,6 +2,7 @@ import { createComponentFactory, number } from "@javelin/ecs"
 
 export const Position = createComponentFactory(
   {
+    name: "position",
     type: 1,
     schema: {
       x: number,

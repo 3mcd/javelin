@@ -9,7 +9,17 @@
         background: #000;
         font-family: "PragmataPro Mono";
         color: #fff;
-        text-align: center;
+      }
+
+      body {
+        display: flex;
+        width: 100%;
+      }
+
+      #render,
+      #devtool {
+        position: relative;
+        flex: 1;
       }
 
       canvas {
@@ -17,11 +27,11 @@
         left: 50%;
         top: 50%;
         transform: translate(-50%, -50%);
+        width: 100%;
       }
     </style>
   </head>
   <body>
-    <p>Networking Example</p>
     <div id="devtool"></div>
   </body>
 </html>

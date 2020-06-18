@@ -7,6 +7,7 @@ export type ComponentType<
   T extends number = number,
   S extends Schema = AnySchema
 > = {
+  name: string
   type: T
   schema: S
 }
@@ -19,6 +20,8 @@ export type Component<
   _v: number
   _e: number
 } & P
+
+export type ComponentWithoutEntity = Omit<Component, "_e" | "_v">
 
 export type ComponentOf<C extends ComponentType> = C extends ComponentType<
   infer T,

@@ -6,7 +6,10 @@
   "typings": "dist/index.d.ts",
   "license": "MIT",
   "devDependencies": {
-    "@types/mithril": "^2.0.3",
+    "@types/react": "^16.9.38",
+    "@types/react-dom": "^16.9.8",
+    "@types/react-router-dom": "^5.1.5",
+    "@types/styled-components": "^5.1.0",
     "rollup": "^2.16.1",
     "rollup-plugin-sourcemaps": "^0.6.2",
     "rollup-plugin-terser": "^6.1.0",
@@ -30,8 +33,13 @@
     "networking"
   ],
   "dependencies": {
+    "@emotion/core": "^10.0.28",
+    "@emotion/styled": "^10.0.27",
     "@javelin/ecs": "0.4.1",
     "@javelin/net": "0.4.1",
-    "mithril": "^2.0.4"
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-router-dom": "^5.2.0",
+    "styled-components": "^5.1.1"
   }
 }
