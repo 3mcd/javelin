@@ -8,8 +8,8 @@ jest.mock("./world")
 
 describe("createQuery", () => {
   it("queries collections of components", () => {
-    const A = { type: 0, schema: {} }
-    const B = { type: 1, schema: {} }
+    const A = { name: "A", type: 0, schema: {} }
+    const B = { name: "B", type: 1, schema: {} }
     const world = createWorld([])
     const table = [
       [
@@ -50,7 +50,7 @@ describe("createQuery", () => {
     expect(resultsB[1]).toBe(table[0][0])
   })
   it("supports filtering of entities and components", () => {
-    const A = { type: 0, schema: {} }
+    const A = { name: "A", type: 0, schema: {} }
     const world = createWorld([])
     const table = [
       [

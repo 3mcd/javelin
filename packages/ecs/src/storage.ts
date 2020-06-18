@@ -1,5 +1,10 @@
 import { Archetype, createArchetype } from "./archetype"
-import { Component, ComponentOf, ComponentType } from "./component"
+import {
+  Component,
+  ComponentOf,
+  ComponentType,
+  ComponentWithoutEntity,
+} from "./component"
 import { ComponentFactoryLike } from "./helpers"
 
 export interface Storage {
@@ -15,7 +20,11 @@ export interface Storage {
    * @param components Array of components to associate with the entity
    * @param tag Initial tag (bit flags) of the entity
    */
-  create(entity: number, components: Component[], tag?: number): number
+  create(
+    entity: number,
+    components: ComponentWithoutEntity[],
+    tag?: number,
+  ): number
 
   /**
    * Insert components into an existing entity.
@@ -23,7 +32,7 @@ export interface Storage {
    * @param entity Existing entity
    * @param components Components to insert into the existing entity
    */
-  insert(entity: number, ...components: Component[]): void
+  insert(entity: number, ...components: ComponentWithoutEntity[]): void
 
   /**
    * Destroy an entity. Attempts to release pooled components if their types
