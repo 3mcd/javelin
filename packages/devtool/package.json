@@ -1,6 +1,6 @@
 {
   "name": "@javelin/devtool",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "main": "dist/javelin-devtool.js",
   "module": "dist/javelin-devtool.es5.js",
   "typings": "dist/index.d.ts",
@@ -35,8 +35,8 @@
   "dependencies": {
     "@emotion/core": "^10.0.28",
     "@emotion/styled": "^10.0.27",
-    "@javelin/ecs": "0.4.1",
-    "@javelin/net": "0.4.1",
+    "@javelin/ecs": "0.4.2",
+    "@javelin/net": "0.4.2",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-router-dom": "^5.2.0",
