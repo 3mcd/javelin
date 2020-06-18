@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 0.5.0 (2020-06-18)
+
+
+### Features
+
+* improve spawning ([fda1b82](https://github.com/3mcd/javelin/commit/fda1b82cd407639d5a7f8c27e37daba1eec5e416))
+
+
+
+
+
 ## 0.4.2 (2020-06-18)
 
 
