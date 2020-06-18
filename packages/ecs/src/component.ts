@@ -21,7 +21,12 @@ export type Component<
   _e: number
 } & P
 
-export type ComponentWithoutEntity = Omit<Component, "_e" | "_v">
+export type ComponentWithoutEntity<
+  T extends number = number,
+  P extends ComponentProps = ComponentProps
+> = {
+  _t: T
+} & P
 
 export type ComponentOf<C extends ComponentType> = C extends ComponentType<
   infer T,

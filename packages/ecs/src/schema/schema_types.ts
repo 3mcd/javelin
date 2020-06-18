@@ -26,10 +26,10 @@ export const $isDataType = Symbol("isDataType")
 export type DataType<T> = {
   [$isDataType]: true
   name: string
-  create(defaultValue: T): T
+  create(defaultValue?: T): T
   reset(
     component: { [key: string]: unknown },
     key: string,
-    defaultValue: T,
+    defaultValue?: T,
   ): void
 }
