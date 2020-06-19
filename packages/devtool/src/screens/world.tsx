@@ -1,6 +1,5 @@
 import React from "react"
 import { Link, useParams } from "react-router-dom"
-import { Screen } from "../components/screen"
 import { useWorld } from "../context/world_provider"
 
 export function World() {
@@ -14,20 +13,20 @@ export function World() {
   )
 
   return (
-    <Screen title={`World: ${worldName}`}>
-      <h3>Details</h3>
+    <div>
+      <h4>Details</h4>
       <dl>
         <dt>Archetypes</dt>
-        <dt>{archetypeCount}</dt>
+        <dd>{archetypeCount}</dd>
         <dt>Entities</dt>
-        <dt>{entityCount}</dt>
+        <dd>{entityCount}</dd>
       </dl>
-      <h3>Actions</h3>
+      <h4>Actions</h4>
       <ul>
         <li>
           <Link to={`/${worldName}/spawn`}>Spawn</Link>
         </li>
       </ul>
-    </Screen>
+    </div>
   )
 }

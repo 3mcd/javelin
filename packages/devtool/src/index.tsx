@@ -1,16 +1,16 @@
-import * as React from "react"
-import { render, unmountComponentAtNode } from "react-dom"
 import { World } from "@javelin/ecs"
 import {
   JavelinMessage,
+  SerializedComponentType,
   SerializedSchema,
   serializeWorldModel,
-  SerializedComponentType,
 } from "@javelin/net"
+import * as React from "react"
+import { render, unmountComponentAtNode } from "react-dom"
 import { Devtool } from "./components/devtool"
-import { WorldConfig } from "./types"
+import { LogContext, LogProvider } from "./context/log"
 import { WorldProvider } from "./context/world_provider"
-import { useCallback } from "react"
+import { WorldConfig } from "./types"
 
 export type WorldsConfig = { [name: string]: World }
 
@@ -20,7 +20,7 @@ export type DevtoolOptions = {
 }
 
 export type Devtool = {
-  mount(root: HTMLElement): void
+  mount(root: HTMLElement): { log: LogContext }
   unmount(): void
   setModel(world: World, model: SerializedSchema[]): void
 }
@@ -34,28 +34,32 @@ export function createDevtool(options: DevtoolOptions): Devtool {
     }),
   )
 
-  function Root() {
-    const onMessage = (world: WorldConfig, message: JavelinMessage) =>
-      options.onMessage(options.worlds[world.name], message)
-
-    return (
-      <WorldProvider worlds={worlds} onMessage={onMessage}>
-        <Devtool />
-      </WorldProvider>
-    )
-  }
-
   let element: HTMLElement
   let interval: number
 
-  function update() {
-    render(Root(), element)
-  }
-
   function mount(root: HTMLElement) {
-    element = root
+    const ref = React.createRef<LogContext>()
+    const onMessage = (world: WorldConfig, message: JavelinMessage) =>
+      options.onMessage(options.worlds[world.name], message)
+    const update = () =>
+      render(
+        <LogProvider ref={ref}>
+          <WorldProvider worlds={worlds} onMessage={onMessage}>
+            <Devtool />
+          </WorldProvider>
+        </LogProvider>,
+        root,
+      )
+
     update()
+
+    element = root
+
     interval = setInterval(update, 500)
+
+    return {
+      log: ref.current!,
+    }
   }
 
   function unmount() {

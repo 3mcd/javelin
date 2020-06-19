@@ -1,7 +1,7 @@
 import React from "react"
-import { Route, Switch, useHistory, useLocation } from "react-router-dom"
-import { World } from "./screens/world"
+import { Route, Switch } from "react-router-dom"
 import { Spawn } from "./screens/spawn"
+import { World } from "./screens/world"
 
 export function Routes() {
   return (

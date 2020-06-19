@@ -14,6 +14,7 @@ import { PositionBuffer } from "./components/position_buffer"
 import { app, framerate, updateBytesTransferred } from "./graphics"
 import { interpolate, render } from "./systems"
 import { uuidv4 } from "./uuid"
+import { LogContext } from "@javelin/devtool/dist/context/log"
 
 const udp = new Client({
   url: `ws://${window.location.hostname}:8000`,
@@ -119,11 +120,9 @@ const devtoolOptions: ConnectionOptions = {
   UNSAFE_ordered: true,
 }
 
-async function main() {
-  const connectionReliable = await udp.connect(reliableOptions)
-  const connectionUnreliable = await udp.connect(unreliableOptions)
-  const connectionDevtool = await udp.connect(devtoolOptions)
+let log: LogContext
 
+async function main() {
   const devtool = createDevtool({
     worlds: {
       local: world,
@@ -137,6 +136,16 @@ async function main() {
       }
     },
   })
+  const { log } = devtool.mount(document.getElementById("devtool")!)
+
+  const connectionReliable = await udp.connect(reliableOptions)
+  log.info("Reliable channel established")
+
+  const connectionUnreliable = await udp.connect(unreliableOptions)
+  log.info("Unreliable channel established")
+
+  const connectionDevtool = await udp.connect(devtoolOptions)
+  log.info("Devtools connected")
 
   function handleDevtoolMessage(data: any) {
     const message = decode(data) as JavelinMessage
@@ -146,8 +155,6 @@ async function main() {
       remoteWorldHandler.applyMessage(message)
     }
   }
-
-  devtool.mount(document.getElementById("devtool")!)
 
   connectionReliable.messages.subscribe(handleMessage)
   connectionUnreliable.messages.subscribe(handleMessage)

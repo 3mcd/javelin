@@ -69,7 +69,11 @@ function findOrCreateClient(sessionId: string) {
 
 function registerDevtool(connection: Connection) {
   devtools.push(connection)
-  setTimeout(() => connection.send(encode(protocol.model(world))), 250)
+  setTimeout(() => {
+    for (const message of clientMessageProducer.getInitialMessages()) {
+      connection.send(encode(message))
+    }
+  }, 250)
   connection.messages.subscribe(data => {
     handler.applyMessage(decode(data) as JavelinMessage)
   })
@@ -102,7 +106,11 @@ function sendClientMessages() {
       client.reliable?.send(encode(message))
     }
 
-    client.unreliable?.send(encode(unreliable[i]))
+    const update = unreliable[i]
+
+    if (update) {
+      client.unreliable?.send(encode(update))
+    }
   }
 }
 
@@ -128,7 +136,11 @@ udp.connections.subscribe(connection => {
 
   if (connectionType === ConnectionType.Reliable) {
     client.reliable = connection
-    client.reliable.send(encode(clientMessageProducer.getInitialMessages()))
+    setTimeout(() => {
+      for (const message of clientMessageProducer.getInitialMessages()) {
+        connection.send(encode(message))
+      }
+    }, 250)
   } else {
     client.unreliable = connection
   }

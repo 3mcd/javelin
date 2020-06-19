@@ -1,5 +1,11 @@
-import { ComponentWithoutEntity, number, string } from "@javelin/ecs"
+import {
+  ComponentWithoutEntity,
+  mutableEmpty,
+  number,
+  string,
+} from "@javelin/ecs"
 import { protocol, SerializedComponentType } from "@javelin/net"
+import produce from "immer"
 import React, {
   ChangeEvent,
   useCallback,
@@ -8,10 +14,10 @@ import React, {
   useState,
 } from "react"
 import { useParams } from "react-router-dom"
-import { Screen } from "../components/screen"
+import styled from "styled-components"
 import { useWorld } from "../context/world_provider"
 import { WorldConfig } from "../types"
-import styled from "styled-components"
+import { useLog } from "../context/log"
 
 const SelectContainer = styled.div`
   display: flex;
@@ -33,6 +39,22 @@ const ComponentMultiSelect = styled.select`
   flex: 2;
 `
 
+const FieldsetList = styled.ul`
+  list-style-type: none;
+  margin: 0 0 8px 0;
+  padding: 0;
+`
+
+const FieldList = styled.ul`
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+`
+
+const FieldListItem = styled.li`
+  margin: 8px 0;
+`
+
 type FormState = {
   components: ComponentWithoutEntity[]
 }
@@ -44,41 +66,30 @@ type FormAction =
   | { type: "reset"; payload: WorldConfig }
 
 function reducer(state: FormState, action: FormAction): FormState {
-  switch (action.type) {
-    case "add_components":
-      return {
-        ...state,
-        components: [...state.components, ...action.payload],
-      }
-    case "remove_components":
-      return {
-        ...state,
-        components: state.components.filter(
+  return produce(state, draft => {
+    switch (action.type) {
+      case "add_components":
+        draft.components.push(...action.payload)
+        break
+      case "remove_components":
+        draft.components = draft.components.filter(
           c => !action.payload.includes(c._t),
-        ),
-      }
-    case "set": {
-      const componentIndex = state.components.findIndex(
-        c => c._t === action.payload.type,
-      )!
-      const component = state.components[componentIndex]
-      const nextComponent = {
-        ...component,
-        [action.payload.key]: action.payload.value,
-      }
+        )
+        break
+      case "set": {
+        const componentIndex = draft.components.findIndex(
+          c => c._t === action.payload.type,
+        )!
 
-      return {
-        ...state,
-        components: [
-          ...state.components.slice(0, componentIndex),
-          nextComponent,
-          ...state.components.slice(componentIndex + 1),
-        ],
+        draft.components[componentIndex][action.payload.key] =
+          action.payload.value
+        break
       }
+      case "reset":
+        mutableEmpty(draft.components)
+        break
     }
-    case "reset":
-      return { components: [] }
-  }
+  })
 }
 
 function getDefaultValueForDataType(dataTypeName: string) {
@@ -117,10 +128,19 @@ export function Spawn() {
   const { worlds, sendMessage } = useWorld()
   const world = worlds.find(w => w.name === worldName)!
   const [state, dispatch] = useReducer(reducer, { components: [] })
+  const log = useLog()
   const spawn = useCallback(() => {
-    sendMessage(world, protocol.spawn(state.components))
+    sendMessage(
+      world,
+      protocol.spawn(
+        // copy each component since we're using immer to avoid "object is not
+        // extensible" error
+        state.components.map(c => ({ ...c })),
+      ),
+    )
     setToAdd([])
     setToRemove([])
+    log.info(`Spawned ${JSON.stringify(state.components)}`)
     dispatch({ type: "reset", payload: world })
   }, [state, world])
 
@@ -193,7 +213,7 @@ export function Spawn() {
   }
 
   return (
-    <Screen title="Spawn">
+    <div>
       <SelectContainer>
         <ComponentMultiSelect
           multiple
@@ -227,48 +247,48 @@ export function Spawn() {
           ))}
         </ComponentMultiSelect>
       </SelectContainer>
-      <ul>
+      <FieldsetList>
         {toRemove
           .map(t => state.components.find(c => c._t === t)!)
           .map(c => (
             <li key={c._t}>
-              <h3>{getComponentName(c, world.model)}</h3>
+              <h4>{getComponentName(c, world.model)}</h4>
               <fieldset>
-                <ul>
+                <FieldList>
                   {Object.entries(c)
                     .filter(([key]) => key !== "_t")
                     .map(([key, value]) => (
-                      <li key={key}>
-                        <label>
-                          {key}
-                          <input
-                            type={getInputTypeForDataType(
-                              getDataTypeForComponentField(c, key),
-                            )}
-                            value={String(value)}
-                            onChange={e =>
-                              dispatch({
-                                type: "set",
-                                payload: {
-                                  type: c._t,
-                                  key,
-                                  value: castValueToDataType(
-                                    getDataTypeForComponentField(c, key),
-                                    e.target.value,
-                                  ),
-                                },
-                              })
-                            }
-                          />
-                        </label>
-                      </li>
+                      <FieldListItem key={key}>
+                        <label htmlFor={key}>{key}</label>
+                        <input
+                          id={key}
+                          name={key}
+                          type={getInputTypeForDataType(
+                            getDataTypeForComponentField(c, key),
+                          )}
+                          value={String(value)}
+                          onChange={e =>
+                            dispatch({
+                              type: "set",
+                              payload: {
+                                type: c._t,
+                                key,
+                                value: castValueToDataType(
+                                  getDataTypeForComponentField(c, key),
+                                  e.target.value,
+                                ),
+                              },
+                            })
+                          }
+                        />
+                      </FieldListItem>
                     ))}
-                </ul>
+                </FieldList>
               </fieldset>
             </li>
           ))}
-      </ul>
+      </FieldsetList>
       <button onClick={spawn}>Spawn</button>
-    </Screen>
+    </div>
   )
 }

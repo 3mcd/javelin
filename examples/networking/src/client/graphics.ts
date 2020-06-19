@@ -29,6 +29,8 @@ let transferred = 0
 
 const bandwidth = document.createElement("div")
 
+bandwidth.style.textAlign = "center"
+
 document.body.appendChild(bandwidth)
 
 export function updateBytesTransferred(bytes: number) {

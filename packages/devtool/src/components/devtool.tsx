@@ -1,22 +1,72 @@
-import React, { useCallback } from "react"
-import { MemoryRouter, useHistory, useLocation, Link } from "react-router-dom"
-import styled from "styled-components"
+import React, { ReactElement, useCallback } from "react"
+import { Link, MemoryRouter, useHistory, useLocation } from "react-router-dom"
+import styled, { createGlobalStyle, css } from "styled-components"
+import { useLog } from "../context/log"
 import { useWorld } from "../context/world_provider"
+import { useLogScroll } from "../hooks/useLogScroll"
 import { Routes } from "../routes"
-import { ReactElement } from "react"
+import { Log } from "./log"
+import { Panel, PanelBar } from "./panel"
+
+const GlobalStyle = createGlobalStyle`
+  a {
+    text-decoration: none;
+    color: #6688ae;
+
+    &:hover {
+      color: #4e677e;
+    }
+  }
+
+  dl {
+    display: inline-grid;
+    grid-template-columns: auto auto;
+    margin: 0;
+
+    dt {
+      padding: 4px;
+      text-align: right;
+      word-break: break-word;
+      text-decoration: underline;
+    }
+
+    dd {
+      padding: 4px;
+      margin: 0;
+    }
+  }
+
+  select {
+    > option {
+      padding: 4px 2px;
+    }
+  }
+
+  label {
+    margin-right: 8px;
+  }
+  `
 
 const DevtoolContainer = styled.div`
   background: #efefef;
   font-family: Helvetica, sans-serif;
   color: #222;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+
+  *,
+  *:before,
+  *:after {
+    box-sizing: border-box;
+  }
 `
 
-const DevtoolContent = styled.div`
+const DevtoolPanel = styled.div`
   padding: 8px;
-`
-
-const DevtoolBar = styled(DevtoolContent)`
-  background: #fefefe;
+  flex: 1;
+  overflow: auto;
 `
 
 const WorldSelectDropdown = styled.select`
@@ -80,18 +130,29 @@ function Breadcrumbs() {
 
 export function Devtool() {
   const { worlds } = useWorld()
+  const log = useLog()
+  const ref = useLogScroll(log.messages)
+  const home = `/${worlds[0].name}`
 
   return (
-    <DevtoolContainer>
-      <MemoryRouter initialEntries={[`/${worlds[0].name}`]}>
-        <DevtoolBar>
-          <WorldSelect />
+    <MemoryRouter initialEntries={[home]}>
+      <GlobalStyle />
+      <DevtoolContainer>
+        <PanelBar>
+          <Link to={home}>javelin</Link>
           <Breadcrumbs />
-        </DevtoolBar>
-        <DevtoolContent>
+        </PanelBar>
+        <Panel>
+          <p>Select a target world instance:</p>
+          <WorldSelect />
+        </Panel>
+        <Panel title="World">
           <Routes />
-        </DevtoolContent>
-      </MemoryRouter>
-    </DevtoolContainer>
+        </Panel>
+        <Panel title="Log" ref={ref}>
+          <Log />
+        </Panel>
+      </DevtoolContainer>
+    </MemoryRouter>
   )
 }
