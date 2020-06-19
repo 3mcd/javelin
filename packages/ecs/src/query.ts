@@ -53,6 +53,8 @@ export interface QueryLike<S extends Selector> {
   run(world: World): IterableIterator<SelectorResult<S>>
 
   filter(filter: Filter | (() => Filter)): QueryLike<S>
+
+  length: number;
 }
 
 /**
@@ -61,7 +63,7 @@ export interface QueryLike<S extends Selector> {
  * @param selector Component makeup of entities
  */
 export function createQuery<S extends Selector>(...selector: S): QueryLike<S> {
-  const len = selector.length
+  const length = selector.length
   const componentTypes = selector.map(s => ("mutable" in s ? s.type : s))
   const queryLayout = componentTypes.map(s => s.type)
   // Temporary array of components yielded by the query. This array is reused
@@ -104,7 +106,7 @@ export function createQuery<S extends Selector>(...selector: S): QueryLike<S> {
       // Only consider archetypes that include the provided component types.
       let match = true
 
-      for (let j = 0; j < len; j++) {
+      for (let j = 0; j < length; j++) {
         if (layout.indexOf(queryLayout[j]) === -1) {
           match = false
           break
@@ -118,7 +120,7 @@ export function createQuery<S extends Selector>(...selector: S): QueryLike<S> {
       // The consumer expects the yielded tuples of components to be in the
       // same order as the query, so we calculate the index of each outgoing
       // component.
-      for (let k = 0; k < len; k++) {
+      for (let k = 0; k < length; k++) {
         tmpReadIndices[k] = (archetype as Archetype).layout.indexOf(
           queryLayout[k],
         )
@@ -138,7 +140,7 @@ export function createQuery<S extends Selector>(...selector: S): QueryLike<S> {
 
         if (!match) continue
 
-        for (let k = 0; k < len; k++) {
+        for (let k = 0; k < length; k++) {
           const component = table[tmpReadIndices[k]][index]!
 
           // Execute component filters.
@@ -162,7 +164,7 @@ export function createQuery<S extends Selector>(...selector: S): QueryLike<S> {
     }
   }
 
-  const query = { run, filter }
+  const query = { run, filter, length }
 
   return query
 }
