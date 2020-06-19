@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 0.6.0 (2020-06-19)
+
+
+### Features
+
+* improve message handler API and performance ([e307f4a](https://github.com/3mcd/javelin/commit/e307f4af983774dac96e86f9bf5f44957cc1e28d))
+
+
+
+
+
 # 0.5.0 (2020-06-18)
 
 
