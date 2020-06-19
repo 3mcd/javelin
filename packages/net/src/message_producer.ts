@@ -42,6 +42,35 @@ export function createMessageProducer(
   function getInitialMessages() {
     const messages: JavelinMessage[] = []
 
+    mutableEmpty(payloadCreated)
+
+    for (let i = 0; i < options.world.storage.archetypes.length; i++) {
+      const archetype = options.world.storage.archetypes[i]
+
+      for (let j = 0; j < options.components.length; j++) {
+        const config = options.components[j]
+        const { type } = config.type
+        const row = archetype.layout.indexOf(type)
+
+        // Not a valid archetype match
+        if (row === -1) {
+          continue
+        }
+
+        const components = archetype.table[row]
+
+        for (let k = 0; k < archetype.entities.length; k++) {
+          const entity = archetype.entities[k]
+          const component = components[archetype.indices[entity]]!
+
+          payloadCreated.push(component)
+        }
+      }
+    }
+
+    if (payloadCreated.length > 0)
+      messages.push(protocol.create(payloadCreated))
+
     return messages
   }
 
