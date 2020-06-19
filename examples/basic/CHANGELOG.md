@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.6.1 (2020-06-19)
+
+
+### Bug Fixes
+
+* getInitialMessages ([1d02c86](https://github.com/3mcd/javelin/commit/1d02c86140d3e92e87ce58f26ec0fdbf18b5524e))
+
+
+
+
+
 # 0.6.0 (2020-06-19)
 
 
