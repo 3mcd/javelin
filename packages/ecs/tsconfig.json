@@ -1,9 +1,11 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "downlevelIteration": true,
     "outDir": "dist",
     "module": "commonjs"
   },
+  "lib": ["es2015", "es5", "ScriptHost", "dom"],
   "include": ["src"],
   "exclude": ["**/*.spec.ts", "**/__mocks__/**/*"]
 }
