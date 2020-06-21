@@ -1,8 +1,10 @@
+import { mutableEmpty } from "./util/array"
+
 export type Topic<T extends string = string, D = any> = {
   /**
    * A property for the name of the topic
    */
-  name: string
+  readonly name: T
 
   /**
    * Provides iterator syntax to the consumers of a topic. This will loop
@@ -32,14 +34,14 @@ export type Topic<T extends string = string, D = any> = {
  */
 export const createTopic = <E>(name: string): Topic<string, E> => {
  
-  let events: E[] = [];
+  const events: E[] = [];
 
   const pushEvent = (event: E) => {
     events.push(event)
   }
 
   const flush = () => {
-    events = [];
+    mutableEmpty(events);
   }
 
 

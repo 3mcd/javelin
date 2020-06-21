@@ -17,7 +17,6 @@ describe("createTopic", () => {
     topic.pushEvent({ mass: 17 });
 
     for (const event of topic) {
-      console.log(event);
       expect(event).toEqual({ mass: 17 });
     }
   })
