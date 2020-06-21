@@ -22,21 +22,3 @@ describe("createTopic", () => {
     }
   })
 })
-
-/* describe("createStorage", () => {
-  it("creates a new archetype for each unique combination of components", () => {
-    const storage = createStorage()
-
-    storage.create(1, [{ _t: 0, _v: 0 }])
-    storage.create(2, [{ _t: 1, _v: 0 }])
-    storage.create(3, [
-      { _t: 0, _v: 0 },
-      { _t: 1, _v: 0 },
-    ])
-
-    expect(createArchetype).toHaveBeenNthCalledWith(1, [0])
-    expect(createArchetype).toHaveBeenNthCalledWith(2, [1])
-    expect(createArchetype).toHaveBeenNthCalledWith(3, [0, 1])
-  })
- 
-})*/
