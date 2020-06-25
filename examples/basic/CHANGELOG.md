@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 0.7.0 (2020-06-25)
+
+
+### Features
+
+* devtool inspect ([77caf16](https://github.com/3mcd/javelin/commit/77caf16bca1b223d86cae8d1aa056571354ab59c))
+
+
+
+
+
 ## 0.6.2 (2020-06-19)
 
 **Note:** Version bump only for package @javelin/example-basic
