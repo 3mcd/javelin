@@ -26,6 +26,9 @@ export function World() {
         <li>
           <Link to={`/${worldName}/spawn`}>Spawn</Link>
         </li>
+        <li>
+          <Link to={`/${worldName}/inspect`}>Inspect</Link>
+        </li>
       </ul>
     </div>
   )

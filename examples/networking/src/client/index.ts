@@ -120,8 +120,6 @@ const devtoolOptions: ConnectionOptions = {
   UNSAFE_ordered: true,
 }
 
-let log: LogContext
-
 async function main() {
   const devtool = createDevtool({
     worlds: {
@@ -132,6 +130,7 @@ async function main() {
       if (w === world) {
         localWorldHandler.applyMessage(message)
       } else {
+        log.info(JSON.stringify(message))
         connectionDevtool.send(encode(message))
       }
     },

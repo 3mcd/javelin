@@ -40,6 +40,7 @@ const devtoolMessageProducer = createMessageProducer({
   components: world.registeredComponentFactories.map(type => ({ type })),
   updateInterval: 1000,
   updateSize: 1000,
+  isLocal: true,
 })
 const clients: Client[] = []
 const devtools: Connection[] = []
@@ -73,6 +74,7 @@ function registerDevtool(connection: Connection) {
     for (const message of clientMessageProducer.getInitialMessages()) {
       connection.send(encode(message))
     }
+    connection.send(encode(protocol.model(world)))
   }, 250)
   connection.messages.subscribe(data => {
     handler.applyMessage(decode(data) as JavelinMessage)

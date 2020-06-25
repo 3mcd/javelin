@@ -10,13 +10,13 @@ import {
 } from "@javelin/ecs"
 
 export enum JavelinMessageType {
-  // Core messages
+  // Core
   Create,
   Destroy,
   Change,
   Update,
+  // Debug
   Spawn,
-  // Debug messages
   Model,
 }
 
@@ -28,8 +28,8 @@ export type SerializedComponentType<
   schema: SerializedSchema<C["schema"]>
 }
 
-export type Create = [JavelinMessageType.Create, Component[]]
-export type Destroy = [JavelinMessageType.Destroy, number[]]
+export type Create = [JavelinMessageType.Create, Component[], boolean]
+export type Destroy = [JavelinMessageType.Destroy, number[], boolean]
 export type Change = [JavelinMessageType.Change, Component[]]
 export type Update<T> = [JavelinMessageType.Update, Component[], T]
 export type Spawn = [JavelinMessageType.Spawn, ComponentWithoutEntity[]]
@@ -76,13 +76,15 @@ export function serializeWorldModel(world: World): SerializedComponentType[] {
 }
 
 export const protocol = {
-  create: (components: Component[]): Create => [
+  create: (components: Component[], isLocal = false): Create => [
     JavelinMessageType.Create,
     components,
+    isLocal,
   ],
-  destroy: (entities: number[]): Destroy => [
+  destroy: (entities: number[], isLocal = false): Destroy => [
     JavelinMessageType.Destroy,
     entities,
+    isLocal,
   ],
   change: (components: Component[]): Change => [
     JavelinMessageType.Change,

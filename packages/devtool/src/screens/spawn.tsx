@@ -18,6 +18,7 @@ import styled from "styled-components"
 import { useWorld } from "../context/world_provider"
 import { WorldConfig } from "../types"
 import { useLog } from "../context/log"
+import { getComponentName } from "../helpers/component"
 
 const SelectContainer = styled.div`
   display: flex;
@@ -116,13 +117,6 @@ function castValueToDataType(dataTypeName: string, value: string) {
   }
 }
 
-function getComponentName(
-  component: ComponentWithoutEntity,
-  model: SerializedComponentType[],
-) {
-  return model.find(type => component._t === type.type)?.name
-}
-
 export function Spawn() {
   const { world: worldName } = useParams()
   const { worlds, sendMessage } = useWorld()
@@ -206,7 +200,7 @@ export function Spawn() {
 
     throw new Error(
       `Field ${fieldName} does not exist on component with type ${getComponentName(
-        component,
+        component._t,
         world.model,
       )}`,
     )
@@ -242,7 +236,7 @@ export function Spawn() {
         >
           {state.components.map(c => (
             <option key={c._t} value={c._t}>
-              {getComponentName(c, world.model)}
+              {getComponentName(c._t, world.model)}
             </option>
           ))}
         </ComponentMultiSelect>
@@ -252,7 +246,7 @@ export function Spawn() {
           .map(t => state.components.find(c => c._t === t)!)
           .map(c => (
             <li key={c._t}>
-              <h4>{getComponentName(c, world.model)}</h4>
+              <h4>{getComponentName(c._t, world.model)}</h4>
               <fieldset>
                 <FieldList>
                   {Object.entries(c)

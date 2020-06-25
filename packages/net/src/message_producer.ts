@@ -27,11 +27,13 @@ export type MessageProducerOptions = {
   components: QueryConfig[]
   updateInterval: number
   updateSize: number
+  isLocal?: boolean
 }
 
 export function createMessageProducer(
   options: MessageProducerOptions,
 ): MessageProducer {
+  const { isLocal = false } = options
   const priorities = new WeakMap<Component, number>()
   const payloadCreated: Component[] = []
   const payloadChanged: Component[] = []
@@ -115,11 +117,11 @@ export function createMessageProducer(
     }
 
     if (payloadCreated.length > 0)
-      messages.push(protocol.create(payloadCreated))
+      messages.push(protocol.create(payloadCreated, isLocal))
     if (payloadChanged.length > 0)
       messages.push(protocol.change(payloadChanged))
     if (payloadDestroyed.length > 0)
-      messages.push(protocol.destroy(payloadDestroyed))
+      messages.push(protocol.destroy(payloadDestroyed, isLocal))
 
     return messages
   }
