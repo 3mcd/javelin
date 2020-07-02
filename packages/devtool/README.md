@@ -2,7 +2,9 @@
 
 Developer tool for Javelin ECS.
 
-<img src="./screenshot.png" style="width: 50%; margin: 0 auto;">
+<p align="center">
+  <img width="460" src="./screenshot.png">
+</p>
 
 ## Usage
 
