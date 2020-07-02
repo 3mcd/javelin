@@ -6,7 +6,14 @@ export type MessageHandler = {
   remoteToLocal: Map<number, number>
 }
 
-export function createMessageHandler(world: World): MessageHandler {
+export type MessageHandlerOptions = {
+  world: World
+}
+
+export function createMessageHandler(
+  options: MessageHandlerOptions,
+): MessageHandler {
+  const { world } = options
   const remoteToLocal = new Map<number, number>()
 
   function create(components: Component[], isLocal: boolean) {

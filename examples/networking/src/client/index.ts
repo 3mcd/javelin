@@ -14,15 +14,14 @@ import { PositionBuffer } from "./components/position_buffer"
 import { app, framerate, updateBytesTransferred } from "./graphics"
 import { interpolate, render } from "./systems"
 import { uuidv4 } from "./uuid"
-import { LogContext } from "@javelin/devtool/dist/context/log"
 
 const udp = new Client({
   url: `ws://${window.location.hostname}:8000`,
 })
 const world = createWorld([interpolate, render])
 const remoteWorld = createWorld([])
-const remoteWorldHandler = createMessageHandler(remoteWorld)
-const localWorldHandler = createMessageHandler(world)
+const remoteWorldHandler = createMessageHandler({ world: remoteWorld })
+const localWorldHandler = createMessageHandler({ world: world })
 
 world.registerComponentFactory(Position)
 world.registerComponentFactory(PositionBuffer)

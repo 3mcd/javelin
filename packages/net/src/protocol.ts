@@ -75,6 +75,15 @@ export function serializeWorldModel(world: World): SerializedComponentType[] {
   }))
 }
 
+export function setUpdateMetadata<T>(
+  update: Update<any>,
+  metadata: T,
+): Update<T> {
+  const copy = update.slice()
+  update[2] = metadata
+  return copy as Update<T>
+}
+
 export const protocol = {
   create: (components: Component[], isLocal = false): Create => [
     JavelinMessageType.Create,
@@ -90,10 +99,10 @@ export const protocol = {
     JavelinMessageType.Change,
     components,
   ],
-  update: <T>(components: Component[], metadata: T): Update<T> => [
+  update: (components: Component[]): Update<null> => [
     JavelinMessageType.Update,
     components,
-    metadata,
+    null,
   ],
   spawn: (components: ComponentWithoutEntity[]): Spawn => [
     JavelinMessageType.Spawn,

@@ -5,6 +5,7 @@ import {
   createMessageProducer,
   JavelinMessage,
   protocol,
+  setUpdateMetadata,
 } from "@javelin/net"
 import { decode, encode } from "@msgpack/msgpack"
 import { Connection } from "@web-udp/client"
@@ -23,7 +24,7 @@ const TICK_RATE = 60
 const server = createServer()
 const udp = new Server({ server })
 const world = createWorld([spawn, physics])
-const handler = createMessageHandler(world)
+const devtoolMessageHandler = createMessageHandler({ world })
 
 world.registerComponentFactory(Position)
 world.registerComponentFactory(Velocity)
@@ -77,7 +78,7 @@ function registerDevtool(connection: Connection) {
     connection.send(encode(protocol.model(world)))
   }, 250)
   connection.messages.subscribe(data => {
-    handler.applyMessage(decode(data) as JavelinMessage)
+    devtoolMessageHandler.applyMessage(decode(data) as JavelinMessage)
   })
   connection.closed.subscribe(() => {
     devtools.splice(devtools.indexOf(connection), 1)
@@ -97,9 +98,8 @@ function sendDevtoolMessages() {
 }
 
 function sendClientMessages() {
-  const metadata = clients.map(() => ({}))
   const reliable = clientMessageProducer.getReliableMessages()
-  const unreliable = clientMessageProducer.getUnreliableMessages(metadata)
+  const unreliable = clientMessageProducer.getUnreliableMessages()
 
   for (let i = 0; i < clients.length; i++) {
     const client = clients[i]
@@ -111,7 +111,8 @@ function sendClientMessages() {
     const update = unreliable[i]
 
     if (update) {
-      client.unreliable?.send(encode(update))
+      const updateWithMetadata = setUpdateMetadata(update, {})
+      client.unreliable?.send(encode(updateWithMetadata))
     }
   }
 }
