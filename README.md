@@ -2,12 +2,12 @@
   <img src="./logo.png" width="100px">
 </p>
 
-<h1 align="center">javelin</h1>
-
 <p align="center">
   <img src="https://github.com/3mcd/javelin/workflows/CD/badge.svg?branch=release/next" alt="CD">
   <a href="https://codecov.io/gh/3mcd/javelin"><img src="https://codecov.io/gh/3mcd/javelin/branch/next/graph/badge.svg" alt="codecov"></a>
 </p>
+
+# javelin
 
 Javelin is a suite of packages used to build multiplayer games for the web.
 
