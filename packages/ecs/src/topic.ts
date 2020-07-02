@@ -46,9 +46,6 @@ export const createTopic = <E>(name: string): Topic<string, E> => {
 
   return {
     name,
-    // @ts-ignore
-    staged,
-    ready,
     *[Symbol.iterator]() {
       for (let i = 0; i < ready.length; i++) {
         yield ready[i]
