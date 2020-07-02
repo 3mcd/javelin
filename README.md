@@ -1,9 +1,13 @@
-![CD](https://github.com/3mcd/javelin/workflows/CD/badge.svg?branch=release/next)
-[![codecov](https://codecov.io/gh/3mcd/javelin/branch/next/graph/badge.svg)](https://codecov.io/gh/3mcd/javelin)
+<p align="center">
+  <img src="./logo.png" width="100px">
+</p>
 
-<img src="./logo.png" width="100px" align="left">
+<h1 align="center">javelin</h1>
 
-# javelin
+<p align="center">
+  <img src="https://github.com/3mcd/javelin/workflows/CD/badge.svg?branch=release/next" alt="CD">
+  <a href="https://codecov.io/gh/3mcd/javelin"><img src="https://codecov.io/gh/3mcd/javelin/branch/next/graph/badge.svg" alt="codecov"></a>
+</p>
 
 Javelin is a suite of packages used to build multiplayer games for the web.
 
