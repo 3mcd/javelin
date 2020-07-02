@@ -24,5 +24,7 @@ const devtool = createDevtool({
   },
 })
 
-devtool.mount(document.getElementById("devtool"))
+const { log } = devtool.mount(document.getElementById("devtool"))
+
+log.info("Devtool mounted!")
 ```
