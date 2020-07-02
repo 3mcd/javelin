@@ -13,7 +13,6 @@ export enum JavelinMessageType {
   // Core
   Create,
   Destroy,
-  Change,
   Update,
   // Debug
   Spawn,
@@ -30,8 +29,7 @@ export type SerializedComponentType<
 
 export type Create = [JavelinMessageType.Create, Component[], boolean]
 export type Destroy = [JavelinMessageType.Destroy, number[], boolean]
-export type Change = [JavelinMessageType.Change, Component[]]
-export type Update<T> = [JavelinMessageType.Update, Component[], T]
+export type Update = [JavelinMessageType.Update, Component[], boolean, unknown]
 export type Spawn = [JavelinMessageType.Spawn, ComponentWithoutEntity[]]
 export type Model = [JavelinMessageType.Model, SerializedComponentType[]]
 
@@ -75,13 +73,10 @@ export function serializeWorldModel(world: World): SerializedComponentType[] {
   }))
 }
 
-export function setUpdateMetadata<T>(
-  update: Update<any>,
-  metadata: T,
-): Update<T> {
+export function setUpdateMetadata(update: Update, metadata: unknown): Update {
   const copy = update.slice()
-  update[2] = metadata
-  return copy as Update<T>
+  update[3] = metadata
+  return copy as Update
 }
 
 export const protocol = {
@@ -95,15 +90,11 @@ export const protocol = {
     entities,
     isLocal,
   ],
-  change: (components: Component[]): Change => [
-    JavelinMessageType.Change,
-    components,
-  ],
-  update: (components: Component[]): Update<null> => [
-    JavelinMessageType.Update,
-    components,
-    null,
-  ],
+  update: (
+    components: Component[],
+    metadata?: unknown,
+    isLocal = false,
+  ): Update => [JavelinMessageType.Update, components, isLocal, metadata],
   spawn: (components: ComponentWithoutEntity[]): Spawn => [
     JavelinMessageType.Spawn,
     components,

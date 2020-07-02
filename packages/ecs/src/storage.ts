@@ -258,6 +258,11 @@ export function createStorage(): Storage {
       if (entityIndex !== -1 && entityIndex !== undefined) {
         const componentIndex = archetype.layout.indexOf(_t)
 
+        if (componentIndex === -1) {
+          // Entity component makeup does not match patch component.
+          return false
+        }
+
         // Apply patch to component.
         Object.assign(archetype.table[componentIndex][entityIndex], component)
 

@@ -42,36 +42,39 @@ export function createMessageHandler(
     }
   }
 
-  function destroyEntity(entity: number, isLocal: boolean) {
-    const local = isLocal ? entity : remoteToLocal.get(entity)
-    const present =
-      local &&
-      Boolean(world.storage.archetypes.find(a => a.entities.includes(local)))
+  function destroyAll(entities: number[], isLocal: boolean) {
+    for (let i = 0; i < entities.length; i++) {
+      const entity = entities[i]
+      const local = isLocal ? entity : remoteToLocal.get(entity)
+      const present =
+        local &&
+        Boolean(world.storage.archetypes.find(a => a.entities.includes(local)))
 
-    if (!present) {
-      return
+      if (!present) {
+        return
+      }
+
+      remoteToLocal.delete(entity)
+      world.destroy(local!)
     }
-
-    remoteToLocal.delete(entity)
-    world.destroy(local!)
   }
 
-  function updateComponent(component: Component) {
-    const local = remoteToLocal.get(component._e)
+  function updateAll(components: Component[], isLocal: boolean) {
+    for (let i = 0; i < components.length; i++) {
+      const component = components[i]
+      const entity = component._e
+      const local = isLocal ? entity : remoteToLocal.get(entity)
 
-    if (local === undefined) {
-      return
+      if (local === undefined) {
+        return
+      }
+
+      world.storage.patch({ ...component, _e: local })
     }
-
-    world.storage.patch({ ...component, _e: local })
   }
 
   function spawn(components: ComponentWithoutEntity[]) {
     world.create(components)
-  }
-
-  function destroyRemote(entities: number[]) {
-    entities.forEach(world.destroy)
   }
 
   function applyMessage(message: JavelinMessage) {
@@ -80,10 +83,10 @@ export function createMessageHandler(
         create(message[1], message[2])
         break
       case JavelinMessageType.Destroy:
-        message[1].forEach(e => destroyEntity(e, message[2]))
+        destroyAll(message[1], message[2])
         break
       case JavelinMessageType.Update:
-        message[1].forEach(updateComponent)
+        updateAll(message[1], message[2])
         break
       case JavelinMessageType.Spawn:
         spawn(message[1])

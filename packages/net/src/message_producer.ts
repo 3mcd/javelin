@@ -19,7 +19,7 @@ export type QueryConfig = {
 export type MessageProducer = {
   getInitialMessages(): JavelinMessage[]
   getReliableMessages(): JavelinMessage[]
-  getUnreliableMessages(): Update<null>[]
+  getUnreliableMessages(): Update[]
 }
 
 export type MessageProducerOptions = {
@@ -33,7 +33,7 @@ export type MessageProducerOptions = {
 export function createMessageProducer(
   options: MessageProducerOptions,
 ): MessageProducer {
-  const { isLocal = false } = options
+  const { isLocal = false, world } = options
   const priorities = new WeakMap<Component, number>()
   const payloadCreated: Component[] = []
   const payloadChanged: Component[] = []
@@ -46,8 +46,8 @@ export function createMessageProducer(
 
     mutableEmpty(payloadCreated)
 
-    for (let i = 0; i < options.world.storage.archetypes.length; i++) {
-      const archetype = options.world.storage.archetypes[i]
+    for (let i = 0; i < world.storage.archetypes.length; i++) {
+      const archetype = world.storage.archetypes[i]
 
       for (let j = 0; j < options.components.length; j++) {
         const config = options.components[j]
@@ -63,6 +63,11 @@ export function createMessageProducer(
 
         for (let k = 0; k < archetype.entities.length; k++) {
           const entity = archetype.entities[k]
+
+          if (world.destroyed.has(entity)) {
+            continue
+          }
+
           const component = components[archetype.indices[entity]]!
 
           payloadCreated.push(component)
@@ -83,8 +88,8 @@ export function createMessageProducer(
     mutableEmpty(payloadChanged)
     mutableEmpty(payloadDestroyed)
 
-    for (let i = 0; i < options.world.storage.archetypes.length; i++) {
-      const archetype = options.world.storage.archetypes[i]
+    for (let i = 0; i < world.storage.archetypes.length; i++) {
+      const archetype = world.storage.archetypes[i]
 
       for (let j = 0; j < options.components.length; j++) {
         const config = options.components[j]
@@ -102,13 +107,13 @@ export function createMessageProducer(
           const entity = archetype.entities[k]
           const component = components[archetype.indices[entity]]!
 
-          if (options.world.created.has(entity)) {
+          if (world.created.has(entity)) {
             payloadCreated.push(component)
-          } else if (options.world.destroyed.has(entity)) {
+          } else if (world.destroyed.has(entity)) {
             payloadDestroyed.push(entity)
           } else if (
             typeof config.priority !== "number" &&
-            changedCache.matchComponent(component, options.world)
+            changedCache.matchComponent(component, world)
           ) {
             payloadChanged.push(component)
           }
@@ -119,7 +124,7 @@ export function createMessageProducer(
     if (payloadCreated.length > 0)
       messages.push(protocol.create(payloadCreated, isLocal))
     if (payloadChanged.length > 0)
-      messages.push(protocol.change(payloadChanged))
+      messages.push(protocol.update(payloadChanged))
     if (payloadDestroyed.length > 0)
       messages.push(protocol.destroy(payloadDestroyed, isLocal))
 
@@ -128,7 +133,7 @@ export function createMessageProducer(
 
   let previousUnreliableSendTime = 0
 
-  function getUnreliableMessages(): Update<null>[] {
+  function getUnreliableMessages(): Update[] {
     const time = Date.now()
 
     if (time - previousUnreliableSendTime < options.updateInterval) {
@@ -139,8 +144,8 @@ export function createMessageProducer(
 
     mutableEmpty(tempSortedByPriority)
 
-    for (let i = 0; i < options.world.storage.archetypes.length; i++) {
-      const archetype = options.world.storage.archetypes[i]
+    for (let i = 0; i < world.storage.archetypes.length; i++) {
+      const archetype = world.storage.archetypes[i]
 
       for (let j = 0; j < options.components.length; j++) {
         const config = options.components[j]

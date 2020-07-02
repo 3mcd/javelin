@@ -4,6 +4,7 @@ import { createStackPool } from "./pool/stack_pool"
 import { QueryLike, Selector, SelectorResult } from "./query"
 import { Mutable } from "./types"
 import { ComponentFactoryLike } from "./helpers"
+import { Topic } from "./topic"
 
 type QueryMethod = <S extends Selector>(
   query: QueryLike<S>,

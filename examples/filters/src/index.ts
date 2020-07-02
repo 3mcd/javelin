@@ -2,6 +2,7 @@ import {
   ComponentOf,
   createComponentFactory,
   createQuery,
+  createTopic,
   tag,
   createWorld,
   number,
@@ -61,6 +62,8 @@ const size = 2
 const floorSize = 10
 const floorOffset = 600 - size - floorSize
 
+const sleepTopic = createTopic<number>("sleep")
+
 function physics() {
   // physics system
   for (const [position, velocity, sleep] of world.query(awake)) {
@@ -72,6 +75,7 @@ function physics() {
     // put entities to sleep that haven't moved recently
     if (Math.abs(x - position.x) < 0.2 && Math.abs(y - position.y) < 0.2) {
       if (++sleep.value >= 5) {
+        sleepTopic.push(position._e)
         world.removeTag(velocity._e, Tags.Awake)
         continue
       }
@@ -108,9 +112,15 @@ function render() {
   }
 }
 
-const world = createWorld([physics, render])
+function logAsleep() {
+  let count = 0
+  for (const _ of sleepTopic) count++
+  if (count > 0) console.log(`${count} entities fell asleep.`)
+}
 
-for (let i = 0; i < 15000; i++) {
+const world = createWorld([physics, render, logAsleep])
+
+for (let i = 0; i < 5000; i++) {
   const vx = Math.random() * 50
   const vy = Math.random() * 50
 
@@ -124,6 +134,7 @@ let previousTime = 0
 
 function loop(time = previousTime) {
   world.tick(time - (previousTime || time))
+  sleepTopic.flush()
 
   requestAnimationFrame(loop)
 }

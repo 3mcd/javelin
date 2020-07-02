@@ -50,26 +50,29 @@ function updatePositionBuffer(component: ComponentOf<typeof Position>) {
 }
 
 function handleMessage(data: ArrayBuffer) {
-  const message = decode(data) as JavelinMessage
+  const messages = decode(data) as JavelinMessage[]
 
   updateBytesTransferred(data.byteLength)
-  localWorldHandler.applyMessage(message)
 
-  switch (message[0]) {
-    case JavelinMessageType.Create:
-      message[1].forEach(component => {
-        if (isComponentOf(component, Position)) {
-          createPositionBuffer(component._e)
-        }
-      })
-      break
-    case JavelinMessageType.Update:
-      message[1].forEach(component => {
-        if (isComponentOf(component, Position)) {
-          updatePositionBuffer(component)
-        }
-      })
-      break
+  for (const message of messages) {
+    localWorldHandler.applyMessage(message)
+
+    switch (message[0]) {
+      case JavelinMessageType.Create:
+        message[1].forEach(component => {
+          if (isComponentOf(component, Position)) {
+            createPositionBuffer(component._e)
+          }
+        })
+        break
+      case JavelinMessageType.Update:
+        message[1].forEach(component => {
+          if (isComponentOf(component, Position)) {
+            updatePositionBuffer(component)
+          }
+        })
+        break
+    }
   }
 }
 
@@ -146,11 +149,14 @@ async function main() {
   log.info("Devtools connected")
 
   function handleDevtoolMessage(data: any) {
-    const message = decode(data) as JavelinMessage
-    if (message[0] === JavelinMessageType.Model) {
-      devtool.setModel(remoteWorld, message[1])
-    } else {
-      remoteWorldHandler.applyMessage(message)
+    const messages = decode(data) as JavelinMessage[]
+
+    for (const message of messages) {
+      if (message[0] === JavelinMessageType.Model) {
+        devtool.setModel(remoteWorld, message[1])
+      } else {
+        remoteWorldHandler.applyMessage(message)
+      }
     }
   }
 

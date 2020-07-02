@@ -72,10 +72,12 @@ function findOrCreateClient(sessionId: string) {
 function registerDevtool(connection: Connection) {
   devtools.push(connection)
   setTimeout(() => {
-    for (const message of clientMessageProducer.getInitialMessages()) {
-      connection.send(encode(message))
-    }
-    connection.send(encode(protocol.model(world)))
+    connection.send(
+      encode([
+        ...clientMessageProducer.getInitialMessages(),
+        protocol.model(world),
+      ]),
+    )
   }, 250)
   connection.messages.subscribe(data => {
     devtoolMessageHandler.applyMessage(decode(data) as JavelinMessage)
@@ -86,33 +88,26 @@ function registerDevtool(connection: Connection) {
 }
 
 function sendDevtoolMessages() {
-  const reliable = devtoolMessageProducer.getReliableMessages()
+  const reliable = encode([...devtoolMessageProducer.getReliableMessages()])
 
   for (let i = 0; i < devtools.length; i++) {
-    const devtool = devtools[i]
-
-    for (const message of reliable) {
-      devtool?.send(encode(message))
-    }
+    devtools[i]?.send(reliable)
   }
 }
 
 function sendClientMessages() {
-  const reliable = clientMessageProducer.getReliableMessages()
+  const reliable = encode([...clientMessageProducer.getReliableMessages()])
   const unreliable = clientMessageProducer.getUnreliableMessages()
 
   for (let i = 0; i < clients.length; i++) {
     const client = clients[i]
-
-    for (const message of reliable) {
-      client.reliable?.send(encode(message))
-    }
-
     const update = unreliable[i]
+
+    client.reliable?.send(reliable)
 
     if (update) {
       const updateWithMetadata = setUpdateMetadata(update, {})
-      client.unreliable?.send(encode(updateWithMetadata))
+      client.unreliable?.send(encode([updateWithMetadata]))
     }
   }
 }
@@ -140,9 +135,7 @@ udp.connections.subscribe(connection => {
   if (connectionType === ConnectionType.Reliable) {
     client.reliable = connection
     setTimeout(() => {
-      for (const message of clientMessageProducer.getInitialMessages()) {
-        connection.send(encode(message))
-      }
+      connection.send(encode([...clientMessageProducer.getInitialMessages()]))
     }, 250)
   } else {
     client.unreliable = connection
