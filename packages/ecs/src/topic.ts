@@ -1,11 +1,6 @@
 import { mutableEmpty } from "./util/array"
 
-export type Topic<T extends string = string, D = any> = {
-  /**
-   * A property for the name of the topic
-   */
-  readonly name: T
-
+export type Topic<D = unknown> = {
   /**
    * Provides iterator syntax to the consumers of a topic. This will loop
    * through all of the events with the type specified in the second type
@@ -32,7 +27,7 @@ export type Topic<T extends string = string, D = any> = {
  * The utility method used to create a topic, consumes a type parameter
  * and a name and returns an object that conforms to the topic type
  */
-export const createTopic = <E>(name: string): Topic<string, E> => {
+export const createTopic = <E = unknown>(): Topic<E> => {
   const staged: E[] = []
   const ready: E[] = []
   const push = (event: E) => staged.push(event)
@@ -45,7 +40,6 @@ export const createTopic = <E>(name: string): Topic<string, E> => {
   }
 
   return {
-    name,
     *[Symbol.iterator]() {
       for (let i = 0; i < ready.length; i++) {
         yield ready[i]

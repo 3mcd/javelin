@@ -1,23 +1,16 @@
 import { Topic, createTopic } from "./topic"
 
 describe("createTopic", () => {
-  it("creates a new topic with the given name", () => {
-    type TestType = {
-      mass: Number
-    }
-    const topic = createTopic<TestType>("testTopic");
-    expect(topic.name).toBe("testTopic");
+  it("adds events to it's list of events", () => {
+    const topic: Topic = createTopic()
+    topic.push({ inputs: [] })
+    expect(Array.from(topic).length).toBe(0)
   })
 
-  it("adds events to it's list of events", () => {
-    type TestType = {
-      mass: Number
-    }
-    const topic: Topic<string, TestType> = createTopic<TestType>("testTopic");
-    topic.pushEvent({ mass: 17 });
-
-    for (const event of topic) {
-      expect(event).toEqual({ mass: 17 });
-    }
+  it("transitions messages to ready state when flush is called", () => {
+    const topic: Topic = createTopic()
+    topic.push({ inputs: [] })
+    topic.flush()
+    expect(Array.from(topic)[0]).toEqual({ inputs: [] })
   })
 })
