@@ -49,7 +49,13 @@ Components are just plain objects; unremarkable, other than a few reserved prope
 A position component assigned to entity `5` that has been modified three times might look like:
 
 ```ts
-{ _t: 1, _e: 5, _v: 3, x: 123.4, y: 567.8 }
+{
+  _t: 1,
+  _e: 5,
+  _v: 3,
+  x: 10,
+  y: 12,
+}
 ```
 
 Entities can be removed (and all components subsequently de-referenced) via the `world.destroy` method:
