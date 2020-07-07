@@ -23,6 +23,8 @@ For example, a system could add a `Burn` component to entities with `Position` a
 
 ### Entity and component creation
 
+#### Creating entities
+
 Entities are integers. Components are associated with entities inside of a `World`.
 
 ```ts
@@ -58,12 +60,6 @@ A position component assigned to entity `5` that has been modified three times m
 }
 ```
 
-Entities can be removed (and all components subsequently de-referenced) via the `world.destroy` method:
-
-```ts
-world.destroy(entity)
-```
-
 The `createComponentFactory` helper is provided to make component creation easier.
 
 ```ts
@@ -79,6 +75,14 @@ const Position = createComponentFactory({
 
 const position = Position.create()
 const entity = world.create([position])
+```
+
+#### Destroying entities
+
+Entities can be removed (and all components subsequently de-referenced) via the `world.destroy` method:
+
+```ts
+world.destroy(entity)
 ```
 
 Components created via factory are automatically pooled; however, you must manually release the component back to the pool when it should be discarded:
