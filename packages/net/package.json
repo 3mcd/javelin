@@ -1,10 +1,10 @@
 {
   "name": "@javelin/net",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "main": "dist/index.js",
   "license": "MIT",
   "devDependencies": {
-    "@javelin/ecs": "0.7.1"
+    "@javelin/ecs": "0.8.0"
   },
   "peerDependencies": {
     "@javelin/ecs": ">=0.0.1"
