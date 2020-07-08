@@ -4,7 +4,7 @@ import { LogMessage, useLog } from "../context/log"
 
 const LogList = styled.ul`
   font-family: "SF Mono", "Consolas", monospace;
-  font-size: 12px;
+  font-size: 10px;
   list-style-type: none;
   margin: 0;
   padding: 0;

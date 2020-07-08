@@ -6,6 +6,7 @@ import { forwardRef } from "react"
 export const PanelWrapper = styled.div`
   display: flex;
   flex-direction: column;
+  overflow: scroll;
 `
 
 export const PanelBar = styled.div`
@@ -20,7 +21,6 @@ export const PanelContent = styled.div`
 
 export const PanelTitle = styled.h3`
   margin: 0;
-  font-size: 16px;
 `
 
 export type PanelProps = PropsWithChildren<{ title?: string }>

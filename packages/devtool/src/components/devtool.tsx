@@ -36,6 +36,12 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  fieldset {
+    border: none;
+    margin: 0;
+    padding: 0;
+  }
+
   select {
     > option {
       padding: 4px 2px;
@@ -45,16 +51,57 @@ const GlobalStyle = createGlobalStyle`
   label {
     margin-right: 8px;
   }
+
+  button {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 1em 0;
+  }
+
+  h1 {
+    font-size: 2em;
+  }
+
+  h2 {
+    font-size: 1.6em;
+  }
+
+  h3 {
+    font-size: 1.2em;
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-size: 1em;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 12px;
+  }
   `
 
 const DevtoolContainer = styled.div`
   background: #efefef;
   font-family: Helvetica, sans-serif;
+  font-size: 12px;
   color: #222;
   display: flex;
   flex-direction: column;
   flex: 1;
   height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 
   *,
   *:before,
@@ -71,6 +118,7 @@ const DevtoolPanel = styled.div`
 
 const WorldSelectDropdown = styled.select`
   margin-right: 8px;
+  align-self: flex-end;
 `
 
 function WorldSelect() {
@@ -103,6 +151,10 @@ const BreadcrumbLink = styled(Link)`
   }
 `
 
+const BreadcrumbWrapper = styled.nav`
+  flex: 1;
+`
+
 function Breadcrumbs() {
   const { pathname } = useLocation()
   const breadcrumbs = pathname
@@ -125,7 +177,7 @@ function Breadcrumbs() {
       },
     )
 
-  return <>{breadcrumbs.links}</>
+  return <BreadcrumbWrapper>{breadcrumbs.links}</BreadcrumbWrapper>
 }
 
 export function Devtool() {
@@ -141,12 +193,9 @@ export function Devtool() {
         <PanelBar>
           <Link to={home}>javelin</Link>
           <Breadcrumbs />
+          <WorldSelect />
         </PanelBar>
         <Panel>
-          <p>Select a target world instance:</p>
-          <WorldSelect />
-        </Panel>
-        <Panel title="World">
           <Routes />
         </Panel>
         <Panel title="Log" ref={ref}>

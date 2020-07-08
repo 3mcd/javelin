@@ -76,7 +76,7 @@ export function createMessageProducer(
     }
 
     if (payloadCreated.length > 0)
-      messages.push(protocol.create(payloadCreated))
+      messages.push(protocol.create(payloadCreated, isLocal))
 
     return messages
   }

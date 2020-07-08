@@ -70,14 +70,12 @@ function findOrCreateClient(sessionId: string) {
 }
 
 function registerDevtool(connection: Connection) {
-  devtools.push(connection)
   setTimeout(() => {
-    connection.send(
-      encode([
-        ...clientMessageProducer.getInitialMessages(),
-        protocol.model(world),
-      ]),
-    )
+    const model = protocol.model(world)
+    const initial = devtoolMessageProducer.getInitialMessages()
+
+    devtools.push(connection)
+    connection.send(encode([...initial, model]))
   }, 250)
   connection.messages.subscribe(data => {
     devtoolMessageHandler.applyMessage(decode(data) as JavelinMessage)
@@ -88,10 +86,16 @@ function registerDevtool(connection: Connection) {
 }
 
 function sendDevtoolMessages() {
-  const reliable = encode([...devtoolMessageProducer.getReliableMessages()])
+  const messages = devtoolMessageProducer.getReliableMessages()
+
+  if (messages.length === 0) {
+    return
+  }
+
+  const encoded = encode(messages)
 
   for (let i = 0; i < devtools.length; i++) {
-    devtools[i]?.send(reliable)
+    devtools[i]?.send(encoded)
   }
 }
 
@@ -156,7 +160,7 @@ function tick(dt: number) {
 const loop = createHrtimeLoop(tickRateMs, clock => tick(clock.dt))
 loop.start()
 
-for (let i = 0; i < 10; i++) {
+for (let i = 0; i < 100; i++) {
   createJunk(world)
 }
 

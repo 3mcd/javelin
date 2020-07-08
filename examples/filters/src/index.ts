@@ -62,7 +62,7 @@ const size = 2
 const floorSize = 10
 const floorOffset = 600 - size - floorSize
 
-const sleepTopic = createTopic<number>("sleep")
+const sleepTopic = createTopic<number>()
 
 function physics() {
   // physics system

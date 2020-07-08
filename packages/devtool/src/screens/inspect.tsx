@@ -9,11 +9,21 @@ import { useReducer } from "react"
 import { protocol } from "@javelin/net"
 
 export const EntityList = styled.ul`
-  margin: 0;
-  padding: 0;
-  list-style-type: none;
   display: flex;
   flex-wrap: wrap;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+`
+
+export const ArchetypeWrapper = styled.section`
+  margin-bottom: 1em;
+`
+
+export const ArchetypeDescriptor = styled.h4`
+  font-family: "SF Mono", "Consolas", monospace;
+  font-weight: normal;
+  text-decoration: underline;
 `
 
 type EntityListItemProps = {
@@ -21,17 +31,19 @@ type EntityListItemProps = {
 }
 
 export const EntityListItem = styled.li<EntityListItemProps>`
-  padding: 4px;
-  flex: 1 1 20px;
-  border: ${props => (props.selected ? "none" : "1px solid #ddd")};
-  border-radius: 2px;
-  margin: 1px;
-  background: ${props => (props.selected ? "#666" : "transparent")};
-  color: ${props => (props.selected ? "#fff" : "inherit")};
+  background-color: ${props => (props.selected ? "#6688ae" : "transparent")};
+  border-radius: 3px;
+  border: ${props => `1px solid ${props.selected ? "#6688ae" : "#ccc"}`};
+  box-sizing: border-box;
+  color: ${props => (props.selected ? "#fafafa" : "inherit")};
   cursor: pointer;
+  flex: 0 0 30px;
+  margin: 2px;
+  padding: 4px;
+  text-align: center;
 
   &:hover {
-    background: #fff;
+    background-color: ${props => (props.selected ? "#6688ae" : "#ccc")};
   }
 `
 
@@ -66,16 +78,22 @@ export function Inspect() {
   const world = worlds.find(world => world.name === worldName)!
   const [state, dispatch] = useReducer(reducer, { selected: [] })
   const sections = world.world.storage.archetypes.map(archetype => {
-    const types = world.model.filter(ct => archetype.layout.includes(ct.type))
     const entities = archetype.entities.slice(0, 50)
 
+    if (entities.length === 0) {
+      return null
+    }
+
     return (
-      <section key={archetype.layout.join(",")}>
-        <h4>
+      <ArchetypeWrapper key={archetype.layout.join(",")}>
+        <ArchetypeDescriptor>
           {archetype.layout
             .map(t => getComponentName(t, world?.model))
             .join(" & ")}
-        </h4>
+        </ArchetypeDescriptor>
+        <span>
+          {entities.length} of {archetype.entities.length}
+        </span>
         <EntityList>
           {entities.map(e => {
             const selected = state.selected.includes(e)
@@ -92,43 +110,27 @@ export function Inspect() {
                 }
               >
                 <span>{e}</span>
-                {/* {types.map(t => {
-                  const component = archetype.table[
-                    archetype.layout.indexOf(t.type)
-                  ][archetype.indices[e]]!
-                  const fields = Object.keys(t.schema)
-                  return (
-
-                    <dl key={t.type}>
-                      {fields.map(fieldName => {
-                        return (
-                          <React.Fragment key={fieldName}>
-                            <dt>{fieldName}</dt>
-                            <dd>{String(component[fieldName])}</dd>
-                          </React.Fragment>
-                        )
-                      })}
-                    </dl>
-                  )
-                })} */}
               </EntityListItem>
             )
           })}
         </EntityList>
-      </section>
+      </ArchetypeWrapper>
     )
   })
 
   return (
     <div>
+      <h4>Archetypes</h4>
+      <p>Inspect your game world and modify or delete existing entitites.</p>
+      {sections}
       <button
-        onClick={() =>
+        onClick={() => {
           sendMessage(world, protocol.destroy(state.selected, true))
-        }
+          dispatch({ type: "reset" })
+        }}
       >
         Delete
       </button>
-      {sections}
     </div>
   )
 }

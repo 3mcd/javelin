@@ -208,6 +208,11 @@ export function Spawn() {
 
   return (
     <div>
+      <h4>Spawn</h4>
+      <p>
+        Create new entities by moving component types into the box on the right
+        side.
+      </p>
       <SelectContainer>
         <ComponentMultiSelect
           multiple
