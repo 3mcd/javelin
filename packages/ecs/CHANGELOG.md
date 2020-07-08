@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 0.8.0 (2020-07-08)
+
+
+### Features
+
+* improve devtools and fix isLocal flag in message producer ([5a2b892](https://github.com/3mcd/javelin/commit/5a2b892f9fc0394527876da74df0d4430b75e505))
+
+
+
+
+
 ## 0.7.1 (2020-07-06)
 
 **Note:** Version bump only for package @javelin/ecs
