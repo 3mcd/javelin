@@ -18,7 +18,7 @@ export const createWorld = jest.fn(
       destroyed: new Set(),
       storage: createStorage(),
       query: jest.fn(),
-      isEphemeral: jest.fn(),
+      isCommitted: jest.fn(),
       registerComponentFactory: jest.fn(),
       registeredComponentFactories: [],
     }

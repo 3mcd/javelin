@@ -18,16 +18,19 @@ import { uuidv4 } from "./uuid"
 const udp = new Client({
   url: `ws://${window.location.hostname}:8000`,
 })
-const world = createWorld([interpolate, render])
-const remoteWorld = createWorld([])
-const remoteWorldHandler = createMessageHandler({ world: remoteWorld })
-const localWorldHandler = createMessageHandler({ world: world })
+const world = createWorld({
+  systems: [interpolate, render],
+  componentFactories: [Position, PositionBuffer],
+})
+const localMessageHandler = createMessageHandler({ world })
+const remoteWorld = createWorld()
+const remoteMessageHandler = createMessageHandler({ world: remoteWorld })
 
 world.registerComponentFactory(Position)
 world.registerComponentFactory(PositionBuffer)
 
 function createPositionBuffer(entity: number) {
-  const local = localWorldHandler.remoteToLocal.get(entity)
+  const local = localMessageHandler.remoteToLocal.get(entity)
 
   if (typeof local !== "number") {
     throw new Error("Entity was not created.")
@@ -37,9 +40,9 @@ function createPositionBuffer(entity: number) {
 }
 
 function updatePositionBuffer(component: ComponentOf<typeof Position>) {
-  const entity = localWorldHandler.remoteToLocal.get(component._e)
+  const entity = localMessageHandler.remoteToLocal.get(component._e)
 
-  if (!entity || world.isEphemeral(entity)) {
+  if (!entity) {
     return
   }
 
@@ -55,7 +58,7 @@ function handleMessage(data: ArrayBuffer) {
   updateBytesTransferred(data.byteLength)
 
   for (const message of messages) {
-    localWorldHandler.applyMessage(message)
+    localMessageHandler.applyMessage(message)
 
     switch (message[0]) {
       case JavelinMessageType.Create:
@@ -129,12 +132,8 @@ async function main() {
       remote: remoteWorld,
     },
     onMessage(w, message) {
-      if (w === world) {
-        localWorldHandler.applyMessage(message)
-      } else {
-        log.info(JSON.stringify(message))
-        connectionDevtool.send(encode(message))
-      }
+      log.info(JSON.stringify(message))
+      connectionDevtool.send(encode(message))
     },
   })
   const { log } = devtool.mount(document.getElementById("devtool")!)
@@ -155,7 +154,7 @@ async function main() {
       if (message[0] === JavelinMessageType.Model) {
         devtool.setModel(remoteWorld, message[1])
       } else {
-        remoteWorldHandler.applyMessage(message)
+        remoteMessageHandler.applyMessage(message)
       }
     }
   }

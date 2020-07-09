@@ -2,7 +2,10 @@ import { createWorld } from "@javelin/ecs"
 import { Position, Velocity, Wormhole } from "./components"
 import { attract, canvas, physics, render } from "./systems"
 
-const world = createWorld<void>([physics, attract, render])
+const world = createWorld<void>({
+  systems: [physics, attract, render],
+  componentFactories: [Position, Velocity, Wormhole],
+})
 const junkCount = 10000
 
 world.registerComponentFactory(Position)

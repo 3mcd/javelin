@@ -118,7 +118,7 @@ function logAsleep() {
   if (count > 0) console.log(`${count} entities fell asleep.`)
 }
 
-const world = createWorld([physics, render, logAsleep])
+const world = createWorld({ systems: [physics, render, logAsleep] })
 
 for (let i = 0; i < 5000; i++) {
   const vx = Math.random() * 50

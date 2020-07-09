@@ -1,3 +1,4 @@
+import { createDevtoolMessageProducer } from "@javelin/devtool"
 import { createWorld } from "@javelin/ecs"
 import { createHrtimeLoop } from "@javelin/hrtime-loop"
 import {
@@ -23,12 +24,11 @@ const TICK_RATE = 60
 
 const server = createServer()
 const udp = new Server({ server })
-const world = createWorld([spawn, physics])
+const world = createWorld({
+  systems: [spawn, physics],
+  componentFactories: [Position, Velocity, Sleep],
+})
 const devtoolMessageHandler = createMessageHandler({ world })
-
-world.registerComponentFactory(Position)
-world.registerComponentFactory(Velocity)
-world.registerComponentFactory(Sleep)
 
 const clientMessageProducer = createMessageProducer({
   world,
@@ -36,13 +36,7 @@ const clientMessageProducer = createMessageProducer({
   updateInterval: (1 / 20) * 1000,
   updateSize: 1000,
 })
-const devtoolMessageProducer = createMessageProducer({
-  world,
-  components: world.registeredComponentFactories.map(type => ({ type })),
-  updateInterval: 1000,
-  updateSize: 1000,
-  isLocal: true,
-})
+const devtoolMessageProducer = createDevtoolMessageProducer(world)
 const clients: Client[] = []
 const devtools: Connection[] = []
 
@@ -100,7 +94,7 @@ function sendDevtoolMessages() {
 }
 
 function sendClientMessages() {
-  const reliable = encode([...clientMessageProducer.getReliableMessages()])
+  const reliable = encode(clientMessageProducer.getReliableMessages())
   const unreliable = clientMessageProducer.getUnreliableMessages()
 
   for (let i = 0; i < clients.length; i++) {
@@ -139,7 +133,7 @@ udp.connections.subscribe(connection => {
   if (connectionType === ConnectionType.Reliable) {
     client.reliable = connection
     setTimeout(() => {
-      connection.send(encode([...clientMessageProducer.getInitialMessages()]))
+      connection.send(encode(clientMessageProducer.getInitialMessages()))
     }, 250)
   } else {
     client.unreliable = connection

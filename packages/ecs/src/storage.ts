@@ -9,11 +9,6 @@ import { ComponentFactoryLike } from "./helpers"
 
 export interface Storage {
   /**
-   * Collection of Archetypes in the world.
-   */
-  readonly archetypes: ReadonlyArray<Archetype>
-
-  /**
    * Create a new entity.
    *
    * @param entity Entity
@@ -38,7 +33,7 @@ export interface Storage {
    * Destroy an entity. Attempts to release pooled components if their types
    * have been registered via the `registerComponentFactory` method.
    *
-   * @param entity Entity to destroy
+   * @param entity Subject entity
    */
   destroy(entity: number): void
 
@@ -99,6 +94,11 @@ export interface Storage {
    * @param factory Component factory to register
    */
   registerComponentFactory(factory: ComponentFactoryLike): void
+
+  /**
+   * Collection of Archetypes in the world.
+   */
+  readonly archetypes: ReadonlyArray<Archetype>
 }
 
 export function createStorage(): Storage {
@@ -249,7 +249,7 @@ export function createStorage(): Storage {
   }
 
   function patch(component: Component) {
-    const { _e, _t } = component
+    const { _e: _e, _t: _t } = component
 
     for (let i = 0; i < archetypes.length; i++) {
       const archetype = archetypes[i]

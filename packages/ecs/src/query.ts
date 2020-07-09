@@ -52,9 +52,18 @@ export interface QueryLike<S extends Selector> {
    */
   run(world: World): IterableIterator<SelectorResult<S>>
 
-  filter(filter: Filter | (() => Filter)): QueryLike<S>
+  /**
+   * Narrow the results of this query using the provided filters.
+   *
+   * @param filters Filters to add
+   */
+  filter(...filters: (Filter | (() => Filter))[]): QueryLike<S>
 
-  length: number;
+  /**
+   * The length of the result set of this query, i.e. the number of components
+   * in the query selector.
+   */
+  readonly length: number;
 }
 
 /**
@@ -78,14 +87,16 @@ export function createQuery<S extends Selector>(...selector: S): QueryLike<S> {
   const tmpReadIndices: number[] = []
   const filters: Filter[] = []
 
-  function filter(f: Filter | (() => Filter)) {
-    const filter = typeof f === "function" ? f() : f
+  function filter(...filtersToAdd: (Filter | (() => Filter))[]) {
+    for (const filter of filtersToAdd) {
+      const f = typeof filter === "function" ? filter() : filter
 
-    if (filters.indexOf(filter) > -1) {
-      return query
+      if (filters.indexOf(f) > -1) {
+        return query
+      }
+
+      filters.push(f)
     }
-
-    filters.push(filter)
 
     return query
   }

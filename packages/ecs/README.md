@@ -4,7 +4,7 @@ A TypeScript Entity-Component System (ECS) for Node and web browsers.
 
 ## Primer
 
-ECS is a pattern commonly used in game development to associate components (state) with stateless entities (game objects). Systems then operate on collections of entities of shared composition.
+ECS is a pattern commonly used in game development to associate **components** (state) with stateless **entities** (game objects). **Systems** then operate on collections of entities of shared composition.
 
 For example, a system could add a `Burn` component to entities with `Position` and `Health` components when their position intersects with a lava pit.
 
@@ -101,7 +101,17 @@ world.destroy(entity) // position automatically released
 
 ### Querying and iteration
 
-A system is just a function executed each simulation tick. Systems execute queries to access entities' components.
+A system is just a function executed each simulation tick. Systems execute queries to access entities' components. Systems are registered with the world via the `createWorld` factory, or the `world.addSystem` method.
+
+```ts
+const render = (dt: number, world: World) => {
+  // ...
+}
+
+const world = createWorld({ systems: [render] })
+// OR
+world.addSystem(render)
+```
 
 Queries are created with the `createQuery` function, which takes one or more component types (or factories).
 
@@ -112,9 +122,11 @@ const players = createQuery(Position, Player)
 The query can then be executed for a given world:
 
 ```ts
-for (const [position, player] of world.query(players)) {
-  // render each player with a name tag
-  draw(position, player.name)
+const render = (dt: number, world: World) => {
+  for (const [position, player] of world.query(players)) {
+    // render each player with a name tag
+    draw(position, player.name)
+  }
 }
 ```
 
@@ -127,20 +139,26 @@ import { query, mut } from "@javelin/ecs"
 
 const burning = query(mut(Health), Burn)
 
-for (const [health, burn] of world.query(burning)) {
-  health.value -= burn.damagePerTick
+const damage = (dt: number, world: World) => {
+  for (const [health, burn] of world.query(burning)) {
+    health.value -= burn.damagePerTick
+  }
 }
 ```
 
-Components are versioned as alluded to earlier. `world.mut` simply increments the component's `_v` property. If you are optimizing query performance and want to conditionally mutate a component (i.e. you are using a generic query), you can manually call `world.mut(component)` to obtain a mutable reference, e.g.:
+Components are versioned as alluded to earlier. `world.mut` simply increments the component's version. If you are optimizing query performance and want to conditionally mutate a component (i.e. you are using a generic query), you can manually call `world.mut(component)` to obtain a mutable reference, e.g.:
 
 ```ts
-import { query, mut } from "@javelin/ecs"
+import { query } from "@javelin/ecs"
 
 const burning = query(Health, Burn)
 
-for (const [health, burn] of world.query(burning)) {
-  world.mut(health).value -= burn.damagePerTick
+const damage = (dt: number, world: World) => {
+  for (const [health, burn] of world.query(burning)) {
+    if (!world.hasTag(health._e, Tags.Invulnerable)) {
+      world.mut(health).value -= burn.damagePerTick
+    }
+  }
 }
 ```
 
@@ -150,10 +168,15 @@ for (const [health, burn] of world.query(burning)) {
 import { changed, query } from "@javelin/ecs"
 
 // ...
-const healthy = query(Player, Health).filter(changed(Health))
+const healthy = query(Health, mut(Player)).filter(changed(Health))
 
-for (const [health] of world.query(healthy)) {
-  // `health` has changed since last tick
+const rip = () => {
+  for (const [health, player] of world.query(healthy)) {
+    // `health` has changed since last tick
+    if (health <= 0) {
+      world.destroy(health._e)
+    }
+  }
 }
 ```
 

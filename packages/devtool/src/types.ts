@@ -5,4 +5,5 @@ export type WorldConfig = {
   name: string
   world: World
   model: SerializedComponentType[]
+  remote: boolean
 }
