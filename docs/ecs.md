@@ -1,10 +1,16 @@
 # `javelin/ecs`
 
-A TypeScript Entity-Component System (ECS) for Node and web browsers.
+A Entity-Component System (ECS) for Node and web browsers, written in TypeScript.
+
+## Installation
+
+```sh
+npm i @javelin/ecs
+```
 
 ## The World
 
-In traditional OOP game design, entity data and behavior exist on the same object. For example, you may have a `Player` class that exposes a `jump()` method, and a `health` attribute.
+In traditional game development, entity data and behavior typically exist on the same object. For example, you may have a `Player` class that exposes a `jump()` method and a `health` attribute.
 
 ```js
 const player = new Player()
@@ -14,9 +20,11 @@ player.health
 player.jump()
 ```
 
-Data and behavior are separate concerns in an ECS. Game objects are replaced with **entities**. Entities don't encapsulate any data or behavior of their own, and are usually modeled as "bags" of **components**. Components are plain old objects that contain serializable fields and no methods.
+Data and behavior are separate concerns in an ECS. The high-cohesion game object is replaced with disparate **entities** and **components**. Entities don't encapsulate any data or behavior of their own, and are usually modeled as "bags" of components. Components are plain old objects that contain data and no methods.
 
-In `javelin/ecs`, the **world** is the entry point to building a game. The relation between entities and components is managed by a world. A world can create and destroy entities, modify an entity's component composition, and execute **systems** to implement game behavior. But more on that later.
+In `javelin/ecs`, the relation between entities and components is managed by a **world**. A world can create and destroy entities, modify an entity's component composition, and execute **systems** to implement game behavior. But more on that later.
+
+You can create a world using `createWorld`:
 
 ```js
 import { createWorld } from "@javelin/ecs"
@@ -26,19 +34,17 @@ const world = createWorld()
 
 ## Entities
 
-You can create an entity with the `world.create` method:
+Entities are created using `world.create`:
 
 ```js
 const entity = world.create([...components])
 ```
 
-This function takes an array of components that the entity will be initialized with, and returns the newly created entity.
+This method accepts a tuple of components that the entity will be initialized with, and returns the newly created entity.
 
-> **Note** — While an an entity should be treated as an opaque value, it might be fun to know that they are just automatically incrementing integers, starting at `0`.
+> **Note** — While entities should be treated as opaque value (kind of like a pointer), they are just auto-incrementing integers, starting at `0`.
 
-> **Note** — The world will store the specified components associated with the entity in a table with similar components. This makes iteration quick, as we'll see later.
-
-You can also assign components to a pre-existing entity using the `world.insert` method:
+Components can be assigned to existing entities using `world.insert`:
 
 ```js
 const entity = world.create([])
@@ -77,12 +83,12 @@ A component with type `1` belonging to entity `5` that has been modified three t
 
 It's strongly recommended to use the `createComponentFactory` helper to create factories to build your components.
 
-```ts
+```js
 import { createComponentFactory, number } from "@javelin/ecs"
 
 const Position = createComponentFactory({
   type: 1,
-  name: "pos",
+  name: "position",
   schema: {
     x: number,
     y: number,
@@ -90,19 +96,17 @@ const Position = createComponentFactory({
 })
 ```
 
-A component factory must be configured with a `type` and `name`. `type` must be a unique integer. `name` is used by the [devtools](https://github.com/3mcd/javelin/tree/master/packages/devtool) for help when debugging.
+A component factory is configured with a type and name, where `type` is a unique integer and `name` is a unique string. The component factory's name is used within [`javelin/devtools`](https://github.com/3mcd/javelin/tree/master/packages/devtool) to help with visual coherence.
 
-The shape of a component is described via the `schema` option. Currently, `array`, `number`, `string`, and `boolean` are the supported data types.
+Components created via factory are automatically pooled; however, you must register the factory with the world so components are released back to the pool when their entity is destroyed:
 
-Components created via factory are automatically pooled; however, you must register the factory with the world so components are automatically released when their entities are destroyed.
-
-```ts
+```js
 const world = createWorld({ componentFactories: [Position] })
 // OR
 world.registerComponentFactory(Position)
 ```
 
-Otherwise, you'll need to release pooled components manually with the `componentFactory.destroy` method. Registering component factories with your game world also provides better support in the [devtools](https://github.com/3mcd/javelin/tree/master/packages/devtool).
+Otherwise, you'll need to release pooled components manually with the `componentFactory.destroy` method.
 
 ### Destroying entities
 
@@ -114,35 +118,44 @@ world.destroy(entity)
 
 When an entity is destroyed, all of its components are automatically de-referenced.
 
-```js
-world.destroy(entity)
-Position.destroy(position)
-```
+## Querying and Iteration
 
-## Querying and iteration
+In `javelin/ecs`, a system is just a function executed each atomic "step" of the simulation. All game logic should live within systems. An FPS game might consist of systems that handle physics, user input and movement, projectile collisions, and player inventory. The isolation of game logic into systems makes your game world easy to debug and provides a clear target for performance and unit tests.
 
-In `javelin/ecs`, a system is just a function executed each simulation tick. Systems execute **queries** to access entities' components. Systems are registered with the world via the options passed to `createWorld`, or the `world.addSystem` method.
+Systems are registered with the world via the options passed to `createWorld`, or the `world.addSystem` method:
 
 ```js
-const render = (dt: number, world: World) => {
-  // ...
-}
-
-const world = createWorld({ systems: [render] })
+const hello = () => console.log("hello")
+const world = createWorld({ systems: [hello] })
 // OR
-world.addSystem(render)
+world.addSystem(hello)
 ```
 
-Queries are created with the `createQuery` function, which takes one or more component types (or factories).
+Each system is executed in the order it was registered when `world.tick` is called. `world.tick` takes a single argument which is passed to each system. Often times this will be the amount of time that has elapsed since the previous tick. The following is an example of a "game" that will log the time elapsed since the last tick at around 60Hz.
+
+```js
+const world = createWorld()
+world.addSystem(console.log)
+
+let previousTime = Date.now()
+
+setInterval(() => {
+  const currentTime = Date.now()
+  world.tick(currentTime - previousTime)
+  previousTime = currentTime
+}, (1 / 60) * 1000)
+```
+
+Systems may execute **queries** to access entities and their components. Queries are created with the `createQuery` function, which takes one or more component types/factories. This tuple of component types is called a **selector**.
 
 ```js
 const players = createQuery(Position, Player)
 ```
 
-The query can then be executed for a given world:
+The query can then be executed for a given world. The query returns an iterator that yields tuples of components that belong to entities that meet the query's criteria. The components are presented the same order that the corresponding component type was presented in the selector.
 
 ```js
-const render = (dt: number, world: World) => {
+const render = (world: World, dt: number) => {
   for (const [position, player] of world.query(players)) {
     // render each player with a name tag
     draw(position, player.name)
@@ -150,9 +163,9 @@ const render = (dt: number, world: World) => {
 }
 ```
 
-## Filtering and change detection
+## Change Detection
 
-Queried components are readonly by default. A mutable copy of a component can be obtained via `mut(ComponentType)`.
+Queried components are readonly by default, and you must be explicit if you want a mutable reference. This is done to ensure that the ECS can detect changes to components. A mutable reference to a component can be obtained via `mut`.
 
 ```js
 import { query, mut } from "@javelin/ecs"
@@ -166,7 +179,7 @@ const applyDamage = (dt: number, world: World) => {
 }
 ```
 
-Components are versioned as alluded to earlier. `world.mut` simply increments the component's version. If you are optimizing query performance and want to conditionally mutate a component (i.e. you are using a generic query), you can manually call `world.mut(component)` to obtain a mutable reference, e.g.:
+Components are versioned as alluded to earlier. `world.mut` simply increments the component's version. If you are optimizing query performance and want to conditionally mutate a component, you can manually call `world.mut(component)`, e.g.:
 
 ```js
 import { query } from "@javelin/ecs"
@@ -182,12 +195,15 @@ const applyDamage = (dt: number, world: World) => {
 }
 ```
 
-`changed` produces a filter that excludes entities whose components haven't changed since the entity was last iterated with the filter instance. This filter uses the component's version (`_v`) to this end.
+## Filters
+
+A query result can be narrowed using filters. A query is filtered using the `query.filter` method.
+
+`javelin/ecs` exports a filter called `changed` which will exclude entities whose components haven't changed since the entity was last encountered by the filter in a query. This filter uses the component's version (`_v`) to this end.
 
 ```js
 import { changed, query } from "@javelin/ecs"
 
-// ...
 const healthy = query(Health, mut(Player)).filter(changed(Health))
 
 const cullEntities = () => {
@@ -200,7 +216,7 @@ const cullEntities = () => {
 }
 ```
 
-A query can take one or more filters as arguments to `filter`.
+`query.filter` will accept multiple filters:
 
 ```js
 query.filter(changed, awake, ...);
@@ -208,14 +224,14 @@ query.filter(changed, awake, ...);
 
 The ECS also provides the following filters
 
-- `committed` ignores "ephemeral" entities, i.e. entities that were created or destroyed last tick
-- `created` detects newly created entities
-- `destroyed` detects recently destroyed entities
-- `tag` isolates entities by tags, which are discussed below
+- `committed` ignores entities that were created or destroyed last tick.
+- `created` detects newly created entities.
+- `destroyed` detects recently destroyed entities.
+- `tag` isolates entities by tags, which are discussed below.
 
 ## Tagging
 
-Entities can be tagged with bit flags via the `world.addTag` method.
+Entities can be tagged with bit flags via `world.addTag`:
 
 ```js
 enum Tags {
@@ -250,9 +266,9 @@ for (const [player] of world.query(nastyAndGoopy)) {
 }
 ```
 
-## Common Pitfalls
+## Gotchas
 
-### Storing query results
+### Query results
 
 The tuple of components yielded by `world.query()` is re-used each iteration. This means that you can't store the results of a query for use later like this:
 
@@ -262,9 +278,9 @@ const results = []
 for (const s of world.query(shocked)) {
   results.push(s)
 }
-
-// Every index of `results` corresponds to the same array!
 ```
+
+Every index of `results` corresponds to the same array!
 
 The same applies to `Array.from()`, or any other method that expands an iterator into another container. If you _do_ need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
 
@@ -300,3 +316,7 @@ const moved2 = world.query(createQuery(Position).filter(changed))
 for (const [position] of world.query(moved1)) // 100 iterations
 for (const [position] of world.query(moved2)) // 100 iterations
 ```
+
+## Examples
+
+https://runkit.com/emcd/javelin-ecs
