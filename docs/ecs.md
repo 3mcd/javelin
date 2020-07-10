@@ -158,7 +158,7 @@ The query can then be executed for a given world. The query returns an iterator 
 const render = (world: World, dt: number) => {
   for (const [position, player] of world.query(players)) {
     // render each player with a name tag
-    draw(position, player.name)
+    draw(position, player.name, dt)
   }
 }
 ```
@@ -172,7 +172,7 @@ import { query, mut } from "@javelin/ecs"
 
 const burning = query(mut(Health), Burn)
 
-const applyDamage = (dt: number, world: World) => {
+const applyDamage = (world: World) => {
   for (const [health, burn] of world.query(burning)) {
     health.value -= burn.damagePerTick
   }
@@ -186,7 +186,7 @@ import { query } from "@javelin/ecs"
 
 const burning = query(Health, Burn)
 
-const applyDamage = (dt: number, world: World) => {
+const applyDamage = (world: World) => {
   for (const [health, burn] of world.query(burning)) {
     if (!world.hasTag(health._e, Tags.Invulnerable)) {
       world.mut(health).value -= burn.damagePerTick
@@ -206,7 +206,7 @@ import { changed, query } from "@javelin/ecs"
 
 const healthy = query(Health, mut(Player)).filter(changed(Health))
 
-const cullEntities = () => {
+const cullEntities = (world: World) => {
   for (const [health, player] of world.query(healthy)) {
     // `health` has changed since last tick
     if (health <= 0) {

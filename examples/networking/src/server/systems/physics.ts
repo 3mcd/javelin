@@ -11,7 +11,7 @@ const awake = createQuery(mut(Position), mut(Velocity), mut(Sleep)).filter(
   tag(Tags.Awake),
 )
 
-export function physics(dt: number, world: World) {
+export function physics(world: World, dt: number) {
   for (const [position, velocity, sleep] of world.query(awake)) {
     const { x, y } = position
 

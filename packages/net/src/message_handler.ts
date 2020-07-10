@@ -1,4 +1,4 @@
-import { Component, ComponentWithoutEntity, World } from "@javelin/ecs"
+import { Component, ComponentSpec, World } from "@javelin/ecs"
 import { JavelinMessage, JavelinMessageType } from "./protocol"
 
 export type MessageHandler = {
@@ -73,7 +73,7 @@ export function createMessageHandler(
     }
   }
 
-  function spawn(components: ComponentWithoutEntity[]) {
+  function spawn(components: ComponentSpec[]) {
     world.create(components)
   }
 

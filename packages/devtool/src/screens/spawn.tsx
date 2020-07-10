@@ -1,10 +1,5 @@
-import {
-  ComponentWithoutEntity,
-  mutableEmpty,
-  number,
-  string,
-} from "@javelin/ecs"
-import { protocol, SerializedComponentType } from "@javelin/net"
+import { ComponentSpec, mutableEmpty, number, string } from "@javelin/ecs"
+import { protocol } from "@javelin/net"
 import produce from "immer"
 import React, {
   ChangeEvent,
@@ -15,10 +10,10 @@ import React, {
 } from "react"
 import { useParams } from "react-router-dom"
 import styled from "styled-components"
-import { useWorld } from "../context/world_provider"
-import { WorldConfig } from "../types"
 import { useLog } from "../context/log"
+import { useWorld } from "../context/world_provider"
 import { getComponentName } from "../helpers/component"
+import { WorldConfig } from "../types"
 
 const SelectContainer = styled.div`
   display: flex;
@@ -57,11 +52,11 @@ const FieldListItem = styled.li`
 `
 
 type FormState = {
-  components: ComponentWithoutEntity[]
+  components: ComponentSpec[]
 }
 
 type FormAction =
-  | { type: "add_components"; payload: ComponentWithoutEntity[] }
+  | { type: "add_components"; payload: ComponentSpec[] }
   | { type: "remove_components"; payload: number[] }
   | { type: "set"; payload: { type: number; key: string; value: unknown } }
   | { type: "reset"; payload: WorldConfig }
@@ -145,7 +140,7 @@ export function Spawn() {
         c[fieldName] = getDefaultValueForDataType(field)
         return c
       },
-      { _t: type } as ComponentWithoutEntity,
+      { _t: type } as ComponentSpec,
     )
 
     return component
@@ -185,7 +180,7 @@ export function Spawn() {
   }
 
   function getDataTypeForComponentField(
-    component: ComponentWithoutEntity,
+    component: ComponentSpec,
     fieldName: string,
   ) {
     const componentType = world.model.find(

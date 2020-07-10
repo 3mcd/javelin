@@ -120,7 +120,7 @@ export interface World<T = any> {
   readonly registeredComponentFactories: ReadonlyArray<ComponentFactoryLike>
 }
 
-export type System<T> = (data: T, world: World<T>) => void
+export type System<T> = (world: World<T>, data: T) => void
 
 enum WorldOpType {
   Create,
@@ -200,7 +200,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
     // Execute all systems
     for (let i = 0; i < systems.length; i++) {
-      systems[i](data, world)
+      systems[i](world, data)
     }
   }
 

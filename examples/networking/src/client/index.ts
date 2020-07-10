@@ -26,9 +26,6 @@ const localMessageHandler = createMessageHandler({ world })
 const remoteWorld = createWorld()
 const remoteMessageHandler = createMessageHandler({ world: remoteWorld })
 
-world.registerComponentFactory(Position)
-world.registerComponentFactory(PositionBuffer)
-
 function createPositionBuffer(entity: number) {
   const local = localMessageHandler.remoteToLocal.get(entity)
 

@@ -1,7 +1,7 @@
 import {
   Component,
   ComponentFactoryLike,
-  ComponentWithoutEntity,
+  ComponentSpec,
   DataType,
   isDataType,
   Schema,
@@ -30,7 +30,7 @@ export type SerializedComponentType<
 export type Create = [JavelinMessageType.Create, Component[], boolean]
 export type Destroy = [JavelinMessageType.Destroy, number[], boolean]
 export type Update = [JavelinMessageType.Update, Component[], boolean, unknown]
-export type Spawn = [JavelinMessageType.Spawn, ComponentWithoutEntity[]]
+export type Spawn = [JavelinMessageType.Spawn, ComponentSpec[]]
 export type Model = [JavelinMessageType.Model, SerializedComponentType[]]
 
 export type SerializedSchema<S extends Schema = {}> = S extends DataType<
@@ -95,7 +95,7 @@ export const protocol = {
     metadata?: unknown,
     isLocal = false,
   ): Update => [JavelinMessageType.Update, components, isLocal, metadata],
-  spawn: (components: ComponentWithoutEntity[]): Spawn => [
+  spawn: (components: ComponentSpec[]): Spawn => [
     JavelinMessageType.Spawn,
     components,
   ],

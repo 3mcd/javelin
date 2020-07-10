@@ -7,7 +7,7 @@ let elapsed = 0
 
 const asleep = createQuery(Position).filter(tag(Tags.Awake, false))
 
-export function spawn(dt: number, world: World) {
+export function spawn(world: World, dt: number) {
   elapsed += Math.max(dt, 0)
   if (elapsed > 1000) {
     elapsed = 0

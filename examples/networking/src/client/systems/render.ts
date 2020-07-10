@@ -13,7 +13,7 @@ const renderCullingFilter = {
 
 const culledPositions = createQuery(PositionBuffer).filter(renderCullingFilter)
 
-export function render(dt: number, world: World) {
+export function render(world: World, dt: number) {
   // render system
   graphics.clear()
 

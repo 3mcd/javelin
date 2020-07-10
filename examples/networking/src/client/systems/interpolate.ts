@@ -5,7 +5,7 @@ const buffers = createQuery(mut(PositionBuffer))
 
 let adaptiveSendRate = 20
 
-export function interpolate(dt: number, world: World) {
+export function interpolate(world: World, dt: number) {
   const time = Date.now()
   const renderTime = time - 1000 / adaptiveSendRate
 

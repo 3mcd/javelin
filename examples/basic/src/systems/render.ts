@@ -14,7 +14,7 @@ canvas.style.height = "100%"
 
 document.body.appendChild(canvas)
 
-export function render(_: void, world: World) {
+export function render(world: World) {
   context.clearRect(0, 0, window.innerWidth, window.innerHeight)
 
   for (const [position] of world.query(junk)) {

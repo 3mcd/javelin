@@ -5,6 +5,7 @@ import { forwardRef } from "react"
 
 export const PanelWrapper = styled.div`
   display: flex;
+  flex: 1;
   flex-direction: column;
   overflow: scroll;
 `

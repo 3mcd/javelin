@@ -3,7 +3,7 @@ import { junk, wormholes } from "../queries"
 import { Tags } from "../tags"
 import { calcWormholeHorizon } from "../utils/calc_wormhole_horizon"
 
-export function attract(_: void, world: World) {
+export function attract(world: World) {
   for (const [junkPosition, junkVelocity] of world.query(junk)) {
     for (const [wormholePosition, wormhole] of world.query(wormholes)) {
       const dx = wormholePosition.x - junkPosition.x
