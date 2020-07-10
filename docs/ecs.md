@@ -20,11 +20,11 @@ player.health
 player.jump()
 ```
 
-Data and behavior are separate concerns in an ECS. The high-cohesion game object is replaced with disparate **entities** and **components**. Entities don't encapsulate any data or behavior of their own, and are usually modeled as "bags" of components. Components are plain old objects that contain data and no methods.
+Data and behavior are separate concerns in an ECS. The high-cohesion game object is replaced with **entities**, **components**, and **systems**. Entities don't encapsulate any data or behavior of their own, and are usually modeled as "bags" of components. Components are plain old objects that contain data and no methods. Systems implement game behavior. But more on that later.
 
-In `javelin/ecs`, the relation between entities and components is managed by a **world**. A world can create and destroy entities, modify an entity's component composition, and execute **systems** to implement game behavior. But more on that later.
+In `javelin/ecs`, the relation between entities and components is managed by a **world**. A world can create and destroy entities, modify an entity's component composition, and execute systems.
 
-You can create a world using `createWorld`:
+A world is created using `createWorld`:
 
 ```js
 import { createWorld } from "@javelin/ecs"
@@ -197,7 +197,7 @@ const applyDamage = (dt: number, world: World) => {
 
 ## Filters
 
-A query result can be narrowed using filters. A query is filtered using the `query.filter` method.
+The result of a query can be narrowed using filters. A query is filtered using the `query.filter` method.
 
 `javelin/ecs` exports a filter called `changed` which will exclude entities whose components haven't changed since the entity was last encountered by the filter in a query. This filter uses the component's version (`_v`) to this end.
 
