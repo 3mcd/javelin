@@ -294,8 +294,6 @@ const applyStatusEffects = (dt: number, world: World) => {
 }
 ```
 
-Try nested queries before you prematurely optimize. Iteration is pretty fast thanks to Archetypes, and a nested query will probably perform fine.
-
 ### Filter state
 
 A filter does not have access to the query that executed it, meaning it can't track state for multiple queries. For example, if two queries use the same `changed` filter, no entities will be yielded by the second query unless entities were created between the first and second queries.
