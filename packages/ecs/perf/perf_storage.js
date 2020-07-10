@@ -3,7 +3,7 @@ const { createQuery } = require("../dist/query")
 const { arrayOf } = require("../dist/util/array")
 
 module.exports.run = function run() {
-  let n = 100
+  let n = 1000
   const world = createWorld([])
   const componentTypes = [
     { schema: {}, type: 1 },
@@ -60,6 +60,7 @@ module.exports.run = function run() {
   console.log(`components    | ${componentTypes.length}`)
   console.log(`queries       | ${queries.length}`)
   console.log(`ticks         | ${n}`)
+  console.log(`iter          | ${c}`)
   console.log(`iter_tick     | ${c / n}`)
   console.log(`avg_tick      | ${(end - start) / n}ms`)
 }

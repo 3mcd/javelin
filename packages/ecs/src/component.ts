@@ -21,7 +21,7 @@ export type Component<
   _e: number
 } & P
 
-export type ComponentWithoutEntity<
+export type ComponentSpec<
   T extends number = number,
   P extends ComponentProps = ComponentProps
 > = {

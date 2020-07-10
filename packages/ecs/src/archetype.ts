@@ -5,45 +5,58 @@ import { Component } from "./component"
  * type.
  */
 export interface Archetype {
-  // Two-dimensional array of component type->component[] where each index
-  // (column) of the component array corresponds to an entity.
-  //
-  //      (index)    0  1  2
-  //     (entity)    1  3  9
-  //   (Position) [[ p, p, p ]
-  //   (Velocity) [  v, v, v ]]
-  //
-  // The index of each entity is tracked in the `indices array`.
-  table: ReadonlyArray<ReadonlyArray<Readonly<Component | null>>>
-  // Array where each value is a component type and the index is the column of
-  // the type's collection in the archetype table.
-  layout: ReadonlyArray<number>
-  // Array of entities tracked by this archetype. Not used internally:
-  // primarily a convenience for iteration/checks by consumers.
-  entities: ReadonlyArray<number>
-  // Array where each index corresponds to an entity, and each value
-  // corresponds to that entity's index in the component table. In the example
-  // above, this array might look like:
-  //
-  //           1         3            9
-  //   [empty, 0, empty, 1, empty x5, 2]
-  //
-  indices: ReadonlyArray<number>
   /**
    * Insert an entity into the Archetype.
    *
-   * @param entity Entity to associate components with
+   * @param entity Subject entity
    * @param components Array of components
    * @returns void
    */
   insert(entity: number, components: Component[]): void
+
   /**
    * Remove an entity from the Archetype.
    *
-   * @param entity Entity to associate components with
+   * @param entity Subject entity
    * @returns void
    */
   remove(entity: number): void
+
+  /**
+   * Two-dimensional array of component type->component[] where each index
+   * (column) of the component array corresponds to an entity.
+   *
+   *      (index)    0  1  2
+   *     (entity)    1  3  9
+   *   (Position) [[ p, p, p ]
+   *   (Velocity) [  v, v, v ]]
+   *
+   * The index of each entity is tracked in the `indices array`.
+   */
+  readonly table: ReadonlyArray<ReadonlyArray<Readonly<Component | null>>>
+
+  /**
+   * Array where each value is a component type and the index is the column of
+   * the type's collection in the archetype table.
+   */
+  readonly layout: ReadonlyArray<number>
+
+  /**
+   * Array of entities tracked by this archetype. Not used internally:
+   * primarily a convenience for iteration/checks by consumers.
+   */
+  readonly entities: ReadonlyArray<number>
+
+  /**
+   * Array where each index corresponds to an entity, and each value
+   * corresponds to that entity's index in the component table. In the example
+   * above, this array might look like:
+   *
+   *           1         3            9
+   *   [empty, 0, empty, 1, empty x5, 2]
+   *
+   */
+  readonly indices: ReadonlyArray<number>
 }
 
 /**
@@ -67,18 +80,20 @@ export function createArchetype(layout: number[]): Archetype {
 
   function insert(entity: number, components: Component[]) {
     head++
+
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      table[layout.indexOf(component._t)][head] = component
+      const componentTypeIndex = layout.indexOf(component._t)
+
+      table[componentTypeIndex][head] = component
     }
+
     entities[head] = entity
     indices[entity] = head
   }
 
-  let index
-
   function remove(entity: number) {
-    index = indices[entity]
+    const index = indices[entity]
 
     if (index === head) {
       for (const components of table) components[head] = null

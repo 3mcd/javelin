@@ -16,6 +16,7 @@
     "typescript": "^3.8.3"
   },
   "scripts": {
+    "docs": "docsify serve docs",
     "build": "lerna run build",
     "test": "jest",
     "perf": "lerna run perf",
@@ -29,5 +30,8 @@
   },
   "description": "Javelin ECS developer tools",
   "repository": "git@github.com:3mcd/javelin",
-  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>"
+  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
+  "devDependencies": {
+    "docsify-cli": "^4.4.1"
+  }
 }

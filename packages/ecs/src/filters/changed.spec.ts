@@ -7,7 +7,7 @@ describe("changed", () => {
   let world: World
 
   beforeEach(() => {
-    world = createWorld([])
+    world = createWorld()
   })
 
   it("always matches entities", () => {

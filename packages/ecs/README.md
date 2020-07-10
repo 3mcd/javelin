@@ -2,6 +2,10 @@
 
 A TypeScript Entity-Component System (ECS) for Node and web browsers.
 
+## Docs
+
+https://3mcd.github.io/javelin
+
 ## Primer
 
 ECS is a pattern commonly used in game development to associate **components** (state) with stateless **entities** (game objects). **Systems** then operate on collections of entities of shared composition.
@@ -19,266 +23,6 @@ For example, a system could add a `Burn` component to entities with `Position` a
 - **Unopinionated**
   - Leaves many opinions up to you, meaning it can be integrated with other packages or pre-existing projects
 
-## Basics
-
-### Entity and component creation
-
-#### Creating entities
-
-Entities are integers. Components are associated with entities inside of a `World`.
-
-```ts
-import { createWorld } from "@javelin/ecs"
-
-const world = createWorld()
-```
-
-Entities are created with the `world.create` method.
-
-```ts
-const entity = world.create([
-  { _t: 1, x: 0, y: 0 }, // Position
-  { _t: 2, x: 0, y: 0 }, // Velocity
-])
-```
-
-Components are just plain objects; unremarkable, other than a few reserved properties:
-
-- `_t` is a unique integer identifying the component's **type**
-- `_e` references the **entity** the component is actively associated with
-- `_v` maintains the current **version** of the component, which is useful for change detection
-
-A position component assigned to entity `5` that has been modified three times might look like:
-
-```ts
-{
-  _t: 1,
-  _e: 5,
-  _v: 3,
-  x: 10,
-  y: 12,
-}
-```
-
-The `createComponentFactory` helper is provided to make component creation easier.
-
-```ts
-import { createComponentFactory, number } from "@javelin/ecs"
-
-const Position = createComponentFactory({
-  type: 1,
-  schema: {
-    x: number,
-    y: number,
-  },
-})
-
-const position = Position.create()
-const entity = world.create([position])
-```
-
-#### Destroying entities
-
-Entities can be removed (and all components subsequently de-referenced) via the `world.destroy` method:
-
-```ts
-world.destroy(entity)
-```
-
-Components created via factory are automatically pooled; however, you must manually release the component back to the pool when it should be discarded:
-
-```ts
-world.destroy(entity)
-Position.destroy(position)
-```
-
-`World` can do this automatically if you register the component factory via the `world.registerComponentFactory` method.
-
-```ts
-world.registerComponentFactory(Position)
-world.destroy(entity) // position automatically released
-```
-
-### Querying and iteration
-
-A system is just a function executed each simulation tick. Systems execute queries to access entities' components. Systems are registered with the world via the `createWorld` factory, or the `world.addSystem` method.
-
-```ts
-const render = (dt: number, world: World) => {
-  // ...
-}
-
-const world = createWorld({ systems: [render] })
-// OR
-world.addSystem(render)
-```
-
-Queries are created with the `createQuery` function, which takes one or more component types (or factories).
-
-```ts
-const players = createQuery(Position, Player)
-```
-
-The query can then be executed for a given world:
-
-```ts
-const render = (dt: number, world: World) => {
-  for (const [position, player] of world.query(players)) {
-    // render each player with a name tag
-    draw(position, player.name)
-  }
-}
-```
-
-### Filtering and change detection
-
-Queried components are readonly by default. A mutable copy of a component can be obtained via `mut(ComponentType)`.
-
-```ts
-import { query, mut } from "@javelin/ecs"
-
-const burning = query(mut(Health), Burn)
-
-const damage = (dt: number, world: World) => {
-  for (const [health, burn] of world.query(burning)) {
-    health.value -= burn.damagePerTick
-  }
-}
-```
-
-Components are versioned as alluded to earlier. `world.mut` simply increments the component's version. If you are optimizing query performance and want to conditionally mutate a component (i.e. you are using a generic query), you can manually call `world.mut(component)` to obtain a mutable reference, e.g.:
-
-```ts
-import { query } from "@javelin/ecs"
-
-const burning = query(Health, Burn)
-
-const damage = (dt: number, world: World) => {
-  for (const [health, burn] of world.query(burning)) {
-    if (!world.hasTag(health._e, Tags.Invulnerable)) {
-      world.mut(health).value -= burn.damagePerTick
-    }
-  }
-}
-```
-
-`changed` produces a filter that excludes entities whose components haven't changed since the entity was last iterated with the filter instance. This filter uses the component's version (`_v`) to this end.
-
-```ts
-import { changed, query } from "@javelin/ecs"
-
-// ...
-const healthy = query(Health, mut(Player)).filter(changed(Health))
-
-const rip = () => {
-  for (const [health, player] of world.query(healthy)) {
-    // `health` has changed since last tick
-    if (health <= 0) {
-      world.destroy(health._e)
-    }
-  }
-}
-```
-
-A query can take one or more filters as arguments to `filter`.
-
-```ts
-query.filter(changed, awake, ...);
-```
-
-The ECS also provides the following filters
-
-- `committed` ignores "ephemeral" entities, i.e. entities that were created or destroyed last tick
-- `created` detects newly created entities
-- `destroyed` detects recently destroyed entities
-- `tag` isolates entities by tags, which are discussed below
-
-### Tagging
-
-Entities can be tagged with bit flags via the `world.addTag` method.
-
-```ts
-enum Tags {
-  Awake = 1,
-  Dying = 2,
-}
-
-world.addTag(entity, Tags.Awake | Tags.Dying)
-```
-
-The `world.hasTag` method can be used to check if an entity has a tag. `world.removeTag` removes tags from an entity.
-
-```ts
-world.hasTag(entity, Tags.Awake) // -> true
-world.hasTag(entity, Tags.Dying) // -> true
-world.removeTag(entity, Tags.Awake)
-world.hasTag(entity, Tags.Awake) // -> false
-```
-
-`tag` produces a filter that will exclude entities which do not have the provided tag(s):
-
-```ts
-enum Tags {
-  Nasty = 2 ** 0,
-  Goopy = 2 ** 1,
-}
-
-const nastyAndGoopy = createQuery(Player).filter(tag(Tags.Nasty | Tags.Goopy))
-
-for (const [player] of world.query(nastyAndGoopy)) {
-  // `player` belongs to an entity with Nasty and Goopy tags
-}
-```
-
-## Common Pitfalls
-
-### Storing query results
-
-The tuple of components yielded by `world.query()` is re-used each iteration. This means that you can't store the results of a query for use later like this:
-
-```ts
-const results = []
-
-for (const s of world.query(shocked)) {
-  results.push(s)
-}
-
-// Every index of `results` corresponds to the same array!
-```
-
-The same applies to `Array.from()`, or any other method that expands an iterator into another container. If you _do_ need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
-
-```ts
-const shocked = []
-
-for (const [enemy] of world.query(shocked)) {
-  shocked.push(enemy)
-}
-```
-
-Try nested queries before you prematurely optimize. Iteration is pretty fast thanks to Archetypes, and a nested query will probably perform fine.
-
-### Filter state
-
-A filter does not have access to the query that executed it, meaning it can't track state for multiple queries. For example, if two queries use the same `changed` filter, no entities will be yielded by the second query unless entities were created between the first and second queries.
-
-```ts
-const moved = world.query(createQuery(Position).filter(changed))
-
-for (const [position] of world.query(moved)) // 100 iterations
-for (const [position] of world.query(moved)) // 0 iterations
-```
-
-The solution is to simply use a unique filter per query.
-
-```ts
-const moved1 = world.query(createQuery(Position).filter(changed))
-const moved2 = world.query(createQuery(Position).filter(changed))
-
-for (const [position] of world.query(moved1)) // 100 iterations
-for (const [position] of world.query(moved2)) // 100 iterations
-```
-
 ## Performance
 
 Run `yarn perf` to run performance tests.
@@ -289,19 +33,27 @@ Example perf on 2018 MacBook Pro where 350k entities are iterated per tick at 60
 ========================================
 perf_storage
 ========================================
+create: 129.333ms
+run: 14684.131ms
+destroy: 19.823ms
 entities      | 300000
 components    | 4
 queries       | 4
-ticks         | 100
-iter_tick     | 353500
-avg_tick      | 13.7ms
+ticks         | 1000
+iter          | 350350000
+iter_tick     | 350350
+avg_tick      | 14.982ms
 ========================================
 perf_storage_pooled
 ========================================
+create: 133.237ms
+run: 16789.444ms
+destroy: 25.286ms
 entities      | 300000
 components    | 4
 queries       | 4
-ticks         | 100
-iter_tick     | 353500
-avg_tick      | 14.62ms
+ticks         | 1000
+iter          | 350350000
+iter_tick     | 350350
+avg_tick      | 16.789ms
 ```

@@ -7,7 +7,7 @@ describe("tag", () => {
   let world: World
 
   beforeEach(() => {
-    world = createWorld([])
+    world = createWorld()
   })
 
   it("matches entities tagged with the provided bit flag", () => {

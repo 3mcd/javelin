@@ -10,7 +10,7 @@ describe("createQuery", () => {
   it("queries collections of components", () => {
     const A = { name: "A", type: 0, schema: {} }
     const B = { name: "B", type: 1, schema: {} }
-    const world = createWorld([])
+    const world = createWorld()
     const table = [
       [
         { _t: 1, _e: 2, _v: 0 },
@@ -51,7 +51,7 @@ describe("createQuery", () => {
   })
   it("supports filtering of entities and components", () => {
     const A = { name: "A", type: 0, schema: {} }
-    const world = createWorld([])
+    const world = createWorld()
     const table = [
       [
         { _t: 0, _e: 2, _v: 0 },

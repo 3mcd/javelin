@@ -1,4 +1,4 @@
-import { Component, ComponentWithoutEntity } from "./component"
+import { Component, ComponentSpec } from "./component"
 import { ComponentFactoryLike } from "./helpers"
 import { createStackPool } from "./pool/stack_pool"
 import { QueryLike, Selector, SelectorResult } from "./query"
@@ -27,10 +27,7 @@ export interface World<T = any> {
    * @param components The new entity's components
    * @param tags The new entity's tags
    */
-  create(
-    components: ReadonlyArray<ComponentWithoutEntity>,
-    tags?: number,
-  ): number
+  create(components: ReadonlyArray<ComponentSpec>, tags?: number): number
 
   /**
    * Add new components to a target entity.

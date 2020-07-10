@@ -7,7 +7,7 @@ describe("created", () => {
   let world: World
 
   beforeEach(() => {
-    world = createWorld([])
+    world = createWorld()
   })
 
   it("matches only created entities", () => {
