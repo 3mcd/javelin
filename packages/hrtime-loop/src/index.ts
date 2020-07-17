@@ -4,6 +4,11 @@ export type Clock = {
   tick: number
 }
 
+const getHrTimeMs = () => {
+  const hrTime = process.hrtime()
+  return hrTime[0] * 1000 + hrTime[1] / 1000000
+}
+
 export function createHrtimeLoop(
   tickRate: number,
   callback: (clock: { dt: number }) => void,
@@ -11,17 +16,17 @@ export function createHrtimeLoop(
   const clock: Clock = { dt: 0, now: 0, tick: 0 }
 
   let running = false
-  let previousTick = Date.now()
+  let previousTick = getHrTimeMs()
 
   function loop() {
     if (!running) {
       return
     }
 
-    const now = Date.now()
+    const now = getHrTimeMs()
 
     if (previousTick + tickRate <= now) {
-      const delta = 1000 / (now - previousTick)
+      const delta = now - previousTick
 
       previousTick = now
 
