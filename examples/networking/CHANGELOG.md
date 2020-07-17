@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 0.10.0 (2020-07-17)
+
+
+### Features
+
+* actually use hrtime in hrtime loop ([50360aa](https://github.com/3mcd/javelin/commit/50360aa25514a138e57fad5bcff379f1ccef858c))
+
+
+
+
+
 # 0.9.0 (2020-07-10)
 
 
