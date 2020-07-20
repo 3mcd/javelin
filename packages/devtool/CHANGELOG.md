@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 0.11.0 (2020-07-20)
+
+
+### Features
+
+* add pushImmediate ([7304dce](https://github.com/3mcd/javelin/commit/7304dce3365c67458a82a1a6909787aa6b7bacb9))
+
+
+
+
+
 # 0.10.0 (2020-07-17)
 
 
