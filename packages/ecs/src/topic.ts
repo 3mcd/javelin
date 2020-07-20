@@ -10,9 +10,16 @@ export type Topic<D = unknown> = {
 
   /**
    * Pushes an event to the topic so that it can be consumed by downstream
-   * systems.
+   * systems after the next call to flush().
+   * @param event Event data
    */
   push(event: D): void
+
+  /**
+   * Pushes an event to be consumed immediately.
+   * @param event Event data
+   */
+  pushImmediate(event: D): void
 
   /**
    * Utility method that cleans the event list in the topic such that at the
@@ -31,6 +38,7 @@ export const createTopic = <E = unknown>(): Topic<E> => {
   const staged: E[] = []
   const ready: E[] = []
   const push = (event: E) => staged.push(event)
+  const pushImmediate = (event: E) => ready.push(event)
   const flush = () => {
     mutableEmpty(ready)
     const len = staged.length
@@ -46,6 +54,7 @@ export const createTopic = <E = unknown>(): Topic<E> => {
       }
     },
     push,
+    pushImmediate,
     flush,
   }
 }
