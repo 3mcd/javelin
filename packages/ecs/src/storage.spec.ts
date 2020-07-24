@@ -50,7 +50,7 @@ describe("createStorage", () => {
       indices: [0, 1],
     }))
 
-    storage.insert(entity, { _t: 1, _v: 0 })
+    storage.insert(entity, [{ _t: 1, _v: 0 }])
 
     expect(storage.archetypes[0].remove).toHaveBeenCalledWith(entity)
     expect(storage.archetypes.length).toBe(2)

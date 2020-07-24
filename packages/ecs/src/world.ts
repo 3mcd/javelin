@@ -1,9 +1,23 @@
-import { Component, ComponentSpec } from "./component"
+import {
+  Component,
+  ComponentOf,
+  ComponentSpec,
+  ComponentType,
+} from "./component"
 import { ComponentFactoryLike } from "./helpers"
-import { createStackPool } from "./pool/stack_pool"
-import { QueryLike, Selector, SelectorResult } from "./query"
+import { createStackPool } from "./pool"
 import { createStorage, Storage } from "./storage"
+import { $worldStorageKey } from "./symbols"
 import { Mutable } from "./types"
+import { mutableEmpty } from "./util"
+import {
+  CreateOp,
+  DestroyOp,
+  InsertOp,
+  RemoveOp,
+  WorldOp,
+  WorldOpType,
+} from "./world_op"
 
 export interface World<T = any> {
   /**
@@ -30,12 +44,20 @@ export interface World<T = any> {
   create(components: ReadonlyArray<ComponentSpec>, tags?: number): number
 
   /**
-   * Add new components to a target entity.
+   * Add new components to an entity.
    *
    * @param entity Subject entity
    * @param components Components to insert
    */
-  insert(entity: number, ...components: ReadonlyArray<Component>): void
+  insert(entity: number, components: ReadonlyArray<Component>): void
+
+  /**
+   * Remove existing components from an entity.
+   *
+   * @param entity Subject entity
+   * @param components Components to insert
+   */
+  remove(entity: number, components: ReadonlyArray<Component>): void
 
   /**
    * Destroy an entity and de-reference its components.
@@ -45,13 +67,26 @@ export interface World<T = any> {
   destroy(entity: number): void
 
   /**
-   * Execute a query against this world.
+   * Retrieve a component by type for an entity. Throws an error if component is not found.
    *
-   * @param query Query to execute
+   * @param entity
+   * @param componentType
    */
-  query<S extends Selector>(
-    query: QueryLike<S>,
-  ): IterableIterator<SelectorResult<S>>
+  getComponent<T extends ComponentType>(
+    entity: number,
+    componentType: T,
+  ): ComponentOf<T>
+
+  /**
+   * Retrieve a component by type for an entity, or null if a component is not found.
+   *
+   * @param entity
+   * @param componentType
+   */
+  tryGetComponent<T extends ComponentType>(
+    entity: number,
+    componentType: T,
+  ): ComponentOf<T> | null
 
   /**
    * Determine if an entity is committed; that is, it was neither added nor
@@ -95,24 +130,37 @@ export interface World<T = any> {
   /**
    * Register a component factory with the world, automatically pooling its
    * components.
+   *
    * @param factory Component factory
    */
   registerComponentFactory(factory: ComponentFactoryLike): void
 
   /**
-   * Set of entities that were created during the previous tick.
+   * Apply world ops to this world.
+   *
+   * @param ops WorldOps to apply
+   */
+  applyOps(ops: WorldOp[]): void
+
+  /**
+   * Set of WorldOps that were processed last tick.
+   */
+  readonly ops: ReadonlyArray<WorldOp>
+
+  /**
+   * Set of entities that were created last tick.
    */
   readonly created: ReadonlySet<number>
 
   /**
-   * Set of entities that were destroyed during the previous tick.
+   * Set of entities that were destroyed last tick.
    */
   readonly destroyed: ReadonlySet<number>
 
   /**
-   * Entity <-> Component storage.
+   * Entity-component storage.
    */
-  readonly storage: Storage
+  readonly [$worldStorageKey]: Storage
 
   /**
    * Array of registered component factories.
@@ -121,18 +169,6 @@ export interface World<T = any> {
 }
 
 export type System<T> = (world: World<T>, data: T) => void
-
-enum WorldOpType {
-  Create,
-  Insert,
-  Destroy,
-}
-
-type CreateOp = [WorldOpType.Create, number, ReadonlyArray<Component>, number?]
-type InsertOp = [WorldOpType.Insert, number, ReadonlyArray<Component>]
-type DestroyOp = [WorldOpType.Destroy, number]
-
-type WorldOp = CreateOp | InsertOp | DestroyOp
 
 type WorldOptions<T> = {
   systems?: System<T>[]
@@ -147,9 +183,13 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     componentPoolSize = 1000,
   } = options
   const ops: WorldOp[] = []
+  const previousOps: WorldOp[] = []
   const opPool = createStackPool<WorldOp>(
     () => ([] as any) as WorldOp,
-    op => op,
+    op => {
+      mutableEmpty(op)
+      return op
+    },
     componentPoolSize,
   )
   const storage = createStorage()
@@ -159,46 +199,95 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
   let nextEntity = 0
 
-  function tick(data: T) {
-    // Clean up entities
-    destroyed.forEach(storage.destroy)
-    destroyed.clear()
-    created.clear()
+  function applyCreateOp(op: CreateOp) {
+    const [, entity, components, tags] = op
 
-    let i = 0
+    for (let i = 0; i < components.length; i++) {
+      components[i]._e = entity
+    }
+
+    storage.create(entity, components as Component[], tags)
+    created.add(entity)
+  }
+
+  function applyInsertOp(op: InsertOp) {
+    const [, entity, components] = op
+
+    for (let i = 0; i < components.length; i++) {
+      const component = components[i]
+
+      component._e = entity
+    }
+
+    storage.insert(entity, components as Component[])
+  }
+
+  function applyRemoveOp(op: RemoveOp) {
+    const [, entity, components] = op
+
+    for (let i = 0; i < components.length; i++) {
+      const component = components[i]
+
+      delete component._e
+    }
+
+    storage.remove(entity, components as Component[])
+  }
+
+  function applyDestroyOp(op: DestroyOp) {
+    const [, entity] = op
+
+    destroyed.add(entity)
+  }
+
+  function tick(data: T) {
+    // Clear world op history
+    previousOps.forEach(opPool.release)
+    mutableEmpty(previousOps)
+
+    // Clear record of created and destroyed entities
+    if (created.size > 0) {
+      created.clear()
+    }
+
+    if (destroyed.size > 0) {
+      destroyed.forEach(storage.destroy)
+      destroyed.clear()
+    }
+
     let op: WorldOp | undefined
 
-    // Process all world operations
+    let i = 0
+
+    // Process world operations
     while ((op = ops[i++])) {
       switch (op[0]) {
         case WorldOpType.Create: {
-          for (let i = 0; i < op[2].length; i++) {
-            op[2][i]._e = op[1]
-          }
-          storage.create(op[1], op[2] as Component[], op[3])
-          created.add(op[1])
+          applyCreateOp(op)
           break
         }
         case WorldOpType.Insert: {
-          for (let i = 0; i < op[2].length; i++) {
-            op[2][i]._e = op[1]
-          }
-          storage.insert(op[1], ...(op[2] as Component[]))
+          applyInsertOp(op)
           break
         }
-        case WorldOpType.Destroy:
-          destroyed.add(op[1])
+        case WorldOpType.Remove: {
+          applyRemoveOp(op)
           break
+        }
+        case WorldOpType.Destroy: {
+          applyDestroyOp(op)
+          break
+        }
         default:
           break
       }
 
-      opPool.release(op)
+      previousOps.push(op)
     }
 
-    ops.length = 0
+    mutableEmpty(ops)
 
-    // Execute all systems
+    // Execute systems
     for (let i = 0; i < systems.length; i++) {
       systems[i](world, data)
     }
@@ -223,10 +312,20 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     return entity
   }
 
-  function insert(entity: number, ...components: ReadonlyArray<Component>) {
+  function insert(entity: number, components: ReadonlyArray<Component>) {
     const op = opPool.retain() as InsertOp
 
     op[0] = WorldOpType.Insert
+    op[1] = entity
+    op[2] = components
+
+    ops.push(op)
+  }
+
+  function remove(entity: number, components: ReadonlyArray<Component>) {
+    const op = opPool.retain() as RemoveOp
+
+    op[0] = WorldOpType.Remove
     op[1] = entity
     op[2] = components
 
@@ -242,12 +341,32 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     ops.push(op)
   }
 
-  function isCommitted(entity: number) {
-    return !(created.has(entity) || destroyed.has(entity))
+  function applyOps(opsToApply: WorldOp[]) {
+    for (let i = 0; i < opsToApply.length; i++) {
+      ops.push(opsToApply[i])
+    }
   }
 
-  function query<S extends Selector>(q: QueryLike<S>) {
-    return q.run(world)
+  function getComponent<T extends ComponentType>(
+    entity: number,
+    componentType: T,
+  ): ComponentOf<T> {
+    return storage.findComponent(entity, componentType)
+  }
+
+  function tryGetComponent<T extends ComponentType>(
+    entity: number,
+    componentType: T,
+  ): ComponentOf<T> | null {
+    try {
+      return getComponent(entity, componentType)
+    } catch {
+      return null
+    }
+  }
+
+  function isCommitted(entity: number) {
+    return !(created.has(entity) || destroyed.has(entity))
   }
 
   function mut<C extends Component>(component: C) {
@@ -265,22 +384,26 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   const { addTag, removeTag, hasTag } = storage
 
   const world: World<T> = {
-    create,
-    insert,
-    destroy,
-    tick,
     addSystem,
-    created,
-    destroyed,
-    storage,
-    query,
-    isCommitted,
     addTag,
-    removeTag,
+    applyOps,
+    create,
+    created,
+    destroy,
+    destroyed,
+    getComponent,
     hasTag,
+    insert,
+    isCommitted,
     mut,
+    ops,
     registerComponentFactory,
     registeredComponentFactories,
+    remove,
+    removeTag,
+    tick,
+    tryGetComponent,
+    [$worldStorageKey]: storage,
   }
 
   return world

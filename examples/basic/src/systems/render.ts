@@ -17,24 +17,18 @@ document.body.appendChild(canvas)
 export function render(world: World) {
   context.clearRect(0, 0, window.innerWidth, window.innerHeight)
 
-  for (const [position] of world.query(junk)) {
-    context.fillStyle = world.hasTag(position._e, Tags.Influenced)
-      ? "#00ff00"
-      : "#eeeeee"
-    context.fillRect(position.x, position.y, 1, 1)
+  for (const [p] of junk(world)) {
+    // context.fillStyle = world.hasTag(p._e, Tags.Influenced)
+    //   ? "#00ff00"
+    //   : "#eeeeee"
+    // context.fillRect(p.x, p.y, 1, 1)
   }
 
-  for (const [position, wormhole] of world.query(wormholes)) {
-    context.fillStyle = "#000000"
-    context.strokeStyle = "#333333"
-    context.beginPath()
-    context.arc(
-      position.x,
-      position.y,
-      calcWormholeHorizon(wormhole),
-      0,
-      2 * Math.PI,
-    )
-    context.stroke()
+  for (const [p, w] of wormholes(world)) {
+    // context.fillStyle = "#000000"
+    // context.strokeStyle = "#333333"
+    // context.beginPath()
+    // context.arc(p.x, p.y, calcWormholeHorizon(w), 0, 2 * Math.PI)
+    // context.stroke()
   }
 }

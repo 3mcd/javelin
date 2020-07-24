@@ -1,5 +1,5 @@
-import { committed, createQuery, mut } from "@javelin/ecs"
+import { committed, query, select } from "@javelin/ecs"
 import { Position, Velocity, Wormhole } from "./components"
 
-export const wormholes = createQuery(Position, mut(Wormhole))
-export const junk = createQuery(mut(Position), mut(Velocity)).filter(committed)
+export const wormholes = query(select(Position, Wormhole))
+export const junk = query(select(Position, Velocity), committed)

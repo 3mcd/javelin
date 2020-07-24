@@ -1,3 +1,5 @@
+import { $isDataType } from "../symbols"
+
 export type SchemaKey<T = unknown> =
   | Schema
   | DataType<T>
@@ -20,8 +22,6 @@ export type PropsOfSchema<S extends Schema> = S extends DataType<infer T>
         ? T
         : never
     }
-
-export const $isDataType = Symbol("isDataType")
 
 export type DataType<T> = {
   [$isDataType]: true

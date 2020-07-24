@@ -18,12 +18,27 @@ export interface Storage {
   create(entity: number, components: ComponentSpec[], tag?: number): number
 
   /**
-   * Insert components into an existing entity.
+   * Associate components with an entity.
    *
-   * @param entity Existing entity
-   * @param components Components to insert into the existing entity
+   * @param entity Entity
+   * @param components Components to insert
    */
-  insert(entity: number, ...components: ComponentSpec[]): void
+  insert(entity: number, components: ComponentSpec[]): void
+
+  /**
+   * Insert or update a component (e.g. from a remote source).
+   *
+   * @param component Latest copy of the component
+   */
+  upsert(component: Component): void
+
+  /**
+   * Remove components from an entity.
+   *
+   * @param entity Entity
+   * @param components Components to remove
+   */
+  remove(entity: number, components: ComponentSpec[]): void
 
   /**
    * Destroy an entity. Attempts to release pooled components if their types
@@ -64,13 +79,6 @@ export interface Storage {
    * @param component Component to bump
    */
   incrementVersion(component: Component): void
-
-  /**
-   * Update a local version of a component from remote (e.g. server) source.
-   *
-   * @param component Latest copy of the component
-   */
-  patch(component: Component): boolean
 
   /**
    * Locate a component related to a specific entity.
@@ -170,18 +178,35 @@ export function createStorage(): Storage {
     return entity
   }
 
-  function insert(entity: number, ...components: Component[]) {
+  function getEntityArchetype(entity: number, operation: string) {
     const location = archetypeIndicesByEntity[entity]
 
     if (location === undefined) {
-      throw new Error("Cannot insert components. Entity does not exist.")
+      throw new Error(`Failed to ${operation}. Entity does not exist.`)
     }
 
     if (location === null) {
-      throw new Error("Cannot insert components. Entity has been removed.")
+      throw new Error(`Failed to ${operation}. Entity has been removed.`)
     }
 
-    const source = archetypes[location]
+    return archetypes[location]
+  }
+
+  function relocate(
+    source: Archetype,
+    entity: number,
+    components: Component[],
+  ) {
+    source.remove(entity)
+
+    const destination = findOrCreateArchetype(components)
+
+    destination.insert(entity, components)
+    archetypeIndicesByEntity[entity] = archetypes.indexOf(destination)
+  }
+
+  function insert(entity: number, components: Component[]) {
+    const source = getEntityArchetype(entity, "insert components")
     const entityIndex = source.indices[entity]
 
     let destinationComponents = components.slice() as Readonly<Component>[]
@@ -191,26 +216,28 @@ export function createStorage(): Storage {
       destinationComponents.push(source.table[i][entityIndex]!)
     }
 
-    source.remove(entity)
+    relocate(source, entity, destinationComponents)
+  }
 
-    const destination = findOrCreateArchetype(destinationComponents)
+  function remove(entity: number, components: Component[]) {
+    const source = getEntityArchetype(entity, "remove components")
+    const entityIndex = source.indices[entity]
+    const typesToRemove = components.map(component => component._t)
 
-    destination.insert(entity, destinationComponents)
-    archetypeIndicesByEntity[entity] = archetypes.indexOf(destination)
+    let destinationComponents = []
+
+    for (let i = 0; i < source.layout.length; i++) {
+      const type = source.layout[i]
+      if (!typesToRemove.includes(type)) {
+        destinationComponents.push(source.table[i][entityIndex]!)
+      }
+    }
+
+    relocate(source, entity, destinationComponents)
   }
 
   function destroy(entity: number) {
-    const location = archetypeIndicesByEntity[entity]
-
-    if (location === null) {
-      throw new Error("Entity does not exist in Storage.")
-    }
-
-    const source = archetypes[location]
-
-    if (source === undefined) {
-      throw new Error("Invalid remove. Component archetype does not exist.")
-    }
+    const source = getEntityArchetype(entity, "destroy entity")
 
     for (let i = 0; i < source.layout.length; i++) {
       const type = source.layout[i]
@@ -244,42 +271,31 @@ export function createStorage(): Storage {
     component._v++
   }
 
-  function patch(component: Component) {
-    const { _e: _e, _t: _t } = component
+  function upsert(component: Component) {
+    const { _e: entity, _t: type } = component
+    const archetype = getEntityArchetype(entity, "patch component")
+    const entityIndex = archetype.indices[entity]
+    const componentIndex = archetype.layout.indexOf(type)
 
-    for (let i = 0; i < archetypes.length; i++) {
-      const archetype = archetypes[i]
-      const entityIndex = archetype.indices[_e]
-
-      if (entityIndex !== -1 && entityIndex !== undefined) {
-        const componentIndex = archetype.layout.indexOf(_t)
-
-        if (componentIndex === -1) {
-          // Entity component makeup does not match patch component.
-          return false
-        }
-
-        // Apply patch to component.
-        Object.assign(archetype.table[componentIndex][entityIndex], component)
-
-        return true
-      }
+    if (componentIndex === -1) {
+      // Entity component makeup does not match patch component, insert the new
+      // component.
+      insert(entity, [component])
+      return
     }
 
-    return false
+    const targetComponent = archetype.table[componentIndex][entityIndex]!
+
+    // Apply patch to component.
+    Object.assign(targetComponent, component)
+    incrementVersion(targetComponent)
   }
 
   function findComponent<T extends ComponentType>(
     entity: number,
     componentType: T,
   ) {
-    const location = archetypeIndicesByEntity[entity]
-
-    if (location === null) {
-      throw new Error("Failed to find component. Entity does not exist")
-    }
-
-    const archetype = archetypes[location]
+    const archetype = getEntityArchetype(entity, "find component")
     const componentIndex = archetype.layout.indexOf(componentType.type)
 
     if (componentIndex === -1) {
@@ -301,6 +317,7 @@ export function createStorage(): Storage {
   return {
     create,
     insert,
+    remove,
     destroy,
     addTag,
     removeTag,
@@ -308,7 +325,7 @@ export function createStorage(): Storage {
     archetypes,
     incrementVersion,
     findComponent,
-    patch,
+    upsert,
     registerComponentFactory,
   }
 }

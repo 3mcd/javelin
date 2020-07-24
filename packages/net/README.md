@@ -16,10 +16,8 @@ Produce unreliable and reliable Javelin network protocol messages for a world.
 import { createWorld } from "@javelin/ecs"
 import { createMessageProducer } from "@javelin/net"
 
-const systems = []
-const world = createWorld(systems)
+const world = createWorld({ ... })
 const messageProducer = createMessageProducer({
-  world,
   components: [
     // send components reliably when they change
     { type: Health },
@@ -34,13 +32,13 @@ const messageProducer = createMessageProducer({
 
 const onClientConnect = client =>
   // send initial messages to new clients over reliable channel
-  client.sendReliable(messageProducer.getInitialMessages())
+  client.sendReliable(messageProducer.getInitialMessages(world))
 
 const loop = () => {
   world.tick()
 
-  const reliable = messageProducer.getReliableMessages()
-  const unreliable = messageProducer.getUnreliableMessages()
+  const reliable = messageProducer.getReliableMessages(world)
+  const unreliable = messageProducer.getUnreliableMessages(world)
 
   for (const client of clients) {
     client.sendReliable(reliable)
@@ -59,18 +57,14 @@ Apply Javelin network protocol messages to a world.
 import { createWorld } from "@javelin/ecs"
 import { createMessageHandler } from "@javelin/net"
 
-const systems = []
-const world = createWorld(systems)
-const messageHandler = createMessageHandler({
-  world,
+const messageHandler = createMessageHandler()
+const world = createWorld({
+  systems: [messageHandler.system],
 })
 
 const client = await server.connect()
 
-// apply remote messages to local world
-client.reliable.onMessage(messageHandler.applyMessage)
-client.unreliable.onMessage(messageHandler.applyMessage)
-
-// get the local representation of a remote entity
-messageHandler.remoteToLocal.get(someRemoteEntityId)
+// apply remote messages to local world next tick
+client.reliable.onMessage(messageHandler.push)
+client.unreliable.onMessage(messageHandler.push)
 ```

@@ -8,10 +8,6 @@ const world = createWorld<void>({
 })
 const junkCount = 10000
 
-world.registerComponentFactory(Position)
-world.registerComponentFactory(Velocity)
-world.registerComponentFactory(Wormhole)
-
 for (let i = 0; i < junkCount; i++) {
   world.create([
     Position.create(Math.random() * 1680, Math.random() * 916),

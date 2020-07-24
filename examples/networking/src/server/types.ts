@@ -5,10 +5,7 @@ export type Client = {
   sessionId: string
   unreliable?: Connection
   reliable?: Connection
-}
-
-export type DevtoolMetadata = {
-  isDevtool: true
+  initialized: boolean
 }
 
 export type ConnectionMetadata = {

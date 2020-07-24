@@ -62,7 +62,7 @@ export function createDevtool(options: DevtoolOptions): Devtool {
         options.onMessage(world, message)
       } else {
         const messageHandler = messageHandlerByWorld.get(world)!
-        messageHandler.applyMessage(message)
+        messageHandler.push(message)
       }
     }
     const update = () =>
@@ -102,7 +102,10 @@ export function createDevtool(options: DevtoolOptions): Devtool {
 
   for (const { world, remote } of worldConfigs) {
     if (!remote) {
-      messageHandlerByWorld.set(world, createMessageHandler({ world }))
+      const handler = createMessageHandler()
+
+      world.addSystem(handler.system)
+      messageHandlerByWorld.set(world, handler)
     }
   }
 

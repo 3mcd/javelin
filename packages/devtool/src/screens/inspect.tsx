@@ -1,12 +1,11 @@
-import React from "react"
+import { $worldStorageKey, mutableEmpty, WorldOpType } from "@javelin/ecs"
+import { protocol } from "@javelin/net"
+import produce from "immer"
+import React, { useReducer } from "react"
 import { useParams } from "react-router-dom"
+import styled from "styled-components"
 import { useWorld } from "../context/world_provider"
 import { getComponentName } from "../helpers/component"
-import styled from "styled-components"
-import produce from "immer"
-import { mutableEmpty } from "@javelin/ecs"
-import { useReducer } from "react"
-import { protocol } from "@javelin/net"
 
 export const EntityList = styled.ul`
   display: flex;
@@ -77,7 +76,7 @@ export function Inspect() {
   const { worlds, sendMessage } = useWorld()
   const world = worlds.find(world => world.name === worldName)!
   const [state, dispatch] = useReducer(reducer, { selected: [] })
-  const sections = world.world.storage.archetypes.map(archetype => {
+  const sections = world.world[$worldStorageKey].archetypes.map(archetype => {
     const entities = archetype.entities.slice(0, 50)
 
     if (entities.length === 0) {
@@ -125,7 +124,13 @@ export function Inspect() {
       {sections}
       <button
         onClick={() => {
-          sendMessage(world, protocol.destroy(state.selected, true))
+          sendMessage(
+            world,
+            protocol.ops(
+              state.selected.map(entity => [WorldOpType.Destroy, entity]),
+              true,
+            ),
+          )
           dispatch({ type: "reset" })
         }}
       >

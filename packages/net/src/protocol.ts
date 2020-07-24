@@ -7,12 +7,16 @@ import {
   Schema,
   SchemaKey,
   World,
+  WorldOp,
+  WorldOpType,
+  isComponentOf,
+  ComponentType,
+  ComponentOf,
 } from "@javelin/ecs"
 
 export enum JavelinMessageType {
   // Core
-  Create,
-  Destroy,
+  Ops,
   Update,
   // Debug
   Spawn,
@@ -27,8 +31,7 @@ export type SerializedComponentType<
   schema: SerializedSchema<C["schema"]>
 }
 
-export type Create = [JavelinMessageType.Create, Component[], boolean]
-export type Destroy = [JavelinMessageType.Destroy, number[], boolean]
+export type Ops = [JavelinMessageType.Ops, WorldOp[], boolean]
 export type Update = [JavelinMessageType.Update, Component[], boolean, unknown]
 export type Spawn = [JavelinMessageType.Spawn, ComponentSpec[]]
 export type Model = [JavelinMessageType.Model, SerializedComponentType[]]
@@ -79,15 +82,35 @@ export function setUpdateMetadata(update: Update, metadata: unknown): Update {
   return copy as Update
 }
 
+export function isOpsMessage(message: unknown): message is Ops {
+  return Array.isArray(message) && message[0] === JavelinMessageType.Ops
+}
+
+export function isUpdateMessage(message: unknown): message is Update {
+  return Array.isArray(message) && message[0] === JavelinMessageType.Update
+}
+
+export function getComponentsByTypeFromUpdate<T extends ComponentType>(
+  message: Update,
+  componentType: T,
+  callback: (component: ComponentOf<T>) => unknown,
+) {
+  const components = message[1]
+
+  for (let i = 0; i < components.length; i++) {
+    const component = components[i]
+
+    if (isComponentOf(component, componentType)) {
+      callback(component)
+      break
+    }
+  }
+}
+
 export const protocol = {
-  create: (components: Component[], isLocal = false): Create => [
-    JavelinMessageType.Create,
-    components,
-    isLocal,
-  ],
-  destroy: (entities: number[], isLocal = false): Destroy => [
-    JavelinMessageType.Destroy,
-    entities,
+  ops: (ops: WorldOp[], isLocal = false): Ops => [
+    JavelinMessageType.Ops,
+    ops,
     isLocal,
   ],
   update: (

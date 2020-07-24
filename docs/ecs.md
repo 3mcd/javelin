@@ -146,17 +146,19 @@ setInterval(() => {
 }, (1 / 60) * 1000)
 ```
 
-Systems may execute **queries** to access entities and their components. Queries are created with the `createQuery` function, which takes one or more component types/factories. This tuple of component types is called a **selector**.
+Systems may execute **queries** to access entities and their components. Queries are created with the `query` function, which takes one or more component types/factories. This tuple of component types is called a **selector**.
 
 ```js
-const players = createQuery(Position, Player)
+import { query, select } from "@javelin/ecs";
+
+const players = query(select(Position, Player))
 ```
 
 The query can then be executed for a given world. The query returns an iterator that yields tuples of components that belong to entities that meet the query's criteria. The components are presented the same order that the corresponding component type was presented in the selector.
 
 ```js
 const render = (world: World, dt: number) => {
-  for (const [position, player] of world.query(players)) {
+  for (const [position, player] of players(world)) {
     // render each player with a name tag
     draw(position, player.name, dt)
   }
@@ -165,16 +167,16 @@ const render = (world: World, dt: number) => {
 
 ## Change Detection
 
-Queried components are readonly by default, and you must be explicit if you want a mutable reference. This is done to ensure that the ECS can detect changes to components. A mutable reference to a component can be obtained via `mut`.
+Queried components are readonly by default, and you must be explicit if you want a mutable reference. This is done to ensure that the ECS can detect changes to components. A mutable reference to a component can be obtained via `world.mut`.
 
 ```js
 import { query, mut } from "@javelin/ecs"
 
-const burning = query(mut(Health), Burn)
+const burning = query(select(Health, Burn))
 
 const applyDamage = (world: World) => {
-  for (const [health, burn] of world.query(burning)) {
-    health.value -= burn.damagePerTick
+  for (const [health, burn] of burning(world)) {
+    world.mut(health).value -= burn.damagePerTick
   }
 }
 ```
@@ -184,10 +186,10 @@ Components are versioned as alluded to earlier. `world.mut` simply increments th
 ```js
 import { query } from "@javelin/ecs"
 
-const burning = query(Health, Burn)
+const burning = query(select(Health, Burn))
 
 const applyDamage = (world: World) => {
-  for (const [health, burn] of world.query(burning)) {
+  for (const [health, burn] of burning(world)) {
     if (!world.hasTag(health._e, Tags.Invulnerable)) {
       world.mut(health).value -= burn.damagePerTick
     }
@@ -204,10 +206,13 @@ The result of a query can be narrowed using filters. A query is filtered using t
 ```js
 import { changed, query } from "@javelin/ecs"
 
-const healthy = query(Health, mut(Player)).filter(changed(Health))
+const healthy = query(
+  select(Health, Player),
+  changed(Health),
+)
 
 const cullEntities = (world: World) => {
-  for (const [health, player] of world.query(healthy)) {
+  for (const [health, player] of healthy(world)) {
     // `health` has changed since last tick
     if (health <= 0) {
       world.destroy(health._e)
@@ -259,9 +264,12 @@ enum Tags {
   Goopy = 2 ** 1,
 }
 
-const nastyAndGoopy = createQuery(Player).filter(tag(Tags.Nasty | Tags.Goopy))
+const nastyAndGoopy = query(
+  select(Player),
+  tag(Tags.Nasty | Tags.Goopy),
+)
 
-for (const [player] of world.query(nastyAndGoopy)) {
+for (const [player] of nastyAndGoopy(world)) {
   // `player` belongs to an entity with Nasty and Goopy tags
 }
 ```
@@ -270,12 +278,12 @@ for (const [player] of world.query(nastyAndGoopy)) {
 
 ### Query results
 
-The tuple of components yielded by `world.query()` is re-used each iteration. This means that you can't store the results of a query for use later like this:
+The tuple of components yielded by queries is re-used each iteration. This means that you can't store the results of a query for use later like this:
 
 ```js
 const results = []
 
-for (const s of world.query(shocked)) {
+for (const s of shocked(world)) {
   results.push(s)
 }
 ```
@@ -288,7 +296,7 @@ The same applies to `Array.from()`, or any other method that expands an iterator
 const applyStatusEffects = (dt: number, world: World) => {
   const shockedEnemies = []
 
-  for (const [enemy] of world.query(shocked)) {
+  for (const [enemy] of shocked(world)) {
     shockedEnemies.push(enemy)
   }
 }
@@ -299,20 +307,20 @@ const applyStatusEffects = (dt: number, world: World) => {
 A filter does not have access to the query that executed it, meaning it can't track state for multiple queries. For example, if two queries use the same `changed` filter, no entities will be yielded by the second query unless entities were created between the first and second queries.
 
 ```js
-const moved = world.query(createQuery(Position).filter(changed))
+const moved = query(select(Position), changed)
 
-for (const [position] of world.query(moved)) // 100 iterations
-for (const [position] of world.query(moved)) // 0 iterations
+for (const [position] of moved(world)) // 100 iterations
+for (const [position] of moved(world)) // 0 iterations
 ```
 
 The solution is to simply use a unique filter per query.
 
 ```js
-const moved1 = world.query(createQuery(Position).filter(changed))
-const moved2 = world.query(createQuery(Position).filter(changed))
+const moved1 = query(select(Position), changed())
+const moved2 = query(select(Position), changed())
 
-for (const [position] of world.query(moved1)) // 100 iterations
-for (const [position] of world.query(moved2)) // 100 iterations
+for (const [position] of moved1(world)) // 100 iterations
+for (const [position] of moved2(world)) // 100 iterations
 ```
 
 ## Examples

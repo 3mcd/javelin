@@ -25,35 +25,44 @@ For example, a system could add a `Burn` component to entities with `Position` a
 
 ## Performance
 
+Javelin ECS uses very little memory and thus produces very little garbage. Below is a screenshot of an allocation timeline where 10k entities are iterated by 3 systems per tick at 60Hz. The memory growth (0.3mb) is consistent with standard `setInterval` or `requestAnimationFrame` performance and there is no "sawtooth" pattern of frequent, minor GC events.
+
+Allocation timeline of simple `requestAnimationFrame` loop:
+<img src="./assets/perf-raf.png" alt="Allocation timeline of simple requestAnimationFrame loop" width="600">
+
+Allocation timeline of `requestAnimationFrame` loop, 10k entities iterated per tick:
+<img src="./assets/perf-raf-ecs.png" alt="Allocation timeline of requestAnimationFrame loop and ECS" width="600">
+
 Run `yarn perf` to run performance tests.
 
-Example perf on 2018 MacBook Pro where 350k entities are iterated per tick at 60 FPS:
+Example perf on 2018 MacBook Pro where 630k entities are iterated per tick at ~60 FPS:
 
 ```
 ========================================
 perf_storage
 ========================================
-create: 129.333ms
-run: 14684.131ms
-destroy: 19.823ms
-entities      | 300000
+create: 229.866ms
+run: 15520.090ms
+destroy: 13.510ms
+entities      | 540000
 components    | 4
 queries       | 4
 ticks         | 1000
-iter          | 350350000
-iter_tick     | 350350
-avg_tick      | 14.982ms
+iter          | 630630000
+iter_tick     | 630630
+avg_tick      | 15.987ms
 ========================================
 perf_storage_pooled
 ========================================
-create: 133.237ms
-run: 16789.444ms
-destroy: 25.286ms
-entities      | 300000
+create: 281.043ms
+run: 15997.922ms
+destroy: 14.744ms
+entities      | 540000
 components    | 4
 queries       | 4
 ticks         | 1000
-iter          | 350350000
-iter_tick     | 350350
-avg_tick      | 16.789ms
+iter          | 630630000
+iter_tick     | 630630
+avg_tick      | 16.52ms
+
 ```

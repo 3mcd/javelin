@@ -1,3 +1,4 @@
+import { $worldStorageKey } from "@javelin/ecs"
 import React from "react"
 import { Link, useParams } from "react-router-dom"
 import { useWorld } from "../context/world_provider"
@@ -6,8 +7,8 @@ export function World() {
   const { world: worldName } = useParams()
   const { worlds } = useWorld()
   const world = worlds.find(world => world.name === worldName)!.world
-  const archetypeCount = world.storage.archetypes.length
-  const entityCount = world.storage.archetypes.reduce(
+  const archetypeCount = world[$worldStorageKey].archetypes.length
+  const entityCount = world[$worldStorageKey].archetypes.reduce(
     (sum, archetype) => sum + archetype.entities.length,
     0,
   )

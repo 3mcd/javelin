@@ -1,25 +1,28 @@
-import { ComponentOf, createQuery, World } from "@javelin/ecs"
-import { PositionBuffer } from "../components/position_buffer"
+import { ComponentOf, query, World, select } from "@javelin/ecs"
+import { Red } from "../../common/components"
+import { RenderTransform } from "../components/position_buffer"
 import { graphics } from "../graphics"
 
 const renderCullingFilter = {
   matchEntity() {
     return true
   },
-  matchComponent(component: ComponentOf<typeof PositionBuffer>) {
+  matchComponent(component: ComponentOf<typeof RenderTransform>) {
     return component.x >= 0 && component.x <= 800 && component.y >= 0
   },
 }
 
-const culledPositions = createQuery(PositionBuffer).filter(renderCullingFilter)
+const culledPositions = query(select(RenderTransform), renderCullingFilter)
 
 export function render(world: World, dt: number) {
   // render system
   graphics.clear()
 
-  for (const [p] of world.query(culledPositions)) {
-    graphics.beginFill(0x00ff00)
-    graphics.drawRect(p.x, p.y, 2, 2)
+  for (const [position] of culledPositions(world)) {
+    graphics.beginFill(
+      world.tryGetComponent(position._e, Red) ? 0xff0000 : 0x00ff00,
+    )
+    graphics.drawRect(position.x, position.y, 2, 2)
     graphics.endFill()
   }
 }

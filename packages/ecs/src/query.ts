@@ -1,17 +1,10 @@
 import { Archetype } from "./archetype"
-import { Component, ComponentOf, ComponentType } from "./component"
-import { arrayOf } from "./util/array"
+import { Component, ComponentsOf, ComponentType } from "./component"
+import { $worldStorageKey } from "./symbols"
+import { arrayOf, mutableEmpty } from "./util/array"
 import { World } from "./world"
 
-export type Selector = (ComponentType | MutableComponentSelector)[]
-export type MutableComponentSelector<T extends ComponentType = ComponentType> = { mutable: true; type: T }
-export type SelectorResult<S extends Selector> = {
-  [K in keyof S]: S[K] extends MutableComponentSelector
-    ? ComponentOf<S[K]["type"]>
-    : S[K] extends ComponentType
-    ? Readonly<ComponentOf<S[K]>>
-    : never
-}
+export type Selector = ComponentType[]
 
 /**
  * A Filter is an object containing methods used to filter queries by entity
@@ -38,32 +31,8 @@ export interface Filter {
   matchComponent(component: Component, world: World): boolean
 }
 
-/**
- * A Query is executed against a Storage to yield tuples of components that
- * match the provided component makeup and pass any provided filters.
- */
-export interface QueryLike<S extends Selector> {
-  /**
-   * Execute the query against a Storage. Optionally executed with filters to
-   * further refine the results.
-   *
-   * @param world Storage instance
-   * @param filters Zero or more filters
-   */
-  run(world: World): IterableIterator<SelectorResult<S>>
-
-  /**
-   * Narrow the results of this query using the provided filters.
-   *
-   * @param filters Filters to add
-   */
-  filter(...filters: (Filter | (() => Filter))[]): QueryLike<S>
-
-  /**
-   * The length of the result set of this query, i.e. the number of components
-   * in the query selector.
-   */
-  readonly length: number;
+export function select<S extends Selector>(...selector: S): S {
+  return selector
 }
 
 /**
@@ -71,118 +40,151 @@ export interface QueryLike<S extends Selector> {
  *
  * @param selector Component makeup of entities
  */
-export function createQuery<S extends Selector>(...selector: S): QueryLike<S> {
-  const length = selector.length
-  const componentTypes = selector.map(s => ("mutable" in s ? s.type : s))
-  const queryLayout = componentTypes.map(s => s.type)
+export function query<S extends Selector>(
+  selector: S,
+  ...filterConfig: (Filter | (() => Filter))[]
+) {
+  const queryLength = selector.length
+  const queryLayout = selector.map(s => s.type)
+  const filters = filterConfig.map(f => (typeof f === "function" ? f() : f))
+  const filterLen = filters.length
   // Temporary array of components yielded by the query. This array is reused
   // for each resulting tuple, meaning it should not be stored by the consumer
   // between iterations (unless copied, i.e. results.slice()).
-  const tmpResult = arrayOf(componentTypes.length) as SelectorResult<S>
+  const tmpResult = arrayOf(queryLength) as ComponentsOf<S>
   // Temporary array of integers where each index corresponds to the index of
   // the outgoing component (i.e. queryLayout index), and each value
   // corresponds to the index of that component in the archetype currently
   // being iterated. This lets us map the components to the correct index in
   // tmpResult.
   const tmpReadIndices: number[] = []
-  const filters: Filter[] = []
 
-  function filter(...filtersToAdd: (Filter | (() => Filter))[]) {
-    for (const filter of filtersToAdd) {
-      const f = typeof filter === "function" ? filter() : filter
+  let world: World
+  let archetype: Archetype | null
+  let archetypeIndex = -1
+  let entityIndex = -1
 
-      if (filters.indexOf(f) > -1) {
-        return query
-      }
-
-      filters.push(f)
-    }
-
-    return query
+  const result: IteratorResult<ComponentsOf<S>> = {
+    value: tmpResult as ComponentsOf<S>,
+    done: false,
   }
 
-  function* run(world: World) {
-    const { archetypes } = world.storage
-    const filterLen = filters.length
+  function loadNextResult() {
+    const { entities, table, indices } = archetype!
 
-    if (queryLayout.length === 0) {
-      return
-    }
+    while (true) {
+      const entity = entities[++entityIndex]
 
-    for (let i = 0; i < archetypes.length; i++) {
-      const archetype = archetypes[i]
-      const { layout, entities, indices, table } = archetype
-      const entitiesLength = entities.length
+      if (typeof entity !== "number") {
+        goToNextArchetype()
+        break
+      }
 
-      // Only consider archetypes that include the provided component types.
       let match = true
 
-      for (let j = 0; j < length; j++) {
-        if (layout.indexOf(queryLayout[j]) === -1) {
-          match = false
-          break
-        }
+      // Execute entity filters.
+      for (let f = 0; f < filterLen; f++) {
+        match = filters[f].matchEntity(entity, world)
+        if (!match) break
       }
 
       if (!match) {
         continue
       }
 
-      // The consumer expects the yielded tuples of components to be in the
-      // same order as the query, so we calculate the index of each outgoing
-      // component.
-      for (let k = 0; k < length; k++) {
-        tmpReadIndices[k] = (archetype as Archetype).layout.indexOf(
-          queryLayout[k],
-        )
+      const tableEntityIndex = indices[entity]
+
+      for (let k = 0; k < queryLength; k++) {
+        const component = table[tmpReadIndices[k]][tableEntityIndex]!
+
+        // Execute component filters.
+        for (let f = 0; f < filterLen; f++) {
+          match = filters[f].matchComponent(component, world)
+          if (!match) break
+        }
+
+        if (!match) {
+          continue
+        }
+
+        tmpResult[k] = component
       }
 
-      for (let j = 0; j < entitiesLength; j++) {
-        const entity = entities[j]
-        const index = indices[entity]
-
-        // Execute entity filters.
-        match = true
-
-        for (let f = 0; f < filterLen; f++) {
-          match = filters[f].matchEntity(entity, world)
-          if (!match) break
-        }
-
-        if (!match) continue
-
-        for (let k = 0; k < length; k++) {
-          const component = table[tmpReadIndices[k]][index]!
-
-          // Execute component filters.
-          for (let f = 0; f < filterLen; f++) {
-            match = filters[f].matchComponent(component, world)
-            if (!match) break
-          }
-
-          if (!match) break
-
-          // TODO: Unsure how to get this working.
-          ;(tmpResult as any)[k] =
-            "mutable" in selector[k] ? world.mut(component) : component
-        }
-
-        // Yield result if the entity and its components pass the filter.
-        if (match) {
-          yield tmpResult
-        }
+      if (match) {
+        return
       }
     }
   }
 
-  const query = { run, filter, length }
+  function goToNextArchetype() {
+    const { archetypes } = world[$worldStorageKey]
+    let visiting: Archetype
 
-  return query
-}
+    while ((visiting = archetypes[++archetypeIndex])) {
+      const { layout } = visiting
 
-export function mut<T extends ComponentType>(componentType: T): MutableComponentSelector<T> {
-  return {
-    mutable: true as true,
-    type: componentType,
+      archetype = visiting
+      entityIndex = -1
+
+      let match = true
+
+      for (let i = 0; i < queryLength; i++) {
+        const index = layout.indexOf(queryLayout[i])
+
+        if (index === -1) {
+          match = false
+          break
+        }
+
+        tmpReadIndices[i] = index
+      }
+
+      if (!match) {
+        continue
+      }
+
+      loadNextResult()
+      return
+    }
+
+    result.done = true
+    mutableEmpty(tmpResult)
+  }
+
+  const iterator = {
+    next() {
+      if (archetype === null) {
+        goToNextArchetype()
+      } else {
+        loadNextResult()
+      }
+
+      return result
+    },
+  }
+
+  const iterable = {
+    [Symbol.iterator]() {
+      return iterator
+    },
+  }
+
+  function resetState(_world: World) {
+    world = _world
+    archetype = null
+    archetypeIndex = -1
+    entityIndex = -1
+  }
+
+  function resetIterable() {
+    result.value.length = 0
+    result.done = false
+  }
+
+  return (world: World) => {
+    resetState(world)
+    resetIterable()
+
+    return iterable
   }
 }

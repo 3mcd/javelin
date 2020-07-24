@@ -1,23 +1,15 @@
-import { createDevtoolMessageProducer } from "@javelin/devtool"
 import { createWorld } from "@javelin/ecs"
 import { createHrtimeLoop } from "@javelin/hrtime-loop"
-import {
-  createMessageHandler,
-  createMessageProducer,
-  JavelinMessage,
-  protocol,
-  setUpdateMetadata,
-} from "@javelin/net"
-import { decode, encode } from "@msgpack/msgpack"
-import { Connection } from "@web-udp/client"
+import { createMessageProducer, setUpdateMetadata } from "@javelin/net"
+import { encode } from "@msgpack/msgpack"
 import { Server } from "@web-udp/server"
 import { createServer } from "http"
-import { Position } from "../common/components"
+import { Position, Red } from "../common/components"
 import { ConnectionType } from "../common/types"
 import { Sleep, Velocity } from "./components"
 import { createJunk } from "./entities"
 import { physics, spawn } from "./systems"
-import { Client, ConnectionMetadata, DevtoolMetadata } from "./types"
+import { Client, ConnectionMetadata } from "./types"
 
 const PORT = 8000
 const TICK_RATE = 60
@@ -26,23 +18,16 @@ const server = createServer()
 const udp = new Server({ server })
 const world = createWorld({
   systems: [spawn, physics],
-  componentFactories: [Position, Velocity, Sleep],
+  componentFactories: [Position, Velocity, Sleep, Red],
 })
-const devtoolMessageHandler = createMessageHandler({ world })
 
-const clientMessageProducer = createMessageProducer({
-  world,
-  components: [{ type: Position, priority: 1 }],
+const messageProducer = createMessageProducer({
+  components: [{ type: Position, priority: 1 }, { type: Red }],
   updateInterval: (1 / 20) * 1000,
   updateSize: 1000,
 })
-const devtoolMessageProducer = createDevtoolMessageProducer(world)
-const clients: Client[] = []
-const devtools: Connection[] = []
 
-function isDevtoolMetadata(obj: any): obj is DevtoolMetadata {
-  return obj.isDevtool === true
-}
+const clients: Client[] = []
 
 function isConnectionMetadata(obj: any): obj is ConnectionMetadata {
   return (
@@ -56,66 +41,38 @@ function findOrCreateClient(sessionId: string) {
 
   if (!client) {
     console.log(`Client ${sessionId} connected`)
-    client = { sessionId }
+    client = { sessionId, initialized: false }
     clients.push(client)
   }
 
   return client
 }
 
-function registerDevtool(connection: Connection) {
-  setTimeout(() => {
-    const model = protocol.model(world)
-    const initial = devtoolMessageProducer.getInitialMessages()
-
-    devtools.push(connection)
-    connection.send(encode([...initial, model]))
-  }, 250)
-  connection.messages.subscribe(data => {
-    devtoolMessageHandler.applyMessage(decode(data) as JavelinMessage)
-  })
-  connection.closed.subscribe(() => {
-    devtools.splice(devtools.indexOf(connection), 1)
-  })
-}
-
-function sendDevtoolMessages() {
-  const messages = devtoolMessageProducer.getReliableMessages()
-
-  if (messages.length === 0) {
-    return
-  }
-
-  const encoded = encode(messages)
-
-  for (let i = 0; i < devtools.length; i++) {
-    devtools[i]?.send(encoded)
-  }
-}
-
 function sendClientMessages() {
-  const reliable = encode(clientMessageProducer.getReliableMessages())
-  const unreliable = clientMessageProducer.getUnreliableMessages()
+  const reliable = messageProducer.getReliableMessages(world)
+  const unreliable = messageProducer.getUnreliableMessages(world)
 
   for (let i = 0; i < clients.length; i++) {
     const client = clients[i]
-    const update = unreliable[i]
 
-    client.reliable?.send(reliable)
+    if (!client.initialized) {
+      for (const message of messageProducer.getInitialMessages(world)) {
+        client.reliable?.send(encode(message))
+      }
+      client.initialized = true
+    }
 
-    if (update) {
-      const updateWithMetadata = setUpdateMetadata(update, {})
-      client.unreliable?.send(encode([updateWithMetadata]))
+    for (let j = 0; j < reliable.length; j++) {
+      client.reliable?.send(encode(reliable[j]))
+    }
+
+    for (let j = 0; j < unreliable.length; j++) {
+      client.unreliable?.send(encode(setUpdateMetadata(unreliable[j], {})))
     }
   }
 }
 
 udp.connections.subscribe(connection => {
-  if (isDevtoolMetadata(connection.metadata)) {
-    registerDevtool(connection)
-    return
-  }
-
   if (!isConnectionMetadata(connection.metadata)) {
     console.error("Invalid connection metadata.")
     return
@@ -132,9 +89,6 @@ udp.connections.subscribe(connection => {
 
   if (connectionType === ConnectionType.Reliable) {
     client.reliable = connection
-    setTimeout(() => {
-      connection.send(encode(clientMessageProducer.getInitialMessages()))
-    }, 250)
   } else {
     client.unreliable = connection
   }
@@ -148,7 +102,6 @@ const tickRateMs = 1000 / TICK_RATE
 function tick(dt: number) {
   world.tick(dt)
   sendClientMessages()
-  sendDevtoolMessages()
 }
 
 const loop = createHrtimeLoop(tickRateMs, clock => tick(clock.dt))

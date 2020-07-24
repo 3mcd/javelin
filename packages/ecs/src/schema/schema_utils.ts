@@ -1,10 +1,5 @@
-import {
-  Schema,
-  PropsOfSchema,
-  DataType,
-  $isDataType,
-  SchemaKey,
-} from "./schema_types"
+import { $isDataType } from "../symbols"
+import { DataType, PropsOfSchema, Schema, SchemaKey } from "./schema_types"
 
 export function createDataType<T>(
   config: Omit<DataType<T>, typeof $isDataType>,

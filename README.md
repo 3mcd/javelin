@@ -27,7 +27,6 @@ The primary goals of Javelin are speed, minimalism, and ease-of-use. A secondary
 | Example                             | Description                                               |
 | ----------------------------------- | --------------------------------------------------------- |
 | [basic](./examples/basic)           | A basic ECS example                                       |
-| [filters](./examples/filters)       | Demonstration of query filters                            |
 | [networking](./examples/networking) | Entity/component synchronization over WebRTC datachannels |
 
 ## Scripts
@@ -38,7 +37,6 @@ The primary goals of Javelin are speed, minimalism, and ease-of-use. A secondary
 | `yarn test`               | Run all unit and integration tests               |
 | `yarn perf`               | Run all performance tests                        |
 | `yarn example:basic`      | Preview basic ECS capabilities                   |
-| `yarn example:filters`    | Preview custom filtering of queries              |
 | `yarn example:networking` | An example of synchronizing entities over WebRTC |
 
 ## Development

@@ -4,17 +4,18 @@ export const createStorage = jest.fn(
   (): Storage => {
     let e = 0
     return {
+      addTag: jest.fn(),
       archetypes: [],
-      insert: jest.fn(),
       create: jest.fn(() => e++),
       destroy: jest.fn(),
-      addTag: jest.fn(),
-      removeTag: jest.fn(),
+      findComponent: jest.fn(() => ({ _t: 0, _e: 0, _v: 0 } as any)),
       hasTag: jest.fn(() => true),
       incrementVersion: jest.fn(),
-      patch: jest.fn(() => true),
-      findComponent: jest.fn(() => ({ _t: 0, _e: 0, _v: 0 } as any)),
+      insert: jest.fn(),
       registerComponentFactory: jest.fn(),
+      remove: jest.fn(),
+      removeTag: jest.fn(),
+      upsert: jest.fn(() => true),
     }
   },
 )

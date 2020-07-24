@@ -1,12 +1,13 @@
-import { createQuery } from "./query"
-import { createWorld } from "./world"
-import { createArchetype, Archetype } from "./archetype"
+import { Archetype, createArchetype } from "./archetype"
 import { Component } from "./component"
+import { query, select } from "./query"
+import { $worldStorageKey } from "./symbols"
+import { createWorld } from "./world"
 
 jest.mock("./archetype")
 jest.mock("./world")
 
-describe("createQuery", () => {
+describe("query", () => {
   it("queries collections of components", () => {
     const A = { name: "A", type: 0, schema: {} }
     const B = { name: "B", type: 1, schema: {} }
@@ -24,7 +25,7 @@ describe("createQuery", () => {
       ],
     ]
 
-    ;(world as any).storage.archetypes = [
+    ;(world as any)[$worldStorageKey].archetypes = [
       {
         ...createArchetype([0]),
         layout: [1, 0],
@@ -34,12 +35,12 @@ describe("createQuery", () => {
       } as Archetype,
     ]
 
-    const query = createQuery(A, B)
+    const q = query(select(A, B))
 
     let resultsA = []
     let resultsB = []
 
-    for (const [a, b] of query.run(world)) {
+    for (const [a, b] of q(world)) {
       resultsA.push(a)
       resultsB.push(b)
     }
@@ -68,7 +69,7 @@ describe("createQuery", () => {
       },
     }
 
-    ;(world as any).storage.archetypes = [
+    ;(world as any)[$worldStorageKey].archetypes = [
       {
         ...createArchetype([0]),
         layout: [0],
@@ -78,12 +79,12 @@ describe("createQuery", () => {
       } as Archetype,
     ]
 
-    const query = createQuery(A).filter(filter)
+    const q = query(select(A), filter)
 
     let results = []
 
-    for (const [a] of query.run(world)) {
-      results.push(a)
+    for (const [a] of q(world)) {
+      results.unshift(a)
     }
 
     expect(results.length).toBe(1)

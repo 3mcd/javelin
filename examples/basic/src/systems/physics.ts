@@ -1,9 +1,10 @@
-import { World } from "@javelin/ecs"
+import { World, ComponentType, ComponentsOf } from "@javelin/ecs"
 import { junk } from "../queries"
 
 export function physics(world: World) {
-  for (const [position, velocity] of world.query(junk)) {
-    position.x += velocity.x
-    position.y += velocity.y
+  for (let [p, v] of junk(world)) {
+    const mp = world.mut(p)
+    mp.x += v.x
+    mp.y += v.y
   }
 }

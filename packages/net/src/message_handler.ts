@@ -1,101 +1,156 @@
-import { Component, ComponentSpec, World } from "@javelin/ecs"
+import {
+  $worldStorageKey,
+  Component,
+  ComponentSpec,
+  mutableEmpty,
+  System,
+  World,
+  WorldOp,
+  WorldOpType,
+} from "@javelin/ecs"
 import { JavelinMessage, JavelinMessageType } from "./protocol"
 
 export type MessageHandler = {
-  applyMessage: (message: JavelinMessage) => void
-  remoteToLocal: Map<number, number>
+  push(message: JavelinMessage): void
+  system: System<unknown>
 }
 
-export type MessageHandlerOptions = {
-  world: World
-}
-
-export function createMessageHandler(
-  options: MessageHandlerOptions,
-): MessageHandler {
-  const { world } = options
+export function createMessageHandler(): MessageHandler {
+  const messages: JavelinMessage[] = []
   const remoteToLocal = new Map<number, number>()
+  const toStopTracking = new Set<number>()
 
-  function create(components: Component[], isLocal: boolean) {
-    const componentsByEntity = new Map<number, Component[]>()
+  function handleOps(ops: WorldOp[], isLocal: boolean, world: World) {
+    const copy = [...ops]
 
-    components.forEach(c => {
-      let components = componentsByEntity.get(c._e)
+    if (!isLocal) {
+      let i = 0
 
-      if (!components) {
-        components = [c]
-        componentsByEntity.set(c._e, components)
-      } else {
-        components.push(c)
-      }
+      while (i < copy.length) {
+        const op = copy[i]
 
-      return componentsByEntity
-    })
+        let local: number
 
-    for (const [entity, components] of componentsByEntity) {
-      if (isLocal) {
-        world.storage.create(entity, components)
-      } else {
-        const local = world.create(components)
-        remoteToLocal.set(entity, local)
+        if (op[0] === WorldOpType.Create) {
+          local = world.create(op[2])
+          remoteToLocal.set(op[1], local)
+          copy.splice(i, 1)
+        } else {
+          const remote = op[1]
+          local = getLocalEntity(remote)
+
+          if (op[0] === WorldOpType.Destroy) {
+            toStopTracking.add(remote)
+          }
+
+          i++
+        }
+
+        op[1] = local
       }
     }
+
+    toStopTracking.forEach(entity => remoteToLocal.delete(entity))
+    toStopTracking.clear()
+
+    world.applyOps(copy)
   }
 
-  function destroyAll(entities: number[], isLocal: boolean) {
-    for (let i = 0; i < entities.length; i++) {
-      const entity = entities[i]
-      const local = isLocal ? entity : remoteToLocal.get(entity)
-      const present =
-        local &&
-        Boolean(world.storage.archetypes.find(a => a.entities.includes(local)))
-
-      if (!present) {
-        return
-      }
-
-      remoteToLocal.delete(entity)
-      world.destroy(local!)
-    }
-  }
-
-  function updateAll(components: Component[], isLocal: boolean) {
-    for (let i = 0; i < components.length; i++) {
+  function handleUpdate(
+    components: Component[],
+    isLocal: boolean,
+    world: World,
+  ) {
+    let i = 0
+    while (i < components.length) {
       const component = components[i]
       const entity = component._e
-      const local = isLocal ? entity : remoteToLocal.get(entity)
+      const local = isLocal ? entity : tryGetLocalEntity(entity)
 
-      if (local === undefined) {
-        return
+      if (local === null) {
+        components.splice(i, 1)
+        continue
       }
 
-      world.storage.patch({ ...component, _e: local })
+      component._e = local
+
+      try {
+        world[$worldStorageKey].upsert(component)
+      } catch (err) {
+        // Upsert failed, potentially due to a race condition between reliable
+        // and unreliable channels.
+        console.warn(
+          `Remote update for entity ${local} with component type ${component._t} failed because entity had not been created yet or had already been destroyed.`,
+        )
+        components.splice(i, 1)
+        continue
+      }
+
+      i++
     }
   }
 
-  function spawn(components: ComponentSpec[]) {
+  function getLocalEntity(opOrComponent: WorldOp | Component | number) {
+    let remote: number
+
+    if (typeof opOrComponent === "number") {
+      remote = opOrComponent
+    } else {
+      remote = Array.isArray(opOrComponent)
+        ? opOrComponent[1]
+        : opOrComponent._t
+    }
+
+    const local = remoteToLocal.get(remote)
+
+    if (typeof local !== "number") {
+      throw new Error(
+        `Could not find local counterpart for remote entity ${remote}.`,
+      )
+    }
+
+    return local
+  }
+
+  function tryGetLocalEntity(opOrComponent: WorldOp | Component | number) {
+    try {
+      return getLocalEntity(opOrComponent)
+    } catch {
+      return null
+    }
+  }
+
+  function handleSpawn(components: ComponentSpec[], world: World) {
     world.create(components)
   }
 
-  function applyMessage(message: JavelinMessage) {
+  function applyMessage(message: JavelinMessage, world: World) {
     switch (message[0]) {
-      case JavelinMessageType.Create:
-        create(message[1], message[2])
-        break
-      case JavelinMessageType.Destroy:
-        destroyAll(message[1], message[2])
+      case JavelinMessageType.Ops:
+        handleOps(message[1], message[2], world)
         break
       case JavelinMessageType.Update:
-        updateAll(message[1], message[2])
+        handleUpdate(message[1], message[2], world)
         break
       case JavelinMessageType.Spawn:
-        spawn(message[1])
+        handleSpawn(message[1], world)
         break
     }
   }
 
+  function push(message: JavelinMessage) {
+    messages.push(message)
+  }
+
+  function system(world: World) {
+    for (let i = 0; i < messages.length; i++) {
+      applyMessage(messages[i], world)
+    }
+    mutableEmpty(messages)
+  }
+
   return {
-    applyMessage,
-    remoteToLocal,
+    push,
+    system,
   }
 }
