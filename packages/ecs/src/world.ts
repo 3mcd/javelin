@@ -396,7 +396,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     insert,
     isCommitted,
     mut,
-    ops,
+    ops: previousOps,
     registerComponentFactory,
     registeredComponentFactories,
     remove,
