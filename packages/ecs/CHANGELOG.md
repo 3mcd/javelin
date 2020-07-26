@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.12.1 (2020-07-26)
+
+
+### Bug Fixes
+
+* expose some needed message handler properties ([ae67e25](https://github.com/3mcd/javelin/commit/ae67e252e260de066dca19fee99f7267612dce5f))
+
+
+
+
+
 # 0.12.0 (2020-07-26)
 
 
