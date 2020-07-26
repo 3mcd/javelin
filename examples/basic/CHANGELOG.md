@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.12.2 (2020-07-26)
+
+
+### Bug Fixes
+
+* expose previous tick ops ([7e367b2](https://github.com/3mcd/javelin/commit/7e367b27baae5808e41fef69c761de6ecb760234))
+
+
+
+
+
 ## 0.12.1 (2020-07-26)
 
 
