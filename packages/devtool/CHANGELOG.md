@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 0.12.0 (2020-07-26)
+
+
+### Features
+
+* core improvements ([c7feb0d](https://github.com/3mcd/javelin/commit/c7feb0dee1b27312ddaff26f47a5f536518d7807))
+
+
+
+
+
 # 0.11.0 (2020-07-20)
 
 
