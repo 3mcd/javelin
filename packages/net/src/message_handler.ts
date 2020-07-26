@@ -13,6 +13,9 @@ import { JavelinMessage, JavelinMessageType } from "./protocol"
 export type MessageHandler = {
   push(message: JavelinMessage): void
   system: System<unknown>
+  getLocalEntity(remoteEntity: number): number
+  tryGetLocalEntity(remoteEntity: number): number | null
+  messages: ReadonlyArray<JavelinMessage>
 }
 
 export function createMessageHandler(): MessageHandler {
@@ -152,5 +155,8 @@ export function createMessageHandler(): MessageHandler {
   return {
     push,
     system,
+    getLocalEntity,
+    tryGetLocalEntity,
+    messages,
   }
 }
