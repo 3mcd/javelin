@@ -240,6 +240,31 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     destroyed.add(entity)
   }
 
+  function applyOp(op: WorldOp) {
+    switch (op[0]) {
+      case WorldOpType.Create: {
+        applyCreateOp(op)
+        break
+      }
+      case WorldOpType.Insert: {
+        applyInsertOp(op)
+        break
+      }
+      case WorldOpType.Remove: {
+        applyRemoveOp(op)
+        break
+      }
+      case WorldOpType.Destroy: {
+        applyDestroyOp(op)
+        break
+      }
+      default:
+        break
+    }
+
+    previousOps.push(op)
+  }
+
   function tick(data: T) {
     // Clear world op history
     previousOps.forEach(opPool.release)
@@ -255,36 +280,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
       destroyed.clear()
     }
 
-    let op: WorldOp | undefined
-
-    let i = 0
-
-    // Process world operations
-    while ((op = ops[i++])) {
-      switch (op[0]) {
-        case WorldOpType.Create: {
-          applyCreateOp(op)
-          break
-        }
-        case WorldOpType.Insert: {
-          applyInsertOp(op)
-          break
-        }
-        case WorldOpType.Remove: {
-          applyRemoveOp(op)
-          break
-        }
-        case WorldOpType.Destroy: {
-          applyDestroyOp(op)
-          break
-        }
-        default:
-          break
-      }
-
-      previousOps.push(op)
-    }
-
+    ops.forEach(applyOp)
     mutableEmpty(ops)
 
     // Execute systems
@@ -342,9 +338,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   }
 
   function applyOps(opsToApply: WorldOp[]) {
-    for (let i = 0; i < opsToApply.length; i++) {
-      ops.push(opsToApply[i])
-    }
+    opsToApply.forEach(applyOp)
   }
 
   function getComponent<T extends ComponentType>(

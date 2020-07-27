@@ -24,20 +24,18 @@ export function createMessageHandler(): MessageHandler {
   const toStopTracking = new Set<number>()
 
   function handleOps(ops: WorldOp[], isLocal: boolean, world: World) {
-    const copy = [...ops]
-
     if (!isLocal) {
       let i = 0
 
-      while (i < copy.length) {
-        const op = copy[i]
+      while (i < ops.length) {
+        const op = ops[i]
 
         let local: number
 
         if (op[0] === WorldOpType.Create) {
           local = world.create(op[2])
           remoteToLocal.set(op[1], local)
-          copy.splice(i, 1)
+          ops.splice(i, 1)
         } else {
           const remote = op[1]
           local = getLocalEntity(remote)
@@ -56,7 +54,7 @@ export function createMessageHandler(): MessageHandler {
     toStopTracking.forEach(entity => remoteToLocal.delete(entity))
     toStopTracking.clear()
 
-    world.applyOps(copy)
+    world.applyOps(ops)
   }
 
   function handleUpdate(
