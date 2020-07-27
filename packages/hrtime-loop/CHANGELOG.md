@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 0.13.0 (2020-07-27)
+
+
+### Features
+
+* apply remote ops immediately ([ba0c28d](https://github.com/3mcd/javelin/commit/ba0c28d0c0fa76f11dc09a39db3ab200dd7c61ab))
+
+
+
+
+
 ## 0.12.2 (2020-07-26)
 
 
