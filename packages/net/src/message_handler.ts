@@ -8,18 +8,30 @@ import {
   WorldOp,
   WorldOpType,
 } from "@javelin/ecs"
-import { JavelinMessage, JavelinMessageType } from "./protocol"
+import {
+  JavelinMessage,
+  JavelinMessageType,
+  UpdateUnreliable,
+} from "./protocol"
 
 export type MessageHandler = {
+  applyUnreliableUpdate(message: UpdateUnreliable, world: World): void
+  getLocalEntity(remoteEntity: number): number
+  messages: ReadonlyArray<JavelinMessage>
   push(message: JavelinMessage): void
   system: System<unknown>
-  getLocalEntity(remoteEntity: number): number
   tryGetLocalEntity(remoteEntity: number): number | null
-  messages: ReadonlyArray<JavelinMessage>
 }
 
-export function createMessageHandler(): MessageHandler {
-  const messages: JavelinMessage[] = []
+export type MessageHandlerOptions = {
+  processUnreliableUpdates?(updates: UpdateUnreliable[], world: World): unknown
+}
+
+export function createMessageHandler(
+  options: MessageHandlerOptions = {},
+): MessageHandler {
+  const messagesReliable: JavelinMessage[] = []
+  const messagesUnreliable: UpdateUnreliable[] = []
   const remoteToLocal = new Map<number, number>()
   const toStopTracking = new Set<number>()
 
@@ -57,19 +69,26 @@ export function createMessageHandler(): MessageHandler {
     world.applyOps(ops)
   }
 
+  function applyUnreliableUpdate(
+    updateMessage: UpdateUnreliable,
+    world: World,
+  ) {
+    handleUpdate(updateMessage[1], updateMessage[2], world)
+  }
+
   function handleUpdate(
     components: Component[],
     isLocal: boolean,
     world: World,
   ) {
-    let i = 0
-    while (i < components.length) {
+    // Attempt to update or insert each component.
+    for (let i = 0; i < components.length; i++) {
       const component = components[i]
       const entity = component._e
       const local = isLocal ? entity : tryGetLocalEntity(entity)
 
+      // Entity was removed prior to processing this update.
       if (local === null) {
-        components.splice(i, 1)
         continue
       }
 
@@ -78,16 +97,12 @@ export function createMessageHandler(): MessageHandler {
       try {
         world[$worldStorageKey].upsert(component)
       } catch (err) {
-        // Upsert failed, potentially due to a race condition between reliable
+        // Update failed, potentially due to a race condition between reliable
         // and unreliable channels.
         console.warn(
           `Remote update for entity ${local} with component type ${component._t} failed because entity had not been created yet or had already been destroyed.`,
         )
-        components.splice(i, 1)
-        continue
       }
-
-      i++
     }
   }
 
@@ -139,22 +154,43 @@ export function createMessageHandler(): MessageHandler {
     }
   }
 
+  const defaultProcessUnreliableUpdates = (
+    messagesUnreliable: UpdateUnreliable[],
+    world: World,
+  ) => {
+    for (let i = 0; i < messagesUnreliable.length; i++) {
+      const message = messagesUnreliable[i]
+      handleUpdate(message[1], message[2], world)
+    }
+  }
+
+  const processUnreliableUpdates =
+    options.processUnreliableUpdates || defaultProcessUnreliableUpdates
+
   function push(message: JavelinMessage) {
-    messages.push(message)
+    ;(message[0] === JavelinMessageType.UpdateUnreliable
+      ? messagesUnreliable
+      : messagesReliable
+    ).push(message)
   }
 
   function system(world: World) {
-    for (let i = 0; i < messages.length; i++) {
-      applyMessage(messages[i], world)
+    for (let i = 0; i < messagesReliable.length; i++) {
+      applyMessage(messagesReliable[i], world)
     }
-    mutableEmpty(messages)
+
+    processUnreliableUpdates(messagesUnreliable, world)
+
+    mutableEmpty(messagesReliable)
+    mutableEmpty(messagesUnreliable)
   }
 
   return {
+    applyUnreliableUpdate,
+    getLocalEntity,
+    messages: messagesReliable,
     push,
     system,
-    getLocalEntity,
     tryGetLocalEntity,
-    messages,
   }
 }

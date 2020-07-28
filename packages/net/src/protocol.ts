@@ -18,6 +18,7 @@ export enum JavelinMessageType {
   // Core
   Ops,
   Update,
+  UpdateUnreliable,
   // Debug
   Spawn,
   Model,
@@ -33,6 +34,12 @@ export type SerializedComponentType<
 
 export type Ops = [JavelinMessageType.Ops, WorldOp[], boolean]
 export type Update = [JavelinMessageType.Update, Component[], boolean, unknown]
+export type UpdateUnreliable = [
+  JavelinMessageType.UpdateUnreliable,
+  Component[],
+  boolean,
+  unknown,
+]
 export type Spawn = [JavelinMessageType.Spawn, ComponentSpec[]]
 export type Model = [JavelinMessageType.Model, SerializedComponentType[]]
 
@@ -76,10 +83,13 @@ export function serializeWorldModel(world: World): SerializedComponentType[] {
   }))
 }
 
-export function setUpdateMetadata(update: Update, metadata: unknown): Update {
+export function setUpdateMetadata(
+  update: UpdateUnreliable,
+  metadata: unknown,
+): UpdateUnreliable {
   const copy = update.slice()
   update[3] = metadata
-  return copy as Update
+  return copy as UpdateUnreliable
 }
 
 export function isOpsMessage(message: unknown): message is Ops {
@@ -118,6 +128,16 @@ export const protocol = {
     metadata?: unknown,
     isLocal = false,
   ): Update => [JavelinMessageType.Update, components, isLocal, metadata],
+  updateUnreliable: (
+    components: Component[],
+    metadata?: unknown,
+    isLocal = false,
+  ): UpdateUnreliable => [
+    JavelinMessageType.UpdateUnreliable,
+    components,
+    isLocal,
+    metadata,
+  ],
   spawn: (components: ComponentSpec[]): Spawn => [
     JavelinMessageType.Spawn,
     components,

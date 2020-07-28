@@ -9,7 +9,7 @@ import {
   WorldOp,
   $worldStorageKey,
 } from "@javelin/ecs"
-import { JavelinMessage, protocol, Update } from "./protocol"
+import { JavelinMessage, protocol, Update, UpdateUnreliable } from "./protocol"
 
 export type QueryConfig = {
   type: ComponentType
@@ -19,7 +19,7 @@ export type QueryConfig = {
 export type MessageProducer = {
   getInitialMessages(world: World): JavelinMessage[]
   getReliableMessages(world: World): JavelinMessage[]
-  getUnreliableMessages(world: World): Update[]
+  getUnreliableMessages(world: World): UpdateUnreliable[]
 }
 
 export type MessageProducerOptions = {
@@ -164,7 +164,7 @@ export function createMessageProducer(
     return messages
   }
 
-  function getUnreliableMessages(world: World): Update[] {
+  function getUnreliableMessages(world: World): UpdateUnreliable[] {
     const time = Date.now()
     const {
       [$worldStorageKey]: { archetypes },
@@ -218,7 +218,7 @@ export function createMessageProducer(
       }
     }
 
-    return [protocol.update(tempSortedByPriority)]
+    return [protocol.updateUnreliable(tempSortedByPriority)]
   }
 
   return {

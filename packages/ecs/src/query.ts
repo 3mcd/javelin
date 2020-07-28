@@ -104,7 +104,7 @@ export function query<S extends Selector>(
         }
 
         if (!match) {
-          continue
+          break
         }
 
         tmpResult[k] = component

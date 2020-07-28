@@ -18,8 +18,6 @@ const world = createWorld({
   systems: [messageHandler.system, interpolate, render],
   componentFactories: [Position, RenderTransform, Red],
 })
-const remoteWorld = createWorld()
-const remoteMessageHandler = createMessageHandler()
 
 let tick = 0
 let previousTime = 0
@@ -32,7 +30,6 @@ function loop(time = 0) {
   }
 
   world.tick(deltaTime)
-  remoteWorld.tick(undefined)
 
   previousTime = time
   requestAnimationFrame(loop)
