@@ -4,7 +4,7 @@ A TypeScript Entity-Component System (ECS) for Node and web browsers.
 
 ## Docs
 
-https://3mcd.github.io/javelin
+Visit https://javelin.games
 
 ## Primer
 
