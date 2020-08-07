@@ -1,0 +1,2 @@
+User-agent: *
+Sitemap: https://javelin.games/sitemap.xml

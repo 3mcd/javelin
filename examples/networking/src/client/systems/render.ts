@@ -1,5 +1,5 @@
 import { ComponentOf, query, World, select } from "@javelin/ecs"
-import { Red } from "../../common/components"
+import { Color } from "../../common/components"
 import { RenderTransform } from "../components/position_buffer"
 import { graphics } from "../graphics"
 
@@ -19,9 +19,9 @@ export function render(world: World, dt: number) {
   graphics.clear()
 
   for (const [position] of culledPositions(world)) {
-    graphics.beginFill(
-      world.tryGetComponent(position._e, Red) ? 0xff0000 : 0x00ff00,
-    )
+    const color = world.tryGetComponent(position._e, Color)
+
+    graphics.beginFill(color?.value || 0x00ff00)
     graphics.drawRect(position.x, position.y, 2, 2)
     graphics.endFill()
   }

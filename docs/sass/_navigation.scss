@@ -1,0 +1,60 @@
+.menu {
+  height: 100%;
+  left: 0;
+  overflow-y: auto;
+  flex: 0 0 #{$sidebar-width};
+  color: #425461;
+  padding-top: 8px;
+  z-index: 1;
+
+  h1 {
+    font-size: 2em;
+    font-weight: 400;
+  }
+
+  img {
+    width: 84.25px;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    a {
+      display: inline-block;
+      color: #364149;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+      text-decoration: none;
+      padding: 3px 0px;
+
+      &:hover {
+        border-bottom: 2px solid $color--link;
+      }
+
+      border-bottom: 2px solid rgba(255, 255, 255, 0);
+    }
+
+    li.active > a {
+      color: $color--link;
+      text-decoration: none;
+      border-bottom: 2px solid $color--link;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+  }
+}
+
+.menu-hidden {
+  width: 0;
+}
+
+@include max-screen(600px) {
+  .menu {
+    width: 0;
+  }
+}

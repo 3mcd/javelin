@@ -137,8 +137,8 @@ export function createMessageProducer(
         const { type } = config.type
         const row = archetype.layout.indexOf(type)
 
-        // Not a valid archetype match
-        if (row === -1) {
+        // Not a valid archetype match or unreliable
+        if (row === -1 || typeof config.priority === "number") {
           continue
         }
 
@@ -148,10 +148,7 @@ export function createMessageProducer(
           const entity = archetype.entities[k]
           const component = components[archetype.indices[entity]]!
 
-          if (
-            typeof config.priority !== "number" &&
-            changedCache.matchComponent(component, world)
-          ) {
+          if (changedCache.matchComponent(component, world)) {
             payloadChanged.push(component)
           }
         }

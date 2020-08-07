@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+      
+
+      <!-- CSS -->
+      
+      <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+      <link rel="stylesheet" href="https://javelin.games/book.css">
+      
+
+      
+      
+    </head>
+
+    <body>
+        <main>
+            <div class="menu">
+                <h1>Javelin</h1>
+                
+                
+                <nav role="navigation">
+                    <ul>
+                        
+                            
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
+                                        
+                                        Introduction
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
+                                        
+                                        ECS
+                                    </a>
+                                    
+                                        <ul>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;installation&#x2F;">
+                                                        
+                                                        Installation
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
+                                                        
+                                                        Hello World
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;entities&#x2F;">
+                                                        
+                                                        Entities
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;components&#x2F;">
+                                                        
+                                                        Components
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;systems&#x2F;">
+                                                        
+                                                        Systems
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;filtering&#x2F;">
+                                                        
+                                                        Filtering
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;tagging&#x2F;">
+                                                        
+                                                        Tagging
+                                                    </a>
+                                                </li>
+                                            
+                                                <li class="active">
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;topics&#x2F;">
+                                                        
+                                                        Topics
+                                                    </a>
+                                                </li>
+                                            
+                                        </ul>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;networking&#x2F;">
+                                        
+                                        Networking
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;devtools&#x2F;">
+                                        
+                                        Devtools
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;examples&#x2F;">
+                                        
+                                        Examples
+                                    </a>
+                                    
+                                </li>
+                            
+                        
+                    </ul>
+                </nav>
+                
+                
+            </div>
+
+            <div class="page">
+                <div class="page__content">
+                    
+                    <div class="search-container">
+                        <input id="search" type="search" placeholder="Search..">
+                        <div class="search-results">
+                            <div class="search-results__header"></div>
+                            <ul class="search-results__items"></ul>
+                        </div>
+                    </div>
+                    
+                    <div class="book-content">
+                        
+<h1>Topics</h1>
+<h2 id="inter-system-communication">Inter-System Communication<a class="zola-anchor" href="#inter-system-communication" aria-label="Anchor link for: inter-system-communication"
+  >#</a
+>
+</h2>
+<p>Sometimes you need a way of dispatching a message to be handled by a different system without the hassle of setting up a singleton component. Topics are simple FIFO buffers that hold on to messages between ticks that can be used to signal events or expose an RPC-like API to a system.</p>
+<p>Topics are created using the <code>createTopic&lt;T&gt;()</code> function, where <code>T</code> is types of messages that can be accepted by the topic. The <code>createTopic</code> function is defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/topic.ts">topic.ts</a>.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createTopic } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
+
+</span><span style="color:#388282;">type </span><span style="color:#555c64;">PhysicsCommand </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">&quot;jump&quot;</span><span style="color:#555c64;">, </span><span style="color:#88669e;">number</span><span style="color:#555c64;">]
+
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsTopic </span><span style="color:#388282;">= </span><span style="color:#555c64;">createTopic&lt;PhysicsCommand&gt;()
+</span></code></pre>
+<p>Messages are enqueued using the <code>topic.push()</code> method.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">topic.push([</span><span style="color:#4179ad;">&quot;jump&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">23</span><span style="color:#555c64;">])
+</span></code></pre>
+<p>Messages are unavailable until the <code>topic.flush()</code> method is called. This means, by default, new messages are not readable until the next tick. It's recommended to flush the topics in your main game loop, after calling <code>world.tick</code>.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">tick </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  world.tick()
+  physicsTopic.flush()
+}
+</span></code></pre>
+<p>Messages are then read using a simple <code>for..of</code> loop.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ physicsTopic } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;./physics_topic&quot;
+
+</span><span style="color:#8c95a0;">// third-party physics engine
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsEngine </span><span style="color:#388282;">= new </span><span style="color:#555c64;">PhysicsEngine()
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">command </span><span style="color:#388282;">of </span><span style="color:#555c64;">physicsTopic) {
+    </span><span style="color:#388282;">if </span><span style="color:#555c64;">(command[</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">] </span><span style="color:#388282;">=== </span><span style="color:#4179ad;">&quot;jump&quot;</span><span style="color:#555c64;">) {
+      physicsEngine.jump(physicsEngine.getBodyForEntity(command[</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">]))
+    }
+  }
+
+  </span><span style="color:#8c95a0;">// ...
+</span><span style="color:#555c64;">}
+</span></code></pre>
+<p>Sometimes you want messages to be processed as quickly as possible. If you want a message to be iterable during the current tick, you can use <code>topic.pushImmediate</code>.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">topic.pushImmediate([</span><span style="color:#4179ad;">&quot;jump&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">24</span><span style="color:#555c64;">])
+</span></code></pre>
+<p><strong>Note</strong> — keep in mind that the order that systems are registered and executed in matters when using <code>topic.pushImmediate</code>.</p>
+ 
+                    </div>
+                </div>
+
+                <div class="prev-link">
+                    
+                    
+                </div>
+
+                <div class="next-link">
+                    
+                    
+                </div>
+            </div>
+        </main>
+
+        
+        
+    </body>
+
+</html>

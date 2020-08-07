@@ -1,2 +1,2 @@
+export * from "./color"
 export * from "./position"
-export * from "./red"

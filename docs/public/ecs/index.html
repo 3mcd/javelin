@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+      
+
+      <!-- CSS -->
+      
+      <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+      <link rel="stylesheet" href="https://javelin.games/book.css">
+      
+
+      
+      
+    </head>
+
+    <body>
+        <main>
+            <div class="menu">
+                <h1>Javelin</h1>
+                
+                
+                <nav role="navigation">
+                    <ul>
+                        
+                            
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
+                                        
+                                        Introduction
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li class="active">
+                                    
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
+                                        
+                                        ECS
+                                    </a>
+                                    
+                                        <ul>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;installation&#x2F;">
+                                                        
+                                                        Installation
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
+                                                        
+                                                        Hello World
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;entities&#x2F;">
+                                                        
+                                                        Entities
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;components&#x2F;">
+                                                        
+                                                        Components
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;systems&#x2F;">
+                                                        
+                                                        Systems
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;filtering&#x2F;">
+                                                        
+                                                        Filtering
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;tagging&#x2F;">
+                                                        
+                                                        Tagging
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;topics&#x2F;">
+                                                        
+                                                        Topics
+                                                    </a>
+                                                </li>
+                                            
+                                        </ul>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;networking&#x2F;">
+                                        
+                                        Networking
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;devtools&#x2F;">
+                                        
+                                        Devtools
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;examples&#x2F;">
+                                        
+                                        Examples
+                                    </a>
+                                    
+                                </li>
+                            
+                        
+                    </ul>
+                </nav>
+                
+                
+            </div>
+
+            <div class="page">
+                <div class="page__content">
+                    
+                    <div class="search-container">
+                        <input id="search" type="search" placeholder="Search..">
+                        <div class="search-results">
+                            <div class="search-results__header"></div>
+                            <ul class="search-results__items"></ul>
+                        </div>
+                    </div>
+                    
+                    <div class="book-content">
+                        
+<h1>ECS</h1>
+<h2 id="what-s-an-ecs">What's an ECS?<a class="zola-anchor" href="#what-s-an-ecs" aria-label="Anchor link for: what-s-an-ecs"
+  >#</a
+>
+</h2>
+<p>In traditional OOP game development, entity data and behavior exist within class heirarchies. Take the following (somewhat contrived) example, where the <code>Player</code> class extends <code>Body</code> to enhance players with physics properties:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">class </span><span style="color:#555c64;">Body {
+  </span><span style="color:#388282;">readonly </span><span style="color:#555c64;">velocity </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">];
+}
+
+</span><span style="color:#388282;">class </span><span style="color:#555c64;">Player </span><span style="color:#388282;">extends </span><span style="color:#88669e;">Body </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">readonly </span><span style="color:#555c64;">name</span><span style="color:#388282;">: </span><span style="color:#88669e;">string</span><span style="color:#555c64;">;
+
+  </span><span style="color:#388282;">constructor</span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">name</span><span style="color:#388282;">: </span><span style="color:#88669e;">string</span><span style="color:#555c64;">) {
+    this.name </span><span style="color:#388282;">= </span><span style="color:#555c64;">name;
+  }
+
+  jump() {
+    this.velocity[</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">] </span><span style="color:#388282;">+= </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">;
+  }
+}
+
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">input </span><span style="color:#388282;">= new </span><span style="color:#555c64;">Input();
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">player </span><span style="color:#388282;">= new </span><span style="color:#555c64;">Player();
+
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">step </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(input.isSpacebarPressed()) {
+    </span><span style="color:#8c95a0;">// apply force to launch player into the air
+    </span><span style="color:#555c64;">player.jump();
+  }
+};
+</span></code></pre>
+<p>The player presses spacebar on their keyboard, <code>player.jump()</code> is executed, and the player moves upwards. But what if a player connects who is spectating our game and not controlling an actor? In this case, it isn't necessary for <code>Player</code> to extend <code>Body</code>, and we'd either need to write assertions to ensure that spectators shouldn't update data within the physics simulation, or drastically modify our class/inheritance structure.</p>
+<p>Data and behavior are separate concerns in an ECS. High-cohesion game objects are replaced with distinct <strong>entities</strong>, <strong>components</strong>, and <strong>systems</strong>. This pattern gives us the ability to modify the behavior of entities at runtime through composition.</p>
+<h2 id="ecs-atoms">ECS Atoms<a class="zola-anchor" href="#ecs-atoms" aria-label="Anchor link for: ecs-atoms"
+  >#</a
+>
+</h2>
+<h3 id="components">Components<a class="zola-anchor" href="#components" aria-label="Anchor link for: components"
+  >#</a
+>
+</h3>
+<p>Components are plain objects that contain data, but not methods. Ideally all game state lives in components, although this is seldom achieved since most projects will use third-party libraries.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">type </span><span style="color:#555c64;">Player </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ name</span><span style="color:#388282;">: </span><span style="color:#88669e;">string </span><span style="color:#555c64;">};
+</span><span style="color:#388282;">type </span><span style="color:#555c64;">Input </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ space</span><span style="color:#388282;">: </span><span style="color:#88669e;">boolean </span><span style="color:#555c64;">};
+</span><span style="color:#388282;">type </span><span style="color:#555c64;">Body </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ velocity</span><span style="color:#388282;">: </span><span style="color:#555c64;">[</span><span style="color:#88669e;">number</span><span style="color:#555c64;">, </span><span style="color:#88669e;">number</span><span style="color:#555c64;">] };
+</span></code></pre><h3 id="entities">Entities<a class="zola-anchor" href="#entities" aria-label="Anchor link for: entities"
+  >#</a
+>
+</h3>
+<p>Entities are tuples of components that represent higher-order game objects. They are absent of any data or behavior.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#8c95a0;">// (Player, Input, Velocity)
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">entity </span><span style="color:#388282;">= </span><span style="color:#555c64;">[
+  { player: </span><span style="color:#4179ad;">&quot;xXpubstomperXx&quot; </span><span style="color:#555c64;">},
+  { space: </span><span style="color:#a35d66;">true </span><span style="color:#555c64;">},
+  { velocity: [</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">] },
+];
+</span></code></pre><h3 id="systems">Systems<a class="zola-anchor" href="#systems" aria-label="Anchor link for: systems"
+  >#</a
+>
+</h3>
+<p>Systems are stateless functions that implement game behavior by reading and modifying a components. The following example updates the player's physics body based on its input component:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">physicsSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">const </span><span style="color:#555c64;">[, input, body] </span><span style="color:#388282;">= </span><span style="color:#555c64;">entity;
+
+  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(input.space) {
+    body.velocity[</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">] </span><span style="color:#388282;">+= </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">;
+  }
+};
+</span></code></pre><h2 id="iteration">Iteration<a class="zola-anchor" href="#iteration" aria-label="Anchor link for: iteration"
+  >#</a
+>
+</h2>
+<p>The above example of components, entities, and systems illustrates pattern that wouldn't scale to a game of any real complexity. The true power of ECS comes with iteration. We can apply the same rules to each entity in our game world with a simple for-of loop!</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">inputSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player, input] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playerInputTuples) {
+    </span><span style="color:#8c95a0;">// ...
+  </span><span style="color:#555c64;">}
+};
+
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player, body] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playerBodyTuples) {
+    </span><span style="color:#8c95a0;">// ...
+  </span><span style="color:#555c64;">}
+};
+</span></code></pre>
+<p>If a player connects who simply wants to spectate, we can create a <code>(Player, Input)</code> entity instead of <code>(Player, Input, Body)</code>. The <code>Input</code> component could allow them to move the game camera around. If they decide they want to jump into the fray, we can insert a <code>Body</code> component into their entity, allowing the player to control a body in the simulation.</p>
+<p>This pattern can be applied to many types of games. For example, an FPS game might consist of systems that handle physics, user input and movement, projectile collisions, and player inventory.</p>
+ 
+                    </div>
+                </div>
+
+                <div class="prev-link">
+                    
+                    
+                </div>
+
+                <div class="next-link">
+                    
+                    
+                </div>
+            </div>
+        </main>
+
+        
+        
+    </body>
+
+</html>

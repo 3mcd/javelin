@@ -1,5 +1,5 @@
 import { query, select, tag, World } from "@javelin/ecs"
-import { Position, Red } from "../../common/components"
+import { Position, Color } from "../../common/components"
 import { Sleep, Velocity } from "../components"
 import { Tags } from "../tags"
 
@@ -34,11 +34,11 @@ export function physics(world: World, dt: number) {
       mutVelocity.y = -(velocity.y * 0.5)
       mutVelocity.x *= 0.5
       mutPosition.y = floorOffset
-      const red = world.tryGetComponent(position._e, Red)
+      const red = world.tryGetComponent(position._e, Color)
       if (red) {
         world.remove(position._e, [red])
       } else {
-        world.insert(position._e, [Red.create()])
+        world.insert(position._e, [Color.create()])
       }
     }
 

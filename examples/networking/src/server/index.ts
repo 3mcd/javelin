@@ -4,11 +4,11 @@ import { createMessageProducer, setUpdateMetadata } from "@javelin/net"
 import { encode } from "@msgpack/msgpack"
 import { Server } from "@web-udp/server"
 import { createServer } from "http"
-import { Position, Red } from "../common/components"
+import { Color, Position } from "../common/components"
 import { ConnectionType } from "../common/types"
 import { Sleep, Velocity } from "./components"
 import { createJunk } from "./entities"
-import { physics, spawn } from "./systems"
+import { cycleColor, physics, spawn } from "./systems"
 import { Client, ConnectionMetadata } from "./types"
 
 const PORT = 8000
@@ -17,12 +17,12 @@ const TICK_RATE = 60
 const server = createServer()
 const udp = new Server({ server })
 const world = createWorld({
-  systems: [spawn, physics],
-  componentFactories: [Position, Velocity, Sleep, Red],
+  systems: [spawn, physics, cycleColor],
+  componentFactories: [Position, Velocity, Sleep, Color],
 })
 
 const messageProducer = createMessageProducer({
-  components: [{ type: Position, priority: 1 }, { type: Red }],
+  components: [{ type: Position, priority: 1 }, { type: Color }],
   updateInterval: (1 / 20) * 1000,
   updateSize: 1000,
 })

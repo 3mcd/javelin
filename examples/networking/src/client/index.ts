@@ -3,7 +3,7 @@ import { createMessageHandler, JavelinMessage } from "@javelin/net"
 import { decode } from "@msgpack/msgpack"
 import { Client } from "@web-udp/client"
 import { ConnectionOptions } from "@web-udp/client/lib/provider"
-import { Position, Red } from "../common/components"
+import { Position, Color } from "../common/components"
 import { ConnectionType } from "../common/types"
 import { RenderTransform } from "./components/position_buffer"
 import { app, framerate } from "./graphics"
@@ -16,7 +16,7 @@ const udp = new Client({
 const messageHandler = createMessageHandler()
 const world = createWorld({
   systems: [messageHandler.system, interpolate, render],
-  componentFactories: [Position, RenderTransform, Red],
+  componentFactories: [Position, RenderTransform, Color],
 })
 
 let tick = 0

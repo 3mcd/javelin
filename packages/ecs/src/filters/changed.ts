@@ -2,7 +2,7 @@ import { Component, ComponentType } from "../component"
 import { Filter } from "../query"
 
 export function changed(...componentTypes: ComponentType[]): Filter {
-  const check = componentTypes.length > 0
+  const checkTypes = componentTypes.length > 0
   const types = componentTypes.map(s => s.type)
   const cache = new WeakMap<Component, number>()
 
@@ -11,7 +11,7 @@ export function changed(...componentTypes: ComponentType[]): Filter {
   }
 
   function matchComponent(component: Component) {
-    if (check && !types.includes(component._t)) {
+    if (checkTypes && !types.includes(component._t)) {
       return true
     }
 
