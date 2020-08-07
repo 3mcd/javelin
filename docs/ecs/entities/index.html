@@ -193,7 +193,7 @@ world.insert(entity, [input]) </span><span style="color:#8c95a0;">// archetype -
   >#</a
 >
 </h2>
-<p>Operations such as creating, inserting, removing, and destroying entities are deferred until the next <code>world.tick()</code> call. This is done to improve the reliability of systems (i.e. systems never &quot;miss&quot; changes to entities, discussed in the <a href="/ecs/filtering">Filtering</a> chapter). Each of these transactions is represented by a <code>WorldOp</code>.</p>
+<p>Operations such as creating, inserting, removing, and destroying entities are deferred until the next <code>world.tick()</code> call. This is done to improve the reliability of systems (i.e. systems never &quot;miss&quot; changes to entities, discussed in the <a href="/ecs/filtering">Filtering</a> section). Each of these transactions is represented by a <code>WorldOp</code>.</p>
 <p>You can review the types of operations in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world_op.ts">world_op.ts</a>. These objects are used in the Javelin network protocol to synchronize entities reliably between client and server.</p>
  
                     </div>

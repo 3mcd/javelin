@@ -47,7 +47,7 @@ World { }, 16.66666666
 World { }, 16.66666666
 ```
 
-**Note** — maintaining state using `data` is an antipattern since it is injected from outside of your game world. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the [Topics](/ecs/topics) chapter.
+**Note** — maintaining state using `data` is an antipattern since it is injected from outside of your game world. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the [Topics](/ecs/topics) section.
 
 ## Querying and Iteration
 

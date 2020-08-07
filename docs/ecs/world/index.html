@@ -175,29 +175,30 @@
   >#</a
 >
 </h2>
+<p><strong>Note</strong> — the following chapters assume that you are familiar with basic ECS concepts discussed in the <a href="ecs/">opening section</a>.</p>
 <p>A <code>World</code> is responsible for maintaining entities and executing systems. Most games will use a single world instance.</p>
-<p>Worlds are created using the <code>createWorld</code> function defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts">world.ts</a>. <code>createWorld</code> takes a configuration object which may optionally contains an array of systems that the world should execute each tick.</p>
+<p>Worlds are created using the <code>createWorld</code> function defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts">world.ts</a>. <code>createWorld</code> accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createWorld } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;</span><span style="color:#555c64;">;
+<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createWorld } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
 
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({
   systems: [() </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;Tick!&quot;</span><span style="color:#555c64;">)],
-});
+})
 </span></code></pre>
-<p>Systems can be added after a world is initialized using the <code>world.addSystem</code> method:</p>
+<p>Systems can also be registered after a world is initialized using the <code>world.addSystem</code> method:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">world.addSystem(() </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;Tock!&quot;</span><span style="color:#555c64;">));
+<code><span style="color:#555c64;">world.addSystem(() </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;Tock!&quot;</span><span style="color:#555c64;">))
 </span></code></pre>
 <p>Calling <code>world.tick()</code> will process operations that occurred during the previous tick such as adding, removing, updating entities. Then, all systems will be executed in the order that they were registered.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">setInterval(world.tick, </span><span style="color:#4179ad;">1000</span><span style="color:#555c64;">);
+<code><span style="color:#555c64;">setInterval(world.tick, </span><span style="color:#4179ad;">1000</span><span style="color:#555c64;">)
 </span></code></pre>
-<p>More on systems in the <a href="/ecs/systems">Systems</a> chapter!</p>
+<p>More on systems later in the <a href="/ecs/systems">Systems</a> section!</p>
 <h2 id="component-factories">Component Factories<a class="zola-anchor" href="#component-factories" aria-label="Anchor link for: component-factories"
   >#</a
 >
 </h2>
-<p>The configuration object also accepts an array of component factories whose components will automatically be released back to an object pool when they are removed, or their entity is destroyed. We'll see how to create component factories in the <a href="/ecs/components">Components</a> chapter.</p>
+<p>The configuration object also accepts an array of component factories whose components will automatically be released back to an object pool when they are removed, or their entity is destroyed. We'll see how to create component factories in the <a href="/ecs/components">Components</a> section.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({
     systems: [</span><span style="color:#388282;">...</span><span style="color:#555c64;">],
@@ -209,7 +210,7 @@
 </span></code></pre>
 <p>Component factories can be added after world initialization via the <code>world.registerComponentFactory</code> method:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">world.registerComponentFactory(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">);
+<code><span style="color:#555c64;">world.registerComponentFactory(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">)
 </span></code></pre> 
                     </div>
                 </div>

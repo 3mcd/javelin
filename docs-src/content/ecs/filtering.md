@@ -39,4 +39,4 @@ Javelin also provides the following filters:
 - `committed` ignores entities that were created or destroyed last tick
 - `created` detects newly created entities
 - `destroyed` detects recently destroyed entities
-- `tag` isolates entities by tags, which are discussed in the [Tagging](/ecs/tagging) chapter
+- `tag` isolates entities by tags, which are discussed in the [Tagging](/ecs/tagging) sectino
