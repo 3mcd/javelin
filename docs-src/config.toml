@@ -1,3 +1,6 @@
+# title
+title = "Javelin Docs"
+
 # The URL the site will be built for
 base_url = "https://javelin.games"
 
@@ -17,4 +20,4 @@ highlight_theme = "snow-light"
 # Put all your custom variables here
 theme = "book"
 book_numbered_chapters = false
-title = "Javelin Docs"
+

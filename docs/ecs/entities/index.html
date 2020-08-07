@@ -7,7 +7,7 @@
       <!-- Enable responsiveness on mobile devices-->
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
-      <title></title>
+      <title>Javelin Docs</title>
 
       
       
@@ -109,6 +109,13 @@
                                                     </a>
                                                 </li>
                                             
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;performance&#x2F;">
+                                                        
+                                                        Performance
+                                                    </a>
+                                                </li>
+                                            
                                         </ul>
                                     
                                 </li>
@@ -186,8 +193,8 @@ world.insert(entity, [input]) </span><span style="color:#8c95a0;">// archetype -
   >#</a
 >
 </h2>
-<p>Operations such as creating, inserting, removing, and destroying entities are deferred until the next <code>world.tick()</code> call. This is done to improve the reliability of systems (i.e. systems never &quot;miss&quot; changes entities, discussed later). Each of these transactions is represented by a <code>WorldOp</code>.</p>
-<p>You can review the type definitions of all potential operations in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world_op.ts">world_op.ts</a>. These objects are used in the Javelin network protocol to synchronize entities reliably between client&lt;&gt;server.</p>
+<p>Operations such as creating, inserting, removing, and destroying entities are deferred until the next <code>world.tick()</code> call. This is done to improve the reliability of systems (i.e. systems never &quot;miss&quot; changes to entities, discussed in the <a href="/ecs/filtering">Filtering</a> chapter). Each of these transactions is represented by a <code>WorldOp</code>.</p>
+<p>You can review the types of operations in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world_op.ts">world_op.ts</a>. These objects are used in the Javelin network protocol to synchronize entities reliably between client and server.</p>
  
                     </div>
                 </div>

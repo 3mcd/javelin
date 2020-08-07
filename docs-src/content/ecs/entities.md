@@ -27,6 +27,6 @@ world.remove(entity, [input]) // archetype -> (1)
 
 ## World Operations
 
-Operations such as creating, inserting, removing, and destroying entities are deferred until the next `world.tick()` call. This is done to improve the reliability of systems (i.e. systems never "miss" changes entities, discussed later). Each of these transactions is represented by a `WorldOp`.
+Operations such as creating, inserting, removing, and destroying entities are deferred until the next `world.tick()` call. This is done to improve the reliability of systems (i.e. systems never "miss" changes to entities, discussed in the [Filtering](/ecs/filtering) chapter). Each of these transactions is represented by a `WorldOp`.
 
-You can review the type definitions of all potential operations in [world_op.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world_op.ts). These objects are used in the Javelin network protocol to synchronize entities reliably between client<>server.
+You can review the types of operations in [world_op.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world_op.ts). These objects are used in the Javelin network protocol to synchronize entities reliably between client and server.

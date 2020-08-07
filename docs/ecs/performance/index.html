@@ -53,7 +53,7 @@
                                     
                                         <ul>
                                             
-                                                <li class="active">
+                                                <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;installation&#x2F;">
                                                         
                                                         Installation
@@ -109,7 +109,7 @@
                                                     </a>
                                                 </li>
                                             
-                                                <li >
+                                                <li class="active">
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;performance&#x2F;">
                                                         
                                                         Performance
@@ -170,10 +170,60 @@
                     
                     <div class="book-content">
                         
-<h1>Installation</h1>
-<p>Javelin ECS has zero dependencies and can be installed via <code>npm</code> or <code>yarn</code>.</p>
+<h1>Performance</h1>
+<h2 id="iteration">Iteration<a class="zola-anchor" href="#iteration" aria-label="Anchor link for: iteration"
+  >#</a
+>
+</h2>
+<p>Javelin ECS can currently process around 650k entities per 16ms tick.</p>
+<p>An entity's components are stored in a table called an <strong>archetype</strong> with components belonging to other entities of the exact same composition. In theory, this improves iteration speed due to fewer cache misses since fewer indices are skipped than if we were to iterate all entities each tick.</p>
+<p>In addition, the array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. That is to say, when querying for entities with components <code>(A, B)</code>, we can skip iteration of entities within all archetypes that aren't superset of <code>(A, B)</code>.</p>
+<p>You can see how archtypes and component storage are implemented in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/archetype.ts">archetype.ts</a> and <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/storage.ts">storage.ts</a>, respectively.</p>
+<h3 id="resources">Resources<a class="zola-anchor" href="#resources" aria-label="Anchor link for: resources"
+  >#</a
+>
+</h3>
+<ul>
+<li><a href="https://csherratt.github.io/blog/posts/specs-and-legion/">Specs and Legion, two very different approaches to ECS </a> by <a href="https://github.com/csherratt">Cora Sherratt</a></li>
+<li><a href="https://medium.com/@ajmmertens/building-an-ecs-2-archetypes-and-vectorization-fe21690805f9">Building an ECS #2: Archetypes and Vectorization
+</a> by <a href="https://github.com/SanderMertens">Sander Mertens</a></li>
+<li><a href="https://medium.com/walkme-engineering/memory-in-javascript-beyond-leaks-8c1d697c655c">Memory in Javascript— Beyond Leaks</a> by <a href="https://github.com/yonatankra">Yonatan Kra</a></li>
+</ul>
+<h2 id="garbage">Garbage<a class="zola-anchor" href="#garbage" aria-label="Anchor link for: garbage"
+  >#</a
+>
+</h2>
+<p>Javelin ECS uses very little memory and thus produces very little garbage. Below is a screenshot of an allocation timeline where 10k entities are iterated by 3 systems per tick at 60Hz. The memory growth (0.3mb) is consistent with standard <code>setInterval</code> or <code>requestAnimationFrame</code> performance and there is no &quot;sawtooth&quot; pattern of frequent, minor GC events.</p>
+<p><strong>Simple <code>requestAnimationFrame</code> loop</strong>
+<img src="/perf-raf.png" alt="" /></p>
+<p><strong>Simple <code>requestAnimationFrame</code> loop @ 10k entities/tick</strong>
+<img src="/perf-raf-ecs.png" alt="" /></p>
+<p>A custom iterator is implemented in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/query.ts">query.ts</a> which re-uses the same iterable instance for each query execution. Upgrading to a handwritten iterator from generator functions doubled the speed of iteration and eliminated ~5kb/s worth of garbage accumulation.</p>
+<h2 id="performance-tests">Performance tests<a class="zola-anchor" href="#performance-tests" aria-label="Anchor link for: performance-tests"
+  >#</a
+>
+</h2>
+<p>Run the performance tests by cloning the repository and running <code>yarn perf</code>:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">npm i @javelin/ecs
+<code><span style="color:#555c64;">git clone https://github.com/3mcd/javelin
+cd javelin
+yarn </span><span style="color:#388282;">&amp;&amp; </span><span style="color:#555c64;">yarn:perf
+</span></code></pre>
+<p>Example <code>yarn perf</code> output:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">========================================
+perf_storage
+========================================
+create: 229.866ms
+run: 15520.090ms
+destroy: 13.510ms
+entities      | 540000
+components    | 4
+queries       | 4
+ticks         | 1000
+iter          | 630630000
+iter_tick     | 630630
+avg_tick      | 15.987ms
 </span></code></pre> 
                     </div>
                 </div>
