@@ -15,7 +15,7 @@ The primary goals of Javelin are speed, minimalism, and ease-of-use. A secondary
 
 ## Docs
 
-Visit https://3mcd.github.io/javelin
+Visit https://javelin.games
 
 ## Packages
 
