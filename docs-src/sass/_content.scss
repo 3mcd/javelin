@@ -3,6 +3,12 @@
   overflow-y: auto;
   padding-bottom: 20px;
   flex: 1 1 auto;
+  overflow: visible;
+
+  h1 {
+    margin-top: 0;
+    font-size: 1.8rem;
+  }
 
   h1,
   h2,
@@ -10,17 +16,26 @@
   h4,
   h5,
   h6 {
+    position: relative;
+    overflow: visible;
+
     .zola-anchor {
       color: $color--link;
-      text-decoration: none;
-      font-weight: initial;
-      position: absolute;
-      left: -10px;
-      opacity: 0;
-      padding: 0 10px;
-      box-sizing: border-box;
       cursor: pointer;
+      font-size: 1rem;
+      font-weight: initial;
+      left: 0px;
+      opacity: 0;
+      padding: 0 1rem;
+      position: absolute;
+      text-align: center;
+      text-decoration: none;
+      top: 50%;
+      width: 30px;
+      text-align: center;
+      transform: translateY(-50%) translateX(-100%);
       transition: opacity 100ms linear;
+      z-index: 999;
 
       &:hover {
         text-decoration: underline;
@@ -40,6 +55,9 @@
   }
 
   &__content {
+    position: relative;
+    overflow: visible;
+
     a {
       color: $color--link;
       text-decoration: none;
@@ -98,11 +116,7 @@
     }
 
     word-wrap: break-word;
-    line-height: 1.5;
-    position: relative;
-    left: 0;
-    max-width: 800px;
-    margin: 0 auto;
+    line-height: 1.8;
     padding: 0 15px 40px;
 
     p {

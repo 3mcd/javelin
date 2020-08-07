@@ -3,9 +3,9 @@ title = "Hello World"
 weight = 2
 +++
 
-## World
+**Note** — the following chapters assume that you are familiar with basic ECS concepts discussed in the [opening section](/ecs).
 
-**Note** — the following chapters assume that you are familiar with basic ECS concepts discussed in the [opening section](ecs/).
+## World
 
 A `World` is responsible for maintaining entities and executing systems. Most games will use a single world instance.
 

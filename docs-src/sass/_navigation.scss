@@ -6,10 +6,17 @@
   color: #425461;
   padding-top: 8px;
   z-index: 1;
+  position: sticky;
+  top: 0;
 
   h1 {
-    font-size: 2em;
     font-weight: 400;
+    margin-bottom: 2rem;
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
   }
 
   img {

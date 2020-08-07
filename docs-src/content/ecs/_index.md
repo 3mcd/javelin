@@ -5,9 +5,11 @@ sort_by = "weight"
 insert_anchor_links = "right"
 +++
 
+**Note** — all code samples in this section are written in pseudo-code.
+
 ## What's an ECS?
 
-In traditional OOP game development, entity data and behavior might be realized through a class heirarchy. Take the following example, where a `Player` class extends a physics `Body` class to enhance players with physics properties:
+In traditional OOP game development, entity data and behavior might be architected using a class heirarchy. Take the following example, where a `Player` class extends a physics `Body` class to enhance players with physics properties:
 
 ```typescript
 class Body {
@@ -30,12 +32,12 @@ class Player extends Body {
 const input = new Input()
 const player = new Player()
 
-const step = () => {
+setInterval(() => {
   if (input.isSpacebarPressed()) {
     // apply force to launch player into the air
     player.jump()
   }
-}
+}, 16.66666)
 ```
 
 The player presses spacebar on their keyboard, `player.jump()` is executed, and the player moves upwards. But what if a player connects who is spectating our game and not controlling an actor? In this case, it isn't necessary for `Player` to extend `Body`, and we'd either need to write code to ensure that spectators shouldn't update data within the physics simulation, or drastically modify our inheritance structure.
@@ -54,12 +56,12 @@ type Body = { velocity: [number, number] }
 
 ### Entities
 
-Entities are tuples of components that represent higher-order game objects. They are absent of any data or behavior.
+Entities are tuples of components that represent higher-order game objects. They do not contain any data of their own.
 
 ```typescript
 // (Player, Input, Velocity)
 const entity = [
-  { player: "xXpubstomperXx" },
+  { name: "xXpubstomperXx" },
   { space: true },
   { velocity: [0, 0] },
 ]
@@ -67,7 +69,7 @@ const entity = [
 
 ### Systems
 
-Systems are stateless functions that implement behavior by reading and modifying a components. The following example updates the player's physics body based on its input component:
+Systems are stateless functions that implement behavior by reading and modifying components. The following example updates the player's physics body based on its input component:
 
 ```typescript
 const physicsSystem = () => {
@@ -81,18 +83,29 @@ const physicsSystem = () => {
 
 ## Iteration
 
-The above example where a single entity is modified each tick wouldn't scale to a game of any real complexity. The true power of ECS comes with iteration. We can apply the same rules to each entity in our game world with a simple for..of loop!
+The above example where a single entity is modified each tick wouldn't scale to a game of any real complexity. The true power of ECS comes with iteration. We can apply the same rules to each entity in our game world with a simple for..of loop.
 
 ```typescript
 const physicsSystem = () => {
-  for (const [input, body] of inputBodyTuples) {
+  for (const [player, input, body] of playersWithBodies) {
     // do something for each player with input and body components
   }
 }
 ```
 
-Now we can add jump behavior to all entities with both an input and a body component.
+We can add jump behavior to _all_ players that have both an input and a body component!
 
-Let's revisit the spectator example above. Now, if a spectator joins the game, we could assign them a `(Player, Input)` entity without a `Body` component. The `Input` component might allow them to move the game camera around. If they decide they want to enter the fray, we can insert a `Body` component into their entity, allowing the player to control an actor in the scene.
+Spectators can now be represented with a `(Player, Input)` entity. Even though they aren't controlling a physics body yet, the `Input` component might allow them to move the game camera around. If the player chooses to enter the fray, we can insert a `Body` component into their entity, allowing them to control an actor in the scene.
+
+```typescript
+for (const [player] of players) {
+  if (player.joining && !hasBody(player)) {
+    world.insert(player, [body])
+    player.joining = false
+  }
+}
+```
+
+The player's entity is now `(Player, Input, Body)`, making it eligible for physics updates from the physics simulation.
 
 This pattern can be applied to many types of games. For example, an FPS game might consist of systems that handle physics, user input and movement, projectile collisions, and player inventory.

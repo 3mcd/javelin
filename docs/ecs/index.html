@@ -14,7 +14,7 @@
 
       <!-- CSS -->
       
-      <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="https://javelin.games/book.css">
       
 
@@ -23,9 +23,19 @@
     </head>
 
     <body>
+        <header>
+          <section>
+            <h1><a href="/introduction">Javelin</a></h1>
+            <nav>
+              <a href="https://github.com/3mcd/javelin">API Docs</a>
+              <a href="https://github.com/3mcd/javelin">GitHub</a>
+            </nav>
+          </section>
+        </header>
         <main>
+          <section>
             <div class="menu">
-                <h1>Javelin</h1>
+
                 
                 
                 <nav role="navigation">
@@ -171,11 +181,12 @@
                     <div class="book-content">
                         
 <h1>ECS</h1>
+<p><strong>Note</strong> — all code samples in this section are written in pseudo-code.</p>
 <h2 id="what-s-an-ecs">What's an ECS?<a class="zola-anchor" href="#what-s-an-ecs" aria-label="Anchor link for: what-s-an-ecs"
   >#</a
 >
 </h2>
-<p>In traditional OOP game development, entity data and behavior might be realized through a class heirarchy. Take the following example, where a <code>Player</code> class extends a physics <code>Body</code> class to enhance players with physics properties:</p>
+<p>In traditional OOP game development, entity data and behavior might be architected using a class heirarchy. Take the following example, where a <code>Player</code> class extends a physics <code>Body</code> class to enhance players with physics properties:</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">class </span><span style="color:#555c64;">Body {
   </span><span style="color:#388282;">readonly </span><span style="color:#555c64;">velocity </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">]
@@ -197,12 +208,12 @@
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">input </span><span style="color:#388282;">= new </span><span style="color:#555c64;">Input()
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">player </span><span style="color:#388282;">= new </span><span style="color:#555c64;">Player()
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">step </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">if </span><span style="color:#555c64;">(input.isSpacebarPressed()) {
     </span><span style="color:#8c95a0;">// apply force to launch player into the air
     </span><span style="color:#555c64;">player.jump()
   }
-}
+}, </span><span style="color:#4179ad;">16.66666</span><span style="color:#555c64;">)
 </span></code></pre>
 <p>The player presses spacebar on their keyboard, <code>player.jump()</code> is executed, and the player moves upwards. But what if a player connects who is spectating our game and not controlling an actor? In this case, it isn't necessary for <code>Player</code> to extend <code>Body</code>, and we'd either need to write code to ensure that spectators shouldn't update data within the physics simulation, or drastically modify our inheritance structure.</p>
 <p>Data and behavior are separate concerns in an ECS. High-cohesion game objects are replaced with distinct <strong>entities</strong>, <strong>components</strong>, and <strong>systems</strong>. This pattern gives us the ability to modify the behavior of entities at runtime through composition.</p>
@@ -219,11 +230,11 @@
   >#</a
 >
 </h3>
-<p>Entities are tuples of components that represent higher-order game objects. They are absent of any data or behavior.</p>
+<p>Entities are tuples of components that represent higher-order game objects. They do not contain any data of their own.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#8c95a0;">// (Player, Input, Velocity)
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">entity </span><span style="color:#388282;">= </span><span style="color:#555c64;">[
-  { player: </span><span style="color:#4179ad;">&quot;xXpubstomperXx&quot; </span><span style="color:#555c64;">},
+  { name: </span><span style="color:#4179ad;">&quot;xXpubstomperXx&quot; </span><span style="color:#555c64;">},
   { space: </span><span style="color:#a35d66;">true </span><span style="color:#555c64;">},
   { velocity: [</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">] },
 ]
@@ -231,7 +242,7 @@
   >#</a
 >
 </h3>
-<p>Systems are stateless functions that implement behavior by reading and modifying a components. The following example updates the player's physics body based on its input component:</p>
+<p>Systems are stateless functions that implement behavior by reading and modifying components. The following example updates the player's physics body based on its input component:</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">physicsSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">[, input, body] </span><span style="color:#388282;">= </span><span style="color:#555c64;">entity
@@ -244,32 +255,33 @@
   >#</a
 >
 </h2>
-<p>The above example where a single entity is modified each tick wouldn't scale to a game of any real complexity. The true power of ECS comes with iteration. We can apply the same rules to each entity in our game world with a simple for..of loop!</p>
+<p>The above example where a single entity is modified each tick wouldn't scale to a game of any real complexity. The true power of ECS comes with iteration. We can apply the same rules to each entity in our game world with a simple for..of loop.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">physicsSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[input, body] </span><span style="color:#388282;">of </span><span style="color:#555c64;">inputBodyTuples) {
+  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player, input, body] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playersWithBodies) {
     </span><span style="color:#8c95a0;">// do something for each player with input and body components
   </span><span style="color:#555c64;">}
 }
 </span></code></pre>
-<p>Now we can add jump behavior to all entities with both an input and a body component.</p>
-<p>Let's revisit the spectator example above. Now, if a spectator joins the game, we could assign them a <code>(Player, Input)</code> entity without a <code>Body</code> component. The <code>Input</code> component might allow them to move the game camera around. If they decide they want to enter the fray, we can insert a <code>Body</code> component into their entity, allowing the player to control an actor in the scene.</p>
+<p>We can add jump behavior to <em>all</em> players that have both an input and a body component!</p>
+<p>Spectators can now be represented with a <code>(Player, Input)</code> entity. Even though they aren't controlling a physics body yet, the <code>Input</code> component might allow them to move the game camera around. If the player chooses to enter the fray, we can insert a <code>Body</code> component into their entity, allowing them to control an actor in the scene.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player] </span><span style="color:#388282;">of </span><span style="color:#555c64;">players) {
+  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(player.joining </span><span style="color:#388282;">&amp;&amp; !</span><span style="color:#555c64;">hasBody(player)) {
+    world.insert(player, [body])
+    player.joining </span><span style="color:#388282;">= </span><span style="color:#a35d66;">false
+  </span><span style="color:#555c64;">}
+}
+</span></code></pre>
+<p>The player's entity is now <code>(Player, Input, Body)</code>, making it eligible for physics updates from the physics simulation.</p>
 <p>This pattern can be applied to many types of games. For example, an FPS game might consist of systems that handle physics, user input and movement, projectile collisions, and player inventory.</p>
  
                     </div>
                 </div>
-
-                <div class="prev-link">
-                    
-                    
-                </div>
-
-                <div class="next-link">
-                    
-                    
-                </div>
             </div>
+          </section>
         </main>
+
 
         
         

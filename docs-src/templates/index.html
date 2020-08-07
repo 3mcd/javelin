@@ -14,7 +14,7 @@
 
       <!-- CSS -->
       {% block css %}
-      <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="{{ get_url(path="book.css") | safe }}">
       {% endblock css %}
 
@@ -23,9 +23,19 @@
     </head>
 
     <body>
+        <header>
+          <section>
+            <h1><a href="/introduction">Javelin</a></h1>
+            <nav>
+              <a href="https://github.com/3mcd/javelin">API Docs</a>
+              <a href="https://github.com/3mcd/javelin">GitHub</a>
+            </nav>
+          </section>
+        </header>
         <main>
+          <section>
             <div class="menu">
-                <h1>Javelin</h1>
+
                 {% block before_menu %}
                 {% endblock before_menu %}
                 <nav role="navigation">
@@ -77,18 +87,10 @@
                         {% endblock content %}
                     </div>
                 </div>
-
-                <div class="prev-link">
-                    {% block prev_link %}
-                    {% endblock prev_link %}
-                </div>
-
-                <div class="next-link">
-                    {% block next_link %}
-                    {% endblock next_link %}
-                </div>
             </div>
+          </section>
         </main>
+
 
         {% block js_body %}
         {% endblock js_body %}

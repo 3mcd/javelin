@@ -79,18 +79,63 @@ p code {
 
 body {
   text-rendering: optimizeLegibility;
-  font-family: "Source Sans Pro", Arial, Helvetica, sans-serif;
+  font-family: "Inter", Helvetica, Arial, sans-serif;
   letter-spacing: 0.2px;
 }
 
 $color--link: #4179ad;
-$sidebar-width: 10rem;
+$sidebar-width: 13rem;
 
 main {
+  display: flex;
+}
+
+section {
+  display: flex;
+  flex: 1;
   max-width: 1100px;
   margin: 0 auto;
-  display: flex;
   padding: 0 1rem;
+}
+
+header {
+  height: 75px;
+  background-color: #f6f8f8;
+  margin-bottom: 2rem;
+  display: flex;
+
+  section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  h1 {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: 1.3rem;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  nav {
+    flex: 0 1 auto;
+    display: flex;
+
+    a {
+      border-radius: 4px;
+      padding: 1rem;
+      display: flex;
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+    }
+  }
 }
 
 @import "navigation";

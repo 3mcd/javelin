@@ -14,7 +14,7 @@
 
       <!-- CSS -->
       
-      <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="https://javelin.games/book.css">
       
 
@@ -23,9 +23,19 @@
     </head>
 
     <body>
+        <header>
+          <section>
+            <h1><a href="/introduction">Javelin</a></h1>
+            <nav>
+              <a href="https://github.com/3mcd/javelin">API Docs</a>
+              <a href="https://github.com/3mcd/javelin">GitHub</a>
+            </nav>
+          </section>
+        </header>
         <main>
+          <section>
             <div class="menu">
-                <h1>Javelin</h1>
+
                 
                 
                 <nav role="navigation">
@@ -171,11 +181,11 @@
                     <div class="book-content">
                         
 <h1>Hello World</h1>
+<p><strong>Note</strong> — the following chapters assume that you are familiar with basic ECS concepts discussed in the <a href="/ecs">opening section</a>.</p>
 <h2 id="world">World<a class="zola-anchor" href="#world" aria-label="Anchor link for: world"
   >#</a
 >
 </h2>
-<p><strong>Note</strong> — the following chapters assume that you are familiar with basic ECS concepts discussed in the <a href="ecs/">opening section</a>.</p>
 <p>A <code>World</code> is responsible for maintaining entities and executing systems. Most games will use a single world instance.</p>
 <p>Worlds are created using the <code>createWorld</code> function defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts">world.ts</a>. <code>createWorld</code> accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.</p>
 <pre style="background-color:#f6f8f8;">
@@ -214,18 +224,10 @@
 </span></code></pre> 
                     </div>
                 </div>
-
-                <div class="prev-link">
-                    
-                    
-                </div>
-
-                <div class="next-link">
-                    
-                    
-                </div>
             </div>
+          </section>
         </main>
+
 
         
         
