@@ -1,2 +1,2 @@
 User-agent: *
-Sitemap: http://javelin.games/sitemap.xml
+Sitemap: https://javelin.games/sitemap.xml

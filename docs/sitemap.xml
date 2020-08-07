@@ -1,45 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-        <loc>http://javelin.games/</loc>
+        <loc>https://javelin.games/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/devtools/</loc>
+        <loc>https://javelin.games/devtools/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/ecs/</loc>
+        <loc>https://javelin.games/ecs/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/ecs/components/</loc>
+        <loc>https://javelin.games/ecs/components/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/ecs/entities/</loc>
+        <loc>https://javelin.games/ecs/entities/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/ecs/filtering/</loc>
+        <loc>https://javelin.games/ecs/filtering/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/ecs/installation/</loc>
+        <loc>https://javelin.games/ecs/installation/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/ecs/systems/</loc>
+        <loc>https://javelin.games/ecs/systems/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/ecs/tagging/</loc>
+        <loc>https://javelin.games/ecs/tagging/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/ecs/topics/</loc>
+        <loc>https://javelin.games/ecs/topics/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/ecs/world/</loc>
+        <loc>https://javelin.games/ecs/world/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/examples/</loc>
+        <loc>https://javelin.games/examples/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/introduction/</loc>
+        <loc>https://javelin.games/introduction/</loc>
     </url>
     <url>
-        <loc>http://javelin.games/networking/</loc>
+        <loc>https://javelin.games/networking/</loc>
     </url>
 </urlset>
