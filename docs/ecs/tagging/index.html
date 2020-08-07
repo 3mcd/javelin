@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+      
+
+      <!-- CSS -->
+      
+      <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+      <link rel="stylesheet" href="https://3mcd.github.io/javelin/book.css">
+      
+
+      
+      
+    </head>
+
+    <body>
+        <main>
+            <div class="menu">
+                <h1>Javelin</h1>
+                
+                
+                <nav role="navigation">
+                    <ul>
+                        
+                            
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;introduction&#x2F;">
+                                        
+                                        Introduction
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;">
+                                        
+                                        ECS
+                                    </a>
+                                    
+                                        <ul>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;installation&#x2F;">
+                                                        
+                                                        Installation
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;world&#x2F;">
+                                                        
+                                                        Hello World
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;entities&#x2F;">
+                                                        
+                                                        Entities
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;components&#x2F;">
+                                                        
+                                                        Components
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;systems&#x2F;">
+                                                        
+                                                        Systems
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;filtering&#x2F;">
+                                                        
+                                                        Filtering
+                                                    </a>
+                                                </li>
+                                            
+                                                <li class="active">
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;tagging&#x2F;">
+                                                        
+                                                        Tagging
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;topics&#x2F;">
+                                                        
+                                                        Topics
+                                                    </a>
+                                                </li>
+                                            
+                                        </ul>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;networking&#x2F;">
+                                        
+                                        Networking
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;devtools&#x2F;">
+                                        
+                                        Devtools
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;examples&#x2F;">
+                                        
+                                        Examples
+                                    </a>
+                                    
+                                </li>
+                            
+                        
+                    </ul>
+                </nav>
+                
+                
+            </div>
+
+            <div class="page">
+                <div class="page__content">
+                    
+                    <div class="search-container">
+                        <input id="search" type="search" placeholder="Search..">
+                        <div class="search-results">
+                            <div class="search-results__header"></div>
+                            <ul class="search-results__items"></ul>
+                        </div>
+                    </div>
+                    
+                    <div class="book-content">
+                        
+<h1>Tagging</h1>
+<p>Entities can be tagged with bit flags via <code>world.addTag</code>:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">enum </span><span style="color:#555c64;">Tags {
+  Awake </span><span style="color:#388282;">= </span><span style="color:#4179ad;">2 </span><span style="color:#388282;">** </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">,
+  Dying </span><span style="color:#388282;">= </span><span style="color:#4179ad;">2 </span><span style="color:#388282;">** </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">,
+}
+
+world.addTag(entity, Tags.Awake </span><span style="color:#388282;">| </span><span style="color:#555c64;">Tags.Dying)
+</span></code></pre>
+<p>The <code>world.hasTag</code> method can be used to check if an entity has a tag. <code>world.removeTag</code> removes tags from an entity.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">world.hasTag(entity, Tags.Awake) </span><span style="color:#8c95a0;">// -&gt; true
+</span><span style="color:#555c64;">world.hasTag(entity, Tags.Dying) </span><span style="color:#8c95a0;">// -&gt; true
+</span><span style="color:#555c64;">world.removeTag(entity, Tags.Awake)
+world.hasTag(entity, Tags.Awake) </span><span style="color:#8c95a0;">// -&gt; false
+</span></code></pre>
+<p><code>tag</code> produces a filter that will exclude entities which don't have the provided tag(s):</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">enum </span><span style="color:#555c64;">Tags {
+  Nasty </span><span style="color:#388282;">= </span><span style="color:#4179ad;">2 </span><span style="color:#388282;">** </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">,
+  Goopy </span><span style="color:#388282;">= </span><span style="color:#4179ad;">2 </span><span style="color:#388282;">** </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">,
+}
+
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">nastyAndGoopy </span><span style="color:#388282;">= </span><span style="color:#555c64;">query(select(Player), tag(Tags.Nasty </span><span style="color:#388282;">| </span><span style="color:#555c64;">Tags.Goopy))
+
+</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player] </span><span style="color:#388282;">of </span><span style="color:#555c64;">nastyAndGoopy(world)) {
+  </span><span style="color:#8c95a0;">// `player` belongs to an entity with Nasty and Goopy tags
+</span><span style="color:#555c64;">}
+</span></code></pre> 
+                    </div>
+                </div>
+
+                <div class="prev-link">
+                    
+                    
+                </div>
+
+                <div class="next-link">
+                    
+                    
+                </div>
+            </div>
+        </main>
+
+        
+        
+    </body>
+
+</html>

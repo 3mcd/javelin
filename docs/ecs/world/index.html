@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+      
+
+      <!-- CSS -->
+      
+      <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+      <link rel="stylesheet" href="https://3mcd.github.io/javelin/book.css">
+      
+
+      
+      
+    </head>
+
+    <body>
+        <main>
+            <div class="menu">
+                <h1>Javelin</h1>
+                
+                
+                <nav role="navigation">
+                    <ul>
+                        
+                            
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;introduction&#x2F;">
+                                        
+                                        Introduction
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;">
+                                        
+                                        ECS
+                                    </a>
+                                    
+                                        <ul>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;installation&#x2F;">
+                                                        
+                                                        Installation
+                                                    </a>
+                                                </li>
+                                            
+                                                <li class="active">
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;world&#x2F;">
+                                                        
+                                                        Hello World
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;entities&#x2F;">
+                                                        
+                                                        Entities
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;components&#x2F;">
+                                                        
+                                                        Components
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;systems&#x2F;">
+                                                        
+                                                        Systems
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;filtering&#x2F;">
+                                                        
+                                                        Filtering
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;tagging&#x2F;">
+                                                        
+                                                        Tagging
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;ecs&#x2F;topics&#x2F;">
+                                                        
+                                                        Topics
+                                                    </a>
+                                                </li>
+                                            
+                                        </ul>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;networking&#x2F;">
+                                        
+                                        Networking
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;devtools&#x2F;">
+                                        
+                                        Devtools
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
+                                    <a href="https:&#x2F;&#x2F;3mcd.github.io&#x2F;javelin&#x2F;examples&#x2F;">
+                                        
+                                        Examples
+                                    </a>
+                                    
+                                </li>
+                            
+                        
+                    </ul>
+                </nav>
+                
+                
+            </div>
+
+            <div class="page">
+                <div class="page__content">
+                    
+                    <div class="search-container">
+                        <input id="search" type="search" placeholder="Search..">
+                        <div class="search-results">
+                            <div class="search-results__header"></div>
+                            <ul class="search-results__items"></ul>
+                        </div>
+                    </div>
+                    
+                    <div class="book-content">
+                        
+<h1>Hello World</h1>
+<h2 id="world">World<a class="zola-anchor" href="#world" aria-label="Anchor link for: world"
+  >#</a
+>
+</h2>
+<p>A <code>World</code> is responsible for maintaining entities and executing systems. Most games will use a single world instance.</p>
+<p>Worlds are created using the <code>createWorld</code> function defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts">world.ts</a>. <code>createWorld</code> takes a configuration object which may optionally contains an array of systems that the world should execute each tick.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createWorld } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;</span><span style="color:#555c64;">;
+
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({
+  systems: [() </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;Tick!&quot;</span><span style="color:#555c64;">)],
+});
+</span></code></pre>
+<p>Systems can be added after a world is initialized using the <code>world.addSystem</code> method:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">world.addSystem(() </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;Tock!&quot;</span><span style="color:#555c64;">));
+</span></code></pre>
+<p>Calling <code>world.tick()</code> will process operations that occurred during the previous tick such as adding, removing, updating entities. Then, all systems will be executed in the order that they were registered.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">setInterval(world.tick, </span><span style="color:#4179ad;">1000</span><span style="color:#555c64;">);
+</span></code></pre>
+<p>More on systems in the <a href="/ecs/systems">Systems</a> chapter!</p>
+<h2 id="component-factories">Component Factories<a class="zola-anchor" href="#component-factories" aria-label="Anchor link for: component-factories"
+  >#</a
+>
+</h2>
+<p>The configuration object also accepts an array of component factories whose components will automatically be released back to an object pool when they are removed, or their entity is destroyed. We'll see how to create component factories in the <a href="/ecs/components">Components</a> chapter.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({
+    systems: [</span><span style="color:#388282;">...</span><span style="color:#555c64;">],
+    componentFactories: [
+        Player,
+        Body,
+    ]
+})
+</span></code></pre>
+<p>Component factories can be added after world initialization via the <code>world.registerComponentFactory</code> method:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">world.registerComponentFactory(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">);
+</span></code></pre> 
+                    </div>
+                </div>
+
+                <div class="prev-link">
+                    
+                    
+                </div>
+
+                <div class="next-link">
+                    
+                    
+                </div>
+            </div>
+        </main>
+
+        
+        
+    </body>
+
+</html>
