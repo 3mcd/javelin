@@ -185,7 +185,7 @@
   >#</a
 >
 </h2>
-<p>Sometimes it is useful for a system to trigger behavior in a different system. For example, you might have a physics system that wraps a third-party library whose methdos you'd like to expose to other parts of your game.</p>
+<p>Sometimes it's useful for a system to trigger behavior in a different system. For example, you might have a physics system that wraps a third-party library whose methdos you'd like to expose to other parts of your game.</p>
 <p>Let's say you want to apply an impulse to a physics body when a player jumps so it gains some momentum in a direction. One way of doing this is to model the operation as a component.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">type </span><span style="color:#555c64;">Impulse </span><span style="color:#388282;">= </span><span style="color:#555c64;">{
@@ -197,16 +197,16 @@
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#8c95a0;">// player input system
 </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player] </span><span style="color:#388282;">of </span><span style="color:#555c64;">jumping(world)) {
-  world.insert(player._e, Force.create())
+  world.insert(player._e, Impulse.create())
 }
 
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player, force] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playersWithForce(world)) {
-  world.remove(player._e, force)
+</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player, impulse] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playersWithImpulse(world)) {
+  world.remove(player._e, impulse)
 }
 </span></code></pre><pre style="background-color:#f6f8f8;">
 <code><span style="color:#8c95a0;">// physics system
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[body, force] </span><span style="color:#388282;">of </span><span style="color:#555c64;">bodiesWithForce(world)) {
-  physicsEngine.applyForceLocal(body, force)
+</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[body, impulse] </span><span style="color:#388282;">of </span><span style="color:#555c64;">bodiesWithImpulse(world)) {
+  physicsEngine.applyImpulseLocal(body, impulse)
 }
 </span></code></pre>
 <p>This will work fine for a small game; however, adding and removing components in an archetypal ECS can be slow. It's also a little nasty to have to clean up after each operation for what should be fire-and-forget as far as the player input system is concerned.</p>
@@ -215,7 +215,7 @@
 >
 </h3>
 <p>Topics are simple FIFO buffers that hold on to messages between ticks that can be used to signal events or expose an RPC-like API to a system.</p>
-<p>Topics are created using the <code>createTopic&lt;T&gt;()</code> function, where <code>T</code> is types of messages that can be accepted by the topic. The <code>createTopic</code> function is defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/topic.ts">topic.ts</a>.</p>
+<p>Topics are created using the <code>createTopic&lt;T&gt;()</code> function, where <code>T</code> is the type (e.g. a union type) of message managed by the topic. The <code>createTopic</code> function is defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/topic.ts">topic.ts</a>.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createTopic } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
 

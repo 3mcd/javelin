@@ -20,7 +20,7 @@ You can see how archtypes and component storage are implemented in [archetype.ts
   ](https://medium.com/@ajmmertens/building-an-ecs-2-archetypes-and-vectorization-fe21690805f9) by [Sander Mertens](https://github.com/SanderMertens)
 - [Memory in Javascript— Beyond Leaks](https://medium.com/walkme-engineering/memory-in-javascript-beyond-leaks-8c1d697c655c) by [Yonatan Kra](https://github.com/yonatankra)
 
-## Garbage
+## Memory
 
 Javelin ECS uses very little memory and thus produces very little garbage. Below is a screenshot of an allocation timeline where 10k entities are iterated by 3 systems per tick at 60Hz. The memory growth (0.3mb) is consistent with standard `setInterval` or `requestAnimationFrame` performance and there is no "sawtooth" pattern of frequent, minor GC events.
 
@@ -32,7 +32,7 @@ Javelin ECS uses very little memory and thus produces very little garbage. Below
 
 A custom iterator is implemented in [query.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/query.ts) which re-uses the same iterable instance for each query execution. Upgrading to a handwritten iterator from generator functions doubled the speed of iteration and eliminated ~5kb/s worth of garbage accumulation.
 
-## Performance tests
+## Performance Tests
 
 Run the performance tests by cloning the repository and running `yarn perf`:
 

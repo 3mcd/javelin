@@ -5,7 +5,7 @@ weight = 7
 
 ## Inter-System Communication
 
-Sometimes it is useful for a system to trigger behavior in a different system. For example, you might have a physics system that wraps a third-party library whose methdos you'd like to expose to other parts of your game.
+Sometimes it's useful for a system to trigger behavior in a different system. For example, you might have a physics system that wraps a third-party library whose methdos you'd like to expose to other parts of your game.
 
 Let's say you want to apply an impulse to a physics body when a player jumps so it gains some momentum in a direction. One way of doing this is to model the operation as a component.
 
@@ -21,18 +21,18 @@ When you want to apply a impulse to an entity, you could insert an `Impulse` com
 ```typescript
 // player input system
 for (const [player] of jumping(world)) {
-  world.insert(player._e, Force.create())
+  world.insert(player._e, Impulse.create())
 }
 
-for (const [player, force] of playersWithForce(world)) {
-  world.remove(player._e, force)
+for (const [player, impulse] of playersWithImpulse(world)) {
+  world.remove(player._e, impulse)
 }
 ```
 
 ```typescript
 // physics system
-for (const [body, force] of bodiesWithForce(world)) {
-  physicsEngine.applyForceLocal(body, force)
+for (const [body, impulse] of bodiesWithImpulse(world)) {
+  physicsEngine.applyImpulseLocal(body, impulse)
 }
 ```
 
@@ -42,7 +42,7 @@ This will work fine for a small game; however, adding and removing components in
 
 Topics are simple FIFO buffers that hold on to messages between ticks that can be used to signal events or expose an RPC-like API to a system.
 
-Topics are created using the `createTopic<T>()` function, where `T` is types of messages that can be accepted by the topic. The `createTopic` function is defined in [topic.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/topic.ts).
+Topics are created using the `createTopic<T>()` function, where `T` is the type (e.g. a union type) of message managed by the topic. The `createTopic` function is defined in [topic.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/topic.ts).
 
 ```typescript
 import { createTopic } from "@javelin/ecs"
