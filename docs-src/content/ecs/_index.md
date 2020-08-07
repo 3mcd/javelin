@@ -84,19 +84,15 @@ const physicsSystem = () => {
 The above example where a single entity is modified each tick wouldn't scale to a game of any real complexity. The true power of ECS comes with iteration. We can apply the same rules to each entity in our game world with a simple for..of loop!
 
 ```typescript
-const inputSystem = () => {
-  for (const [player, input] of playerInputTuples) {
-    // ...
-  }
-}
-
 const physicsSystem = () => {
-  for (const [player, body] of playerBodyTuples) {
-    // ...
+  for (const [input, body] of inputBodyTuples) {
+    // do something for each player with input and body components
   }
 }
 ```
 
-If a spectator joins the game, we could create a `(Player, Input)` entity without a `Body` component. The `Input` component might allow them to move the game camera around. If they decide they want to jump into the fray, we can insert a `Body` component into their entity, allowing the player to control an actor in the scene.
+Now we can add jump behavior to all entities with both an input and a body component.
+
+Let's revisit the spectator example above. Now, if a spectator joins the game, we could assign them a `(Player, Input)` entity without a `Body` component. The `Input` component might allow them to move the game camera around. If they decide they want to enter the fray, we can insert a `Body` component into their entity, allowing the player to control an actor in the scene.
 
 This pattern can be applied to many types of games. For example, an FPS game might consist of systems that handle physics, user input and movement, projectile collisions, and player inventory.

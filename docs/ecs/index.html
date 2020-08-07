@@ -246,19 +246,14 @@
 </h2>
 <p>The above example where a single entity is modified each tick wouldn't scale to a game of any real complexity. The true power of ECS comes with iteration. We can apply the same rules to each entity in our game world with a simple for..of loop!</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">inputSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player, input] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playerInputTuples) {
-    </span><span style="color:#8c95a0;">// ...
-  </span><span style="color:#555c64;">}
-}
-
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player, body] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playerBodyTuples) {
-    </span><span style="color:#8c95a0;">// ...
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">physicsSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[input, body] </span><span style="color:#388282;">of </span><span style="color:#555c64;">inputBodyTuples) {
+    </span><span style="color:#8c95a0;">// do something for each player with input and body components
   </span><span style="color:#555c64;">}
 }
 </span></code></pre>
-<p>If a spectator joins the game, we could create a <code>(Player, Input)</code> entity without a <code>Body</code> component. The <code>Input</code> component might allow them to move the game camera around. If they decide they want to jump into the fray, we can insert a <code>Body</code> component into their entity, allowing the player to control an actor in the scene.</p>
+<p>Now we can add jump behavior to all entities with both an input and a body component.</p>
+<p>Let's revisit the spectator example above. Now, if a spectator joins the game, we could assign them a <code>(Player, Input)</code> entity without a <code>Body</code> component. The <code>Input</code> component might allow them to move the game camera around. If they decide they want to enter the fray, we can insert a <code>Body</code> component into their entity, allowing the player to control an actor in the scene.</p>
 <p>This pattern can be applied to many types of games. For example, an FPS game might consist of systems that handle physics, user input and movement, projectile collisions, and player inventory.</p>
  
                     </div>
