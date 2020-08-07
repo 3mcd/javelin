@@ -5,11 +5,11 @@ weight = 3
 
 ## Creating Entities
 
-Entities are created using `world.create`. This method accepts tuple of components and returns the newly created entity. The tuple of components associated with an entity defines its **archetype**. The following code creates an entity of archetype `(1)`.
+Entities are created using `world.create`. This method accepts an array of components and returns a newly created entity. The tuple of components associated with an entity defines its **archetype**. The following code creates an entity of archetype `(1)`.
 
 ```typescript
-const player = { _t: 1, name: "elrond" };
-const entity = world.create([player]);
+const player = { _t: 1, name: "elrond" }
+const entity = world.create([player])
 ```
 
 **Note** — although entities are simply auto-incrementing integers (starting at `0`), they should be treated as opaque values.
@@ -17,10 +17,10 @@ const entity = world.create([player]);
 Components can be assigned to existing entities using `world.insert`, and removed from entities using `world.remove`.
 
 ```typescript
-const input = { _t: 2, space: true };
+const input = { _t: 2, space: true }
 
-world.insert(entity, [input]); // archetype -> (1, 2)
-world.remove(entity, [input]); // archetype -> (1)
+world.insert(entity, [input]) // archetype -> (1, 2)
+world.remove(entity, [input]) // archetype -> (1)
 ```
 
 **Note** — `world.insert` and `world.remove` are much slower than initializing an entity with components because the entity's components must be relocated in memory when its archetype changes. If you need to add and remove components, try to do it on the order of < 10^3 entities per tick.

@@ -32,7 +32,7 @@ const tick = () => {
 }
 ```
 
-Messages are then read using a simple `for..of` loop.
+Messages can then be read using a for..of loop.
 
 ```typescript
 import { physicsTopic } from "./physics_topic"
@@ -50,7 +50,7 @@ const physicsSystem = (world: World) => {
 }
 ```
 
-Sometimes you want messages to be processed as quickly as possible. If you want a message to be iterable during the current tick, you can use `topic.pushImmediate`.
+Sometimes messages need to be processed as quickly as possible. `topic.pushImmediate` will push a message onto the queue for processing immediately.
 
 ```typescript
 topic.pushImmediate(["jump", 24])

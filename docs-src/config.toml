@@ -1,5 +1,5 @@
 # The URL the site will be built for
-base_url = "https://3mcd.github.io/javelin"
+base_url = "http://javelin.games"
 
 # Whether to automatically compile all Sass files in the sass directory
 compile_sass = true
@@ -17,3 +17,4 @@ highlight_theme = "snow-light"
 # Put all your custom variables here
 theme = "book"
 book_numbered_chapters = false
+title = "Javelin Docs"

@@ -1,45 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-        <loc>https://3mcd.github.io/javelin/</loc>
+        <loc>http://javelin.games/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/devtools/</loc>
+        <loc>http://javelin.games/devtools/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/ecs/</loc>
+        <loc>http://javelin.games/ecs/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/ecs/components/</loc>
+        <loc>http://javelin.games/ecs/components/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/ecs/entities/</loc>
+        <loc>http://javelin.games/ecs/entities/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/ecs/filtering/</loc>
+        <loc>http://javelin.games/ecs/filtering/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/ecs/installation/</loc>
+        <loc>http://javelin.games/ecs/installation/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/ecs/systems/</loc>
+        <loc>http://javelin.games/ecs/systems/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/ecs/tagging/</loc>
+        <loc>http://javelin.games/ecs/tagging/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/ecs/topics/</loc>
+        <loc>http://javelin.games/ecs/topics/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/ecs/world/</loc>
+        <loc>http://javelin.games/ecs/world/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/examples/</loc>
+        <loc>http://javelin.games/examples/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/introduction/</loc>
+        <loc>http://javelin.games/introduction/</loc>
     </url>
     <url>
-        <loc>https://3mcd.github.io/javelin/networking/</loc>
+        <loc>http://javelin.games/networking/</loc>
     </url>
 </urlset>
