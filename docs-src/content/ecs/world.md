@@ -3,7 +3,11 @@ title = "Hello World"
 weight = 2
 +++
 
-**Note** — the following chapters assume that you are familiar with basic ECS concepts discussed in the [opening section](/ecs).
+<aside>
+  <p>
+    <strong>Note</strong> — the following chapters assume that you are familiar with basic ECS concepts discussed in the <a href="/ecs">opening section</a>.
+  </p>
+</aside>
 
 ## World
 

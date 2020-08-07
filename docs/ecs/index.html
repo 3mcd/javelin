@@ -25,9 +25,11 @@
     <body>
         <header>
           <section>
-            <h1><a href="/introduction">Javelin</a></h1>
             <nav>
-              <a href="https://github.com/3mcd/javelin">API Docs</a>
+              <a href="/introduction">Javelin</a>
+            </nav>
+            <nav>
+              <a href="#" class="disabled">API Docs</a>
               <a href="https://github.com/3mcd/javelin">GitHub</a>
             </nav>
           </section>
@@ -35,7 +37,6 @@
         <main>
           <section>
             <div class="menu">
-
                 
                 
                 <nav role="navigation">
@@ -181,12 +182,16 @@
                     <div class="book-content">
                         
 <h1>ECS</h1>
-<p><strong>Note</strong> — all code samples in this section are written in pseudo-code.</p>
+<aside>
+  <p>
+    <strong>Note</strong> — all code samples in this section are written in pseudo-code.
+  </p>
+</aside>
 <h2 id="what-s-an-ecs">What's an ECS?<a class="zola-anchor" href="#what-s-an-ecs" aria-label="Anchor link for: what-s-an-ecs"
   >#</a
 >
 </h2>
-<p>In traditional OOP game development, entity data and behavior might be architected using a class heirarchy. Take the following example, where a <code>Player</code> class extends a physics <code>Body</code> class to enhance players with physics properties:</p>
+<p>In traditional OOP game development, entity data and behavior is often architected using a class heirarchy. Take the following example, where a <code>Player</code> class extends a physics <code>Body</code> class to enhance players with physics properties:</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">class </span><span style="color:#555c64;">Body {
   </span><span style="color:#388282;">readonly </span><span style="color:#555c64;">velocity </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">]
@@ -215,8 +220,8 @@ setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="col
   }
 }, </span><span style="color:#4179ad;">16.66666</span><span style="color:#555c64;">)
 </span></code></pre>
-<p>The player presses spacebar on their keyboard, <code>player.jump()</code> is executed, and the player moves upwards. But what if a player connects who is spectating our game and not controlling an actor? In this case, it isn't necessary for <code>Player</code> to extend <code>Body</code>, and we'd either need to write code to ensure that spectators shouldn't update data within the physics simulation, or drastically modify our inheritance structure.</p>
-<p>Data and behavior are separate concerns in an ECS. High-cohesion game objects are replaced with distinct <strong>entities</strong>, <strong>components</strong>, and <strong>systems</strong>. This pattern gives us the ability to modify the behavior of entities at runtime through composition.</p>
+<p>The player presses the spacebar on their keyboard, <code>player.jump()</code> is executed, and the actor jumps! But what if a player wants to spectate our game instead controlling an actor? In that scenario, it's unnecessary for <code>Player</code> to extend <code>Body</code>, and we'd either need to write code to ensure that spectators shouldn't update data within the physics simulation, or drastically modify our inheritance structure.</p>
+<p>Data and behavior are separate concerns in an ECS. High-cohesion game objects are replaced with distinct <strong>entities</strong>, <strong>components</strong>, and <strong>systems</strong>. This pattern gives us the ability to modify the behavior of entities at runtime.</p>
 <h3 id="components">Components<a class="zola-anchor" href="#components" aria-label="Anchor link for: components"
   >#</a
 >
@@ -242,7 +247,7 @@ setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="col
   >#</a
 >
 </h3>
-<p>Systems are stateless functions that implement behavior by reading and modifying components. The following example updates the player's physics body based on its input component:</p>
+<p>Systems are functions that implement game logic by reading and modifying components. The following example updates the player's physics body based on its input component:</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">physicsSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">[, input, body] </span><span style="color:#388282;">= </span><span style="color:#555c64;">entity

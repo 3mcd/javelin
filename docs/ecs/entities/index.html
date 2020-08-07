@@ -25,9 +25,11 @@
     <body>
         <header>
           <section>
-            <h1><a href="/introduction">Javelin</a></h1>
             <nav>
-              <a href="https://github.com/3mcd/javelin">API Docs</a>
+              <a href="/introduction">Javelin</a>
+            </nav>
+            <nav>
+              <a href="#" class="disabled">API Docs</a>
               <a href="https://github.com/3mcd/javelin">GitHub</a>
             </nav>
           </section>
@@ -35,7 +37,6 @@
         <main>
           <section>
             <div class="menu">
-
                 
                 
                 <nav role="navigation">
@@ -189,16 +190,22 @@
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">player </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ _t: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">, name: </span><span style="color:#4179ad;">&quot;elrond&quot; </span><span style="color:#555c64;">}
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">entity </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.create([player])
-</span></code></pre>
-<p><strong>Note</strong> — although entities are simply auto-incrementing integers (starting at <code>0</code>), they should be treated as opaque values.</p>
+</span></code></pre><aside>
+  <p>
+    <strong>Note</strong> — although entities are simply auto-incrementing integers (starting at <code>0</code>), they should be treated as opaque values.
+  </p>
+</aside>
 <p>Components can be assigned to existing entities using <code>world.insert</code>, and removed from entities using <code>world.remove</code>.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">input </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ _t: </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">, space: </span><span style="color:#a35d66;">true </span><span style="color:#555c64;">}
 
 world.insert(entity, [input]) </span><span style="color:#8c95a0;">// archetype -&gt; (1, 2)
 </span><span style="color:#555c64;">world.remove(entity, [input]) </span><span style="color:#8c95a0;">// archetype -&gt; (1)
-</span></code></pre>
-<p><strong>Note</strong> — <code>world.insert</code> and <code>world.remove</code> are much slower than initializing an entity with components because the entity's components must be relocated in memory when its archetype changes. If you need to add and remove components, try to do it on the order of &lt; 10^3 entities per tick.</p>
+</span></code></pre><aside>
+  <p>
+    <strong>Note</strong> — <code>world.insert</code> and <code>world.remove</code> are much slower than initializing an entity with components because the entity's components must be relocated in memory when its archetype changes. If you need to add and remove components, try to do it on the order of < 10^3 entities per tick.
+  </p>
+</aside>
 <h2 id="world-operations">World Operations<a class="zola-anchor" href="#world-operations" aria-label="Anchor link for: world-operations"
   >#</a
 >

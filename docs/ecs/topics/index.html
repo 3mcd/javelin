@@ -25,9 +25,11 @@
     <body>
         <header>
           <section>
-            <h1><a href="/introduction">Javelin</a></h1>
             <nav>
-              <a href="https://github.com/3mcd/javelin">API Docs</a>
+              <a href="/introduction">Javelin</a>
+            </nav>
+            <nav>
+              <a href="#" class="disabled">API Docs</a>
               <a href="https://github.com/3mcd/javelin">GitHub</a>
             </nav>
           </section>
@@ -35,7 +37,6 @@
         <main>
           <section>
             <div class="menu">
-
                 
                 
                 <nav role="navigation">
@@ -253,8 +254,11 @@
 <p>Sometimes messages need to be processed as quickly as possible, like when processing user input. <code>topic.pushImmediate</code> will push a message onto the queue for processing immediately.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#555c64;">topic.pushImmediate([</span><span style="color:#4179ad;">&quot;jump&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">24</span><span style="color:#555c64;">])
-</span></code></pre>
-<p>System registration order matters when using <code>pushImmediate</code>. Since the messages will be thrown away at the end of the tick, any systems upstream from the one that used <code>pushImmediate</code> will never have the opportunity to read the message.</p>
+</span></code></pre><aside>
+  <p>
+    <strong>Note</strong> — System registration order matters when using <code>pushImmediate</code>. Since the messages will be thrown away at the end of the tick, any systems upstream from the one that used <code>pushImmediate</code> will never have the opportunity to read the message.
+  </p>
+</aside>
  
                     </div>
                 </div>

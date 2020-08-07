@@ -3,9 +3,11 @@ title = "Systems"
 weight = 4
 +++
 
-## Implementing Behavior
+## Implementing Game Logic
 
-A system is a function executed during each world tick. All game logic should live within systems. Systems operate on dynamically growing and shrinking sets of entities that are queried by their archetype (or sub-archetype). This means that, depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next.
+A system is just a function executed during each world tick. Systems look up entities and operate on their data to yield the next game state.
+
+All game logic should live within systems. Systems operate on dynamically growing and shrinking sets of entities that are queried by their archetype (or sub-archetype). This means that, depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next.
 
 This is the cornerstone of ECS that enables runtime composition. Adding and removing components also adds and removes behavior. In addition, the isolation of game logic into systems makes your game world easier to debug and provides a clear target for performance and unit tests.
 
@@ -47,7 +49,11 @@ World { }, 16.66666666
 World { }, 16.66666666
 ```
 
-**Note** — maintaining state using `data` is an antipattern since it is injected from outside of your game world. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the [Topics](/ecs/topics) section.
+<aside>
+  <p>
+    <strong>Note</strong> — maintaining state using `data` is an antipattern since it is injected from outside of your game world. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the <a href="/ecs/topics">Topics</a> section.
+  </p>
+</aside>
 
 ## Querying and Iteration
 

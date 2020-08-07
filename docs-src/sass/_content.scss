@@ -5,11 +5,6 @@
   flex: 1 1 auto;
   overflow: visible;
 
-  h1 {
-    margin-top: 0;
-    font-size: 1.8rem;
-  }
-
   h1,
   h2,
   h3,
@@ -18,6 +13,8 @@
   h6 {
     position: relative;
     overflow: visible;
+
+    margin: 2rem 0;
 
     .zola-anchor {
       color: $color--link;
@@ -50,8 +47,22 @@
     }
   }
 
+  h1 {
+    margin-top: 0;
+    font-size: 1.8rem;
+  }
+
   img {
     max-width: 100%;
+  }
+
+  hr {
+    height: 3px;
+    padding: 0;
+    margin: 1.85rem 0;
+    overflow: hidden;
+    background-color: #e7e7e7;
+    border: none;
   }
 
   &__content {
@@ -65,15 +76,6 @@
       &:hover {
         text-decoration: underline;
       }
-    }
-
-    hr {
-      height: 4px;
-      padding: 0;
-      margin: 1.7em 0;
-      overflow: hidden;
-      background-color: #e7e7e7;
-      border: none;
     }
 
     pre {
@@ -119,9 +121,26 @@
     line-height: 1.8;
     padding: 0 15px 40px;
 
-    p {
-      margin-top: 0;
-      margin-bottom: 0.85em;
+    p,
+    pre {
+      margin: 1.85rem 0;
+    }
+
+    aside {
+      color: #8a6c3c;
+      background: #ffe8c2;
+      padding: 1rem;
+      margin: 1.85rem 0;
+
+      code {
+        color: #8a6c3c;
+        background: #fcddad;
+        border: 1px solid #d1b07a;
+      }
+
+      p {
+        margin: 0;
+      }
     }
   }
 }

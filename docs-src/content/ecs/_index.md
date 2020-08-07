@@ -5,11 +5,15 @@ sort_by = "weight"
 insert_anchor_links = "right"
 +++
 
-**Note** — all code samples in this section are written in pseudo-code.
+<aside>
+  <p>
+    <strong>Note</strong> — all code samples in this section are written in pseudo-code.
+  </p>
+</aside>
 
 ## What's an ECS?
 
-In traditional OOP game development, entity data and behavior might be architected using a class heirarchy. Take the following example, where a `Player` class extends a physics `Body` class to enhance players with physics properties:
+In traditional OOP game development, entity data and behavior is often architected using a class heirarchy. Take the following example, where a `Player` class extends a physics `Body` class to enhance players with physics properties:
 
 ```typescript
 class Body {
@@ -40,9 +44,9 @@ setInterval(() => {
 }, 16.66666)
 ```
 
-The player presses spacebar on their keyboard, `player.jump()` is executed, and the player moves upwards. But what if a player connects who is spectating our game and not controlling an actor? In this case, it isn't necessary for `Player` to extend `Body`, and we'd either need to write code to ensure that spectators shouldn't update data within the physics simulation, or drastically modify our inheritance structure.
+The player presses the spacebar on their keyboard, `player.jump()` is executed, and the actor jumps! But what if a player wants to spectate our game instead controlling an actor? In that scenario, it's unnecessary for `Player` to extend `Body`, and we'd either need to write code to ensure that spectators shouldn't update data within the physics simulation, or drastically modify our inheritance structure.
 
-Data and behavior are separate concerns in an ECS. High-cohesion game objects are replaced with distinct **entities**, **components**, and **systems**. This pattern gives us the ability to modify the behavior of entities at runtime through composition.
+Data and behavior are separate concerns in an ECS. High-cohesion game objects are replaced with distinct **entities**, **components**, and **systems**. This pattern gives us the ability to modify the behavior of entities at runtime.
 
 ### Components
 
@@ -69,7 +73,7 @@ const entity = [
 
 ### Systems
 
-Systems are stateless functions that implement behavior by reading and modifying components. The following example updates the player's physics body based on its input component:
+Systems are functions that implement game logic by reading and modifying components. The following example updates the player's physics body based on its input component:
 
 ```typescript
 const physicsSystem = () => {

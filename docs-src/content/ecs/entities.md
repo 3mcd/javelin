@@ -12,7 +12,11 @@ const player = { _t: 1, name: "elrond" }
 const entity = world.create([player])
 ```
 
-**Note** — although entities are simply auto-incrementing integers (starting at `0`), they should be treated as opaque values.
+<aside>
+  <p>
+    <strong>Note</strong> — although entities are simply auto-incrementing integers (starting at <code>0</code>), they should be treated as opaque values.
+  </p>
+</aside>
 
 Components can be assigned to existing entities using `world.insert`, and removed from entities using `world.remove`.
 
@@ -23,7 +27,11 @@ world.insert(entity, [input]) // archetype -> (1, 2)
 world.remove(entity, [input]) // archetype -> (1)
 ```
 
-**Note** — `world.insert` and `world.remove` are much slower than initializing an entity with components because the entity's components must be relocated in memory when its archetype changes. If you need to add and remove components, try to do it on the order of < 10^3 entities per tick.
+<aside>
+  <p>
+    <strong>Note</strong> — <code>world.insert</code> and <code>world.remove</code> are much slower than initializing an entity with components because the entity's components must be relocated in memory when its archetype changes. If you need to add and remove components, try to do it on the order of < 10^3 entities per tick.
+  </p>
+</aside>
 
 ## World Operations
 

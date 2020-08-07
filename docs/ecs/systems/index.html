@@ -25,9 +25,11 @@
     <body>
         <header>
           <section>
-            <h1><a href="/introduction">Javelin</a></h1>
             <nav>
-              <a href="https://github.com/3mcd/javelin">API Docs</a>
+              <a href="/introduction">Javelin</a>
+            </nav>
+            <nav>
+              <a href="#" class="disabled">API Docs</a>
               <a href="https://github.com/3mcd/javelin">GitHub</a>
             </nav>
           </section>
@@ -35,7 +37,6 @@
         <main>
           <section>
             <div class="menu">
-
                 
                 
                 <nav role="navigation">
@@ -181,11 +182,12 @@
                     <div class="book-content">
                         
 <h1>Systems</h1>
-<h2 id="implementing-behavior">Implementing Behavior<a class="zola-anchor" href="#implementing-behavior" aria-label="Anchor link for: implementing-behavior"
+<h2 id="implementing-game-logic">Implementing Game Logic<a class="zola-anchor" href="#implementing-game-logic" aria-label="Anchor link for: implementing-game-logic"
   >#</a
 >
 </h2>
-<p>A system is a function executed during each world tick. All game logic should live within systems. Systems operate on dynamically growing and shrinking sets of entities that are queried by their archetype (or sub-archetype). This means that, depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next.</p>
+<p>A system is just a function executed during each world tick. Systems look up entities and operate on their data to yield the next game state.</p>
+<p>All game logic should live within systems. Systems operate on dynamically growing and shrinking sets of entities that are queried by their archetype (or sub-archetype). This means that, depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next.</p>
 <p>This is the cornerstone of ECS that enables runtime composition. Adding and removing components also adds and removes behavior. In addition, the isolation of game logic into systems makes your game world easier to debug and provides a clear target for performance and unit tests.</p>
 <h3 id="registering-a-system">Registering a system<a class="zola-anchor" href="#registering-a-system" aria-label="Anchor link for: registering-a-system"
   >#</a
@@ -218,8 +220,11 @@ setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="col
 <code><span style="color:#555c64;">World { }, 16.66666666
 World { }, 16.66666666
 World { }, 16.66666666
-</span></code></pre>
-<p><strong>Note</strong> — maintaining state using <code>data</code> is an antipattern since it is injected from outside of your game world. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the <a href="/ecs/topics">Topics</a> section.</p>
+</span></code></pre><aside>
+  <p>
+    <strong>Note</strong> — maintaining state using `data` is an antipattern since it is injected from outside of your game world. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the <a href="/ecs/topics">Topics</a> section.
+  </p>
+</aside>
 <h2 id="querying-and-iteration">Querying and Iteration<a class="zola-anchor" href="#querying-and-iteration" aria-label="Anchor link for: querying-and-iteration"
   >#</a
 >
