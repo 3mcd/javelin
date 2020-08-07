@@ -182,16 +182,16 @@
                     <div class="book-content">
                         
 <h1>ECS</h1>
-<aside>
-  <p>
-    <strong>Note</strong> — all code samples in this section are written in pseudo-code.
-  </p>
-</aside>
 <h2 id="what-s-an-ecs">What's an ECS?<a class="zola-anchor" href="#what-s-an-ecs" aria-label="Anchor link for: what-s-an-ecs"
   >#</a
 >
 </h2>
 <p>In traditional OOP game development, entity data and behavior is often architected using a class heirarchy. Take the following example, where a <code>Player</code> class extends a physics <code>Body</code> class to enhance players with physics properties:</p>
+<aside>
+  <p>
+    <strong>Note</strong> — all code in this section is pseudo-code. Skip to the <a href="/ecs/world">Hello World</a> section if you're ready for real examples.
+  </p>
+</aside>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">class </span><span style="color:#555c64;">Body {
   </span><span style="color:#388282;">readonly </span><span style="color:#555c64;">velocity </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">]

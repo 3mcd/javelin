@@ -51,7 +51,7 @@ World { }, 16.66666666
 
 <aside>
   <p>
-    <strong>Note</strong> — maintaining state using `data` is an antipattern since it is injected from outside of your game world. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the <a href="/ecs/topics">Topics</a> section.
+    <strong>Note</strong> — maintaining state using tick <code>data</code> is an antipattern since it is injected from outside of your game world. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the <a href="/ecs/topics">Topics</a> section.
   </p>
 </aside>
 

@@ -5,15 +5,15 @@ sort_by = "weight"
 insert_anchor_links = "right"
 +++
 
-<aside>
-  <p>
-    <strong>Note</strong> — all code samples in this section are written in pseudo-code.
-  </p>
-</aside>
-
 ## What's an ECS?
 
 In traditional OOP game development, entity data and behavior is often architected using a class heirarchy. Take the following example, where a `Player` class extends a physics `Body` class to enhance players with physics properties:
+
+<aside>
+  <p>
+    <strong>Note</strong> — all code in this section is pseudo-code. Skip to the <a href="/ecs/world">Hello World</a> section if you're ready for real examples.
+  </p>
+</aside>
 
 ```typescript
 class Body {

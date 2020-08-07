@@ -68,12 +68,12 @@ p code,
 pre {
   border-radius: 3px;
 }
-
+aside code,
 ul code,
 p code {
   display: inline-block;
   vertical-align: middle;
-  padding: 0.1rem 0.3rem;
+  padding: 0 0.3rem;
   background: #f6f8f8;
   position: relative;
   top: -1px;
