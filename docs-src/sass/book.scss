@@ -4,6 +4,7 @@
 $breakpoint--mobile: 720px;
 $breakpoint--tablet: 960px;
 $breakpoint--laptop: 1440px;
+$breakpoint--desktop: 1600px;
 
 @mixin min-screen($min-width: $body-width) {
   @media screen and (min-width: $min-width) {
@@ -29,18 +30,14 @@ html {
 }
 
 html {
-  font-size: 14px;
+  font-size: 16px;
   color: #32363b;
 
-  @include min-screen($breakpoint--mobile) {
-    font-size: 16px;
-  }
-
-  @include min-screen($breakpoint--tablet) {
+  @include min-screen($breakpoint--laptop) {
     font-size: 18px;
   }
 
-  @include min-screen($breakpoint--laptop) {
+  @include min-screen($breakpoint--desktop) {
     font-size: 20px;
   }
 }
@@ -58,7 +55,7 @@ h6 {
 
 code {
   color: #555c64;
-  font-size: 0.75rem;
+  font-size: 0.75em;
   font-family: "SF Mono", "Source Code Pro", Consolas, "Ubuntu Mono", Menlo,
     "DejaVu Sans Mono", monospace, monospace;
 }
@@ -105,7 +102,7 @@ header {
   box-sizing: content-box;
   height: 70px;
   background-color: #f6f8f8;
-  border-bottom: 3px solid #e7e7e7;
+  border-bottom: 3px solid #ddd;
   margin-bottom: 2rem;
   display: flex;
 
@@ -121,6 +118,7 @@ header {
     flex: 1 1 auto;
     margin: 0;
     font-weight: bold;
+    font-size: 1.2rem;
   }
 
   a {

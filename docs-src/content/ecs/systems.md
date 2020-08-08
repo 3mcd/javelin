@@ -5,9 +5,9 @@ weight = 4
 
 ## Implementing Game Logic
 
-A system is just a function executed during each world tick. Systems look up entities and operate on their data to yield the next game state.
+A system is just a function executed during each world tick. All game logic should live within systems. Systems query collections of entities and operate on their data to yield the next game state.
 
-All game logic should live within systems. Systems operate on dynamically growing and shrinking sets of entities that are queried by their archetype (or sub-archetype). This means that, depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next.
+Systems operate on dynamically growing and shrinking sets of entities that are queried by their archetype (or sub-archetype). This means that, depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next.
 
 This is the cornerstone of ECS that enables runtime composition. Adding and removing components also adds and removes behavior. In addition, the isolation of game logic into systems makes your game world easier to debug and provides a clear target for performance and unit tests.
 
@@ -22,9 +22,9 @@ const world = createWorld({ systems: [hello] })
 world.addSystem(hello)
 ```
 
-Systems have a signature of `(world: World<T>, data: T) => void`, where `world` is the world that is currently executing it, and `data` is the single argument (if any) passed into the tick method, i.e. `world.tick(data)`.
+Systems have a signature of `(world: World<T>, data: T) => void`, where `world` is the world that is currently executing it, and `data` is the single argument (if any) passed into the tick method, i.e. `world.tick(data)`. Often times `data` contains the amount of time that has elapsed since the previous tick, but it can be any value.
 
-When `world.tick` is called, each system is executed in the order that it was registered. Often times `data` contains the amount of time that has elapsed since the previous tick, but it can be any value.
+When `world.tick` is called, each system is executed in the order that it was registered.
 
 The following is an example of a "game" that will log the time elapsed since the last tick at around 60Hz.
 
@@ -51,7 +51,7 @@ World { }, 16.66666666
 
 <aside>
   <p>
-    <strong>Note</strong> — maintaining state using tick <code>data</code> is an antipattern since it is injected from outside of your game world. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the <a href="/ecs/topics">Topics</a> section.
+    <strong>Note</strong> — maintaining state using tick <code>data</code> is akin to using global variables. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the <a href="/ecs/topics">Topics</a> section.
   </p>
 </aside>
 

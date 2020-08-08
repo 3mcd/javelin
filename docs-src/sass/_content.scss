@@ -59,7 +59,7 @@
   hr {
     height: 3px;
     padding: 0;
-    margin: 1.85rem 0;
+    margin: 1.7rem 0;
     overflow: hidden;
     background-color: #e7e7e7;
     border: none;
@@ -118,19 +118,20 @@
     }
 
     word-wrap: break-word;
-    line-height: 1.8;
+    line-height: 1.7;
     padding: 0 15px 40px;
 
     p,
     pre {
-      margin: 1.85rem 0;
+      margin: 1.7rem 0;
     }
 
     aside {
       color: #8a6c3c;
       background: #ffe8c2;
+      font-size: 0.75rem;
       padding: 1rem;
-      margin: 1.85rem 0;
+      margin: 1.7rem 0;
 
       code {
         color: #8a6c3c;

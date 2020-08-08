@@ -11,7 +11,7 @@ weight = 2
 
 ## World
 
-A `World` is responsible for maintaining entities and executing systems. Most games will use a single world instance.
+A `World` is responsible for maintaining entities and executing systems.
 
 Worlds are created using the `createWorld` function defined in [world.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts). `createWorld` accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.
 
