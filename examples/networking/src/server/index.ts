@@ -18,7 +18,7 @@ const server = createServer()
 const udp = new Server({ server })
 const world = createWorld({
   systems: [spawn, physics, cycleColor],
-  componentFactories: [Position, Velocity, Sleep, Color],
+  componentTypes: [Position, Velocity, Sleep, Color],
 })
 
 const messageProducer = createMessageProducer({
@@ -60,6 +60,7 @@ function sendClientMessages() {
         client.reliable?.send(encode(message))
       }
       client.initialized = true
+      continue
     }
 
     for (let j = 0; j < reliable.length; j++) {
@@ -81,6 +82,12 @@ udp.connections.subscribe(connection => {
   const { connectionType, sessionId } = connection.metadata
   const client = findOrCreateClient(sessionId)
   const removeClient = () => {
+    const index = clients.indexOf(client)
+
+    if (index === -1) {
+      return
+    }
+
     console.log(`Client ${sessionId} disconnected`)
     clients.splice(clients.indexOf(client), 1)
   }
@@ -107,7 +114,7 @@ function tick(dt: number) {
 const loop = createHrtimeLoop(tickRateMs, clock => tick(clock.dt))
 loop.start()
 
-for (let i = 0; i < 100; i++) {
+for (let i = 0; i < 200; i++) {
   createJunk(world)
 }
 

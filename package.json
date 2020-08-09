@@ -16,15 +16,18 @@
     "typescript": "^3.8.3"
   },
   "scripts": {
-    "docs": "docsify serve docs",
-    "build": "lerna run build",
+    "docs": "yarn docs:assets && cd ./docs-src && ./zola serve",
+    "docs:build": "yarn docs:assets && cd ./docs-src && ./zola build --output-dir ../docs",
+    "docs:assets": "cp ./packages/ecs/dist/javelin-ecs.bundle.min.js ./docs-src/static",
+    "build": "lerna run build && yarn docs:build",
     "test": "jest",
     "perf": "lerna run perf",
+    "example:build": "lerna run build --scope=@javelin/example-networking",
     "example:basic": "lerna run start --scope=@javelin/example-basic --stream",
     "example:filters": "lerna run start --scope=@javelin/example-filters --stream",
     "example:networking": "lerna run start --scope=@javelin/example-networking --stream",
     "bump": "lerna version --no-git-tag-version",
-    "bump:patch": "lerna version patch --no-git-tag-version",
+    "bump:patch": "lern a version patch --no-git-tag-version",
     "bump:minor": "lerna version minor --no-git-tag-version",
     "bump:major": "lerna version major --no-git-tag-version"
   },
@@ -32,6 +35,9 @@
   "repository": "git@github.com:3mcd/javelin",
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "devDependencies": {
-    "docsify-cli": "^4.4.1"
+    "@rollup/plugin-node-resolve": "^8.4.0",
+    "docsify-cli": "^4.4.1",
+    "rollup": "^2.23.1",
+    "rollup-plugin-terser": "^6.1.0"
   }
 }

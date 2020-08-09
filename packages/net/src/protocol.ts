@@ -1,6 +1,6 @@
 import {
   Component,
-  ComponentFactoryLike,
+  ComponentType,
   ComponentSpec,
   DataType,
   isDataType,
@@ -8,10 +8,6 @@ import {
   SchemaKey,
   World,
   WorldOp,
-  WorldOpType,
-  isComponentOf,
-  ComponentType,
-  ComponentOf,
 } from "@javelin/ecs"
 
 export enum JavelinMessageType {
@@ -24,19 +20,24 @@ export enum JavelinMessageType {
   Model,
 }
 
-export type SerializedComponentType<
-  C extends ComponentFactoryLike = ComponentFactoryLike
-> = {
+export type SerializedComponentType<C extends ComponentType = ComponentType> = {
   name: C["name"]
   type: C["type"]
   schema: SerializedSchema<C["schema"]>
 }
 
+type EntityComponentPairs = [number, Component[]][]
+
 export type Ops = [JavelinMessageType.Ops, WorldOp[], boolean]
-export type Update = [JavelinMessageType.Update, Component[], boolean, unknown]
+export type Update = [
+  JavelinMessageType.Update,
+  EntityComponentPairs,
+  boolean,
+  unknown,
+]
 export type UpdateUnreliable = [
   JavelinMessageType.UpdateUnreliable,
-  Component[],
+  EntityComponentPairs,
   boolean,
   unknown,
 ]
@@ -76,7 +77,7 @@ export function serializeSchema<S extends Schema>(
 }
 
 export function serializeWorldModel(world: World): SerializedComponentType[] {
-  return world.registeredComponentFactories.map(t => ({
+  return world.componentTypes.map(t => ({
     name: t.name,
     type: t.type,
     schema: serializeSchema(t.schema),
@@ -100,23 +101,6 @@ export function isUpdateMessage(message: unknown): message is Update {
   return Array.isArray(message) && message[0] === JavelinMessageType.Update
 }
 
-export function getComponentsByTypeFromUpdate<T extends ComponentType>(
-  message: Update,
-  componentType: T,
-  callback: (component: ComponentOf<T>) => unknown,
-) {
-  const components = message[1]
-
-  for (let i = 0; i < components.length; i++) {
-    const component = components[i]
-
-    if (isComponentOf(component, componentType)) {
-      callback(component)
-      break
-    }
-  }
-}
-
 export const protocol = {
   ops: (ops: WorldOp[], isLocal = false): Ops => [
     JavelinMessageType.Ops,
@@ -124,17 +108,22 @@ export const protocol = {
     isLocal,
   ],
   update: (
-    components: Component[],
+    entityComponentPairs: EntityComponentPairs,
     metadata?: unknown,
     isLocal = false,
-  ): Update => [JavelinMessageType.Update, components, isLocal, metadata],
+  ): Update => [
+    JavelinMessageType.Update,
+    entityComponentPairs,
+    isLocal,
+    metadata,
+  ],
   updateUnreliable: (
-    components: Component[],
+    entityComponentPairs: EntityComponentPairs,
     metadata?: unknown,
     isLocal = false,
   ): UpdateUnreliable => [
     JavelinMessageType.UpdateUnreliable,
-    components,
+    entityComponentPairs,
     isLocal,
     metadata,
   ],

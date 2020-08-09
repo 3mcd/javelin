@@ -1,29 +1,17 @@
-import { Component, ComponentType } from "../component"
-import { Filter } from "../query"
+import { Component } from "../component"
+import { createComponentFilter } from "../filter"
 
-export function changed(...componentTypes: ComponentType[]): Filter {
-  const checkTypes = componentTypes.length > 0
-  const types = componentTypes.map(s => s.type)
+export const changed = createComponentFilter(() => {
   const cache = new WeakMap<Component, number>()
 
-  function matchEntity(entity: number) {
-    return true
-  }
-
-  function matchComponent(component: Component) {
-    if (checkTypes && !types.includes(component._t)) {
-      return true
-    }
-
-    const last = cache.get(component)
-    const hit = component._v > (last === undefined ? -1 : last)
+  return c => {
+    const last = cache.get(c)
+    const hit = c._v !== (last === undefined ? -Infinity : last)
 
     if (hit) {
-      cache.set(component, component._v)
+      cache.set(c, c._v)
     }
 
     return hit
   }
-
-  return { matchEntity, matchComponent }
-}
+})

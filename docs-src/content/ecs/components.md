@@ -5,59 +5,82 @@ weight = 4
 
 ## Components
 
-Components are plain objects; unremarkable, other than a few reserved fields:
+This section is short, because components are just plain objects; unremarkable, other than two reserved fields:
 
-- `_t` is a unique integer identifying the component's **type**
-- `_e` records the **entity** the component is associated with
-- `_v` records the current **version** of the component, and used for change detection
+- `readonly _t` — a unique integer identifying the component's **type**
+- `readonly _v` — the current **version** of the component (used for change detection)
 
-The component's type, or `_t`, is the only required field when assigning components to an entity (new or otherwise).
+The component's type (`_t`) is the only required field when assigning components to an entity, new or otherwise. Newly attached components are assigned a version of `0`. The version property is deleted when the component is detached.
 
 ```typescript
-world.create([
-  { _t: 1, x: 0, y: 0 },
-  { _t: 2, health: 10 },
-]);
+const body = { _t: 1, x: 0, y: 0 }
+const entity = world.spawn(body)
+
+world.tick()
+body._v // -> 0
+
+world.detach(entity, body)
+world.tick()
+body._v // -> undefined
 ```
 
-A component with type `1` belonging to entity `5` that has been modified three times might look like:
+## Component Types
+
+Unless you're trying to integrate with an existing codebase or library, it's recommended to use the `createComponentType` helper to define the component types your world will use. Component types make it easy to initialize components from a schema, and the components they produce are automatically pooled.
 
 ```typescript
-{
-  _t: 1,
-  _e: 5,
-  _v: 3,
-  // ...
-}
-```
+import { createComponentType, number } from "@javelin/ecs"
 
-## Component Factories
-
-It's strongly recommended to use the `createComponentFactory` helper to create factories to build your components.
-
-```typescript
-import { createComponentFactory, number } from "@javelin/ecs";
-
-const Position = createComponentFactory({
+const Position = createComponentType({
   type: 1,
   name: "position",
   schema: {
     x: number,
     y: number,
   },
-});
+})
 ```
 
-A component factory is configured with a type, name, and schema. `type` is be a unique integer and `name` is a unique string. The component factory's name is used by [`javelin/devtools`](https://github.com/3mcd/javelin/tree/master/packages/devtool) for help with rendering.
-
-The `schema` option defines the field names and data types that make up the shape of the component. Currently, the schema is used to automatically initialize and reset component instances. In the future, it may be used to improve compression of components when serialized.
-
-Components created via factory are automatically pooled; however, you must register the factory with the world so components are released back to the pool when their entity is destroyed:
+The component type **must** be registered using `world.registerComponentType` to take advantage of pooling:
 
 ```typescript
-const world = createWorld({ componentFactories: [Position] });
+const world = createWorld({
+  componentTypes: [Position],
+})
 // OR
-world.registerComponentFactory(Position);
+world.registerComponentType(Position)
 ```
 
-Otherwise, you'll need to release pooled components manually with the `componentFactory.destroy` method.
+A component type is configured with a **type id**, **name**, and **schema**. The type id is an integer used to uniquely identify components produced from the type, while `name` is a unique string used by [`@javelin/devtools`](https://github.com/3mcd/javelin/tree/master/packages/devtool) for help with debugging.
+
+### Schema
+
+The component type's schema defines the field names and data types that make up the shape of the component. Currently, the schema is used to initialize and reset component instances.
+
+The schema currently supports the following data types, which are each exported from `@javelin/ecs`:
+
+- `number (0)`
+- `boolean (false)`
+- `string ("")`
+- `array(number | boolean | string | array) ([])`
+
+A default value for a data type can be specified in the schema by wrapping the data type in an object:
+
+```typescript
+schema: {
+  x: { type: number, defaultValue: -1 }
+}
+```
+
+### Object Pooling
+
+Components created via factory are automatically pooled. By default, the pool will initialize 10^3 components for usage, and will grow by the same amount when the pool shinks to zero. You can modify the pool size either by setting the `componentPoolSize` option on the config object passed to `createWorld()`, or when registering the component type with `world.registerComponentType`:
+
+```typescript
+const world = createWorld({
+  componentPoolSize: 100,
+})
+// or
+world.registerComponentType(Position, 10000)
+```
+

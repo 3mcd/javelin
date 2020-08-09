@@ -18,7 +18,7 @@
       "request": "launch",
       "name": "example/networking",
       "skipFiles": ["<node_internals>/**"],
-      "preLaunchTask": "npm: build",
+      "preLaunchTask": "npm: example:build",
       "program": "${workspaceFolder}/examples/networking/dist/server/index.js",
       "outFiles": ["${workspaceFolder}/**/*.js"]
     }

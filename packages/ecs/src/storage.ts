@@ -2,10 +2,10 @@ import { Archetype, createArchetype } from "./archetype"
 import {
   Component,
   ComponentOf,
-  ComponentType,
   ComponentSpec,
+  ComponentType,
 } from "./component"
-import { ComponentFactoryLike } from "./helpers"
+import { mutableEmpty } from "./util"
 
 export interface Storage {
   /**
@@ -13,9 +13,8 @@ export interface Storage {
    *
    * @param entity Entity
    * @param components Array of components to associate with the entity
-   * @param tag Initial tag (bit flags) of the entity
    */
-  create(entity: number, components: ComponentSpec[], tag?: number): number
+  create(entity: number, components: ComponentSpec[]): number
 
   /**
    * Associate components with an entity.
@@ -30,7 +29,7 @@ export interface Storage {
    *
    * @param component Latest copy of the component
    */
-  upsert(component: Component): void
+  upsert(entity: number, components: Component[]): void
 
   /**
    * Remove components from an entity.
@@ -41,8 +40,15 @@ export interface Storage {
   remove(entity: number, components: ComponentSpec[]): void
 
   /**
-   * Destroy an entity. Attempts to release pooled components if their types
-   * have been registered via the `registerComponentFactory` method.
+   * Remove components from an entity by component type id.
+   *
+   * @param entity Entity
+   * @param componentTypeIds Components to remove
+   */
+  removeByTypeIds(entity: number, componentTypeIds: number[]): void
+
+  /**
+   * Destroy an entity.
    *
    * @param entity Subject entity
    */
@@ -92,17 +98,54 @@ export interface Storage {
   ): ComponentOf<T>
 
   /**
-   * Register a component factory to automatically release pooled components
-   * when their entity is destroyed.
+   * Get all components for an entity.
    *
-   * @param factory Component factory to register
+   * @param entity Subject entity
+   * @param componentType Type of component to locate
    */
-  registerComponentFactory(factory: ComponentFactoryLike): void
+  getEntityComponents(entity: number): Component[]
 
   /**
    * Collection of Archetypes in the world.
    */
   readonly archetypes: ReadonlyArray<Archetype>
+}
+
+function assertValidEntitylocation(
+  location?: number | null,
+): asserts location is number {
+  if (location === undefined) {
+    throw new Error(`Failed to locate entity. Entity does not exist.`)
+  }
+
+  if (location === null) {
+    throw new Error(`Failed to locate entity. Entity has been removed.`)
+  }
+}
+
+function assertValidComponentIndex(componentIndex: number) {
+  if (componentIndex === -1) {
+    throw new Error(
+      "Failed to find component. Component could not exist with entity.",
+    )
+  }
+}
+
+function assertComponentTypeIdCanAttach(
+  existingComponents: Component[],
+  componentTypeId: number,
+) {
+  if (existingComponents.find(c => c._t === componentTypeId)) {
+    throw new Error(
+      `Cannot attach component with type ${componentTypeId} — entity already has component of type.`,
+    )
+  }
+}
+
+function assertComponentCanBeModified(component: Component) {
+  if (component._v === -1) {
+    throw new Error("Tried to modify detached component.")
+  }
 }
 
 export function createStorage(): Storage {
@@ -114,7 +157,6 @@ export function createStorage(): Storage {
   // `insert`, and `remove` methods.
   const archetypeIndicesByEntity: (number | null)[] = []
   const tagsByEntity: number[] = []
-  const factoriesByType = new Map<number, ComponentFactoryLike>()
 
   /**
    * Locate an archetype for a collection of components.
@@ -167,27 +209,23 @@ export function createStorage(): Storage {
     return archetype
   }
 
-  function create(entity: number, components: Component[], tag = 0) {
+  function create(entity: number, components: Component[]) {
     const archetype = findOrCreateArchetype(components)
+
+    components.forEach(resetComponent)
 
     archetype.insert(entity, components)
 
-    tagsByEntity[entity] = tag
+    tagsByEntity[entity] = 0
     archetypeIndicesByEntity[entity] = archetypes.indexOf(archetype)
 
     return entity
   }
 
-  function getEntityArchetype(entity: number, operation: string) {
+  function getEntityArchetype(entity: number) {
     const location = archetypeIndicesByEntity[entity]
 
-    if (location === undefined) {
-      throw new Error(`Failed to ${operation}. Entity does not exist.`)
-    }
-
-    if (location === null) {
-      throw new Error(`Failed to ${operation}. Entity has been removed.`)
-    }
+    assertValidEntitylocation(location)
 
     return archetypes[location]
   }
@@ -199,6 +237,8 @@ export function createStorage(): Storage {
   ) {
     source.remove(entity)
 
+    components.forEach(resetComponent)
+
     const destination = findOrCreateArchetype(components)
 
     destination.insert(entity, components)
@@ -206,12 +246,13 @@ export function createStorage(): Storage {
   }
 
   function insert(entity: number, components: Component[]) {
-    const source = getEntityArchetype(entity, "insert components")
+    const source = getEntityArchetype(entity)
     const entityIndex = source.indices[entity]
 
     let destinationComponents = components.slice() as Readonly<Component>[]
 
     for (let i = 0; i < source.layout.length; i++) {
+      assertComponentTypeIdCanAttach(components, source.layout[i])
       // UNSAFE: `!` is used because entity location is non-null.
       destinationComponents.push(source.table[i][entityIndex]!)
     }
@@ -220,16 +261,23 @@ export function createStorage(): Storage {
   }
 
   function remove(entity: number, components: Component[]) {
-    const source = getEntityArchetype(entity, "remove components")
-    const entityIndex = source.indices[entity]
     const typesToRemove = components.map(component => component._t)
+
+    removeByTypeIds(entity, typesToRemove)
+  }
+
+  function removeByTypeIds(entity: number, componentTypeIds: number[]) {
+    const source = getEntityArchetype(entity)
+    const entityIndex = source.indices[entity]
 
     let destinationComponents = []
 
     for (let i = 0; i < source.layout.length; i++) {
       const type = source.layout[i]
-      if (!typesToRemove.includes(type)) {
-        destinationComponents.push(source.table[i][entityIndex]!)
+      const component = source.table[i][entityIndex]! as Component
+
+      if (!componentTypeIds.includes(type)) {
+        destinationComponents.push(component)
       }
     }
 
@@ -237,19 +285,7 @@ export function createStorage(): Storage {
   }
 
   function destroy(entity: number) {
-    const source = getEntityArchetype(entity, "destroy entity")
-
-    for (let i = 0; i < source.layout.length; i++) {
-      const type = source.layout[i]
-      const factory = factoriesByType.get(type)
-
-      if (factory !== undefined) {
-        // UNSAFE: `!` is used because entity location is non-null.
-        const component = source.table[i][source.indices[entity]]!
-
-        factory.destroy(component)
-      }
-    }
+    const source = getEntityArchetype(entity)
 
     source.remove(entity)
     archetypeIndicesByEntity[entity] = null
@@ -267,42 +303,53 @@ export function createStorage(): Storage {
     return (tagsByEntity[entity] & tag) === tag
   }
 
+  function resetComponent(component: Component) {
+    component._v = 0
+  }
+
   function incrementVersion(component: Component) {
+    assertComponentCanBeModified(component)
     component._v++
   }
 
-  function upsert(component: Component) {
-    const { _e: entity, _t: type } = component
-    const archetype = getEntityArchetype(entity, "patch component")
-    const entityIndex = archetype.indices[entity]
-    const componentIndex = archetype.layout.indexOf(type)
+  const tmpComponentsToInsert: Component[] = []
 
-    if (componentIndex === -1) {
-      // Entity component makeup does not match patch component, insert the new
-      // component.
-      insert(entity, [component])
-      return
+  function upsert(entity: number, components: Component[]) {
+    const archetype = getEntityArchetype(entity)
+    const entityIndex = archetype.indices[entity]
+
+    for (let i = 0; i < components.length; i++) {
+      const component = components[i]
+      const { _t: type } = component
+      const componentIndex = archetype.layout.indexOf(type)
+
+      if (componentIndex === -1) {
+        // Entity component makeup does not match patch component, insert the new
+        // component.
+        tmpComponentsToInsert.push(component)
+      } else {
+        const targetComponent = archetype.table[componentIndex][entityIndex]!
+        // Apply patch to component.
+        Object.assign(targetComponent, component)
+        incrementVersion(targetComponent)
+      }
     }
 
-    const targetComponent = archetype.table[componentIndex][entityIndex]!
+    if (tmpComponentsToInsert.length > 0) {
+      insert(entity, tmpComponentsToInsert)
+    }
 
-    // Apply patch to component.
-    Object.assign(targetComponent, component)
-    incrementVersion(targetComponent)
+    mutableEmpty(tmpComponentsToInsert)
   }
 
   function findComponent<T extends ComponentType>(
     entity: number,
     componentType: T,
   ) {
-    const archetype = getEntityArchetype(entity, "find component")
+    const archetype = getEntityArchetype(entity)
     const componentIndex = archetype.layout.indexOf(componentType.type)
 
-    if (componentIndex === -1) {
-      throw new Error(
-        "Failed to find component. Component could not exist with entity.",
-      )
-    }
+    assertValidComponentIndex(componentIndex)
 
     const entityIndex = archetype.indices[entity]
 
@@ -310,14 +357,23 @@ export function createStorage(): Storage {
     return archetype.table[componentIndex][entityIndex]! as ComponentOf<T>
   }
 
-  function registerComponentFactory(factory: ComponentFactoryLike) {
-    factoriesByType.set(factory.type, factory)
+  function getEntityComponents(entity: number) {
+    const archetype = getEntityArchetype(entity)
+    const entityIndex = archetype.indices[entity]
+    const result: Component[] = []
+
+    for (let i = 0; i < archetype.table.length; i++) {
+      result.push(archetype.table[i][entityIndex]!)
+    }
+
+    return result
   }
 
   return {
     create,
     insert,
     remove,
+    removeByTypeIds,
     destroy,
     addTag,
     removeTag,
@@ -326,6 +382,6 @@ export function createStorage(): Storage {
     incrementVersion,
     findComponent,
     upsert,
-    registerComponentFactory,
+    getEntityComponents,
   }
 }

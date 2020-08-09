@@ -1,6 +1,6 @@
-const { createWorld } = require("../dist/world")
-const { query, select } = require("../dist/query")
-const { arrayOf } = require("../dist/util/array")
+const { createWorld } = require("../dist/cjs/world")
+const { query, select } = require("../dist/cjs/query")
+const { arrayOf } = require("../dist/cjs/util/array")
 
 module.exports.run = function run() {
   let n = 1000
@@ -12,29 +12,28 @@ module.exports.run = function run() {
     { schema: {}, type: 4 },
   ]
   const components = [
-    ...arrayOf(90000, () => [{ _t: 1 }]),
-    ...arrayOf(90000, () => [{ _t: 1 }, { _t: 3 }]),
-    ...arrayOf(90000, () => [{ _t: 2 }]),
-    ...arrayOf(90000, () => [{ _t: 1 }, { _t: 2 }, { _t: 3 }]),
-    ...arrayOf(90000, () => [{ _t: 4 }]),
-    ...arrayOf(90000, () => [{ _t: 2 }, { _t: 4 }]),
+    ...arrayOf(75000, () => [{ _t: 1 }]),
+    ...arrayOf(75000, () => [{ _t: 1 }, { _t: 3 }]),
+    ...arrayOf(75000, () => [{ _t: 2 }]),
+    ...arrayOf(75000, () => [{ _t: 1 }, { _t: 2 }, { _t: 3 }]),
+    ...arrayOf(75000, () => [{ _t: 4 }]),
+    ...arrayOf(75000, () => [{ _t: 2 }, { _t: 4 }]),
   ]
   const queries = [
     [componentTypes[0]],
     [componentTypes[0], componentTypes[1]],
     [componentTypes[2]],
     [componentTypes[1], componentTypes[3]],
-  ].map(c => query(select(...c)))
+  ].map(c => query(...c))
 
   console.time("create")
-  const entities = components.map(c => world.create(c))
+  const entities = components.map(c => world.component(c))
   console.timeEnd("create")
 
   let i = n
   let c = 0
   const start = Date.now()
 
-  world.tick()
   world.tick()
 
   world.addSystem(() => {
@@ -46,9 +45,8 @@ module.exports.run = function run() {
   })
 
   console.time("run")
-  while (i >= 0) {
+  while (i--) {
     world.tick()
-    i--
   }
   console.timeEnd("run")
 

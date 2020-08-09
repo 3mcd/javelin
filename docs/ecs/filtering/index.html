@@ -10,6 +10,7 @@
       <title>Javelin Docs</title>
 
       
+      <script src="/javelin-ecs.bundle.min.js" type="text/javascript"></script>
       
 
       <!-- CSS -->
@@ -182,39 +183,81 @@
                     <div class="book-content">
                         
 <h1>Filtering</h1>
-<p>The result of a query can be narrowed using filters. A query is filtered using the rest parameters of <code>query</code>.</p>
+<h2 id="change-detection">Change Detection<a class="zola-anchor" href="#change-detection" aria-label="Anchor link for: change-detection"
+  >#</a
+>
+</h2>
+<p>Sometimes you may want to capture changes to entities and their components. For example, it may be useful to know when a component is attached to (or detached from) an entity in order to notify a third-party library, or update another component in your game.</p>
+<p>By default, query results will exclude detached components, and include newly attached components alongside an entity's existing components.</p>
+<aside>
+  <p><strong>Note</strong> — components detached during the current tick are excluded from query results. Imagine a system that detaches the <code>Body</code> component of entities when a player's health drops to zero. If detached components were always included, an entity whose <code>Body</code> was detached could continue to trigger collisions with other entities during the current tick, leading to unexpected behavior.</p>
+</aside>
+<p>The result of a query can be narrowed using filters. Queries are filtered by wrapping one or more of the component types in a selector with a filter function, e.g:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ created } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
+<code><span style="color:#555c64;">query(Player, detached(Body))
+</span></code></pre><h3 id="attached">Attached<a class="zola-anchor" href="#attached" aria-label="Anchor link for: attached"
+  >#</a
+>
+</h3>
+<p>The <code>attached</code> filter will narrow a query to include only entities whose the selected components were added <strong>last tick</strong>.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ attached } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">createdBodies </span><span style="color:#388282;">= </span><span style="color:#555c64;">query(select(Body), created)
-</span></code></pre>
-<p>The <code>changed</code> filter excludes entities whose components haven't changed since the entity was last encountered by the filter in a query. This filter uses the component's version (<code>_v</code>) to this end.</p>
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">attachedBodies </span><span style="color:#388282;">= </span><span style="color:#555c64;">query(Player, attached(Body))
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">system </span><span style="color:#388282;">= </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [player, body]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">attachedBodies(world)) {
+    </span><span style="color:#8c95a0;">// `body` was attached to `entity` last tick
+  </span><span style="color:#555c64;">}
+}
+</span></code></pre><h3 id="detached">Detached<a class="zola-anchor" href="#detached" aria-label="Anchor link for: detached"
+  >#</a
+>
+</h3>
+<p>The <code>detached</code> filter will narrow a query to include only entities whose selected components were detached either <strong>last tick</strong> or the <strong>current tick</strong>.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ detached } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
+
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">detachedBodies </span><span style="color:#388282;">= </span><span style="color:#555c64;">query(Player, detached(Body))
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">system </span><span style="color:#388282;">= </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [player, body]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">detachedBodies(world)) {
+    </span><span style="color:#8c95a0;">// `body` was removed from `entity` this tick OR last tick
+  </span><span style="color:#555c64;">}
+}
+</span></code></pre><h3 id="changed">Changed<a class="zola-anchor" href="#changed" aria-label="Anchor link for: changed"
+  >#</a
+>
+</h3>
+<p>The <code>changed</code> filter excludes entities whose components haven't changed since the entity was last encountered by the filter in a query.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">import </span><span style="color:#555c64;">{ changed, query } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">healthy </span><span style="color:#388282;">= </span><span style="color:#555c64;">query(select(Health, Player), changed(Health))
-
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">cullEntities </span><span style="color:#388282;">= </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[health, player] </span><span style="color:#388282;">of </span><span style="color:#555c64;">healthy(world)) {
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">healthy </span><span style="color:#388282;">= </span><span style="color:#555c64;">query(changed(Health), Player))
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">system </span><span style="color:#388282;">= </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [health, player]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">healthy(world)) {
     </span><span style="color:#8c95a0;">// `health` has changed since last tick
-    </span><span style="color:#388282;">if </span><span style="color:#555c64;">(health </span><span style="color:#388282;">&lt;= </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">) {
-      world.destroy(health._e)
+    </span><span style="color:#388282;">if </span><span style="color:#555c64;">(health.value </span><span style="color:#388282;">&lt;= </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">) {
+      world.detach(entity, health)
     }
   }
 }
-</span></code></pre>
-<p><code>query(selector, ...filters)</code> accepts multiple filters:</p>
+</span></code></pre><h3 id="custom-filters">Custom Filters<a class="zola-anchor" href="#custom-filters" aria-label="Anchor link for: custom-filters"
+  >#</a
+>
+</h3>
+<p>You can create a custom filter with the <code>createComponentFilter</code> function.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">query(selector, changed, awake, </span><span style="color:#388282;">...</span><span style="color:#555c64;">);
-</span></code></pre>
-<p>Javelin also provides the following filters:</p>
-<ul>
-<li><code>committed</code> ignores entities that were created or destroyed last tick</li>
-<li><code>created</code> detects newly created entities</li>
-<li><code>destroyed</code> detects recently destroyed entities</li>
-<li><code>tag</code> isolates entities by tags, which are discussed in the <a href="/ecs/tagging">Tagging</a> section</li>
-</ul>
- 
+<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createComponentFilter } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
+
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">dead </span><span style="color:#388282;">= </span><span style="color:#555c64;">createComponentFilter(
+  () </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">health</span><span style="color:#388282;">: </span><span style="color:#555c64;">ComponentOf&lt;</span><span style="color:#388282;">typeof </span><span style="color:#555c64;">Health&gt;) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">health.value </span><span style="color:#388282;">&lt;= </span><span style="color:#4179ad;">0
+</span><span style="color:#555c64;">)
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">killed </span><span style="color:#388282;">= </span><span style="color:#555c64;">query(dead(Health))
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">system </span><span style="color:#388282;">= </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [health]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">killed(world)) {
+    world.detach(entity, health)
+  }
+}
+</span></code></pre> 
                     </div>
                 </div>
             </div>

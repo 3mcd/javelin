@@ -10,6 +10,7 @@
       <title>Javelin Docs</title>
 
       
+      <script src="/javelin-ecs.bundle.min.js" type="text/javascript"></script>
       
 
       <!-- CSS -->
@@ -186,7 +187,7 @@
   >#</a
 >
 </h2>
-<p>Sometimes it's useful for a system to trigger behavior in a different system. For example, you might have a physics system that wraps a third-party library whose methdos you'd like to expose to other parts of your game.</p>
+<p>Sometimes it's useful for a system to trigger behavior in a different system. For example, you might have a physics system that wraps a third-party library whose methods you'd like to expose to other parts of your game.</p>
 <p>Let's say you want to apply an impulse to a physics body when a player jumps so it gains some momentum in a direction. One way of doing this is to model the operation as a component.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">type </span><span style="color:#555c64;">Impulse </span><span style="color:#388282;">= </span><span style="color:#555c64;">{
@@ -197,16 +198,17 @@
 <p>When you want to apply a impulse to an entity, you could insert an <code>Impulse</code> component on the current tick, and remove it on the following tick.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#8c95a0;">// player input system
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player] </span><span style="color:#388282;">of </span><span style="color:#555c64;">jumping(world)) {
-  world.insert(player._e, Impulse.create())
+</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity] </span><span style="color:#388282;">of </span><span style="color:#555c64;">jumping(world)) {
+  world.attach(entity, Impulse.create())
 }
 
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player, impulse] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playersWithImpulse(world)) {
-  world.remove(player._e, impulse)
+</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [, impulse]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playersWithImpulse(world)) {
+  world.detach(entity, impulse)
 }
 </span></code></pre><pre style="background-color:#f6f8f8;">
 <code><span style="color:#8c95a0;">// physics system
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[body, impulse] </span><span style="color:#388282;">of </span><span style="color:#555c64;">bodiesWithImpulse(world)) {
+</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [impulse]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playersWithImpulse(world)) {
+  </span><span style="color:#388282;">const </span><span style="color:#555c64;">body </span><span style="color:#388282;">= </span><span style="color:#555c64;">getBodyByEntity(entity)
   physicsEngine.applyImpulseLocal(body, impulse)
 }
 </span></code></pre>
@@ -220,13 +222,15 @@
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createTopic } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
 
-</span><span style="color:#388282;">type </span><span style="color:#555c64;">PhysicsCommand </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">&quot;jump&quot;</span><span style="color:#555c64;">, </span><span style="color:#88669e;">number</span><span style="color:#555c64;">]
+</span><span style="color:#8c95a0;">// (&quot;impulse&quot;, entity: number, velocity: [x: number, y: number])
+</span><span style="color:#388282;">type </span><span style="color:#555c64;">ImpulseCommand </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">, </span><span style="color:#88669e;">number</span><span style="color:#555c64;">, [</span><span style="color:#88669e;">number</span><span style="color:#555c64;">, </span><span style="color:#88669e;">number</span><span style="color:#555c64;">]]
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsTopic </span><span style="color:#388282;">= </span><span style="color:#555c64;">createTopic&lt;PhysicsCommand&gt;()
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsTopic </span><span style="color:#388282;">= </span><span style="color:#555c64;">createTopic&lt;ImpulseCommand&gt;()
 </span></code></pre>
 <p>Messages are enqueued using the <code>topic.push()</code> method.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">topic.push([</span><span style="color:#4179ad;">&quot;jump&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">23</span><span style="color:#555c64;">])
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">message</span><span style="color:#388282;">: </span><span style="color:#555c64;">ImpulseCommand </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">23</span><span style="color:#555c64;">, [</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">]]
+topic.push(message)
 </span></code></pre>
 <p>Messages are unavailable until the <code>topic.flush()</code> method is called. It's recommended to flush the topics in your main game loop, after calling <code>world.tick</code>.</p>
 <pre style="background-color:#f6f8f8;">
@@ -239,27 +243,27 @@
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">import </span><span style="color:#555c64;">{ physicsTopic } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;./physics_topic&quot;
 
-</span><span style="color:#8c95a0;">// third-party physics engine
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsEngine </span><span style="color:#388282;">= new </span><span style="color:#555c64;">PhysicsEngine()
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">command </span><span style="color:#388282;">of </span><span style="color:#555c64;">physicsTopic) {
-    </span><span style="color:#388282;">if </span><span style="color:#555c64;">(command[</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">] </span><span style="color:#388282;">=== </span><span style="color:#4179ad;">&quot;jump&quot;</span><span style="color:#555c64;">) {
-      physicsEngine.jump(physicsEngine.getBodyForEntity(command[</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">]))
+    </span><span style="color:#388282;">if </span><span style="color:#555c64;">(command[</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">] </span><span style="color:#388282;">=== </span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">) {
+      </span><span style="color:#388282;">const </span><span style="color:#555c64;">body </span><span style="color:#388282;">= </span><span style="color:#555c64;">getBodyByEntity(command[</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">])
+      physicsEngine.applyImpulseLocal(body, command[</span><span style="color:#4179ad;">2</span><span style="color:#555c64;">])
     }
   }
-
-  </span><span style="color:#8c95a0;">// ...
-</span><span style="color:#555c64;">}
-</span></code></pre>
-<p>Sometimes messages need to be processed as quickly as possible, like when processing user input. <code>topic.pushImmediate</code> will push a message onto the queue for processing immediately.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">topic.pushImmediate([</span><span style="color:#4179ad;">&quot;jump&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">24</span><span style="color:#555c64;">])
-</span></code></pre><aside>
+}
+</span></code></pre><h3 id="immediate-processing">Immediate Processing<a class="zola-anchor" href="#immediate-processing" aria-label="Anchor link for: immediate-processing"
+  >#</a
+>
+</h3>
+<p>Sometimes messages should be handled as quickly as possible, like when processing user input. <code>topic.pushImmediate</code> will push a message into the topic for immediate processing.</p>
+<aside>
   <p>
     <strong>Note</strong> — System registration order matters when using <code>pushImmediate</code>. Since the messages will be thrown away at the end of the tick, any systems upstream from the one that used <code>pushImmediate</code> will never have the opportunity to read the message.
   </p>
 </aside>
- 
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">topic.pushImmediate([</span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">24</span><span style="color:#555c64;">, [</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">]])
+</span></code></pre> 
                     </div>
                 </div>
             </div>

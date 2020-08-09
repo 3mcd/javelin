@@ -1,20 +1,16 @@
 import { Component } from "./component"
 
 export enum WorldOpType {
-  Create,
-  Insert,
-  Remove,
+  Spawn,
+  Attach,
+  Detach,
+  Mutate,
   Destroy,
 }
 
-export type CreateOp = [
-  WorldOpType.Create,
-  number,
-  ReadonlyArray<Component>,
-  number?,
-]
-export type InsertOp = [WorldOpType.Insert, number, ReadonlyArray<Component>]
-export type RemoveOp = [WorldOpType.Remove, number, ReadonlyArray<Component>]
+export type SpawnOp = [WorldOpType.Spawn, number, ReadonlyArray<Component>]
+export type AttachOp = [WorldOpType.Attach, number, ReadonlyArray<Component>]
+export type DetachOp = [WorldOpType.Detach, number, ReadonlyArray<number>]
 export type DestroyOp = [WorldOpType.Destroy, number]
 
-export type WorldOp = CreateOp | InsertOp | RemoveOp | DestroyOp
+export type WorldOp = SpawnOp | AttachOp | DetachOp | DestroyOp

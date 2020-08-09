@@ -1,9 +1,10 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "dist",
+    "downlevelIteration": true,
+    "outDir": "dist/cjs",
     "module": "commonjs"
   },
   "include": ["src"],
-  "exclude": ["**/*.spec.ts"]
+  "exclude": ["**/*.spec.ts", "**/__mocks__/**/*"]
 }

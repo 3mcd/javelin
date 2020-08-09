@@ -10,6 +10,7 @@
       <title>Javelin Docs</title>
 
       
+      <script src="/javelin-ecs.bundle.min.js" type="text/javascript"></script>
       
 
       <!-- CSS -->
@@ -186,54 +187,77 @@
   >#</a
 >
 </h2>
-<p>Components are plain objects; unremarkable, other than a few reserved fields:</p>
+<p>This section is short, because components are just plain objects; unremarkable, other than two reserved fields:</p>
 <ul>
-<li><code>_t</code> is a unique integer identifying the component's <strong>type</strong></li>
-<li><code>_e</code> records the <strong>entity</strong> the component is associated with</li>
-<li><code>_v</code> records the current <strong>version</strong> of the component, and used for change detection</li>
+<li><code>readonly _t</code> — a unique integer identifying the component's <strong>type</strong></li>
+<li><code>readonly _v</code> — the current <strong>version</strong> of the component (used for change detection)</li>
 </ul>
-<p>The component's type, or <code>_t</code>, is the only required field when assigning components to an entity (new or otherwise).</p>
+<p>The component's type (<code>_t</code>) is the only required field when assigning components to an entity, new or otherwise. Newly attached components are assigned a version of <code>0</code>. The version property is deleted when the component is detached.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">world.create([
-  { _t: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">, x: </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, y: </span><span style="color:#4179ad;">0 </span><span style="color:#555c64;">},
-  { _t: </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">, health: </span><span style="color:#4179ad;">10 </span><span style="color:#555c64;">},
-]);
-</span></code></pre>
-<p>A component with type <code>1</code> belonging to entity <code>5</code> that has been modified three times might look like:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">{
-  _t: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">,
-  _e: </span><span style="color:#4179ad;">5</span><span style="color:#555c64;">,
-  _v: </span><span style="color:#4179ad;">3</span><span style="color:#555c64;">,
-  </span><span style="color:#8c95a0;">// ...
-</span><span style="color:#555c64;">}
-</span></code></pre><h2 id="component-factories">Component Factories<a class="zola-anchor" href="#component-factories" aria-label="Anchor link for: component-factories"
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">body </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ _t: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">, x: </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, y: </span><span style="color:#4179ad;">0 </span><span style="color:#555c64;">}
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">entity </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.spawn(body)
+
+world.tick()
+body._v </span><span style="color:#8c95a0;">// -&gt; 0
+
+</span><span style="color:#555c64;">world.detach(entity, body)
+world.tick()
+body._v </span><span style="color:#8c95a0;">// -&gt; undefined
+</span></code></pre><h2 id="component-types">Component Types<a class="zola-anchor" href="#component-types" aria-label="Anchor link for: component-types"
   >#</a
 >
 </h2>
-<p>It's strongly recommended to use the <code>createComponentFactory</code> helper to create factories to build your components.</p>
+<p>Unless you're trying to integrate with an existing codebase or library, it's recommended to use the <code>createComponentType</code> helper to define the component types your world will use. Component types make it easy to initialize components from a schema, and the components they produce are automatically pooled.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createComponentFactory, number } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;</span><span style="color:#555c64;">;
+<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createComponentType, number } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">Position </span><span style="color:#388282;">= </span><span style="color:#555c64;">createComponentFactory({
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">Position </span><span style="color:#388282;">= </span><span style="color:#555c64;">createComponentType({
   type: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">,
   name: </span><span style="color:#4179ad;">&quot;position&quot;</span><span style="color:#555c64;">,
   schema: {
     x: number,
     y: number,
   },
-});
+})
 </span></code></pre>
-<p>A component factory is configured with a type, name, and schema. <code>type</code> is be a unique integer and <code>name</code> is a unique string. The component factory's name is used by <a href="https://github.com/3mcd/javelin/tree/master/packages/devtool"><code>javelin/devtools</code></a> for help with rendering.</p>
-<p>The <code>schema</code> option defines the field names and data types that make up the shape of the component. Currently, the schema is used to automatically initialize and reset component instances. In the future, it may be used to improve compression of components when serialized.</p>
-<p>Components created via factory are automatically pooled; however, you must register the factory with the world so components are released back to the pool when their entity is destroyed:</p>
+<p>The component type <strong>must</strong> be registered using <code>world.registerComponentType</code> to take advantage of pooling:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({ componentFactories: [</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">] });
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({
+  componentTypes: [</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">],
+})
 </span><span style="color:#8c95a0;">// OR
-</span><span style="color:#555c64;">world.registerComponentFactory(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">);
+</span><span style="color:#555c64;">world.registerComponentType(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">)
 </span></code></pre>
-<p>Otherwise, you'll need to release pooled components manually with the <code>componentFactory.destroy</code> method.</p>
- 
+<p>A component type is configured with a <strong>type id</strong>, <strong>name</strong>, and <strong>schema</strong>. The type id is an integer used to uniquely identify components produced from the type, while <code>name</code> is a unique string used by <a href="https://github.com/3mcd/javelin/tree/master/packages/devtool"><code>@javelin/devtools</code></a> for help with debugging.</p>
+<h3 id="schema">Schema<a class="zola-anchor" href="#schema" aria-label="Anchor link for: schema"
+  >#</a
+>
+</h3>
+<p>The component type's schema defines the field names and data types that make up the shape of the component. Currently, the schema is used to initialize and reset component instances.</p>
+<p>The schema currently supports the following data types, which are each exported from <code>@javelin/ecs</code>:</p>
+<ul>
+<li><code>number (0)</code></li>
+<li><code>boolean (false)</code></li>
+<li><code>string (&quot;&quot;)</code></li>
+<li><code>array(number | boolean | string | array) ([])</code></li>
+</ul>
+<p>A default value for a data type can be specified in the schema by wrapping the data type in an object:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">schema: {
+  x: { type: number, defaultValue: </span><span style="color:#388282;">-</span><span style="color:#4179ad;">1 </span><span style="color:#555c64;">}
+}
+</span></code></pre><h3 id="object-pooling">Object Pooling<a class="zola-anchor" href="#object-pooling" aria-label="Anchor link for: object-pooling"
+  >#</a
+>
+</h3>
+<p>Components created via factory are automatically pooled. By default, the pool will initialize 10^3 components for usage, and will grow by the same amount when the pool shinks to zero. You can modify the pool size either by setting the <code>componentPoolSize</code> option on the config object passed to <code>createWorld()</code>, or when registering the component type with <code>world.registerComponentType</code>:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({
+  componentPoolSize: </span><span style="color:#4179ad;">100</span><span style="color:#555c64;">,
+})
+</span><span style="color:#8c95a0;">// or
+</span><span style="color:#555c64;">world.registerComponentType(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">10000</span><span style="color:#555c64;">)
+</span></code></pre> 
                     </div>
                 </div>
             </div>

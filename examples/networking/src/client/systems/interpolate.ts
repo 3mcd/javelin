@@ -1,30 +1,32 @@
-import { query, select, World, created, changed, committed } from "@javelin/ecs"
-import { RenderTransform } from "../components/position_buffer"
+import { attached, changed, query, World } from "@javelin/ecs"
 import { Position } from "../../common/components"
-import { render } from "./render"
+import { RenderTransform } from "../components/position_buffer"
 
-const positionsCreated = query(select(Position), created)
-const positionsChanged = query(select(Position), changed, committed)
-const renderTransforms = query(select(RenderTransform))
+const positionsAttached = query(attached(Position))
+const positionsChanged = query(changed(Position))
+const renderTransforms = query(RenderTransform)
 
 let adaptiveSendRate = 20
 
-export function interpolate(world: World, dt: number) {
+export function interpolate(world: World) {
   const time = Date.now()
   const renderTime = time - 1000 / adaptiveSendRate
 
-  for (const [{ _e: entity }] of positionsCreated(world)) {
-    world.insert(entity, [RenderTransform.create()])
+  for (const [entity] of positionsAttached(world)) {
+    world.attach(entity, world.component(RenderTransform))
   }
 
-  for (const [{ _e: entity, x, y }] of positionsChanged(world)) {
-    const buffer = world.getComponent(entity, RenderTransform)
-    const update = [Date.now(), x, y]
+  for (const [entity, [{ x, y }]] of positionsChanged(world)) {
+    const buffer = world.tryGetComponent(entity, RenderTransform)
 
-    buffer.updates.push(update)
+    if (buffer) {
+      const update = [Date.now(), x, y]
+
+      buffer.updates.push(update)
+    }
   }
 
-  for (const [renderTransform] of renderTransforms(world)) {
+  for (const [, [renderTransform]] of renderTransforms(world)) {
     const { updates } = renderTransform
 
     // Drop older positions.

@@ -30,7 +30,6 @@ Visit https://javelin.games
 
 | Example                             | Description                                               |
 | ----------------------------------- | --------------------------------------------------------- |
-| [basic](./examples/basic)           | A basic ECS example                                       |
 | [networking](./examples/networking) | Entity/component synchronization over WebRTC datachannels |
 
 ## Scripts

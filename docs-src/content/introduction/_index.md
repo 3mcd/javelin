@@ -11,4 +11,4 @@ See a live, [multiplayer game example](http://fps.javelin.games). Connect with a
 
 Check out the code at the [GitHub repo](https://github.com/3mcd).
 
-Or move onto the [ECS](/ecs) chapter to start learning more!
+Or, move onto the [ECS](/ecs) chapter to start learning more.

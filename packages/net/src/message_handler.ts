@@ -44,8 +44,8 @@ export function createMessageHandler(
 
         let local: number
 
-        if (op[0] === WorldOpType.Create) {
-          local = world.create(op[2])
+        if (op[0] === WorldOpType.Spawn) {
+          local = world.spawn(...op[2])
           remoteToLocal.set(op[1], local)
           ops.splice(i, 1)
         } else {
@@ -77,14 +77,15 @@ export function createMessageHandler(
   }
 
   function handleUpdate(
-    components: Component[],
+    entityComponentPairs: [number, Component[]][],
     isLocal: boolean,
     world: World,
   ) {
+    const { [$worldStorageKey]: storage } = world
+
     // Attempt to update or insert each component.
-    for (let i = 0; i < components.length; i++) {
-      const component = components[i]
-      const entity = component._e
+    for (let i = 0; i < entityComponentPairs.length; i++) {
+      const [entity, components] = entityComponentPairs[i]
       const local = isLocal ? entity : tryGetLocalEntity(entity)
 
       // Entity was removed prior to processing this update.
@@ -92,16 +93,12 @@ export function createMessageHandler(
         continue
       }
 
-      component._e = local
-
       try {
-        world[$worldStorageKey].upsert(component)
+        storage.upsert(local, components)
       } catch (err) {
         // Update failed, potentially due to a race condition between reliable
         // and unreliable channels.
-        console.warn(
-          `Remote update for entity ${local} with component type ${component._t} failed because entity had not been created yet or had already been destroyed.`,
-        )
+        return
       }
     }
   }
@@ -137,7 +134,7 @@ export function createMessageHandler(
   }
 
   function handleSpawn(components: ComponentSpec[], world: World) {
-    world.create(components)
+    world.spawn(...components)
   }
 
   function applyMessage(message: JavelinMessage, world: World) {

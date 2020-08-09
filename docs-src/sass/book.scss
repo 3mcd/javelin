@@ -34,11 +34,11 @@ html {
   color: #32363b;
 
   @include min-screen($breakpoint--laptop) {
-    font-size: 18px;
+    font-size: 17px;
   }
 
   @include min-screen($breakpoint--desktop) {
-    font-size: 20px;
+    font-size: 19px;
   }
 }
 
@@ -85,8 +85,27 @@ body {
 $color--link: #4179ad;
 $sidebar-width: 13rem;
 
+a,
+a code {
+  color: $color--link;
+}
+
+a code {
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 main {
   display: flex;
+
+  > section {
+    flex-direction: column;
+
+    @include min-screen($breakpoint--mobile) {
+      flex-direction: row;
+    }
+  }
 }
 
 section {

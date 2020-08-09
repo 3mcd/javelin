@@ -1,4 +1,4 @@
-export interface StackPool<T> {
+export type StackPool<T> = {
   allocate(): void
   retain(): T
   release(obj: T): void

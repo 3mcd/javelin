@@ -10,24 +10,22 @@ describe("changed", () => {
     world = createWorld()
   })
 
-  it("always matches entities", () => {
-    const filter = changed()
-    const entity = 1
-
-    expect(filter.matchEntity(entity, world)).toBe(true)
-  })
   it("matches only changed components", () => {
-    const filter = changed()
+    const A = {
+      name: "A",
+      type: 0,
+      schema: {},
+    }
+    const filter = changed(A)
     const component = {
       _t: 0,
-      _e: 0,
       _v: 0,
     }
 
-    expect(filter.matchComponent(component, world)).toBe(true)
-    expect(filter.matchComponent(component, world)).toBe(false)
+    expect(filter.componentPredicate(component, world)).toBe(true)
+    expect(filter.componentPredicate(component, world)).toBe(false)
     component._v = 1
-    expect(filter.matchComponent(component, world)).toBe(true)
-    expect(filter.matchComponent(component, world)).toBe(false)
+    expect(filter.componentPredicate(component, world)).toBe(true)
+    expect(filter.componentPredicate(component, world)).toBe(false)
   })
 })

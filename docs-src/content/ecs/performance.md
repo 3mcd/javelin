@@ -5,11 +5,9 @@ weight = 8
 
 ## Iteration
 
-Javelin ECS can currently process around 650k entities per 16ms tick.
+Javelin ECS can currently process ~500k entities per 16ms tick.
 
-An entity's components are stored in a table called an **archetype** with components belonging to other entities of the exact same composition. In theory, this improves iteration speed due to fewer cache misses since fewer indices are skipped than if we were to iterate all entities each tick.
-
-In addition, the array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. That is to say, when querying for entities with components `(A, B)`, we can skip iteration of entities within all archetypes that aren't superset of `(A, B)`.
+An entity's components are partitioned into tables called **archetypes** with components belonging to other entities of the exact same composition. This array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. That is to say, when querying for entities with components `(A, B)`, we can skip iteration of entities within all archetypes that aren't superset of `(A, B)`.
 
 You can see how archtypes and component storage are implemented in [archetype.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/archetype.ts) and [storage.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/storage.ts), respectively.
 
@@ -46,16 +44,16 @@ Example `yarn perf` output:
 
 ```
 ========================================
-perf_storage
+perf_storage_pooled
 ========================================
-create: 229.866ms
-run: 15520.090ms
-destroy: 13.510ms
-entities      | 540000
+create: 171.759ms
+run: 15315.012ms
+destroy: 42.628ms
+entities      | 450000
 components    | 4
 queries       | 4
 ticks         | 1000
-iter          | 630630000
-iter_tick     | 630630
-avg_tick      | 15.987ms
+iter          | 525525000
+iter_tick     | 525525
+avg_tick      | 15.862ms
 ```

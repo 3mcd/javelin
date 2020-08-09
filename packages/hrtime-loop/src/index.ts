@@ -37,7 +37,7 @@ export function createHrtimeLoop(
       callback(clock)
     }
 
-    if (Date.now() - previousTick < tickRate - 16) {
+    if (now - previousTick < tickRate - 16) {
       setTimeout(loop)
     } else {
       setImmediate(loop)

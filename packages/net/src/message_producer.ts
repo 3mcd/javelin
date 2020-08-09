@@ -1,15 +1,15 @@
 import {
-  changed,
+  $worldStorageKey,
   Component,
   ComponentType,
+  DetachOp,
   mutableEmpty,
+  SpawnOp,
   World,
-  WorldOpType,
-  CreateOp,
   WorldOp,
-  $worldStorageKey,
+  WorldOpType,
 } from "@javelin/ecs"
-import { JavelinMessage, protocol, Update, UpdateUnreliable } from "./protocol"
+import { JavelinMessage, protocol, UpdateUnreliable } from "./protocol"
 
 export type QueryConfig = {
   type: ComponentType
@@ -47,14 +47,14 @@ export function createMessageProducer(
   const allComponentTypeIds = options.components.map(config => config.type.type)
   const priorities = new WeakMap<Component, number>()
   const payloadChanged: Component[] = []
-  const changedCache = changed()
-  const tempSortedByPriority: Component[] = []
+  const changedCache = new WeakMap<Component, number>()
+  const tmpSortedByPriority: Component[] = []
 
   let previousUnreliableSendTime = 0
 
   function getInitialMessages(world: World) {
     const messages = []
-    const ops: CreateOp[] = []
+    const ops: SpawnOp[] = []
     const { archetypes } = world[$worldStorageKey]
 
     for (let i = 0; i < archetypes.length; i++) {
@@ -67,18 +67,17 @@ export function createMessageProducer(
 
       for (let j = 0; j < entities.length; j++) {
         const entity = entities[j]
-
-        if (world.destroyed.has(entity)) {
-          continue
-        }
-
         const entityIndex = indices[entity]
         const components: Component[] = []
-        const message: CreateOp = [WorldOpType.Create, entity, components]
+        const message: SpawnOp = [WorldOpType.Spawn, entity, components]
 
         for (let k = 0; k < componentIndices.length; k++) {
           const componentIndex = componentIndices[k]
-          components.push(table[componentIndex][entityIndex]!)
+          const component = table[componentIndex][entityIndex]!
+
+          if (component._v > -1) {
+            components.push(table[componentIndex][entityIndex]!)
+          }
         }
 
         ops.push(message)
@@ -96,6 +95,8 @@ export function createMessageProducer(
     const { archetypes } = world[$worldStorageKey]
     const messages: JavelinMessage[] = []
 
+    tmpComponentsByEntity.clear()
+
     if (world.ops.length > 0) {
       const filteredOps: WorldOp[] = []
 
@@ -103,17 +104,26 @@ export function createMessageProducer(
         let op = world.ops[i]
 
         switch (op[0]) {
-          case WorldOpType.Create:
-          case WorldOpType.Insert:
-          case WorldOpType.Remove: {
+          case WorldOpType.Spawn:
+          case WorldOpType.Attach: {
             const components = op[2].filter(c =>
               allComponentTypeIds.includes(c._t),
             )
 
             if (components.length > 0) {
-              filteredOps.push([op[0], op[1], components, op[3]] as WorldOp)
+              filteredOps.push([op[0], op[1], components] as WorldOp)
             }
 
+            break
+          }
+          case WorldOpType.Detach: {
+            const componentTypeIds = op[2].filter(_t =>
+              allComponentTypeIds.includes(_t),
+            )
+
+            if (componentTypeIds.length > 0) {
+              filteredOps.push([op[0], op[1], componentTypeIds] as DetachOp)
+            }
             break
           }
           case WorldOpType.Destroy:
@@ -126,8 +136,6 @@ export function createMessageProducer(
         messages.push(protocol.ops(filteredOps, isLocal))
       }
     }
-
-    mutableEmpty(payloadChanged)
 
     for (let i = 0; i < archetypes.length; i++) {
       const archetype = archetypes[i]
@@ -147,19 +155,34 @@ export function createMessageProducer(
         for (let k = 0; k < archetype.entities.length; k++) {
           const entity = archetype.entities[k]
           const component = components[archetype.indices[entity]]!
+          const last = changedCache.get(component)
+          const hit = component._v > (last === undefined ? -1 : last)
 
-          if (changedCache.matchComponent(component, world)) {
-            payloadChanged.push(component)
+          if (hit) {
+            let arr = tmpComponentsByEntity.get(entity)
+
+            if (!arr) {
+              arr = []
+              tmpComponentsByEntity.set(entity, arr)
+            }
+
+            arr.push(component)
+            changedCache.set(component, component._v)
           }
         }
       }
     }
 
     if (payloadChanged.length > 0)
-      messages.push(protocol.update(payloadChanged))
+      messages.push(
+        protocol.update(Array.from(tmpComponentsByEntity.entries())),
+      )
 
     return messages
   }
+
+  const tmpComponentsByEntity = new Map<number, Component[]>()
+  const tmpEntitiesByComponent = new WeakMap<Component, number>()
 
   function getUnreliableMessages(world: World): UpdateUnreliable[] {
     const time = Date.now()
@@ -173,7 +196,8 @@ export function createMessageProducer(
 
     previousUnreliableSendTime = time
 
-    mutableEmpty(tempSortedByPriority)
+    mutableEmpty(tmpSortedByPriority)
+    tmpComponentsByEntity.clear()
 
     for (let i = 0; i < archetypes.length; i++) {
       const archetype = archetypes[i]
@@ -182,7 +206,7 @@ export function createMessageProducer(
         const config = options.components[j]
         const { type } = config.type
 
-        // Unreliable component
+        // Skip reliable components
         if (typeof config.priority !== "number") {
           continue
         }
@@ -200,22 +224,38 @@ export function createMessageProducer(
           const entity = archetype.entities[k]
           const component = components[archetype.indices[entity]]!
 
-          tempSortedByPriority.push(component)
+          tmpEntitiesByComponent.set(component, entity)
+          tmpSortedByPriority.push(component)
         }
       }
     }
 
-    tempSortedByPriority.sort((a, b) => priorities.get(a)! - priorities.get(b)!)
+    tmpSortedByPriority.sort((a, b) => priorities.get(a)! - priorities.get(b)!)
 
-    for (let i = tempSortedByPriority.length - 1; i >= 0; i--) {
+    for (let i = tmpSortedByPriority.length - 1; i >= 0; i--) {
       if (i > options.updateSize) {
-        tempSortedByPriority.pop()
+        tmpSortedByPriority.pop()
       } else {
-        priorities.delete(tempSortedByPriority[i])
+        priorities.delete(tmpSortedByPriority[i])
       }
     }
 
-    return [protocol.updateUnreliable(tempSortedByPriority)]
+    for (let i = 0; i < tmpSortedByPriority.length; i++) {
+      const component = tmpSortedByPriority[i]
+      const entity = tmpEntitiesByComponent.get(component)!
+      let arr = tmpComponentsByEntity.get(entity)
+
+      if (!arr) {
+        arr = []
+        tmpComponentsByEntity.set(entity, arr)
+      }
+
+      arr.push(component)
+    }
+
+    return [
+      protocol.updateUnreliable(Array.from(tmpComponentsByEntity.entries())),
+    ]
   }
 
   return {

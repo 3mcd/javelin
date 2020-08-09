@@ -1,44 +1,49 @@
-const { createWorld } = require("../dist/world")
-const { query, select } = require("../dist/query")
-const { arrayOf } = require("../dist/util/array")
-const { createComponentFactory } = require("../dist/helpers/component_helpers")
+const { createWorld } = require("../dist/cjs/world")
+const { query, select } = require("../dist/cjs/query")
+const { arrayOf } = require("../dist/cjs/util/array")
+const { createComponentType } = require("../dist/cjs/helpers/component_helpers")
 
 module.exports.run = function run() {
   let n = 1000
-  const world = createWorld([])
-  const factories = [
-    createComponentFactory({ schema: {}, type: 1 }),
-    createComponentFactory({ schema: {}, type: 2 }),
-    createComponentFactory({ schema: {}, type: 3 }),
-    createComponentFactory({ schema: {}, type: 4 }),
+  const componentTypes = [
+    createComponentType({ name: "1", schema: {}, type: 1 }),
+    createComponentType({ name: "2", schema: {}, type: 2 }),
+    createComponentType({ name: "3", schema: {}, type: 3 }),
+    createComponentType({ name: "4", schema: {}, type: 4 }),
   ]
+  const world = createWorld({ componentTypes })
   const entityComponents = [
-    ...arrayOf(90000, () => [factories[0].create()]),
-    ...arrayOf(90000, () => [factories[0].create(), factories[2].create()]),
-    ...arrayOf(90000, () => [factories[1].create()]),
-    ...arrayOf(90000, () => [
-      factories[0].create(),
-      factories[1].create(),
-      factories[2].create(),
+    ...arrayOf(75000, () => [world.component(componentTypes[0])]),
+    ...arrayOf(75000, () => [
+      world.component(componentTypes[0]),
+      world.component(componentTypes[2]),
     ]),
-    ...arrayOf(90000, () => [factories[3].create()]),
-    ...arrayOf(90000, () => [factories[1].create(), factories[3].create()]),
+    ...arrayOf(75000, () => [world.component(componentTypes[1])]),
+    ...arrayOf(75000, () => [
+      world.component(componentTypes[0]),
+      world.component(componentTypes[1]),
+      world.component(componentTypes[2]),
+    ]),
+    ...arrayOf(75000, () => [world.component(componentTypes[3])]),
+    ...arrayOf(75000, () => [
+      world.component(componentTypes[1]),
+      world.component(componentTypes[3]),
+    ]),
   ]
   const queries = [
-    [factories[0]],
-    [factories[0], factories[1]],
-    [factories[2]],
-    [factories[1], factories[3]],
-  ].map(c => query(select(...c)))
+    [componentTypes[0]],
+    [componentTypes[0], componentTypes[1]],
+    [componentTypes[2]],
+    [componentTypes[1], componentTypes[3]],
+  ].map(c => query(...c))
   console.time("create")
-  const entities = entityComponents.map(c => world.create(c))
+  const entities = entityComponents.map(c => world.entity(c))
   console.timeEnd("create")
 
   let i = n
   let c = 0
   const start = Date.now()
 
-  world.tick()
   world.tick()
 
   world.addSystem(() => {
@@ -50,9 +55,8 @@ module.exports.run = function run() {
   })
 
   console.time("run")
-  while (i >= 0) {
+  while (i--) {
     world.tick()
-    i--
   }
   console.timeEnd("run")
 
@@ -65,7 +69,7 @@ module.exports.run = function run() {
   console.timeEnd("destroy")
 
   console.log(`entities      | ${entityComponents.length}`)
-  console.log(`components    | ${factories.length}`)
+  console.log(`components    | ${componentTypes.length}`)
   console.log(`queries       | ${queries.length}`)
   console.log(`ticks         | ${n}`)
   console.log(`iter          | ${c}`)

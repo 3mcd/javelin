@@ -36,23 +36,3 @@ setInterval(world.tick, 1000)
 ```
 
 More on systems later in the [Systems](/ecs/systems) section!
-
-## Component Factories
-
-The configuration object also accepts an array of component factories whose components will automatically be released back to an object pool when they are removed, or their entity is destroyed. We'll see how to create component factories in the [Components](/ecs/components) section.
-
-```typescript
-const world = createWorld({
-    systems: [...],
-    componentFactories: [
-        Player,
-        Body,
-    ]
-})
-```
-
-Component factories can be added after world initialization via the `world.registerComponentFactory` method:
-
-```typescript
-world.registerComponentFactory(Position)
-```

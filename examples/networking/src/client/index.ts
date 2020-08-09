@@ -1,5 +1,9 @@
-import { createWorld } from "@javelin/ecs"
-import { createMessageHandler, JavelinMessage } from "@javelin/net"
+import { createWorld, WorldOpType } from "@javelin/ecs"
+import {
+  createMessageHandler,
+  JavelinMessage,
+  JavelinMessageType,
+} from "@javelin/net"
 import { decode } from "@msgpack/msgpack"
 import { Client } from "@web-udp/client"
 import { ConnectionOptions } from "@web-udp/client/lib/provider"
@@ -16,8 +20,10 @@ const udp = new Client({
 const messageHandler = createMessageHandler()
 const world = createWorld({
   systems: [messageHandler.system, interpolate, render],
-  componentFactories: [Position, RenderTransform, Color],
+  componentTypes: [Position, RenderTransform, Color],
 })
+
+;(window as any).world = world
 
 let tick = 0
 let previousTime = 0
@@ -36,8 +42,7 @@ function loop(time = 0) {
   tick++
 }
 
-const sessionId = localStorage.getItem("sessionId") || uuidv4()
-localStorage.setItem("sessionId", sessionId)
+const sessionId = uuidv4()
 
 const reliableOptions: ConnectionOptions = {
   binaryType: "arraybuffer",
@@ -60,12 +65,14 @@ async function main() {
   const connectionReliable = await udp.connect(reliableOptions)
   const connectionUnreliable = await udp.connect(unreliableOptions)
 
-  connectionReliable.messages.subscribe(data =>
-    messageHandler.push(decode(data) as JavelinMessage),
-  )
-  connectionUnreliable.messages.subscribe(data =>
-    messageHandler.push(decode(data) as JavelinMessage),
-  )
+  connectionReliable.messages.subscribe(data => {
+    const message = decode(data) as JavelinMessage
+    messageHandler.push(message)
+  })
+  connectionUnreliable.messages.subscribe(data => {
+    const message = decode(data) as JavelinMessage
+    messageHandler.push(message)
+  })
 
   loop()
 }

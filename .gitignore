@@ -116,3 +116,4 @@ dist
 .pnp.*
 
 .DS_Store
+zola

@@ -26,32 +26,35 @@ Systems have a signature of `(world: World<T>, data: T) => void`, where `world` 
 
 When `world.tick` is called, each system is executed in the order that it was registered.
 
-The following is an example of a "game" that will log the time elapsed since the last tick at around 60Hz.
+The following is a world that will log the time elapsed since the last tick at around 60Hz:
 
 ```typescript
 const world = createWorld()
-world.addSystem(console.log)
+world.addSystem((world, dt) => console.log(dt))
 
 let previousTime = Date.now()
 
 setInterval(() => {
   const currentTime = Date.now()
-  world.tick(currentTime - previousTime)
+  const delta = currentTime - previousTime
+
+  world.tick(delta)
+
   previousTime = currentTime
 }, 1000 / 60)
 ```
 
-The output of the above program might look something like:
+The output of the above program looks something like:
 
-```
-World { }, 16.66666666
-World { }, 16.66666666
-World { }, 16.66666666
+```typescript
+16.66666666
+16.66666666
+16.66666666
 ```
 
 <aside>
   <p>
-    <strong>Note</strong> — maintaining state using tick <code>data</code> is akin to using global variables. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the <a href="/ecs/topics">Topics</a> section.
+    <strong>Note</strong> — maintaining state using tick <code>data</code> is comparable to using global variables. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the <a href="/ecs/topics">Topics</a> section.
   </p>
 </aside>
 
@@ -60,35 +63,40 @@ World { }, 16.66666666
 Systems may execute **queries** to access entities and their components. Queries are created with the `query` function, which takes a **selector** of component types.
 
 ```typescript
-import { query, select } from "@javelin/ecs"
+import { query } from "@javelin/ecs"
 
-const players = query(select(Position, Player))
+const players = query(Position, Player)
 ```
 
-The `query` function returns a function that is then executed with a world. This function returns an iterator that yields tuples of components that belong to entities that meet the selector's criteria. The order of the components in the results match the order of components types in the selector. That is, the selector `select(Position, Player)`, will return a tuple of components `(Position, Player)`, regardless of the order in which the components are stored.
+A query is a function that is executed with a world. This function returns an iterator that yields tuples of `(entity, Component[])` for entities that meet the selector's criteria.
+
+The order of the components in the results match the order of components types in the selector. That is, `query(Position, Player)` will yield tuples of components `(Position, Player)`, regardless of the order in which the components are stored.
 
 ```typescript
+world.create([Player.create(), Position.create()])
+world.create([Position.create(), Player.create()])
+
 const render = (world: World, dt: number) => {
-  for (const [position, player] of players(world)) {
+  for (const [entity, [position, player]] of players(world)) {
     // render each player with a name tag
-    draw(position, player.name, dt)
+    draw(sprites.player, position, player.name, dt)
   }
 }
 ```
 
 ### Query caveats
 
-The tuple of components yielded by queries is re-used each iteration. This means that you can't store the results of a query for use later like this:
+The tuple of components yielded by queries is re-used each iteration. This means that you shouldn't store the results of a query for use later like this:
 
 ```typescript
 const results = []
 
-for (const s of shocked(world)) {
-  results.push(s)
+for (const [, components] of shocked(world)) {
+  results.push(components)
 }
 ```
 
-Every index of `results` corresponds to the same array!
+Every index of `results` corresponds to the same array, which is the tuple of components attached to the entity of the last iteration.
 
 The same applies to `Array.from()`, or any other method that expands an iterator into another container. If you _do_ need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
 
@@ -96,8 +104,8 @@ The same applies to `Array.from()`, or any other method that expands an iterator
 const applyStatusEffects = (dt: number, world: World) => {
   const shockedEnemies = []
 
-  for (const [enemy] of shocked(world)) {
-    shockedEnemies.push(enemy)
+  for (const [, components] of shocked(world)) {
+    shockedEnemies.push(...components)
   }
 }
 ```

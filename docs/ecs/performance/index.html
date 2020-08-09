@@ -10,6 +10,7 @@
       <title>Javelin Docs</title>
 
       
+      <script src="/javelin-ecs.bundle.min.js" type="text/javascript"></script>
       
 
       <!-- CSS -->
@@ -186,9 +187,8 @@
   >#</a
 >
 </h2>
-<p>Javelin ECS can currently process around 650k entities per 16ms tick.</p>
-<p>An entity's components are stored in a table called an <strong>archetype</strong> with components belonging to other entities of the exact same composition. In theory, this improves iteration speed due to fewer cache misses since fewer indices are skipped than if we were to iterate all entities each tick.</p>
-<p>In addition, the array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. That is to say, when querying for entities with components <code>(A, B)</code>, we can skip iteration of entities within all archetypes that aren't superset of <code>(A, B)</code>.</p>
+<p>Javelin ECS can currently process ~500k entities per 16ms tick.</p>
+<p>An entity's components are partitioned into tables called <strong>archetypes</strong> with components belonging to other entities of the exact same composition. This array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. That is to say, when querying for entities with components <code>(A, B)</code>, we can skip iteration of entities within all archetypes that aren't superset of <code>(A, B)</code>.</p>
 <p>You can see how archtypes and component storage are implemented in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/archetype.ts">archetype.ts</a> and <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/storage.ts">storage.ts</a>, respectively.</p>
 <h3 id="resources">Resources<a class="zola-anchor" href="#resources" aria-label="Anchor link for: resources"
   >#</a
@@ -223,18 +223,18 @@ yarn </span><span style="color:#388282;">&amp;&amp; </span><span style="color:#5
 <p>Example <code>yarn perf</code> output:</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#555c64;">========================================
-perf_storage
+perf_storage_pooled
 ========================================
-create: 229.866ms
-run: 15520.090ms
-destroy: 13.510ms
-entities      | 540000
+create: 171.759ms
+run: 15315.012ms
+destroy: 42.628ms
+entities      | 450000
 components    | 4
 queries       | 4
 ticks         | 1000
-iter          | 630630000
-iter_tick     | 630630
-avg_tick      | 15.987ms
+iter          | 525525000
+iter_tick     | 525525
+avg_tick      | 15.862ms
 </span></code></pre> 
                     </div>
                 </div>

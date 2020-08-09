@@ -14,6 +14,8 @@ Visit https://javelin.games
 
 ## Features
 
+- **Small**
+  - ~8kb minified
 - **Performant**
   - Entities are organized by component makeup into Archetypes for fast iteration
   - Entities can be tagged with bit flags for quick filtering

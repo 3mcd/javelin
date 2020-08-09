@@ -10,6 +10,7 @@
       <title>Javelin Docs</title>
 
       
+      <script src="/javelin-ecs.bundle.min.js" type="text/javascript"></script>
       
 
       <!-- CSS -->
@@ -182,34 +183,35 @@
                     <div class="book-content">
                         
 <h1>Tagging</h1>
-<p>Entities can be tagged with bit flags via <code>world.addTag</code>:</p>
+<h2 id="tagging-entities">Tagging Entities<a class="zola-anchor" href="#tagging-entities" aria-label="Anchor link for: tagging-entities"
+  >#</a
+>
+</h2>
+<p>Although most data should live inside of components, sometimes it can be useful associate simple data, e.g. a bitmask, with entities. Entities can be tagged with bit flags via <code>world.addTag</code>:</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">enum </span><span style="color:#555c64;">Tags {
   Awake </span><span style="color:#388282;">= </span><span style="color:#4179ad;">2 </span><span style="color:#388282;">** </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">,
-  Dying </span><span style="color:#388282;">= </span><span style="color:#4179ad;">2 </span><span style="color:#388282;">** </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">,
 }
 
-world.addTag(entity, Tags.Awake </span><span style="color:#388282;">| </span><span style="color:#555c64;">Tags.Dying)
+world.addTag(entity, Tags.Awake)
 </span></code></pre>
 <p>The <code>world.hasTag</code> method can be used to check if an entity has a tag. <code>world.removeTag</code> removes tags from an entity.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">world.hasTag(entity, Tags.Awake) </span><span style="color:#8c95a0;">// -&gt; true
-</span><span style="color:#555c64;">world.hasTag(entity, Tags.Dying) </span><span style="color:#8c95a0;">// -&gt; true
-</span><span style="color:#555c64;">world.removeTag(entity, Tags.Awake)
-world.hasTag(entity, Tags.Awake) </span><span style="color:#8c95a0;">// -&gt; false
-</span></code></pre>
-<p><code>tag</code> produces a filter that will exclude entities which don't have the provided tag(s):</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">enum </span><span style="color:#555c64;">Tags {
-  Nasty </span><span style="color:#388282;">= </span><span style="color:#4179ad;">2 </span><span style="color:#388282;">** </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">,
-  Goopy </span><span style="color:#388282;">= </span><span style="color:#4179ad;">2 </span><span style="color:#388282;">** </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">,
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">physics </span><span style="color:#388282;">= </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [body]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">bodies(world)) {
+    </span><span style="color:#8c95a0;">// Skip sleeping entities
+    </span><span style="color:#388282;">if </span><span style="color:#555c64;">(</span><span style="color:#388282;">!</span><span style="color:#555c64;">world.hasTag(entity, Tags.Awake)) {
+      </span><span style="color:#8c95a0;">// Wake up sleeping entities when something collides with them
+      </span><span style="color:#388282;">if </span><span style="color:#555c64;">(body.collisions.length </span><span style="color:#388282;">&gt; </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">) {
+        world.addTag(entity, Tags.Awake)
+      } </span><span style="color:#388282;">else </span><span style="color:#555c64;">{
+        </span><span style="color:#388282;">continue
+      </span><span style="color:#555c64;">}
+    }
+
+    </span><span style="color:#8c95a0;">// ...
+  </span><span style="color:#555c64;">}
 }
-
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">nastyAndGoopy </span><span style="color:#388282;">= </span><span style="color:#555c64;">query(select(Player), tag(Tags.Nasty </span><span style="color:#388282;">| </span><span style="color:#555c64;">Tags.Goopy))
-
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player] </span><span style="color:#388282;">of </span><span style="color:#555c64;">nastyAndGoopy(world)) {
-  </span><span style="color:#8c95a0;">// `player` belongs to an entity with Nasty and Goopy tags
-</span><span style="color:#555c64;">}
 </span></code></pre> 
                     </div>
                 </div>

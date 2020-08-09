@@ -9,7 +9,8 @@ Entities are created using `world.create`. This method accepts an array of compo
 
 ```typescript
 const player = { _t: 1, name: "elrond" }
-const entity = world.create([player])
+const health = { _t: 2, value: 100 }
+const entity = world.spawn(player, health)
 ```
 
 <aside>
@@ -18,23 +19,28 @@ const entity = world.create([player])
   </p>
 </aside>
 
-Components can be assigned to existing entities using `world.insert`, and removed from entities using `world.remove`.
+Components can be assigned to existing entities using `world.attach`, and removed from entities using `world.detach`.
 
 ```typescript
-const input = { _t: 2, space: true }
+const input = { _t: 3, space: true }
 
-world.insert(entity, [input]) // archetype -> (1, 2)
-world.remove(entity, [input]) // archetype -> (1)
+// archetype -> (1, 2, 3)
+world.attach(entity, input) 
+world.tick()
+
+// archetype -> (1, 2)
+world.detach(entity, input)
+world.tick()
 ```
 
 <aside>
   <p>
-    <strong>Note</strong> — <code>world.insert</code> and <code>world.remove</code> are much slower than initializing an entity with components because the entity's components must be relocated in memory when its archetype changes. If you need to add and remove components, try to do it on the order of < 10^3 entities per tick.
+    <strong>Note</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.create(components)</code> because the entity's components must be relocated in memory each time its archetype changes.
   </p>
 </aside>
 
 ## World Operations
 
-Operations such as creating, inserting, removing, and destroying entities are deferred until the next `world.tick()` call. This is done to improve the reliability of systems (i.e. systems never "miss" changes to entities, discussed in the [Filtering](/ecs/filtering) section). Each of these transactions is represented by a `WorldOp`.
+In the example above, `world.tick()` was called each time entity was modified. Operations such as creating and destroying entities, as well as attaching and detaching components, are deferred until the next `world.tick()` call. This is done to improve the reliability of systems, so that systems never "miss" changes to entities, discussed in the [Filtering](/ecs/filtering) section. Each of these transactions is represented by a `WorldOp`.
 
 You can review the types of operations in [world_op.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world_op.ts). These objects are used in the Javelin network protocol to synchronize entities reliably between client and server.

@@ -1,12 +1,18 @@
 .menu {
   left: 0;
   overflow-y: auto;
-  flex: 0 0 #{$sidebar-width};
+  flex: 1 0 auto;
   color: #425461;
   padding-top: 8px;
   z-index: 1;
-  position: sticky;
+  position: static;
+  margin-bottom: 1.7rem;
   top: 0;
+
+  @include min-screen($breakpoint--mobile) {
+    position: sticky;
+    flex: 0 0 #{$sidebar-width};
+  }
 
   h1 {
     font-weight: 400;
@@ -26,6 +32,7 @@
     list-style: none;
     margin: 0;
     padding: 0;
+    font-size: 0.8rem;
 
     a {
       display: inline-block;
@@ -52,15 +59,5 @@
       padding-left: 10px;
       border-left: 2px solid $color--link;
     }
-  }
-}
-
-.menu-hidden {
-  width: 0;
-}
-
-@include max-screen(600px) {
-  .menu {
-    width: 0;
   }
 }

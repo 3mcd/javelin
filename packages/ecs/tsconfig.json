@@ -2,8 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "downlevelIteration": true,
-    "outDir": "dist",
-    "module": "commonjs"
+    "outDir": "dist/esm",
+    "module": "esnext"
   },
   "include": ["src"],
   "exclude": ["**/*.spec.ts", "**/__mocks__/**/*"]

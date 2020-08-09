@@ -1,6 +1,6 @@
-import { createComponentFactory, number } from "@javelin/ecs"
+import { createComponentType, number } from "@javelin/ecs"
 
-export const Sleep = createComponentFactory({
+export const Sleep = createComponentType({
   name: "sleep",
   type: 3,
   schema: {

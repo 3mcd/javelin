@@ -1,16 +1,14 @@
-import { createComponentFactory, number } from "@javelin/ecs"
+import { createComponentType, number } from "@javelin/ecs"
 
-export const Position = createComponentFactory(
-  {
-    name: "position",
-    type: 1,
-    schema: {
-      x: number,
-      y: number,
-    },
+export const Position = createComponentType({
+  name: "position",
+  type: 1,
+  schema: {
+    x: number,
+    y: number,
   },
-  (c, x = 0, y = 0) => {
+  initialize: (c, x = 0, y = 0) => {
     c.x = x
     c.y = y
   },
-)
+})

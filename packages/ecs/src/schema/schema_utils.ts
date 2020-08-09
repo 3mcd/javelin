@@ -39,6 +39,8 @@ export function resetComponentFromSchema<S extends Schema>(
   component: any,
   schema: S,
 ) {
+  delete component._v
+
   for (const prop in schema) {
     const value = schema[prop] as SchemaKey
 

@@ -57,6 +57,8 @@ export interface Archetype {
    *
    */
   readonly indices: ReadonlyArray<number>
+
+  readonly entitiesByIndex: ReadonlyArray<number>
 }
 
 /**
@@ -69,6 +71,7 @@ export function createArchetype(layout: number[]): Archetype {
   const table: Readonly<Component | null>[][] = []
   const entities: number[] = []
   const indices: number[] = []
+  const entitiesByIndex: number[] = []
 
   // Initialize the table with an empty collection of components for each
   // component type.
@@ -90,6 +93,7 @@ export function createArchetype(layout: number[]): Archetype {
 
     entities[head] = entity
     indices[entity] = head
+    entitiesByIndex[head] = entity
   }
 
   function remove(entity: number) {
@@ -110,6 +114,7 @@ export function createArchetype(layout: number[]): Archetype {
 
     // Overwrite the removed entity position and index with the leading entity.
     entities[index] = entities[head]
+    entitiesByIndex[index] = entitiesByIndex[head]
     indices[entities[head]] = index
     indices[entity] = -1
 
@@ -126,5 +131,6 @@ export function createArchetype(layout: number[]): Archetype {
     entities,
     insert,
     remove,
+    entitiesByIndex,
   }
 }
