@@ -7,6 +7,7 @@ export const createArchetype = jest.fn(
       table: [],
       indices: [],
       entities: [],
+      entitiesByIndex: [],
       insert: jest.fn(),
       remove: jest.fn(),
     }
