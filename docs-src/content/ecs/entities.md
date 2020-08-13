@@ -5,7 +5,7 @@ weight = 3
 
 ## Creating Entities
 
-Entities are created using `world.create`. This method accepts an array of components and returns a newly created entity. The tuple of components associated with an entity defines its **archetype**. The following code creates an entity of archetype `(1)`.
+Entities are created using `world.create`. This method accepts an array of components and returns a newly created entity. The tuple of components associated with an entity defines its **archetype**. The following code creates an entity of archetype `(1, 2)`.
 
 ```typescript
 const player = { _t: 1, name: "elrond" }
@@ -24,11 +24,11 @@ Components can be assigned to existing entities using `world.attach`, and remove
 ```typescript
 const input = { _t: 3, space: true }
 
-// archetype -> (1, 2, 3)
-world.attach(entity, input) 
+// archetype: (1, 2) -> (1, 2, 3)
+world.attach(entity, input)
 world.tick()
 
-// archetype -> (1, 2)
+// archetype: (1, 2, 3) -> (1, 2)
 world.detach(entity, input)
 world.tick()
 ```

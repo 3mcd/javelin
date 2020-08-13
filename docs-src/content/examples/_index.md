@@ -24,26 +24,22 @@ Click anywhere below to make wormholes that absorb space junk:
   }
 </style>
 <script type="text/javascript">
-  function relMouseCoords(event){
-      var totalOffsetX = 0;
-      var totalOffsetY = 0;
-      var canvasX = 0;
-      var canvasY = 0;
-      var currentElement = this;
+  function relMouseCoords(canvas, event){
+      let totalOffsetX = 0
+      let totalOffsetY = 0
+      let canvasX = 0
+      let canvasY = 0
 
-      do{
-          totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
-          totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
-      }
-      while(currentElement = currentElement.offsetParent)
+      do {
+          totalOffsetX += canvas.offsetLeft - canvas.scrollLeft
+          totalOffsetY += canvas.offsetTop - canvas.scrollTop
+      } while (canvas = canvas.offsetParent);
 
-      canvasX = event.pageX - totalOffsetX;
-      canvasY = event.pageY - totalOffsetY;
+      canvasX = event.pageX - totalOffsetX
+      canvasY = event.pageY - totalOffsetY
 
-      return {x:canvasX, y:canvasY}
+      return { x: canvasX, y: canvasY }
   }
-
-  HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 
   const canvas = document.getElementById("game")
   const context = canvas.getContext("2d", { alpha: false })
@@ -176,7 +172,7 @@ Click anywhere below to make wormholes that absorb space junk:
   canvas.addEventListener("mouseup", onMouseUp)
 
   function onMouseUp(event) {
-    const { x, y } = canvas.relMouseCoords(event)
+    const { x, y } = relMouseCoords(canvas, event)
     const r = 30
 
     world.spawn(

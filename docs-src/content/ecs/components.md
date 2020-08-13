@@ -5,7 +5,7 @@ weight = 4
 
 ## Components
 
-This section is short, because components are just plain objects; unremarkable, other than two reserved fields:
+All data within the ECS is stored in components. Components are just plain objects; unremarkable, other than two reserved fields:
 
 - `readonly _t` — a unique integer identifying the component's **type**
 - `readonly _v` — the current **version** of the component (used for change detection)
@@ -83,4 +83,3 @@ const world = createWorld({
 // or
 world.registerComponentType(Position, 10000)
 ```
-
