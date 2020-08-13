@@ -13,7 +13,6 @@ export const createStorage = jest.fn(
       hasTag: jest.fn(() => true),
       incrementVersion: jest.fn(),
       insert: jest.fn(),
-      registerComponentFactory: jest.fn(),
       remove: jest.fn(),
       removeByTypeIds: jest.fn(),
       removeTag: jest.fn(),
