@@ -19,7 +19,7 @@
     "docs": "yarn docs:assets && cd ./docs-src && ./zola serve",
     "docs:build": "yarn docs:assets && cd ./docs-src && ./zola build --output-dir ../docs",
     "docs:assets": "cp ./packages/ecs/dist/javelin-ecs.bundle.min.js ./docs-src/static",
-    "build": "lerna run build && yarn docs:build",
+    "build": "lerna run build",
     "test": "jest",
     "perf": "lerna run perf",
     "example:build": "lerna run build --scope=@javelin/example-networking",
