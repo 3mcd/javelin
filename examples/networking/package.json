@@ -19,7 +19,8 @@
     "@javelin/net": "0.14.0",
     "@msgpack/msgpack": "^1.12.1",
     "@web-udp/client": "^4.1.0",
-    "@web-udp/server": "^4.1.0"
+    "@web-udp/server": "^4.1.0",
+    "pixi.js": "^5.3.3"
   },
   "scripts": {
     "start": "webpack-dev-server & yarn start:server",
