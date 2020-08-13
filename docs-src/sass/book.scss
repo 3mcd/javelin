@@ -90,7 +90,7 @@ a code {
   color: $color--link;
 }
 
-a code {
+a {
   &:hover {
     text-decoration: underline;
   }
@@ -136,13 +136,16 @@ header {
   nav:nth-child(1) {
     flex: 1 1 auto;
     margin: 0;
-    font-weight: bold;
-    font-size: 1.2rem;
   }
 
   a {
     color: inherit;
     text-decoration: none;
+  }
+
+  a.version {
+    color: #8a6c3c;
+    padding: 0;
   }
 
   nav {
@@ -156,46 +159,58 @@ header {
       padding: 0 1rem;
       line-height: 70px;
       position: relative;
-      cursor: default;
+
+      h1 {
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin: 0;
+      }
 
       &.disabled {
+        cursor: default;
         color: #ddd;
       }
 
-      &:not(.disabled) {
-        cursor: pointer;
+      &.fat {
+        &:hover {
+          text-decoration: none;
+        }
 
-        &:hover,
-        &:active {
-          background-color: #f0f3f3;
+        &:not(.disabled) {
+          cursor: pointer;
 
-          &:before {
-            content: "";
-            display: block;
-            width: 0;
-            height: 0;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-            border-bottom: 4px solid #fff;
-            position: absolute;
-            bottom: -4px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1;
-          }
+          &:hover,
+          &:active {
+            background-color: #f0f3f3;
 
-          &:after {
-            content: "";
-            display: block;
-            width: 0;
-            height: 0;
-            border-left: 7px solid transparent;
-            border-right: 7px solid transparent;
-            border-bottom: 7px solid #ddd;
-            position: absolute;
-            bottom: -2px;
-            left: 50%;
-            transform: translateX(-50%);
+            &:before {
+              content: "";
+              display: block;
+              width: 0;
+              height: 0;
+              border-left: 4px solid transparent;
+              border-right: 4px solid transparent;
+              border-bottom: 4px solid #fff;
+              position: absolute;
+              bottom: -4px;
+              left: 50%;
+              transform: translateX(-50%);
+              z-index: 1;
+            }
+
+            &:after {
+              content: "";
+              display: block;
+              width: 0;
+              height: 0;
+              border-left: 7px solid transparent;
+              border-right: 7px solid transparent;
+              border-bottom: 7px solid #ddd;
+              position: absolute;
+              bottom: -2px;
+              left: 50%;
+              transform: translateX(-50%);
+            }
           }
         }
       }
