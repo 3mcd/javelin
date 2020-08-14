@@ -188,7 +188,7 @@
   >#</a
 >
 </h2>
-<p>Entities are created using <code>world.create</code>. This method accepts an array of components and returns a newly created entity. The tuple of components associated with an entity defines its <strong>archetype</strong>. The following code creates an entity of archetype <code>(1)</code>.</p>
+<p>Entities are created using <code>world.create</code>. This method accepts an array of components and returns a newly created entity. The tuple of components associated with an entity defines its <strong>archetype</strong>. The following code creates an entity of archetype <code>(1, 2)</code>.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">player </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ _t: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">, name: </span><span style="color:#4179ad;">&quot;elrond&quot; </span><span style="color:#555c64;">}
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">health </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ _t: </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">, value: </span><span style="color:#4179ad;">100 </span><span style="color:#555c64;">}
@@ -202,11 +202,11 @@
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">input </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ _t: </span><span style="color:#4179ad;">3</span><span style="color:#555c64;">, space: </span><span style="color:#a35d66;">true </span><span style="color:#555c64;">}
 
-</span><span style="color:#8c95a0;">// archetype -&gt; (1, 2, 3)
-</span><span style="color:#555c64;">world.attach(entity, input) 
+</span><span style="color:#8c95a0;">// archetype: (1, 2) -&gt; (1, 2, 3)
+</span><span style="color:#555c64;">world.attach(entity, input)
 world.tick()
 
-</span><span style="color:#8c95a0;">// archetype -&gt; (1, 2)
+</span><span style="color:#8c95a0;">// archetype: (1, 2, 3) -&gt; (1, 2)
 </span><span style="color:#555c64;">world.detach(entity, input)
 world.tick()
 </span></code></pre><aside>
