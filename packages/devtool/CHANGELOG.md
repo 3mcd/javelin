@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 0.16.0 (2020-08-18)
+
+
+### Features
+
+* remove tag api ([bde7616](https://github.com/3mcd/javelin/commit/bde76169bca0e7a04d71660720f2f23ac864c688))
+
+
+
+
+
 ## 0.15.0 (2020-08-13)
 
 **Note:** Version bump only for package @javelin/devtool
