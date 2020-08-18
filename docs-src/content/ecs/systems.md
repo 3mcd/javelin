@@ -5,11 +5,7 @@ weight = 4
 
 ## Implementing Game Logic
 
-A system is just a function executed during each world tick. All game logic should live within systems. Systems query collections of entities and operate on their data to yield the next game state.
-
-Systems operate on dynamically growing and shrinking sets of entities that are queried by their archetype (or sub-archetype). This means that, depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next.
-
-This is the cornerstone of ECS that enables runtime composition. Adding and removing components also adds and removes behavior. In addition, the isolation of game logic into systems makes your game world easier to debug and provides a clear target for performance and unit tests.
+A system is just a function executed during each world tick. All game logic should live within systems.
 
 ### Registering a system
 
@@ -60,7 +56,11 @@ The output of the above program looks something like:
 
 ## Querying and Iteration
 
-Systems may execute **queries** to access entities and their components. Queries are created with the `query` function, which takes a **selector** of component types.
+Systems query collections of entities and operate on their data to yield the next game state. These iterable collections are created using **queries** that define an archetype (or sub-archetype) to query by. Depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next.
+
+This is the cornerstone of ECS that enables runtime composition. Adding and removing components also adds and removes behavior. In addition, the isolation of game logic into systems makes your game world easier to debug and provides a clear target for performance and unit tests.
+
+Queries are created with the `query` function, which takes a **selector** of component types.
 
 ```typescript
 import { query } from "@javelin/ecs"
@@ -70,7 +70,7 @@ const players = query(Position, Player)
 
 A query is a function that is executed with a world. This function returns an iterator that yields tuples of `(entity, Component[])` for entities that meet the selector's criteria.
 
-The order of the components in the results match the order of components types in the selector. That is, `query(Position, Player)` will yield tuples of components `(Position, Player)`, regardless of the order in which the components are stored.
+The order of the components in the results matches the order of components types in the selector. That is, `query(Position, Player)` will yield tuples of components `(Position, Player)`, regardless of how the components are stored in an archetype.
 
 ```typescript
 world.create([Player.create(), Position.create()])

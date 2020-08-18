@@ -55,30 +55,6 @@ export interface Storage {
   destroy(entity: number): void
 
   /**
-   * Tag an entity with a bit flag.
-   *
-   * @param entity Entity to add the tag to
-   * @param tag Tag (bit flags)
-   */
-  addTag(entity: number, tag: number): void
-
-  /**
-   * Remove a tag from an entity.
-   *
-   * @param entity Entity to remove the flag from
-   * @param tag Tag (bit flags)
-   */
-  removeTag(entity: number, tag: number): void
-
-  /**
-   * Check if an entity has a tag.
-   *
-   * @param entity Subject entity
-   * @param tag Tag (bit flags)
-   */
-  hasTag(entity: number, tag: number): boolean
-
-  /**
    * Increment the version of a component by 1 to indicate that it has been
    * modified.
    *
@@ -156,7 +132,6 @@ export function createStorage(): Storage {
   // since it is kept in sync with the entity's archetype via the `create`,
   // `insert`, and `remove` methods.
   const archetypeIndicesByEntity: (number | null)[] = []
-  const tagsByEntity: number[] = []
 
   /**
    * Locate an archetype for a collection of components.
@@ -216,7 +191,6 @@ export function createStorage(): Storage {
 
     archetype.insert(entity, components)
 
-    tagsByEntity[entity] = 0
     archetypeIndicesByEntity[entity] = archetypes.indexOf(archetype)
 
     return entity
@@ -291,18 +265,6 @@ export function createStorage(): Storage {
     archetypeIndicesByEntity[entity] = null
   }
 
-  function addTag(entity: number, tag: number) {
-    tagsByEntity[entity] |= tag
-  }
-
-  function removeTag(entity: number, tag: number) {
-    tagsByEntity[entity] &= ~tag
-  }
-
-  function hasTag(entity: number, tag: number) {
-    return (tagsByEntity[entity] & tag) === tag
-  }
-
   function resetComponent(component: Component) {
     component._v = 0
   }
@@ -375,9 +337,6 @@ export function createStorage(): Storage {
     remove,
     removeByTypeIds,
     destroy,
-    addTag,
-    removeTag,
-    hasTag,
     archetypes,
     incrementVersion,
     findComponent,

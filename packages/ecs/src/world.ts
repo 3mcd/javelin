@@ -101,30 +101,6 @@ export interface World<T = any> {
   ): ComponentOf<T> | null
 
   /**
-   * Add a bit flag to an entity's bitmask.
-   *
-   * @param entity Subject entity
-   * @param tags Tags to add
-   */
-  addTag(entity: number, tags: number): void
-
-  /**
-   * Remove a bit flag from an entity's bitmask.
-   *
-   * @param entity Subject entity
-   * @param tags Tags to add
-   */
-  removeTag(entity: number, tags: number): void
-
-  /**
-   * Determine if an entity's bitmask has a given bit flag.
-   *
-   * @param entity Subject entity
-   * @param tags Tags to check for
-   */
-  hasTag(entity: number, tags: number): boolean
-
-  /**
    * Get a mutable reference to a component.
    *
    * @param component Subject component
@@ -331,9 +307,10 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
     const component = pool
       ? pool.retain()
-      : (initializeComponentFromSchema({}, componentType.schema) as ComponentOf<
-          T
-        >)
+      : (initializeComponentFromSchema(
+          { _t: componentType.type, _v: 0 },
+          componentType.schema,
+        ) as ComponentOf<T>)
 
     if (componentType.initialize) {
       componentType.initialize(component, ...args)
@@ -451,12 +428,9 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     )
   }
 
-  const { addTag, removeTag, hasTag } = storage
-
   const world = {
     [$worldStorageKey]: storage,
     addSystem,
-    addTag,
     applyOps,
     attach,
     attached,
@@ -465,11 +439,9 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     destroy,
     detach,
     getComponent,
-    hasTag,
     mut,
     ops: previousOps,
     registerComponentType,
-    removeTag,
     component,
     tick,
     tryGetComponent,

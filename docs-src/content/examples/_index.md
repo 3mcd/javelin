@@ -5,7 +5,7 @@ sort_by = "weight"
 insert_anchor_links = "right"
 +++
 
-The following is a very simple example of a simulation with naive 2d "physics". The source is around 100 lines of code and is inspectable on this page.
+The following is a very simple example of a simulation with naive 2d "physics". The source is ~100 lines of code and is inspectable on this page.
 
 Click anywhere below to make wormholes that absorb space junk:
 
@@ -42,7 +42,7 @@ Click anywhere below to make wormholes that absorb space junk:
   }
 
   const canvas = document.getElementById("game")
-  const context = canvas.getContext("2d", { alpha: false })
+  const context = canvas.getContext("2d")
   
   context.imageSmoothingEnabled = false
   canvas.width = 800
@@ -74,11 +74,17 @@ Click anywhere below to make wormholes that absorb space junk:
       },
     },
   )
+  const Junk = Javelin.createComponentType({
+    type: 3,
+    schema: {
+      influenced: Javelin.boolean,
+    },
+  })
   const Wormhole = Javelin.createComponentType(
     {
-      type: 3,
+      type: 4,
       schema: {
-        r: Javelin.number,
+        r: Javelin.number
       },
       initialize: (w, r = 0.5) => {
         w.r = r
@@ -86,18 +92,15 @@ Click anywhere below to make wormholes that absorb space junk:
     },
   )
 
-  const Tags = {
-    Influenced: 2 ** 0,
-  }
   const wormholes = Javelin.query(Transform, Wormhole, Velocity)
-  const junk = Javelin.query(Transform, Velocity)
+  const junk = Javelin.query(Transform, Velocity, Junk)
 
   const attract = world => {
     for (let [we, [wt, w, wv]] of wormholes(world)) {
       wv.x *= 0.95
       wv.y *= 0.95
 
-      for (let [je, [jt, jv]] of junk(world)) {
+      for (let [je, [jt, jv, j]] of junk(world)) {
         if (we === je) {
           continue
         }
@@ -107,7 +110,7 @@ Click anywhere below to make wormholes that absorb space junk:
         const len = Math.sqrt(dx * dx + dy * dy)
 
         if (len <= w.r) {
-          world.addTag(je, Tags.Influenced)
+          j.influenced = true
 
           if (len < w.r / 10) {
             world.mut(w).r += world.tryGetComponent(je, Wormhole)?.r || 0.1
@@ -126,13 +129,13 @@ Click anywhere below to make wormholes that absorb space junk:
   }
 
   const colorInfluenced = "#222"
-  const colorUninfluenced = "#777"
+  const colorUninfluenced = "#aaa"
 
   const render = world => {
     context.clearRect(0, 0, 800, 300)
 
-    for (const [e, [{x, y}]] of junk(world)) {
-      context.fillStyle = world.hasTag(e, Tags.Influenced)
+    for (const [e, [{x, y}, , { influenced }]] of junk(world)) {
+      context.fillStyle = influenced
         ? colorInfluenced
         : colorUninfluenced
       context.fillRect(Math.floor(x), Math.floor(y), 1, 1)
@@ -164,6 +167,7 @@ Click anywhere below to make wormholes that absorb space junk:
     world.spawn(
       world.component(Transform, Math.random() * 800, Math.random() * 300),
       world.component(Velocity),
+      world.component(Junk),
     )
   }
 
@@ -179,6 +183,7 @@ Click anywhere below to make wormholes that absorb space junk:
       world.component(Transform, x, y),
       world.component(Wormhole, r),
       world.component(Velocity),
+      world.component(Junk)
     )
 
     if (!initialized) {

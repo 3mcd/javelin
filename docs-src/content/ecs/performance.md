@@ -7,7 +7,7 @@ weight = 8
 
 Javelin ECS can currently process ~500k entities per 16ms tick.
 
-An entity's components are partitioned into tables called **archetypes** with components belonging to other entities of the exact same composition. This array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. That is to say, when querying for entities with components `(A, B)`, we can skip iteration of entities within all archetypes that aren't superset of `(A, B)`.
+An entity's components are partitioned into tables called **archetypes**. An archetype contains the components of entities that share the same composition. This array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. That is to say, when querying for entities with components `(A, B)`, we can skip iteration of entities within all archetypes that aren't superset of `(A, B)`.
 
 You can see how archtypes and component storage are implemented in [archetype.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/archetype.ts) and [storage.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/storage.ts), respectively.
 
@@ -20,7 +20,7 @@ You can see how archtypes and component storage are implemented in [archetype.ts
 
 ## Memory
 
-Javelin ECS uses very little memory and thus produces very little garbage. Below is a screenshot of an allocation timeline where 10k entities are iterated by 3 systems per tick at 60Hz. The memory growth (0.3mb) is consistent with standard `setInterval` or `requestAnimationFrame` performance and there is no "sawtooth" pattern of frequent, minor GC events.
+Javelin ECS uses little memory and thus produces little garbage. Below is a screenshot of an allocation timeline where 10k entities are iterated by 3 systems per tick at 60Hz. The memory growth (0.3mb) is consistent with standard `setInterval` or `requestAnimationFrame` performance and there is no "sawtooth" pattern of frequent, minor GC events.
 
 **Simple `requestAnimationFrame` loop**
 ![](/perf-raf.png)
