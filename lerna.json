@@ -1,6 +1,8 @@
 {
-  "packages": ["packages/*"],
-  "version": "0.15.0",
+  "packages": [
+    "packages/*"
+  ],
+  "version": "0.16.0",
   "npmClient": "yarn",
   "useWorkspaces": true,
   "command": {
@@ -10,5 +12,9 @@
       "exact": true
     }
   },
-  "ignoreChanges": ["**/__fixtures__/**", "**/__tests__/**", "**/*.md"]
+  "ignoreChanges": [
+    "**/__fixtures__/**",
+    "**/__tests__/**",
+    "**/*.md"
+  ]
 }
