@@ -109,13 +109,6 @@
                                                 </li>
                                             
                                                 <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;tagging&#x2F;">
-                                                        
-                                                        Tagging
-                                                    </a>
-                                                </li>
-                                            
-                                                <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;topics&#x2F;">
                                                         
                                                         Topics
@@ -190,21 +183,11 @@
 </h2>
 <p>All data within the ECS is stored in components. Components are just plain objects; unremarkable, other than two reserved fields:</p>
 <ul>
-<li><code>readonly _t</code> — a unique integer identifying the component's <strong>type</strong></li>
-<li><code>readonly _v</code> — the current <strong>version</strong> of the component (used for change detection)</li>
+<li><code>_t</code> — a unique integer identifying the component's <strong>type</strong></li>
+<li><code>_v</code> — the current <strong>version</strong> of the component (used for change detection)</li>
 </ul>
-<p>The component's type (<code>_t</code>) is the only required field when assigning components to an entity, new or otherwise. Newly attached components are assigned a version of <code>0</code>. The version property is deleted when the component is detached.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">body </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ _t: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">, x: </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, y: </span><span style="color:#4179ad;">0 </span><span style="color:#555c64;">}
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">entity </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.spawn(body)
-
-world.tick()
-body._v </span><span style="color:#8c95a0;">// -&gt; 0
-
-</span><span style="color:#555c64;">world.detach(entity, body)
-world.tick()
-body._v </span><span style="color:#8c95a0;">// -&gt; undefined
-</span></code></pre><h2 id="component-types">Component Types<a class="zola-anchor" href="#component-types" aria-label="Anchor link for: component-types"
+<p>The component's type (<code>_t</code>) is the only required field when assigning components to an entity, new or otherwise. Newly attached components are assigned a version of <code>0</code>.</p>
+<h2 id="component-types">Component Types<a class="zola-anchor" href="#component-types" aria-label="Anchor link for: component-types"
   >#</a
 >
 </h2>
@@ -214,7 +197,6 @@ body._v </span><span style="color:#8c95a0;">// -&gt; undefined
 
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">Position </span><span style="color:#388282;">= </span><span style="color:#555c64;">createComponentType({
   type: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">,
-  name: </span><span style="color:#4179ad;">&quot;position&quot;</span><span style="color:#555c64;">,
   schema: {
     x: number,
     y: number,
@@ -229,12 +211,12 @@ body._v </span><span style="color:#8c95a0;">// -&gt; undefined
 </span><span style="color:#8c95a0;">// OR
 </span><span style="color:#555c64;">world.registerComponentType(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">)
 </span></code></pre>
-<p>A component type is configured with a <strong>type id</strong>, <strong>name</strong>, and <strong>schema</strong>. The type id is an integer used to uniquely identify components produced from the type, while <code>name</code> is a unique string used by <a href="https://github.com/3mcd/javelin/tree/master/packages/devtool"><code>@javelin/devtools</code></a> for help with debugging.</p>
+<p>A component type has, at minimum, a <strong>type id</strong> and <strong>schema</strong>. The type id is an integer used to uniquely identify components produced from the type. We'll talk about the component type's schema below.</p>
 <h3 id="schema">Schema<a class="zola-anchor" href="#schema" aria-label="Anchor link for: schema"
   >#</a
 >
 </h3>
-<p>The component type's schema defines the field names and data types that make up the shape of the component. Currently, the schema is used to initialize and reset component instances.</p>
+<p>The component type's schema defines the field names and data types that make up the shape of the component. The schema is used to initialize component instances and reset them when they are detached.</p>
 <p>The schema currently supports the following data types, which are each exported from <code>@javelin/ecs</code>:</p>
 <ul>
 <li><code>number (0)</code></li>
