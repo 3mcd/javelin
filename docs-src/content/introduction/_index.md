@@ -9,6 +9,6 @@ Javelin is a suite of packages used to build multiplayer games. The core package
 
 See a live, [multiplayer game example](http://fps.javelin.games). Connect with a friend and move around using the WASD keys!
 
-Check out the code at the [GitHub repo](https://github.com/3mcd).
+Check out the code at the [GitHub repo](https://github.com/3mcd/javelin).
 
 Or, move onto the [ECS](/ecs) chapter to start learning more.
