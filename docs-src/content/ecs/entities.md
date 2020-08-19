@@ -5,7 +5,7 @@ weight = 3
 
 ## Creating Entities
 
-Entities are created using `world.create`. This method accepts an array of components and returns a newly created entity. The tuple of components associated with an entity defines its **archetype**. The following code creates an entity of archetype `(1, 2)`.
+Entities are created using `world.spawn`. This method is a variadic function that accepts 0..n components and returns a newly created entity attached to those components.
 
 ```typescript
 const player = { _t: 1, name: "elrond" }
@@ -19,7 +19,7 @@ const entity = world.spawn(player, health)
   </p>
 </aside>
 
-Components can be assigned to existing entities using `world.attach`, and removed from entities using `world.detach`.
+The tuple of components associated with an entity defines its **archetype**. The following code creates an entity of archetype `(1, 2)`. Components can be assigned to existing entities using `world.attach`, and removed from entities using `world.detach`.
 
 ```typescript
 const input = { _t: 3, space: true }
@@ -35,7 +35,7 @@ world.tick()
 
 <aside>
   <p>
-    <strong>Note</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.create(components)</code> because the entity's components must be relocated in memory each time its archetype changes.
+    <strong>Note</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.spawn(components)</code> because the entity's components must be relocated in memory each time its archetype changes.
   </p>
 </aside>
 

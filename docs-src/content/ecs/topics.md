@@ -11,8 +11,8 @@ Let's say you want to apply an impulse to a physics body when a player jumps so 
 
 ```typescript
 type Impulse = {
-  x: number,
-  y: number,
+  x: number
+  y: number
 }
 ```
 
@@ -21,7 +21,7 @@ When you want to apply a impulse to an entity, you could insert an `Impulse` com
 ```typescript
 // player input system
 for (const [entity] of jumping(world)) {
-  world.attach(entity, Impulse.create())
+  world.attach(entity, world.component(Impulse))
 }
 
 for (const [entity, [, impulse]] of playersWithImpulse(world)) {

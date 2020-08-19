@@ -25,8 +25,9 @@ When `world.tick` is called, each system is executed in the order that it was re
 The following is a world that will log the time elapsed since the last tick at around 60Hz:
 
 ```typescript
-const world = createWorld()
-world.addSystem((world, dt) => console.log(dt))
+const world = createWorld({
+  systems: [(world, dt: number) => console.log(dt)],
+})
 
 let previousTime = Date.now()
 
@@ -73,8 +74,8 @@ A query is a function that is executed with a world. This function returns an it
 The order of the components in the results matches the order of components types in the selector. That is, `query(Position, Player)` will yield tuples of components `(Position, Player)`, regardless of how the components are stored in an archetype.
 
 ```typescript
-world.create([Player.create(), Position.create()])
-world.create([Position.create(), Player.create()])
+world.spawn([world.component(Player), world.component(Position)])
+world.spawn([world.component(Position), world.component(Player)])
 
 const render = (world: World, dt: number) => {
   for (const [entity, [position, player]] of players(world)) {

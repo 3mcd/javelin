@@ -185,15 +185,15 @@
 <p>Let's say you want to apply an impulse to a physics body when a player jumps so it gains some momentum in a direction. One way of doing this is to model the operation as a component.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">type </span><span style="color:#555c64;">Impulse </span><span style="color:#388282;">= </span><span style="color:#555c64;">{
-  x</span><span style="color:#388282;">: </span><span style="color:#88669e;">number</span><span style="color:#555c64;">,
-  y</span><span style="color:#388282;">: </span><span style="color:#88669e;">number</span><span style="color:#555c64;">,
-}
+  x</span><span style="color:#388282;">: </span><span style="color:#88669e;">number
+  </span><span style="color:#555c64;">y</span><span style="color:#388282;">: </span><span style="color:#88669e;">number
+</span><span style="color:#555c64;">}
 </span></code></pre>
 <p>When you want to apply a impulse to an entity, you could insert an <code>Impulse</code> component on the current tick, and remove it on the following tick.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#8c95a0;">// player input system
 </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity] </span><span style="color:#388282;">of </span><span style="color:#555c64;">jumping(world)) {
-  world.attach(entity, Impulse.create())
+  world.attach(entity, world.component(Impulse))
 }
 
 </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [, impulse]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playersWithImpulse(world)) {

@@ -59,6 +59,38 @@ schema: {
 }
 ```
 
+### Creating components
+
+Components can be initialized from component types via `world.component`:
+
+```typescript
+const position = world.component(Position)
+
+position.x // 0
+position.y // 0
+```
+
+You may also specify an initializer function for a component type to make component creation easier.
+
+```typescript
+const Position = createComponentType({
+  // ...
+  initialize(position, x = 0, y = 0) {
+    position.x = x
+    position.y = y
+  },
+})
+
+const position = world.component(
+  Position,
+  10, // x
+  20, // y
+)
+
+position.x // 10
+position.y // 20
+```
+
 ### Object Pooling
 
 Components created via factory are automatically pooled. By default, the pool will initialize 10^3 components for usage, and will grow by the same amount when the pool shinks to zero. You can modify the pool size either by setting the `componentPoolSize` option on the config object passed to `createWorld()`, or when registering the component type with `world.registerComponentType`:

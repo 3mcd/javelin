@@ -229,6 +229,35 @@
 <code><span style="color:#555c64;">schema: {
   x: { type: number, defaultValue: </span><span style="color:#388282;">-</span><span style="color:#4179ad;">1 </span><span style="color:#555c64;">}
 }
+</span></code></pre><h3 id="creating-components">Creating components<a class="zola-anchor" href="#creating-components" aria-label="Anchor link for: creating-components"
+  >#</a
+>
+</h3>
+<p>Components can be initialized from component types via <code>world.component</code>:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">position </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.component(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">)
+
+position.x </span><span style="color:#8c95a0;">// 0
+</span><span style="color:#555c64;">position.y </span><span style="color:#8c95a0;">// 0
+</span></code></pre>
+<p>You may also specify an initializer function for a component type to make component creation easier.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">Position </span><span style="color:#388282;">= </span><span style="color:#555c64;">createComponentType({
+  </span><span style="color:#8c95a0;">// ...
+  </span><span style="color:#555c64;">initialize(</span><span style="color:#8a6c3c;">position</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">x </span><span style="color:#388282;">= </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">y </span><span style="color:#388282;">= </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">) {
+    position.x </span><span style="color:#388282;">= </span><span style="color:#555c64;">x
+    position.y </span><span style="color:#388282;">= </span><span style="color:#555c64;">y
+  },
+})
+
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">position </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.component(
+  </span><span style="color:#88669e;">Position</span><span style="color:#555c64;">,
+  </span><span style="color:#4179ad;">10</span><span style="color:#555c64;">, </span><span style="color:#8c95a0;">// x
+  </span><span style="color:#4179ad;">20</span><span style="color:#555c64;">, </span><span style="color:#8c95a0;">// y
+</span><span style="color:#555c64;">)
+
+position.x </span><span style="color:#8c95a0;">// 10
+</span><span style="color:#555c64;">position.y </span><span style="color:#8c95a0;">// 20
 </span></code></pre><h3 id="object-pooling">Object Pooling<a class="zola-anchor" href="#object-pooling" aria-label="Anchor link for: object-pooling"
   >#</a
 >
