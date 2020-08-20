@@ -6,10 +6,10 @@ const { createComponentType } = require("../dist/cjs/helpers/component_helpers")
 module.exports.run = function run() {
   let n = 1000
   const componentTypes = [
-    createComponentType({ name: "1", schema: {}, type: 1 }),
-    createComponentType({ name: "2", schema: {}, type: 2 }),
-    createComponentType({ name: "3", schema: {}, type: 3 }),
-    createComponentType({ name: "4", schema: {}, type: 4 }),
+    createComponentType({ schema: {}, type: 1 }),
+    createComponentType({ schema: {}, type: 2 }),
+    createComponentType({ schema: {}, type: 3 }),
+    createComponentType({ schema: {}, type: 4 }),
   ]
   const world = createWorld({ componentTypes })
   const entityComponents = [
@@ -37,7 +37,7 @@ module.exports.run = function run() {
     [componentTypes[1], componentTypes[3]],
   ].map(c => query(...c))
   console.time("create")
-  const entities = entityComponents.map(c => world.entity(c))
+  const entities = entityComponents.map(c => world.spawn(...c))
   console.timeEnd("create")
 
   let i = n

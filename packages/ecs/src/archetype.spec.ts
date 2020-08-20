@@ -18,7 +18,7 @@ describe("createArchetype", () => {
     const entity = 0
     const archetype = createArchetype([1])
 
-    archetype.insert(entity, [{ _t: 1, _v: 0 }])
+    archetype.insert(entity, [{ type: 1 }])
 
     expect(archetype.entities.indexOf(entity)).toBe(0)
   })
@@ -27,14 +27,8 @@ describe("createArchetype", () => {
     const entity2 = 1
     const archetype = createArchetype([1, 4])
 
-    archetype.insert(entity1, [
-      { _t: 1, _v: 0 },
-      { _t: 4, _v: 0 },
-    ])
-    archetype.insert(entity2, [
-      { _t: 1, _v: 0 },
-      { _t: 4, _v: 0 },
-    ])
+    archetype.insert(entity1, [{ type: 1 }, { type: 4 }])
+    archetype.insert(entity2, [{ type: 1 }, { type: 4 }])
 
     expect(archetype.indices[entity1]).toBe(0)
     expect(archetype.indices[entity2]).toBe(1)
@@ -42,10 +36,7 @@ describe("createArchetype", () => {
   it("updates the component table with inserted components", () => {
     const entity = 0
     const archetype = createArchetype([1, 4])
-    const components = [
-      { _t: 1, _v: 0 },
-      { _t: 4, _v: 0 },
-    ]
+    const components = [{ type: 1 }, { type: 4 }]
 
     archetype.insert(entity, components)
 
@@ -58,7 +49,7 @@ describe("createArchetype", () => {
     const entity = 0
     const archetype = createArchetype([1])
 
-    archetype.insert(entity, [{ _t: 1, _v: 0 }])
+    archetype.insert(entity, [{ type: 1 }])
     archetype.remove(entity)
 
     expect(archetype.entities.indexOf(entity)).toBe(-1)
@@ -68,14 +59,8 @@ describe("createArchetype", () => {
     const entity2 = 1
     const archetype = createArchetype([1, 4])
 
-    archetype.insert(entity1, [
-      { _t: 1, _v: 0 },
-      { _t: 4, _v: 0 },
-    ])
-    archetype.insert(entity2, [
-      { _t: 1, _v: 0 },
-      { _t: 4, _v: 0 },
-    ])
+    archetype.insert(entity1, [{ type: 1 }, { type: 4 }])
+    archetype.insert(entity2, [{ type: 1 }, { type: 4 }])
 
     const index = archetype.indices[entity1]
     archetype.remove(entity1)
@@ -87,15 +72,9 @@ describe("createArchetype", () => {
     const entity1 = 0
     const entity2 = 1
     const archetype = createArchetype([1, 4])
-    const components = [
-      { _t: 1, _v: 0 },
-      { _t: 4, _v: 0 },
-    ]
+    const components = [{ type: 1 }, { type: 4 }]
 
-    archetype.insert(entity1, [
-      { _t: 1, _v: 0 },
-      { _t: 4, _v: 0 },
-    ])
+    archetype.insert(entity1, [{ type: 1 }, { type: 4 }])
     archetype.insert(entity2, components)
 
     const index = archetype.indices[entity1]

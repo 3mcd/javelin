@@ -1,7 +1,7 @@
 import {
-  Component,
-  ComponentType,
+  ComponentPatch,
   ComponentSpec,
+  ComponentType,
   DataType,
   isDataType,
   Schema,
@@ -26,20 +26,21 @@ export type SerializedComponentType<C extends ComponentType = ComponentType> = {
   schema: SerializedSchema<C["schema"]>
 }
 
-type EntityComponentPairs = [number, Component[]][]
+// [entity, componentTypeA, ComponentPatch, componentTypeB, ComponentPatch, ...]
+export type UpdatePayload = (number | ComponentPatch)[]
 
 export type Ops = [JavelinMessageType.Ops, WorldOp[], boolean]
 export type Update = [
   JavelinMessageType.Update,
-  EntityComponentPairs,
   boolean,
   unknown,
+  ...UpdatePayload
 ]
 export type UpdateUnreliable = [
   JavelinMessageType.UpdateUnreliable,
-  EntityComponentPairs,
   boolean,
   unknown,
+  ...UpdatePayload
 ]
 export type Spawn = [JavelinMessageType.Spawn, ComponentSpec[]]
 export type Model = [JavelinMessageType.Model, SerializedComponentType[]]
@@ -89,7 +90,7 @@ export function setUpdateMetadata(
   metadata: unknown,
 ): UpdateUnreliable {
   const copy = update.slice()
-  update[3] = metadata
+  update[2] = metadata
   return copy as UpdateUnreliable
 }
 
@@ -108,24 +109,19 @@ export const protocol = {
     isLocal,
   ],
   update: (
-    entityComponentPairs: EntityComponentPairs,
+    updatePayload: UpdatePayload,
     metadata?: unknown,
     isLocal = false,
-  ): Update => [
-    JavelinMessageType.Update,
-    entityComponentPairs,
-    isLocal,
-    metadata,
-  ],
+  ): Update => [JavelinMessageType.Update, isLocal, metadata, ...updatePayload],
   updateUnreliable: (
-    entityComponentPairs: EntityComponentPairs,
+    updatePayload: UpdatePayload,
     metadata?: unknown,
     isLocal = false,
   ): UpdateUnreliable => [
     JavelinMessageType.UpdateUnreliable,
-    entityComponentPairs,
     isLocal,
     metadata,
+    ...updatePayload,
   ],
   spawn: (components: ComponentSpec[]): Spawn => [
     JavelinMessageType.Spawn,

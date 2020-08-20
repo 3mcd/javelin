@@ -3,50 +3,41 @@ import { Mutable } from "./types"
 
 export type ComponentProps = { [key: string]: unknown }
 
-export type ComponentInitializer<T extends number, S extends Schema> = (
-  component: Component<T, PropsOfSchema<S>>,
+export type ComponentInitializer<S extends Schema> = (
+  component: Component<PropsOfSchema<S>>,
   ...args: any[]
 ) => void
 
 export type ComponentInitializerArgs<
   C extends ComponentType
-> = C extends ComponentType<infer T, infer S, infer I>
+> = C extends ComponentType<infer S, infer I>
   ? I extends (component: ComponentOf<C>, ...args: infer A) => void
     ? A
     : never
   : never
 
 export type ComponentType<
-  T extends number = number,
   S extends Schema = AnySchema,
-  I extends ComponentInitializer<T, S> = ComponentInitializer<T, S>
+  I extends ComponentInitializer<S> = ComponentInitializer<S>
 > = {
   name?: string
-  type: T
+  type: number
   schema: S
   initialize?: I
 }
 
-export type Component<
-  T extends number = number,
-  P extends ComponentProps = ComponentProps
-> = {
-  _t: T
-  _v: number
+export type Component<P extends ComponentProps = ComponentProps> = {
+  type: number
 } & P
 
-export type ComponentSpec<
-  T extends number = number,
-  P extends ComponentProps = ComponentProps
-> = {
-  _t: T
+export type ComponentSpec<P extends ComponentProps = ComponentProps> = {
+  type: number
 } & P
 
 export type ComponentOf<C extends ComponentType> = C extends ComponentType<
-  infer T,
   infer S
 >
-  ? Component<T, PropsOfSchema<S>>
+  ? Component<PropsOfSchema<S>>
   : never
 
 export type ComponentsOf<C extends ComponentType[]> = {

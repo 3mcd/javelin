@@ -1,5 +1,4 @@
 import {
-  $worldStorageKey,
   Component,
   ComponentSpec,
   mutableEmpty,
@@ -7,11 +6,14 @@ import {
   World,
   WorldOp,
   WorldOpType,
+  $worldStorageKey,
 } from "@javelin/ecs"
 import {
   JavelinMessage,
   JavelinMessageType,
+  UpdatePayload,
   UpdateUnreliable,
+  Update,
 } from "./protocol"
 
 export type MessageHandler = {
@@ -69,37 +71,64 @@ export function createMessageHandler(
     world.applyOps(ops)
   }
 
-  function applyUnreliableUpdate(
-    updateMessage: UpdateUnreliable,
-    world: World,
-  ) {
-    handleUpdate(updateMessage[1], updateMessage[2], world)
+  function applyUnreliableUpdate(update: UpdateUnreliable, world: World) {
+    handleUpdate(update, world)
   }
 
-  function handleUpdate(
-    entityComponentPairs: [number, Component[]][],
-    isLocal: boolean,
-    world: World,
-  ) {
-    const { [$worldStorageKey]: storage } = world
+  function handleUpdate(update: Update | UpdateUnreliable, world: World) {
+    const [, isLocal] = update
+    let i = 5
+    let entity: null | number = isLocal
+      ? (update[3] as number)
+      : (remoteToLocal.get(update[3] as number) as number)
+    let componentType: null | number = update[4] as number
 
-    // Attempt to update or insert each component.
-    for (let i = 0; i < entityComponentPairs.length; i++) {
-      const [entity, components] = entityComponentPairs[i]
-      const local = isLocal ? entity : tryGetLocalEntity(entity)
+    if (typeof entity !== "number") {
+      return
+    }
 
-      // Entity was removed prior to processing this update.
-      if (local === null) {
+    while (true) {
+      if (entity !== null && componentType !== null) {
+        const path = update[i] as string
+        const value = update[i + 1] as unknown
+
+        world.applyComponentPatch(entity, componentType, path, value)
+      }
+
+      const maybeNextEntity = update[i + 2]
+      const maybeNextComponentType = update[i + 3]
+
+      if (
+        typeof maybeNextEntity === "number" &&
+        typeof maybeNextComponentType === "number"
+      ) {
+        const local = isLocal
+          ? maybeNextEntity
+          : remoteToLocal.get(maybeNextEntity)
+
+        if (local === undefined) {
+          entity = null
+          componentType = null
+          // move forward 2 indices to begin the skip
+          i += 2
+        } else {
+          entity = local
+          componentType = maybeNextComponentType
+          // move forward 4 indices since we have already captured the entity and component type
+          i += 4
+        }
+
         continue
       }
 
-      try {
-        storage.upsert(local, components)
-      } catch (err) {
-        // Update failed, potentially due to a race condition between reliable
-        // and unreliable channels.
-        return
+      if (
+        maybeNextEntity === undefined ||
+        maybeNextComponentType === undefined
+      ) {
+        break
       }
+
+      i += 2
     }
   }
 
@@ -111,7 +140,7 @@ export function createMessageHandler(
     } else {
       remote = Array.isArray(opOrComponent)
         ? opOrComponent[1]
-        : opOrComponent._t
+        : opOrComponent.type
     }
 
     const local = remoteToLocal.get(remote)
@@ -143,7 +172,7 @@ export function createMessageHandler(
         handleOps(message[1], message[2], world)
         break
       case JavelinMessageType.Update:
-        handleUpdate(message[1], message[2], world)
+        handleUpdate(message, world)
         break
       case JavelinMessageType.Spawn:
         handleSpawn(message[1], world)
@@ -157,7 +186,7 @@ export function createMessageHandler(
   ) => {
     for (let i = 0; i < messagesUnreliable.length; i++) {
       const message = messagesUnreliable[i]
-      handleUpdate(message[1], message[2], world)
+      handleUpdate(message, world)
     }
   }
 

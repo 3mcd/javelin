@@ -1,20 +1,33 @@
 +++
 title = "Components"
-weight = 4
+weight = 3
 +++
 
 ## Components
 
-All data within the ECS is stored in components. Components are just plain objects; unremarkable, other than two reserved fields:
+All data within a Javelin game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `type` — a unique integer that classifies the component. Components of the same shape should also share a `type`.
 
-- `_t` — a unique integer identifying the component's **type**
-- `_v` — the current **version** of the component (used for change detection)
+The `type` field establishes the taxonomy that Javelin uses to correctly store and retrieve components. Take the following example.
 
-The component's type (`_t`) is the only required field when assigning components to an entity, new or otherwise. Newly attached components are assigned a version of `0`.
+```typescript
+// Bad!
+const position = { type: 0, x: 2, y: 2 }
+const health = { type: 0, value: 100 }
+```
+
+As we'll see later, this would result in catastrophic behavior of your application. Wherever you might be working with an entity's position component, there's a chance you could have a health object instead!
+
+Just make the types unique:
+
+```typescript
+// <3
+const position = { type: 0, ... }
+const health = { type: 1, ... }
+```
 
 ## Component Types
 
-Unless you're trying to integrate with an existing codebase or library, it's recommended to use the `createComponentType` helper to define the component types your world will use. Component types make it easy to initialize components from a schema, and the components they produce are automatically pooled.
+Unless you're trying to integrate with an existing codebase or library, it's recommended to use the `createComponentType` helper to define the component types your world will use. Component types make it easy to initialize components from a schema, and they can help produce components that are automatically pooled.
 
 ```typescript
 import { createComponentType, number } from "@javelin/ecs"
@@ -38,11 +51,11 @@ const world = createWorld({
 world.registerComponentType(Position)
 ```
 
-A component type has, at minimum, a **type id** and **schema**. The type id is an integer used to uniquely identify components produced from the type. We'll talk about the component type's schema below.
+A component type has, at minimum, a type (discussed above) and **schema**.
 
 ### Schema
 
-The component type's schema defines the field names and data types that make up the shape of the component. The schema is used to initialize component instances and reset them when they are detached.
+A component type's schema defines the field names and data types that make up the shape of the component. The schema is used to initialize component instances and reset them when they are detached.
 
 The schema currently supports the following data types, which are each exported from `@javelin/ecs`:
 

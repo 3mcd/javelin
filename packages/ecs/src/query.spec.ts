@@ -16,14 +16,14 @@ describe("query", () => {
     const world = createWorld()
     const table = [
       [
-        { _t: 1, _v: 1 },
-        { _t: 1, _v: 2 },
-        { _t: 1, _v: 3 },
+        { type: 1, foo: 1 },
+        { type: 1, foo: 2 },
+        { type: 1, foo: 3 },
       ],
       [
-        { _t: 0, _v: 4 },
-        { _t: 0, _v: 5 },
-        { _t: 0, _v: 6 },
+        { type: 0, foo: 4 },
+        { type: 0, foo: 5 },
+        { type: 0, foo: 6 },
       ],
     ]
 
@@ -58,14 +58,14 @@ describe("query", () => {
     const world = createWorld()
     const table = [
       [
-        { _t: 0, _v: 5 },
-        { _t: 0, _v: 1 },
-        { _t: 0, _v: 4 },
+        { type: 0, foo: 5 },
+        { type: 0, foo: 1 },
+        { type: 0, foo: 4 },
       ],
     ]
     const filter = (componentType: ComponentType): ComponentFilter => ({
       componentType,
-      componentPredicate: (c: Component) => c._v === 1,
+      componentPredicate: (c: Component) => c.foo === 1,
     })
 
     ;(world as any)[$worldStorageKey].archetypes = [

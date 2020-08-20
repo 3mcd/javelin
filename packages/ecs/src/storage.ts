@@ -5,7 +5,11 @@ import {
   ComponentSpec,
   ComponentType,
 } from "./component"
+import { applyMutation, createMutationCache, Path } from "./mutation_cache"
+import { Mutable } from "./types"
 import { mutableEmpty } from "./util"
+
+export type ComponentPatch = (Path | (unknown | unknown[]))[]
 
 export interface Storage {
   /**
@@ -29,7 +33,12 @@ export interface Storage {
    *
    * @param component Latest copy of the component
    */
-  upsert(entity: number, components: Component[]): void
+  applyComponentPatch(
+    entity: number,
+    componentType: number,
+    path: string,
+    value: unknown,
+  ): void
 
   /**
    * Remove components from an entity.
@@ -55,14 +64,6 @@ export interface Storage {
   destroy(entity: number): void
 
   /**
-   * Increment the version of a component by 1 to indicate that it has been
-   * modified.
-   *
-   * @param component Component to bump
-   */
-  incrementVersion(component: Component): void
-
-  /**
    * Locate a component related to a specific entity.
    *
    * @param entity Subject entity
@@ -81,50 +82,38 @@ export interface Storage {
    */
   getEntityComponents(entity: number): Component[]
 
+  clearMutations(): void
+
+  getComponentMutations(component: Component): ComponentPatch
+
+  getMutableComponent<C extends Component>(component: C): Mutable<C>
+
+  isComponentChanged(component: Component): boolean
+
   /**
    * Collection of Archetypes in the world.
    */
   readonly archetypes: ReadonlyArray<Archetype>
 }
 
-function assertValidEntitylocation(
-  location?: number | null,
-): asserts location is number {
-  if (location === undefined) {
-    throw new Error(`Failed to locate entity. Entity does not exist.`)
-  }
-
-  if (location === null) {
-    throw new Error(`Failed to locate entity. Entity has been removed.`)
-  }
-}
-
-function assertValidComponentIndex(componentIndex: number) {
-  if (componentIndex === -1) {
-    throw new Error(
-      "Failed to find component. Component could not exist with entity.",
-    )
-  }
-}
-
-function assertComponentTypeIdCanAttach(
-  existingComponents: Component[],
-  componentTypeId: number,
-) {
-  if (existingComponents.find(c => c._t === componentTypeId)) {
-    throw new Error(
-      `Cannot attach component with type ${componentTypeId} — entity already has component of type.`,
-    )
-  }
-}
-
-function assertComponentCanBeModified(component: Component) {
-  if (component._v === -1) {
-    throw new Error("Tried to modify detached component.")
-  }
-}
-
 export function createStorage(): Storage {
+  const mutationCache = createMutationCache({
+    onChange(component: Component, target, path, value, mutArrayMethodType) {
+      let changes = mutations.get(component)
+
+      if (!changes) {
+        changes = []
+        mutations.set(component, changes)
+      }
+
+      if (mutArrayMethodType) {
+        changes.push(path, value, mutArrayMethodType)
+      } else {
+        changes.push(path, value)
+      }
+    },
+  })
+  const mutations = new Map<Component, ComponentPatch>()
   const archetypes: Archetype[] = []
   // Array where the index corresponds to an entity and the value corresponds
   // to the index of the entity's archetype within the `archetypes` array. When
@@ -154,7 +143,7 @@ export function createStorage(): Storage {
 
       for (let j = 0; j < len; j++) {
         // Affirm that archetype contains each component of predicate.
-        if (layout.indexOf(components[j]._t) === -1) {
+        if (layout.indexOf(components[j].type) === -1) {
           match = false
           break
         }
@@ -177,7 +166,7 @@ export function createStorage(): Storage {
     let archetype = findArchetype(components)
 
     if (!archetype) {
-      archetype = createArchetype(components.map(c => c._t))
+      archetype = createArchetype(components.map(c => c.type))
       archetypes.push(archetype)
     }
 
@@ -186,8 +175,6 @@ export function createStorage(): Storage {
 
   function create(entity: number, components: Component[]) {
     const archetype = findOrCreateArchetype(components)
-
-    components.forEach(resetComponent)
 
     archetype.insert(entity, components)
 
@@ -199,7 +186,13 @@ export function createStorage(): Storage {
   function getEntityArchetype(entity: number) {
     const location = archetypeIndicesByEntity[entity]
 
-    assertValidEntitylocation(location)
+    if (location === undefined) {
+      throw new Error(`Failed to locate entity. Entity does not exist.`)
+    }
+
+    if (location === null) {
+      throw new Error(`Failed to locate entity. Entity has been removed.`)
+    }
 
     return archetypes[location]
   }
@@ -211,7 +204,9 @@ export function createStorage(): Storage {
   ) {
     source.remove(entity)
 
-    components.forEach(resetComponent)
+    if (components.length === 0) {
+      return
+    }
 
     const destination = findOrCreateArchetype(components)
 
@@ -226,7 +221,14 @@ export function createStorage(): Storage {
     let destinationComponents = components.slice() as Readonly<Component>[]
 
     for (let i = 0; i < source.layout.length; i++) {
-      assertComponentTypeIdCanAttach(components, source.layout[i])
+      const componentTypeId = source.layout[i]
+
+      if (components.find(c => c.type === componentTypeId)) {
+        throw new Error(
+          `Cannot attach component with type ${componentTypeId} — entity already has component of type.`,
+        )
+      }
+
       // UNSAFE: `!` is used because entity location is non-null.
       destinationComponents.push(source.table[i][entityIndex]!)
     }
@@ -235,7 +237,7 @@ export function createStorage(): Storage {
   }
 
   function remove(entity: number, components: Component[]) {
-    const typesToRemove = components.map(component => component._t)
+    const typesToRemove = components.map(component => component.type)
 
     removeByTypeIds(entity, typesToRemove)
   }
@@ -252,6 +254,9 @@ export function createStorage(): Storage {
 
       if (!componentTypeIds.includes(type)) {
         destinationComponents.push(component)
+      } else {
+        mutationCache.revoke(component)
+        mutations.delete(component)
       }
     }
 
@@ -259,49 +264,29 @@ export function createStorage(): Storage {
   }
 
   function destroy(entity: number) {
-    const source = getEntityArchetype(entity)
-
-    source.remove(entity)
+    remove(entity, getComponentsOfEntity(entity))
     archetypeIndicesByEntity[entity] = null
   }
 
-  function resetComponent(component: Component) {
-    component._v = 0
-  }
-
-  function incrementVersion(component: Component) {
-    assertComponentCanBeModified(component)
-    component._v++
-  }
-
-  const tmpComponentsToInsert: Component[] = []
-
-  function upsert(entity: number, components: Component[]) {
+  function applyComponentPatch(
+    entity: number,
+    componentType: number,
+    path: string,
+    value: unknown,
+  ) {
     const archetype = getEntityArchetype(entity)
     const entityIndex = archetype.indices[entity]
+    const componentIndex = archetype.layout.indexOf(componentType)
 
-    for (let i = 0; i < components.length; i++) {
-      const component = components[i]
-      const { _t: type } = component
-      const componentIndex = archetype.layout.indexOf(type)
-
-      if (componentIndex === -1) {
-        // Entity component makeup does not match patch component, insert the new
-        // component.
-        tmpComponentsToInsert.push(component)
-      } else {
-        const targetComponent = archetype.table[componentIndex][entityIndex]!
-        // Apply patch to component.
-        Object.assign(targetComponent, component)
-        incrementVersion(targetComponent)
-      }
+    if (componentIndex === -1) {
+      return
     }
 
-    if (tmpComponentsToInsert.length > 0) {
-      insert(entity, tmpComponentsToInsert)
-    }
+    const component = getMutableComponent(
+      archetype.table[componentIndex][entityIndex]!,
+    )
 
-    mutableEmpty(tmpComponentsToInsert)
+    applyMutation(component, path, value)
   }
 
   function findComponent<T extends ComponentType>(
@@ -311,7 +296,11 @@ export function createStorage(): Storage {
     const archetype = getEntityArchetype(entity)
     const componentIndex = archetype.layout.indexOf(componentType.type)
 
-    assertValidComponentIndex(componentIndex)
+    if (componentIndex === -1) {
+      throw new Error(
+        "Failed to find component. Component could not exist with entity.",
+      )
+    }
 
     const entityIndex = archetype.indices[entity]
 
@@ -319,7 +308,7 @@ export function createStorage(): Storage {
     return archetype.table[componentIndex][entityIndex]! as ComponentOf<T>
   }
 
-  function getEntityComponents(entity: number) {
+  function getComponentsOfEntity(entity: number) {
     const archetype = getEntityArchetype(entity)
     const entityIndex = archetype.indices[entity]
     const result: Component[] = []
@@ -331,16 +320,42 @@ export function createStorage(): Storage {
     return result
   }
 
+  function clearMutations() {
+    mutations.forEach(mutableEmpty)
+  }
+
+  function getMutationsOfComponent(component: Component) {
+    const changeSet = mutations.get(component)
+
+    if (!changeSet) {
+      throw new Error("ChangeSet does not exist for component.")
+    }
+
+    return changeSet
+  }
+
+  function getMutableComponent<C extends Component>(component: C) {
+    return mutationCache.proxy(component) as Mutable<C>
+  }
+
+  function isComponentChanged(component: Component) {
+    const changeSet = mutations.get(component)
+    return changeSet ? changeSet.length > 0 : false
+  }
+
   return {
+    archetypes,
+    clearMutations,
     create,
+    destroy,
+    findComponent,
+    getEntityComponents: getComponentsOfEntity,
+    getMutableComponent,
+    getComponentMutations: getMutationsOfComponent,
     insert,
+    isComponentChanged,
     remove,
     removeByTypeIds,
-    destroy,
-    archetypes,
-    incrementVersion,
-    findComponent,
-    upsert,
-    getEntityComponents,
+    applyComponentPatch,
   }
 }

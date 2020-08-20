@@ -69,12 +69,12 @@ function reducer(state: FormState, action: FormAction): FormState {
         break
       case "remove_components":
         draft.components = draft.components.filter(
-          c => !action.payload.includes(c._t),
+          c => !action.payload.includes(c.type),
         )
         break
       case "set": {
         const componentIndex = draft.components.findIndex(
-          c => c._t === action.payload.type,
+          c => c.type === action.payload.type,
         )!
 
         draft.components[componentIndex][action.payload.key] =
@@ -140,7 +140,7 @@ export function Spawn() {
         c[fieldName] = getDefaultValueForDataType(field)
         return c
       },
-      { _t: type } as ComponentSpec,
+      { type: type } as ComponentSpec,
     )
 
     return component
@@ -184,7 +184,7 @@ export function Spawn() {
     fieldName: string,
   ) {
     const componentType = world.model.find(
-      componentType => componentType.type === component._t,
+      componentType => componentType.type === component.type,
     )!
 
     for (const key in componentType.schema) {
@@ -195,7 +195,7 @@ export function Spawn() {
 
     throw new Error(
       `Field ${fieldName} does not exist on component with type ${getComponentName(
-        component._t,
+        component.type,
         world.model,
       )}`,
     )
@@ -217,7 +217,7 @@ export function Spawn() {
           {world.model
             .filter(
               type =>
-                state.components.find(c => c._t === type.type) === undefined,
+                state.components.find(c => c.type === type.type) === undefined,
             )
             .map(type => (
               <option key={type.type} value={type.type}>
@@ -235,22 +235,22 @@ export function Spawn() {
           onChange={onToRemoveChange}
         >
           {state.components.map(c => (
-            <option key={c._t} value={c._t}>
-              {getComponentName(c._t, world.model)}
+            <option key={c.type} value={c.type}>
+              {getComponentName(c.type, world.model)}
             </option>
           ))}
         </ComponentMultiSelect>
       </SelectContainer>
       <FieldsetList>
         {toRemove
-          .map(t => state.components.find(c => c._t === t)!)
+          .map(t => state.components.find(c => c.type === t)!)
           .map(c => (
-            <li key={c._t}>
-              <h4>{getComponentName(c._t, world.model)}</h4>
+            <li key={c.type}>
+              <h4>{getComponentName(c.type, world.model)}</h4>
               <fieldset>
                 <FieldList>
                   {Object.entries(c)
-                    .filter(([key]) => key !== "_t")
+                    .filter(([key]) => key !== "type")
                     .map(([key, value]) => (
                       <FieldListItem key={key}>
                         <label htmlFor={key}>{key}</label>
@@ -265,7 +265,7 @@ export function Spawn() {
                             dispatch({
                               type: "set",
                               payload: {
-                                type: c._t,
+                                type: c.type,
                                 key,
                                 value: castValueToDataType(
                                   getDataTypeForComponentField(c, key),

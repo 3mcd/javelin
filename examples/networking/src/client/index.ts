@@ -1,13 +1,9 @@
-import { createWorld, WorldOpType } from "@javelin/ecs"
-import {
-  createMessageHandler,
-  JavelinMessage,
-  JavelinMessageType,
-} from "@javelin/net"
+import { createWorld, array } from "@javelin/ecs"
+import { createMessageHandler, JavelinMessage } from "@javelin/net"
 import { decode } from "@msgpack/msgpack"
 import { Client } from "@web-udp/client"
 import { ConnectionOptions } from "@web-udp/client/lib/provider"
-import { Position, Color } from "../common/components"
+import { Color, Position } from "../common/components"
 import { ConnectionType } from "../common/types"
 import { RenderTransform } from "./components/position_buffer"
 import { app, framerate } from "./graphics"
@@ -61,6 +57,23 @@ const unreliableOptions: ConnectionOptions = {
   },
 }
 
+const LOG_BANDWIDTH_INTERVAL_MS = 1000
+
+let prevTransferLogTime = 0
+let bytes = 0
+
+function logDataTransferRate(arrayBuffer: ArrayBuffer) {
+  const now = performance.now()
+
+  bytes += arrayBuffer.byteLength
+
+  if (now - prevTransferLogTime >= LOG_BANDWIDTH_INTERVAL_MS) {
+    console.log(`${bytes / 1000} kb/s`, decode(arrayBuffer))
+    prevTransferLogTime = now
+    bytes = 0
+  }
+}
+
 async function main() {
   const connectionReliable = await udp.connect(reliableOptions)
   const connectionUnreliable = await udp.connect(unreliableOptions)
@@ -68,10 +81,12 @@ async function main() {
   connectionReliable.messages.subscribe(data => {
     const message = decode(data) as JavelinMessage
     messageHandler.push(message)
+    logDataTransferRate(data)
   })
   connectionUnreliable.messages.subscribe(data => {
     const message = decode(data) as JavelinMessage
     messageHandler.push(message)
+    logDataTransferRate(data)
   })
 
   loop()

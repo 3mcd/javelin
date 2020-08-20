@@ -27,7 +27,7 @@
     "example:filters": "lerna run start --scope=@javelin/example-filters --stream",
     "example:networking": "lerna run start --scope=@javelin/example-networking --stream",
     "bump": "lerna version --no-git-tag-version",
-    "bump:patch": "lern a version patch --no-git-tag-version",
+    "bump:patch": "lerna version patch --no-git-tag-version",
     "bump:minor": "lerna version minor --no-git-tag-version",
     "bump:major": "lerna version major --no-git-tag-version"
   },

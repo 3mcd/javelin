@@ -1,15 +1,22 @@
 import {
   $worldStorageKey,
   Component,
+  ComponentPatch,
   ComponentType,
   DetachOp,
   mutableEmpty,
   SpawnOp,
+  Storage,
   World,
   WorldOp,
   WorldOpType,
 } from "@javelin/ecs"
-import { JavelinMessage, protocol, UpdateUnreliable } from "./protocol"
+import {
+  JavelinMessage,
+  protocol,
+  UpdatePayload,
+  UpdateUnreliable,
+} from "./protocol"
 
 export type QueryConfig = {
   type: ComponentType
@@ -46,11 +53,38 @@ export function createMessageProducer(
   const { isLocal = false } = options
   const allComponentTypeIds = options.components.map(config => config.type.type)
   const priorities = new WeakMap<Component, number>()
-  const payloadChanged: Component[] = []
-  const changedCache = new WeakMap<Component, number>()
   const tmpSortedByPriority: Component[] = []
+  const tmpComponentMutationsByEntity = new Map<
+    number,
+    (number | ComponentPatch)[]
+  >()
+  const tmpEntitiesByComponent = new WeakMap<Component, number>()
 
   let previousUnreliableSendTime = 0
+
+  function captureMutations(
+    world: World,
+    storage: Storage,
+    entity: number,
+    component: Component,
+  ) {
+    if (world.isComponentChanged(component)) {
+      let entityMutations = tmpComponentMutationsByEntity.get(entity)
+
+      if (!entityMutations) {
+        entityMutations = []
+        tmpComponentMutationsByEntity.set(entity, entityMutations)
+      }
+
+      const mutations = storage.getComponentMutations(component)
+
+      entityMutations.push(component.type)
+
+      for (let i = 0; i < mutations.length; i++) {
+        entityMutations.push(mutations[i] as any)
+      }
+    }
+  }
 
   function getInitialMessages(world: World) {
     const messages = []
@@ -75,7 +109,7 @@ export function createMessageProducer(
           const componentIndex = componentIndices[k]
           const component = table[componentIndex][entityIndex]!
 
-          if (component._v > -1) {
+          if (!world.detached.has(component)) {
             components.push(table[componentIndex][entityIndex]!)
           }
         }
@@ -92,10 +126,11 @@ export function createMessageProducer(
   }
 
   function getReliableMessages(world: World) {
-    const { archetypes } = world[$worldStorageKey]
+    const storage = world[$worldStorageKey]
+    const { archetypes } = storage
     const messages: JavelinMessage[] = []
 
-    tmpComponentsByEntity.clear()
+    tmpComponentMutationsByEntity.clear()
 
     if (world.ops.length > 0) {
       const filteredOps: WorldOp[] = []
@@ -107,7 +142,7 @@ export function createMessageProducer(
           case WorldOpType.Spawn:
           case WorldOpType.Attach: {
             const components = op[2].filter(c =>
-              allComponentTypeIds.includes(c._t),
+              allComponentTypeIds.includes(c.type),
             )
 
             if (components.length > 0) {
@@ -117,8 +152,8 @@ export function createMessageProducer(
             break
           }
           case WorldOpType.Detach: {
-            const componentTypeIds = op[2].filter(_t =>
-              allComponentTypeIds.includes(_t),
+            const componentTypeIds = op[2].filter(type =>
+              allComponentTypeIds.includes(type),
             )
 
             if (componentTypeIds.length > 0) {
@@ -155,40 +190,33 @@ export function createMessageProducer(
         for (let k = 0; k < archetype.entities.length; k++) {
           const entity = archetype.entities[k]
           const component = components[archetype.indices[entity]]!
-          const last = changedCache.get(component)
-          const hit = component._v > (last === undefined ? -1 : last)
 
-          if (hit) {
-            let arr = tmpComponentsByEntity.get(entity)
-
-            if (!arr) {
-              arr = []
-              tmpComponentsByEntity.set(entity, arr)
-            }
-
-            arr.push(component)
-            changedCache.set(component, component._v)
-          }
+          captureMutations(world, storage, entity, component)
         }
       }
     }
 
-    if (payloadChanged.length > 0)
-      messages.push(
-        protocol.update(Array.from(tmpComponentsByEntity.entries())),
-      )
+    const payload: UpdatePayload = []
+
+    for (const [entity, patch] of tmpComponentMutationsByEntity.entries()) {
+      payload.push(entity)
+
+      for (let i = 0; i < patch.length; i++) {
+        payload.push(patch[i])
+      }
+    }
+
+    if (payload.length > 0) {
+      messages.push(protocol.update(payload))
+    }
 
     return messages
   }
 
-  const tmpComponentsByEntity = new Map<number, Component[]>()
-  const tmpEntitiesByComponent = new WeakMap<Component, number>()
-
   function getUnreliableMessages(world: World): UpdateUnreliable[] {
     const time = Date.now()
-    const {
-      [$worldStorageKey]: { archetypes },
-    } = world
+    const storage = world[$worldStorageKey]
+    const { archetypes } = storage
 
     if (time - previousUnreliableSendTime < options.updateInterval) {
       return []
@@ -197,7 +225,7 @@ export function createMessageProducer(
     previousUnreliableSendTime = time
 
     mutableEmpty(tmpSortedByPriority)
-    tmpComponentsByEntity.clear()
+    tmpComponentMutationsByEntity.clear()
 
     for (let i = 0; i < archetypes.length; i++) {
       const archetype = archetypes[i]
@@ -243,19 +271,21 @@ export function createMessageProducer(
     for (let i = 0; i < tmpSortedByPriority.length; i++) {
       const component = tmpSortedByPriority[i]
       const entity = tmpEntitiesByComponent.get(component)!
-      let arr = tmpComponentsByEntity.get(entity)
 
-      if (!arr) {
-        arr = []
-        tmpComponentsByEntity.set(entity, arr)
-      }
-
-      arr.push(component)
+      captureMutations(world, storage, entity, component)
     }
 
-    return [
-      protocol.updateUnreliable(Array.from(tmpComponentsByEntity.entries())),
-    ]
+    const payload: UpdatePayload = []
+
+    for (const [entity, patch] of tmpComponentMutationsByEntity.entries()) {
+      payload.push(entity)
+
+      for (let i = 0; i < patch.length; i++) {
+        payload.push(patch[i])
+      }
+    }
+
+    return [protocol.updateUnreliable(payload)]
   }
 
   return {
