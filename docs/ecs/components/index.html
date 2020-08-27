@@ -80,17 +80,17 @@
                                                     </a>
                                                 </li>
                                             
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;entities&#x2F;">
-                                                        
-                                                        Entities
-                                                    </a>
-                                                </li>
-                                            
                                                 <li class="active">
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;components&#x2F;">
                                                         
                                                         Components
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;entities&#x2F;">
+                                                        
+                                                        Entities
                                                     </a>
                                                 </li>
                                             
@@ -181,17 +181,24 @@
   >#</a
 >
 </h2>
-<p>All data within the ECS is stored in components. Components are just plain objects; unremarkable, other than two reserved fields:</p>
-<ul>
-<li><code>_t</code> — a unique integer identifying the component's <strong>type</strong></li>
-<li><code>_v</code> — the current <strong>version</strong> of the component (used for change detection)</li>
-</ul>
-<p>The component's type (<code>_t</code>) is the only required field when assigning components to an entity, new or otherwise. Newly attached components are assigned a version of <code>0</code>.</p>
-<h2 id="component-types">Component Types<a class="zola-anchor" href="#component-types" aria-label="Anchor link for: component-types"
+<p>All data within a Javelin game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: <code>type</code> — a unique integer that classifies the component. Components of the same shape should also share a <code>type</code>.</p>
+<p>The <code>type</code> field establishes the taxonomy that Javelin uses to correctly store and retrieve components. Take the following example.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#8c95a0;">// Bad!
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">position </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, x: </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">, y: </span><span style="color:#4179ad;">2 </span><span style="color:#555c64;">}
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">health </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, value: </span><span style="color:#4179ad;">100 </span><span style="color:#555c64;">}
+</span></code></pre>
+<p>As we'll see later, this would result in catastrophic behavior of your application. Wherever you might be working with an entity's position component, there's a chance you could have a health object instead!</p>
+<p>Just make the types unique:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#8c95a0;">// &lt;3
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">position </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#388282;">... </span><span style="color:#555c64;">}
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">health </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">, </span><span style="color:#388282;">... </span><span style="color:#555c64;">}
+</span></code></pre><h2 id="component-types">Component Types<a class="zola-anchor" href="#component-types" aria-label="Anchor link for: component-types"
   >#</a
 >
 </h2>
-<p>Unless you're trying to integrate with an existing codebase or library, it's recommended to use the <code>createComponentType</code> helper to define the component types your world will use. Component types make it easy to initialize components from a schema, and the components they produce are automatically pooled.</p>
+<p>Unless you're trying to integrate with an existing codebase or library, it's recommended to use the <code>createComponentType</code> helper to define the component types your world will use. Component types make it easy to initialize components from a schema, and they can help produce components that are automatically pooled.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createComponentType, number } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
 
@@ -211,12 +218,12 @@
 </span><span style="color:#8c95a0;">// OR
 </span><span style="color:#555c64;">world.registerComponentType(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">)
 </span></code></pre>
-<p>A component type has, at minimum, a <strong>type id</strong> and <strong>schema</strong>. The type id is an integer used to uniquely identify components produced from the type. We'll talk about the component type's schema below.</p>
+<p>A component type has, at minimum, a type (discussed above) and <strong>schema</strong>.</p>
 <h3 id="schema">Schema<a class="zola-anchor" href="#schema" aria-label="Anchor link for: schema"
   >#</a
 >
 </h3>
-<p>The component type's schema defines the field names and data types that make up the shape of the component. The schema is used to initialize component instances and reset them when they are detached.</p>
+<p>A component type's schema defines the field names and data types that make up the shape of the component. The schema is used to initialize component instances and reset them when they are detached.</p>
 <p>The schema currently supports the following data types, which are each exported from <code>@javelin/ecs</code>:</p>
 <ul>
 <li><code>number (0)</code></li>

@@ -80,17 +80,17 @@
                                                     </a>
                                                 </li>
                                             
-                                                <li class="active">
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;entities&#x2F;">
-                                                        
-                                                        Entities
-                                                    </a>
-                                                </li>
-                                            
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;components&#x2F;">
                                                         
                                                         Components
+                                                    </a>
+                                                </li>
+                                            
+                                                <li class="active">
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;entities&#x2F;">
+                                                        
+                                                        Entities
                                                     </a>
                                                 </li>
                                             
@@ -183,8 +183,8 @@
 </h2>
 <p>Entities are created using <code>world.spawn</code>. This method is a variadic function that accepts 0..n components and returns a newly created entity attached to those components.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">player </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ _t: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">, name: </span><span style="color:#4179ad;">&quot;elrond&quot; </span><span style="color:#555c64;">}
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">health </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ _t: </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">, value: </span><span style="color:#4179ad;">100 </span><span style="color:#555c64;">}
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">player </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">, name: </span><span style="color:#4179ad;">&quot;elrond&quot; </span><span style="color:#555c64;">}
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">health </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">, value: </span><span style="color:#4179ad;">100 </span><span style="color:#555c64;">}
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">entity </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.spawn(player, health)
 </span></code></pre><aside>
   <p>
@@ -193,7 +193,7 @@
 </aside>
 <p>The tuple of components associated with an entity defines its <strong>archetype</strong>. The following code creates an entity of archetype <code>(1, 2)</code>. Components can be assigned to existing entities using <code>world.attach</code>, and removed from entities using <code>world.detach</code>.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">input </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ _t: </span><span style="color:#4179ad;">3</span><span style="color:#555c64;">, space: </span><span style="color:#a35d66;">true </span><span style="color:#555c64;">}
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">input </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">3</span><span style="color:#555c64;">, space: </span><span style="color:#a35d66;">true </span><span style="color:#555c64;">}
 
 </span><span style="color:#8c95a0;">// archetype: (1, 2) -&gt; (1, 2, 3)
 </span><span style="color:#555c64;">world.attach(entity, input)
