@@ -1,5 +1,6 @@
 import { createWorld, World } from "../world"
 import { detached } from "./detached"
+import { Component } from "../component"
 
 jest.mock("../world")
 
@@ -18,17 +19,16 @@ describe("attached", () => {
     }
     const filter = detached(A)
     const a1 = {
-      _t: 0,
-      _v: -1,
+      type: 0,
     }
     const a2 = {
-      _t: 0,
-      _v: 0,
+      type: 0,
     }
     const a3 = {
-      _t: 0,
-      _v: 1,
+      type: 0,
     }
+
+    ;(world.detached as Set<Component>).add(a1)
 
     expect(filter.componentPredicate(a1, world)).toBe(true)
     expect(filter.componentPredicate(a2, world)).toBe(false)

@@ -1,6 +1,6 @@
 +++
 title = "Entities"
-weight = 3
+weight = 4
 +++
 
 ## Creating Entities
@@ -8,8 +8,8 @@ weight = 3
 Entities are created using `world.spawn`. This method is a variadic function that accepts 0..n components and returns a newly created entity attached to those components.
 
 ```typescript
-const player = { _t: 1, name: "elrond" }
-const health = { _t: 2, value: 100 }
+const player = { type: 1, name: "elrond" }
+const health = { type: 2, value: 100 }
 const entity = world.spawn(player, health)
 ```
 
@@ -22,7 +22,7 @@ const entity = world.spawn(player, health)
 The tuple of components associated with an entity defines its **archetype**. The following code creates an entity of archetype `(1, 2)`. Components can be assigned to existing entities using `world.attach`, and removed from entities using `world.detach`.
 
 ```typescript
-const input = { _t: 3, space: true }
+const input = { type: 3, space: true }
 
 // archetype: (1, 2) -> (1, 2, 3)
 world.attach(entity, input)

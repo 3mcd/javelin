@@ -64,7 +64,9 @@ export function query<S extends Selector>(...selector: S) {
         const filter = filters[k]
         const component = table[tmpReadIndices[k]][readIndex]!
 
-        match = filter ? filter(component, world) : component._v > -1
+        match = filter
+          ? filter(component, world)
+          : !world.detached.has(component)
 
         if (!match) {
           continue outer

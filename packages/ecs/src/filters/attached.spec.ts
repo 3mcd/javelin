@@ -19,11 +19,11 @@ describe("attached", () => {
     }
     const filter = attached(A)
     const a1 = {
-      _t: 0,
+      type: 0,
       _v: 0,
     }
     const a2 = {
-      _t: 0,
+      type: 0,
       _v: 0,
     }
 

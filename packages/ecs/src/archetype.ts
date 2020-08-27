@@ -86,7 +86,7 @@ export function createArchetype(layout: number[]): Archetype {
 
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const componentTypeIndex = layout.indexOf(component._t)
+      const componentTypeIndex = layout.indexOf(component.type)
 
       table[componentTypeIndex][head] = component
     }

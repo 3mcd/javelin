@@ -10,7 +10,8 @@ export function spawn(world: World, dt: number) {
 
   if (elapsed > 5000) {
     for (const [, [velocity]] of velocities(world)) {
-      world.mut(velocity).y += Math.random() * 10
+      world.getMutableComponent(velocity).y += Math.random() * 10
+      world.getMutableComponent(velocity).x += 1 - Math.random() * 2
       elapsed = 0
     }
   }

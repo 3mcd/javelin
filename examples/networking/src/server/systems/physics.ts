@@ -10,8 +10,8 @@ const awake = query(Position, Velocity)
 
 export function physics(world: World, dt: number) {
   for (const [, [position, velocity]] of awake(world)) {
-    const mutPosition = world.mut(position)
-    const mutVelocity = world.mut(velocity)
+    const mutPosition = world.getMutableComponent(position)
+    const mutVelocity = world.getMutableComponent(velocity)
 
     mutPosition.x += velocity.x
     mutPosition.y += velocity.y
@@ -21,6 +21,9 @@ export function physics(world: World, dt: number) {
       mutVelocity.y = -(velocity.y * 0.5)
       mutVelocity.x *= 0.5
       mutPosition.y = floorOffset
+    } else {
+      // gravity
+      mutVelocity.y += 0.1
     }
 
     if (position.x >= 800 || position.x <= 0) {
@@ -29,8 +32,5 @@ export function physics(world: World, dt: number) {
       mutPosition.x = Math.max(0, Math.min(position.x, 800))
       continue
     }
-
-    // gravity
-    mutVelocity.y += 0.1
   }
 }

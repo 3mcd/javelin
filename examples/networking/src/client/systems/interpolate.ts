@@ -6,11 +6,11 @@ const positionsAttached = query(attached(Position))
 const positionsChanged = query(changed(Position))
 const renderTransforms = query(RenderTransform)
 
-let adaptiveSendRate = 20
+let SEND_RATE = 20
 
 export function interpolate(world: World) {
   const time = Date.now()
-  const renderTime = time - 1000 / adaptiveSendRate
+  const renderTime = time - 1000 / SEND_RATE
 
   for (const [entity] of positionsAttached(world)) {
     world.attach(entity, world.component(RenderTransform))
@@ -20,7 +20,7 @@ export function interpolate(world: World) {
     const buffer = world.tryGetComponent(entity, RenderTransform)
 
     if (buffer) {
-      const update = [Date.now(), x, y]
+      const update = [time, x, y]
 
       buffer.updates.push(update)
     }
@@ -40,12 +40,11 @@ export function interpolate(world: World) {
       renderTime <= updates[1][0]
     ) {
       const [[t0, x0, y0], [t1, x1, y1]] = updates
-      const mutRenderTransform = world.mut(renderTransform)
+      const mutRenderTransform = world.getMutableComponent(renderTransform)
 
       // Interpolate position.
       mutRenderTransform.x = x0 + ((x1 - x0) * (renderTime - t0)) / (t1 - t0)
       mutRenderTransform.y = y0 + ((y1 - y0) * (renderTime - t0)) / (t1 - t0)
-      adaptiveSendRate = (1000 / (t1 - t0) + adaptiveSendRate) / 2
     }
   }
 }

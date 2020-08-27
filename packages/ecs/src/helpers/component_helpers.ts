@@ -16,7 +16,7 @@ export function createComponentPool<C extends ComponentType>(
   const pool = createStackPool<ComponentOf<C>>(
     () =>
       initializeComponentFromSchema(
-        { _t: componentType.type, _v: 0 },
+        { type: componentType.type, _v: 0 },
         componentType.schema,
       ) as ComponentOf<C>,
     c => resetComponentFromSchema(c, componentType.schema) as ComponentOf<C>,
@@ -30,5 +30,5 @@ export function isComponentOf<T extends ComponentType>(
   component: Component,
   componentTypeId: T,
 ): component is ComponentOf<T> {
-  return component._t === componentTypeId.type
+  return component.type === componentTypeId.type
 }

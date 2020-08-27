@@ -12,12 +12,12 @@ module.exports.run = function run() {
     { schema: {}, type: 4 },
   ]
   const components = [
-    ...arrayOf(75000, () => [{ _t: 1 }]),
-    ...arrayOf(75000, () => [{ _t: 1 }, { _t: 3 }]),
-    ...arrayOf(75000, () => [{ _t: 2 }]),
-    ...arrayOf(75000, () => [{ _t: 1 }, { _t: 2 }, { _t: 3 }]),
-    ...arrayOf(75000, () => [{ _t: 4 }]),
-    ...arrayOf(75000, () => [{ _t: 2 }, { _t: 4 }]),
+    ...arrayOf(75000, () => [{ type: 1 }]),
+    ...arrayOf(75000, () => [{ type: 1 }, { type: 3 }]),
+    ...arrayOf(75000, () => [{ type: 2 }]),
+    ...arrayOf(75000, () => [{ type: 1 }, { type: 2 }, { type: 3 }]),
+    ...arrayOf(75000, () => [{ type: 4 }]),
+    ...arrayOf(75000, () => [{ type: 2 }, { type: 4 }]),
   ]
   const queries = [
     [componentTypes[0]],
@@ -27,7 +27,7 @@ module.exports.run = function run() {
   ].map(c => query(...c))
 
   console.time("create")
-  const entities = components.map(c => world.component(c))
+  const entities = components.map(c => world.spawn(...c))
   console.timeEnd("create")
 
   let i = n
