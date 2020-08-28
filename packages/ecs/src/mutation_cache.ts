@@ -14,7 +14,7 @@ export interface MutationCache {
   revoke(root: ProxyTarget): void
 }
 
-const rMethod = /^\w\(\)$/
+const rMethod = /^\d+\(\)$/
 const rInteger = /\d+/
 
 let splitPathCache: { [path: string]: Array<string | number> } = {}
@@ -41,7 +41,7 @@ function splitPath(path: Path): ReadonlyArray<string | number> {
 
 export function applyMutation(root: ProxyTarget, path: Path, value: unknown) {
   const arrPath = splitPath(path)
-  const key = path[path.length - 1]
+  const key = arrPath[arrPath.length - 1]
 
   let target = root
 
@@ -50,12 +50,14 @@ export function applyMutation(root: ProxyTarget, path: Path, value: unknown) {
     target = target[arrPath[i]] as ProxyTarget
   }
 
-  const methodMatches = key.match(rMethod)
+  const methodMatches = typeof key === "string" && key.match(rMethod)
   const methodType = methodMatches ? Number(methodMatches[0]) : null
 
   if (typeof methodType === "number") {
     // @ts-ignore
-    mutArrayMethodsByType.get(methodType)?.apply(path[path.length - 2], value)
+    mutArrayMethodsByType
+      .get(methodType)
+      ?.apply(arrPath[arrPath.length - 2], value)
   }
 
   // @ts-ignore
