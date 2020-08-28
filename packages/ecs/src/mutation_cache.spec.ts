@@ -4,12 +4,12 @@ type MutationData = [unknown, unknown, string, unknown]
 
 describe("createMutationCache", () => {
   it("tracks changes on both shallow and deeply nested values", () => {
+    const mutations: MutationData[] = []
     const mutationCache = createMutationCache({
       onChange(root, target, path, value) {
         mutations.push([root, target, path, value])
       },
     })
-    const mutations: MutationData[] = []
     const root = {
       a: {
         b: [{ c: 1 }],
@@ -29,7 +29,7 @@ describe("createMutationCache", () => {
     expect(mutations[0][3]).toBe(2)
 
     expect(mutations[1][0]).toBe(root)
-    expect(mutations[1][2]).toBe("a.b.push")
+    expect(mutations[1][2]).toBe(`a.b.${MutArrayMethodType.Push}()`)
     expect(mutations[1][3]).toEqual([toPush])
 
     expect(mutations[2][0]).toBe(root)
@@ -37,17 +37,17 @@ describe("createMutationCache", () => {
     expect(mutations[2][3]).toBe(4)
 
     expect(mutations[3][0]).toBe(root)
-    expect(mutations[3][2]).toBe("a.b.pop")
+    expect(mutations[3][2]).toBe(`a.b.${MutArrayMethodType.Pop}()`)
     expect(mutations[3][3]).toEqual([])
   })
 
   it("emits special mutations for mutating array methods", () => {
+    const mutations: MutationData[] = []
     const mutationCache = createMutationCache({
       onChange(root, target, path, value) {
         mutations.push([root, target, path, value])
       },
     })
-    const mutations: MutationData[] = []
     const root = { nums: [1, 2, 3] }
     const mRoot = mutationCache.proxy(root)
 

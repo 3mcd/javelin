@@ -9,8 +9,6 @@ import { applyMutation, createMutationCache, Path } from "./mutation_cache"
 import { Mutable } from "./types"
 import { mutableEmpty } from "./util"
 
-export type ComponentPatch = (Path | (unknown | unknown[]))[]
-
 export interface Storage {
   /**
    * Create a new entity.
@@ -84,7 +82,7 @@ export interface Storage {
 
   clearMutations(): void
 
-  getComponentMutations(component: Component): ComponentPatch
+  getComponentMutations(component: Component): unknown[]
 
   getMutableComponent<C extends Component>(component: C): Mutable<C>
 
@@ -113,7 +111,7 @@ export function createStorage(): Storage {
       }
     },
   })
-  const mutations = new Map<Component, ComponentPatch>()
+  const mutations = new Map<Component, unknown[]>()
   const archetypes: Archetype[] = []
   // Array where the index corresponds to an entity and the value corresponds
   // to the index of the entity's archetype within the `archetypes` array. When

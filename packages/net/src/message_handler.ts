@@ -78,7 +78,7 @@ export function createMessageHandler(
   function handleUpdate(update: Update | UpdateUnreliable, world: World) {
     const [, isLocal] = update
     let i = 5
-    let entity: null | number = isLocal
+    let entity: undefined | number = isLocal
       ? (update[3] as number)
       : (remoteToLocal.get(update[3] as number) as number)
     let componentType: null | number = update[4] as number
@@ -88,7 +88,7 @@ export function createMessageHandler(
     }
 
     while (true) {
-      if (entity !== null && componentType !== null) {
+      if (entity !== undefined && componentType !== null) {
         const path = update[i] as string
         const value = update[i + 1] as unknown
 
@@ -107,7 +107,7 @@ export function createMessageHandler(
           : remoteToLocal.get(maybeNextEntity)
 
         if (local === undefined) {
-          entity = null
+          entity = undefined
           componentType = null
           // move forward 2 indices to begin the skip
           i += 2

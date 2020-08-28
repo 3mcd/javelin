@@ -27,7 +27,7 @@ export type SerializedComponentType<C extends ComponentType = ComponentType> = {
 }
 
 // [entity, componentTypeA, ComponentPatch, componentTypeB, ComponentPatch, ...]
-export type UpdatePayload = (number | ComponentPatch)[]
+export type UpdatePayload = unknown[]
 
 export type Ops = [JavelinMessageType.Ops, WorldOp[], boolean]
 export type Update = [
