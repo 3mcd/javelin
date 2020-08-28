@@ -6,10 +6,9 @@ import {
   ComponentType,
 } from "./component"
 import { createComponentPool } from "./helpers"
-import { Path, createMutationCache } from "./mutation_cache"
 import { createStackPool, StackPool } from "./pool"
 import { initializeComponentFromSchema } from "./schema"
-import { createStorage, Storage, ComponentPatch } from "./storage"
+import { createStorage, Storage } from "./storage"
 import { $worldStorageKey } from "./symbols"
 import { Mutable } from "./types"
 import { mutableEmpty } from "./util"

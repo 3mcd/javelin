@@ -92,7 +92,11 @@ export function createMessageHandler(
         const path = update[i] as string
         const value = update[i + 1] as unknown
 
-        world.applyComponentPatch(entity, componentType, path, value)
+        try {
+          world.applyComponentPatch(entity, componentType, path, value)
+        } catch {
+          // Entity does not exist.
+        }
       }
 
       const maybeNextEntity = update[i + 2]

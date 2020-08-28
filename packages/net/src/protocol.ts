@@ -1,5 +1,4 @@
 import {
-  ComponentPatch,
   ComponentSpec,
   ComponentType,
   DataType,

@@ -1,7 +1,6 @@
 import {
   $worldStorageKey,
   Component,
-  ComponentPatch,
   ComponentType,
   DetachOp,
   mutableEmpty,
@@ -54,10 +53,7 @@ export function createMessageProducer(
   const allComponentTypeIds = options.components.map(config => config.type.type)
   const priorities = new WeakMap<Component, number>()
   const tmpSortedByPriority: Component[] = []
-  const tmpComponentMutationsByEntity = new Map<
-    number,
-    (number | ComponentPatch)[]
-  >()
+  const tmpComponentMutationsByEntity = new Map<number, unknown[]>()
   const tmpEntitiesByComponent = new WeakMap<Component, number>()
 
   let previousUnreliableSendTime = 0

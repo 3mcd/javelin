@@ -146,7 +146,7 @@ export const createMutationCache = ({
     get(target: ProxyTarget, propertyKey: PropertyKey, receiver: ProxyTarget) {
       const value = Reflect.get(target, propertyKey, receiver)
 
-      if (isValidProxyTarget(value)) {
+      if (typeof propertyKey !== "symbol" && isValidProxyTarget(value)) {
         return getProxy(
           value,
           targetRoots.get(target),
