@@ -161,7 +161,7 @@ Click anywhere below to make wormholes that absorb space junk:
     systems: [physics, attract, render],
     componentTypes: [Transform, Velocity, Wormhole],
   })
-  const junkCount = 1
+  const junkCount = 10000
 
   for (let i = 0; i < junkCount; i++) {
     world.spawn(
