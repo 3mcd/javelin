@@ -1,7 +1,7 @@
 import { Archetype } from "./archetype"
 import { ComponentOf, ComponentType, Component } from "./component"
 import { ComponentFilter } from "./filter"
-import { $worldStorageKey } from "./symbols"
+import { $worldStorageKey, $detached } from "./symbols"
 import { arrayOf, mutableEmpty } from "./util/array"
 import { World } from "./world"
 
@@ -56,19 +56,17 @@ export function query<S extends Selector>(...selector: S) {
     const [col0] = table
 
     outer: while (col0[++readIndex]) {
-      let match = true
-
       queryResult[0] = entitiesByIndex[readIndex]
 
       for (let k = 0; k < queryLength; k++) {
         const filter = filters[k]
         const component = table[tmpReadIndices[k]][readIndex]!
 
-        match = filter
-          ? filter(component, world)
-          : !world.detached.has(component)
-
-        if (!match) {
+        if (
+          filter
+            ? filter(component, world) === false
+            : (component as any)[$detached]
+        ) {
           continue outer
         }
 

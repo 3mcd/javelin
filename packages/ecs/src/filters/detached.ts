@@ -1,5 +1,6 @@
 import { createComponentFilter } from "../filter"
+import { $detached } from "../symbols"
 
-export const detached = createComponentFilter(() => (c, { detached }) =>
-  detached.has(c),
+export const detached = createComponentFilter(() => c =>
+  (c as any)[$detached] === true,
 )

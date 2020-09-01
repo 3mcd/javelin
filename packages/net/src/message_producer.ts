@@ -1,4 +1,5 @@
 import {
+  $detached,
   $worldStorageKey,
   Component,
   ComponentType,
@@ -105,7 +106,7 @@ export function createMessageProducer(
           const componentIndex = componentIndices[k]
           const component = table[componentIndex][entityIndex]!
 
-          if (!world.detached.has(component)) {
+          if (!(component as any)[$detached]) {
             components.push(table[componentIndex][entityIndex]!)
           }
         }

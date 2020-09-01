@@ -9,7 +9,7 @@ import { createComponentPool } from "./helpers"
 import { createStackPool, StackPool } from "./pool"
 import { initializeComponentFromSchema } from "./schema"
 import { createStorage, Storage } from "./storage"
-import { $worldStorageKey } from "./symbols"
+import { $worldStorageKey, $detached } from "./symbols"
 import { Mutable } from "./types"
 import { mutableEmpty } from "./util"
 import {
@@ -155,11 +155,6 @@ export interface World<T = any> {
    * Set of components attached last tick.
    */
   readonly attached: ReadonlySet<Component>
-
-  /**
-   * Set of components detached last tick.
-   */
-  readonly detached: ReadonlySet<Component>
 }
 
 export type System<T> = (world: World<T>, data: T) => void
@@ -193,13 +188,16 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   const storage = createStorage()
   const componentTypes: ComponentType[] = []
   const destroyed = new Set<number>()
-  const detached = new Set<Component>()
   const attached = new Set<Component>()
 
   let entityCounter = 0
 
   for (let i = 0; i < componentTypesConfig.length; i++) {
     registerComponentType(componentTypesConfig[i])
+  }
+
+  function flagDetached(component: Component) {
+    ;(component as any)[$detached] = true
   }
 
   function applyCreateOp(op: SpawnOp) {
@@ -230,7 +228,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
       const component = components[i]
 
       if (componentTypeIds.includes(component.type)) {
-        internalDetach(component)
+        maybeReleaseComponent(component)
       }
     }
 
@@ -268,10 +266,8 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     previousOps.push(op)
   }
 
-  function internalDetach(component: Component) {
+  function maybeReleaseComponent(component: Component) {
     const pool = componentPoolsByComponentTypeId.get(component.type)
-
-    detached.delete(component)
 
     if (pool) {
       pool.release(component)
@@ -279,7 +275,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   }
 
   function internalDestroy(entity: number) {
-    storage.getEntityComponents(entity).forEach(internalDetach)
+    storage.getEntityComponents(entity).forEach(maybeReleaseComponent)
     storage.destroy(entity)
   }
 
@@ -363,9 +359,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     op[1] = entity
     op[2] = components.map(c => c.type)
 
-    for (let i = 0; i < components.length; i++) {
-      detached.add(components[i])
-    }
+    components.forEach(flagDetached)
 
     ops.push(op)
   }
@@ -378,9 +372,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
     const components = storage.getEntityComponents(entity)
 
-    for (let i = 0; i < components.length; i++) {
-      detached.add(components[i])
-    }
+    components.forEach(flagDetached)
 
     ops.push(op)
   }
@@ -397,16 +389,14 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
           const component = components[j]
 
           if (componentTypeIds.includes(component.type)) {
-            detached.add(component)
+            flagDetached(component)
           }
         }
       } else if (op[0] === WorldOpType.Destroy) {
         const [, entity] = op
         const components = storage.getEntityComponents(entity)
 
-        for (let j = 0; j < components.length; j++) {
-          detached.add(components[i])
-        }
+        components.forEach(flagDetached)
       }
 
       applyOp(op)
@@ -465,7 +455,6 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     componentTypes,
     destroy,
     detach,
-    detached,
     getComponent,
     getMutableComponent,
     isComponentChanged,

@@ -6,14 +6,12 @@ import {
   World,
   WorldOp,
   WorldOpType,
-  $worldStorageKey,
 } from "@javelin/ecs"
 import {
   JavelinMessage,
   JavelinMessageType,
-  UpdatePayload,
-  UpdateUnreliable,
   Update,
+  UpdateUnreliable,
 } from "./protocol"
 
 export type MessageHandler = {

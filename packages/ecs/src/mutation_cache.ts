@@ -162,26 +162,19 @@ export const createMutationCache = ({
       value: unknown,
       receiver: ProxyTarget,
     ) {
-      const previous = Reflect.get(target, propertyKey, receiver)
-      const hasProperty = Reflect.has(target, propertyKey)
+      const previous = (target as any)[propertyKey]
+      ;(target as any)[propertyKey] = value
 
-      if (Reflect.set(target, propertyKey, value, receiver)) {
-        if (
-          (!hasProperty || !Object.is(previous, value)) &&
-          !locked.has(target)
-        ) {
-          onChange(
-            targetRoots.get(target)!,
-            target,
-            getPath(target, propertyKey),
-            value,
-          )
-        }
-
-        return true
+      if (previous !== value) {
+        onChange(
+          targetRoots.get(target)!,
+          target,
+          getPath(target, propertyKey),
+          value,
+        )
       }
 
-      return false
+      return true
     },
     apply(
       target: Function,
