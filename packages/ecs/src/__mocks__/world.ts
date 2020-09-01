@@ -16,7 +16,6 @@ export const createWorld = jest.fn(
       componentTypes: [],
       destroy: jest.fn(),
       detach: jest.fn(),
-      detached: new Set(),
       getComponent: jest.fn(),
       getObservedComponent: jest.fn(),
       isComponentChanged: jest.fn(),
