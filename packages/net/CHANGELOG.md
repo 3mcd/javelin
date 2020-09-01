@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.17.0](https://github.com/3mcd/javelin/compare/v0.16.1-alpha.2...v0.17.0) (2020-09-01)
+
+
+### Features
+
+* simplify setter ([9d0db6c](https://github.com/3mcd/javelin/commit/9d0db6c41fcb0ba90f5beed5ffebaaabb4a1fb60))
+
+
+
+
+
 ## [0.16.1-alpha.2](https://github.com/3mcd/javelin/compare/v0.16.1-alpha.1...v0.16.1-alpha.2) (2020-08-28)
 
 

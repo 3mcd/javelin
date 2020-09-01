@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.17.0](https://github.com/3mcd/javelin/compare/v0.16.1-alpha.2...v0.17.0) (2020-09-01)
+
+
+### Features
+
+* change detection API update ([69d394a](https://github.com/3mcd/javelin/commit/69d394a383ee694d58cae37350a245838e8a5061))
+
+
+
+
+
 ## [0.16.1-alpha.2](https://github.com/3mcd/javelin/compare/v0.16.1-alpha.1...v0.16.1-alpha.2) (2020-08-28)
 
 **Note:** Version bump only for package @javelin/example-networking
