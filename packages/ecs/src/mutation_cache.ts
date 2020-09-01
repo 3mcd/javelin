@@ -163,9 +163,10 @@ export const createMutationCache = ({
       receiver: ProxyTarget,
     ) {
       const previous = (target as any)[propertyKey]
+
       ;(target as any)[propertyKey] = value
 
-      if (previous !== value) {
+      if (previous !== value && !locked.has(target)) {
         onChange(
           targetRoots.get(target)!,
           target,

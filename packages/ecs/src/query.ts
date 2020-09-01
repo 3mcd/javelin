@@ -10,7 +10,7 @@ export type SelectorResult<S extends Selector> = {
   [K in keyof S]: S[K] extends ComponentFilter
     ? ComponentOf<S[K]["componentType"]>
     : S[K] extends ComponentType
-    ? Readonly<ComponentOf<S[K]>>
+    ? ComponentOf<S[K]>
     : never
 }
 export type QueryResult<S extends Selector> = [number, SelectorResult<S>]

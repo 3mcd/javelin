@@ -12,7 +12,7 @@ export const createStorage = jest.fn(
       findComponent: jest.fn(() => ({ type: 0, _v: 0 } as any)),
       getComponentMutations: jest.fn(),
       getEntityComponents: jest.fn(() => []),
-      getMutableComponent: jest.fn((x: any) => x),
+      getObservedComponent: jest.fn((x: any) => x),
       insert: jest.fn(),
       isComponentChanged: jest.fn(() => true),
       remove: jest.fn(),

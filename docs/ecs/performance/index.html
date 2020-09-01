@@ -115,6 +115,13 @@
                                                     </a>
                                                 </li>
                                             
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;change-detection&#x2F;">
+                                                        
+                                                        Change Detection
+                                                    </a>
+                                                </li>
+                                            
                                                 <li class="active">
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;performance&#x2F;">
                                                         
@@ -182,7 +189,7 @@
 >
 </h2>
 <p>Javelin ECS can currently process ~500k entities per 16ms tick.</p>
-<p>An entity's components are partitioned into tables called <strong>archetypes</strong>. An archetype contains the components of entities that share the same composition. This array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. That is to say, when querying for entities with components <code>(A, B)</code>, we can skip iteration of entities within all archetypes that aren't superset of <code>(A, B)</code>.</p>
+<p>An entity's components are partitioned into tables called <strong>archetypes</strong>. An archetype contains the components of entities that share the same composition. This array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. For example, when querying for entities with components <code>(A, B)</code>, we can skip iteration of entities within all archetypes that aren't superset of <code>(A, B)</code>.</p>
 <p>You can see how archtypes and component storage are implemented in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/archetype.ts">archetype.ts</a> and <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/storage.ts">storage.ts</a>, respectively.</p>
 <h3 id="resources">Resources<a class="zola-anchor" href="#resources" aria-label="Anchor link for: resources"
   >#</a

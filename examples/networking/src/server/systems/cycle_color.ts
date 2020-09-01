@@ -27,7 +27,7 @@ export function cycleColor(world: World, dt: number) {
     }
 
     for (const [, [color]] of colors(world)) {
-      const mutColor = world.getMutableComponent(color)
+      const mutColor = world.getObservedComponent(color)
 
       if (color.value === 0xff0000) {
         mutColor.value = 0x0000ff

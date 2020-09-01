@@ -5,7 +5,7 @@ weight = 5
 
 ## Change Detection
 
-Sometimes you may want to capture changes to entities and their components. For example, it may be useful to know when a component is attached to (or detached from) an entity in order to notify a third-party library, or update another component in your game.
+Sometimes it's useful to capture changes made to entities and their components. For example, it may be useful to know when a component is attached to (or detached from) an entity in order to notify a third-party library, or update another component in your game.
 
 By default, query results will exclude detached components, and include newly attached components alongside an entity's existing components.
 
@@ -51,7 +51,7 @@ const system = (world: World) => {
 
 ### Changed
 
-The `changed` filter excludes entities whose components haven't changed since the entity was last encountered by the filter in a query.
+The `changed` filter excludes entities whose components didn't change last tick. For a component to be eligible for filtering by `changed`, it must be modified using an observed copy returned by `world.getObservedComponent`. This is discussed in more detail in the [Change Detection](/ecs/change-detection) chapter.
 
 ```typescript
 import { changed, query } from "@javelin/ecs"
@@ -74,8 +74,8 @@ You can create a custom filter with the `createComponentFilter` function.
 ```typescript
 import { createComponentFilter } from "@javelin/ecs"
 
-const dead = createComponentFilter(
-  () => (health: ComponentOf<typeof Health>) => health.value <= 0
+const dead = createComponentFilter(() => (health: ComponentOf<typeof Health>) =>
+  health.value <= 0,
 )
 const killed = query(dead(Health))
 const system = (world: World) => {

@@ -112,7 +112,7 @@ export interface World<T = any> {
    *
    * @param component Subject component
    */
-  getMutableComponent<C extends Component>(component: C): Mutable<C>
+  getObservedComponent<C extends Component>(component: C): C
 
   /**
    * Register a component factory with the world, automatically pooling its
@@ -439,7 +439,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   }
 
   const {
-    getMutableComponent,
+    getObservedComponent,
     isComponentChanged,
     applyComponentPatch,
   } = storage
@@ -456,7 +456,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     destroy,
     detach,
     getComponent,
-    getMutableComponent,
+    getObservedComponent,
     isComponentChanged,
     ops: previousOps,
     registerComponentType,

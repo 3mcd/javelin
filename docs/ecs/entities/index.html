@@ -116,6 +116,13 @@
                                                 </li>
                                             
                                                 <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;change-detection&#x2F;">
+                                                        
+                                                        Change Detection
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;performance&#x2F;">
                                                         
                                                         Performance
@@ -177,10 +184,15 @@
                     <div class="book-content">
                         
 <h1>Entities</h1>
-<h2 id="creating-entities">Creating Entities<a class="zola-anchor" href="#creating-entities" aria-label="Anchor link for: creating-entities"
+<p>Entities are abstract buckets of components that represent higher-order objects in your game. Entities are strictly defined by their component makeup, and do not contain any data or methods themselves.</p>
+<h2 id="entity-management">Entity Management<a class="zola-anchor" href="#entity-management" aria-label="Anchor link for: entity-management"
   >#</a
 >
 </h2>
+<h3 id="creating-entities">Creating entities<a class="zola-anchor" href="#creating-entities" aria-label="Anchor link for: creating-entities"
+  >#</a
+>
+</h3>
 <p>Entities are created using <code>world.spawn</code>. This method is a variadic function that accepts 0..n components and returns a newly created entity attached to those components.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">player </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">, name: </span><span style="color:#4179ad;">&quot;elrond&quot; </span><span style="color:#555c64;">}
@@ -191,6 +203,10 @@
     <strong>Note</strong> — although entities are simply auto-incrementing integers (starting at <code>0</code>), they should be treated as opaque values.
   </p>
 </aside>
+<h3 id="modifying-entities">Modifying entities<a class="zola-anchor" href="#modifying-entities" aria-label="Anchor link for: modifying-entities"
+  >#</a
+>
+</h3>
 <p>The tuple of components associated with an entity defines its <strong>archetype</strong>. The following code creates an entity of archetype <code>(1, 2)</code>. Components can be assigned to existing entities using <code>world.attach</code>, and removed from entities using <code>world.detach</code>.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">input </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">3</span><span style="color:#555c64;">, space: </span><span style="color:#a35d66;">true </span><span style="color:#555c64;">}
@@ -207,7 +223,14 @@ world.tick()
     <strong>Note</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.spawn(components)</code> because the entity's components must be relocated in memory each time its archetype changes.
   </p>
 </aside>
-<h2 id="world-operations">World Operations<a class="zola-anchor" href="#world-operations" aria-label="Anchor link for: world-operations"
+<h3 id="destroying-entities">Destroying entities<a class="zola-anchor" href="#destroying-entities" aria-label="Anchor link for: destroying-entities"
+  >#</a
+>
+</h3>
+<p>Entities are destroyed with <code>world.destroy</code>:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">world.destroy(entity)
+</span></code></pre><h2 id="world-operations">World Operations<a class="zola-anchor" href="#world-operations" aria-label="Anchor link for: world-operations"
   >#</a
 >
 </h2>

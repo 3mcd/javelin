@@ -40,7 +40,7 @@ export function interpolate(world: World) {
       renderTime <= updates[1][0]
     ) {
       const [[t0, x0, y0], [t1, x1, y1]] = updates
-      const mutRenderTransform = world.getMutableComponent(renderTransform)
+      const mutRenderTransform = world.getObservedComponent(renderTransform)
 
       // Interpolate position.
       mutRenderTransform.x = x0 + ((x1 - x0) * (renderTime - t0)) / (t1 - t0)

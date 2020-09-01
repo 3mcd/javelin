@@ -113,15 +113,14 @@ Click anywhere below to make wormholes that absorb space junk:
           j.influenced = true
 
           if (len < w.r / 10) {
-            world.getMutableComponent(w).r += world.tryGetComponent(je, Wormhole)?.r || 0.1
+            w.r += world.tryGetComponent(je, Wormhole)?.r || 0.1
             world.destroy(je)
           } else {
             const nx = dx / len
             const ny = dy / len
-            const mv = world.getMutableComponent(jv)
 
-            mv.x += nx / 20
-            mv.y += ny / 20
+            jv.x += nx / 20
+            jv.y += ny / 20
           }
         }
       }
@@ -151,9 +150,8 @@ Click anywhere below to make wormholes that absorb space junk:
 
   const physics = world => {
     for (const [, [t, { x, y }]] of junk(world)) {
-      const mt = world.getMutableComponent(t)
-      mt.x += x
-      mt.y += y
+      t.x += x
+      t.y += y
     }
   }
 

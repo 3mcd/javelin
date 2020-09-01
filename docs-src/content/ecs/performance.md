@@ -1,13 +1,13 @@
 +++
 title = "Performance"
-weight = 8
+weight = 9
 +++
 
 ## Iteration
 
 Javelin ECS can currently process ~500k entities per 16ms tick.
 
-An entity's components are partitioned into tables called **archetypes**. An archetype contains the components of entities that share the same composition. This array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. That is to say, when querying for entities with components `(A, B)`, we can skip iteration of entities within all archetypes that aren't superset of `(A, B)`.
+An entity's components are partitioned into tables called **archetypes**. An archetype contains the components of entities that share the same composition. This array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. For example, when querying for entities with components `(A, B)`, we can skip iteration of entities within all archetypes that aren't superset of `(A, B)`.
 
 You can see how archtypes and component storage are implemented in [archetype.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/archetype.ts) and [storage.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/storage.ts), respectively.
 

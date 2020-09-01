@@ -10,8 +10,8 @@ const awake = query(Position, Velocity)
 
 export function physics(world: World, dt: number) {
   for (const [, [position, velocity]] of awake(world)) {
-    const mutPosition = world.getMutableComponent(position)
-    const mutVelocity = world.getMutableComponent(velocity)
+    const mutPosition = world.getObservedComponent(position)
+    const mutVelocity = world.getObservedComponent(velocity)
 
     mutPosition.x += velocity.x
     mutPosition.y += velocity.y

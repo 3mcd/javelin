@@ -3,8 +3,6 @@ title = "Components"
 weight = 3
 +++
 
-## Components
-
 All data within a Javelin game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `type` — a unique integer that classifies the component. Components of the same shape should also share a `type`.
 
 The `type` field establishes the taxonomy that Javelin uses to correctly store and retrieve components. Take the following example.

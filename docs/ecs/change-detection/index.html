@@ -73,7 +73,7 @@
                                                     </a>
                                                 </li>
                                             
-                                                <li class="active">
+                                                <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
                                                         
                                                         Hello World
@@ -115,7 +115,7 @@
                                                     </a>
                                                 </li>
                                             
-                                                <li >
+                                                <li class="active">
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;change-detection&#x2F;">
                                                         
                                                         Change Detection
@@ -183,30 +183,54 @@
                     
                     <div class="book-content">
                         
-<h1>Hello World</h1>
-<aside>
-  <p>
-    <strong>Note</strong> — the following chapters assume that you are familiar with basic ECS concepts discussed in the <a href="/ecs">opening section</a>.
-  </p>
-</aside>
-<p>A <code>World</code> is responsible for maintaining entities and executing systems.</p>
-<p>Worlds are created using the <code>createWorld</code> function defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts">world.ts</a>. <code>createWorld</code> accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.</p>
+<h1>Change Detection</h1>
+<p>Javelin implements a very basic change detection algorithm using <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy">Proxy</a> that can observe deeply nested changes made to components.</p>
+<p>Change detection is very useful, but difficult to do performantly; therefore, <strong>components are not observed by default</strong> to achieve good baseline performance.</p>
+<h2 id="techniques">Techniques<a class="zola-anchor" href="#techniques" aria-label="Anchor link for: techniques"
+  >#</a
+>
+</h2>
+<p>The <code>world.getObservedComponent</code> method returns a copy of a component that will notify the world when its data changes. It's important to remember to use this method when you want to use one of the change detection techniques outlined below. Bugs can arise in your game when you expect a component to be observed but you forgot to manipulate an observed copy.</p>
+<h3 id="filtering">Filtering<a class="zola-anchor" href="#filtering" aria-label="Anchor link for: filtering"
+  >#</a
+>
+</h3>
+<p>Sometimes you don't need to know exactly which properties on a component changed, only that it <em>was</em> changed. In this case, you can use either the <code>changed</code> component filter in a query, or use the <code>world.isComponentChanged</code> method, which returns <code>true</code> if the component was changed last tick, and <code>false</code> if it wasn't.</p>
+<p>Using the <code>changed</code> filter:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createWorld } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">healthChanged </span><span style="color:#388282;">= </span><span style="color:#555c64;">query(changed(Health))
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({
-  systems: [() </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;Tick!&quot;</span><span style="color:#555c64;">)],
-})
+</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [health]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">healthChanged(world)) {
+  </span><span style="color:#8c95a0;">// `entity` is an entity who&#39;s health component changed last tick
+</span><span style="color:#555c64;">}
 </span></code></pre>
-<p>Systems can also be registered after a world is initialized using the <code>world.addSystem</code> method:</p>
+<p>Using <code>world.isComponentChanged</code>:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">world.addSystem(() </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;Tock!&quot;</span><span style="color:#555c64;">))
-</span></code></pre>
-<p>Calling <code>world.tick()</code> will process operations that occurred during the previous tick such as adding, removing, updating entities. Then, all systems will be executed in the order that they were registered.</p>
+<code><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [health]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">healthy(world)) {
+  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(world.isComponentChanged(health)) {
+    </span><span style="color:#8c95a0;">// `health` changed last tick
+  </span><span style="color:#555c64;">}
+}
+</span></code></pre><h3 id="observing">Observing<a class="zola-anchor" href="#observing" aria-label="Anchor link for: observing"
+  >#</a
+>
+</h3>
+<p>If you want to know exactly what changes were made to a component during the current tick, use <code>world.getComponentMutations</code>. This method returns a 1-dimensional array of changes made to a component. Take the following example:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">setInterval(world.tick, </span><span style="color:#4179ad;">1000</span><span style="color:#555c64;">)
-</span></code></pre>
-<p>More on systems later in the <a href="/ecs/systems">Systems</a> section!</p>
+<code><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [position, input]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">someQuery(world)) {
+  </span><span style="color:#388282;">const </span><span style="color:#555c64;">observedPosition </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.getObservedComponent(position)
+
+  observedPosition.x </span><span style="color:#388282;">= </span><span style="color:#4179ad;">2
+  </span><span style="color:#555c64;">observedPosition.y </span><span style="color:#388282;">= </span><span style="color:#4179ad;">3
+  </span><span style="color:#555c64;">observedPosition.extra.asleep </span><span style="color:#388282;">= </span><span style="color:#a35d66;">true
+
+  </span><span style="color:#555c64;">world.getComponentMutations(position) </span><span style="color:#8c95a0;">// -&gt; [&quot;x&quot;, 2, &quot;y&quot;, 3, &quot;extra.asleep&quot;, true]
+</span><span style="color:#555c64;">}
+</span></code></pre><h3 id="networking">Networking<a class="zola-anchor" href="#networking" aria-label="Anchor link for: networking"
+  >#</a
+>
+</h3>
+<p><code>@javelin/net</code> uses this change detection algorithm to optimize packet size by only including the component data that changed during the previous tick in network messages. This means that changes made to unobserved components will not be sent to clients.</p>
  
                     </div>
                 </div>

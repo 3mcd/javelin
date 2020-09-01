@@ -3,7 +3,11 @@ title = "Entities"
 weight = 4
 +++
 
-## Creating Entities
+Entities are abstract buckets of components that represent higher-order objects in your game. Entities are strictly defined by their component makeup, and do not contain any data or methods themselves.
+
+## Entity Management
+
+### Creating entities
 
 Entities are created using `world.spawn`. This method is a variadic function that accepts 0..n components and returns a newly created entity attached to those components.
 
@@ -18,6 +22,8 @@ const entity = world.spawn(player, health)
     <strong>Note</strong> — although entities are simply auto-incrementing integers (starting at <code>0</code>), they should be treated as opaque values.
   </p>
 </aside>
+
+### Modifying entities
 
 The tuple of components associated with an entity defines its **archetype**. The following code creates an entity of archetype `(1, 2)`. Components can be assigned to existing entities using `world.attach`, and removed from entities using `world.detach`.
 
@@ -38,6 +44,14 @@ world.tick()
     <strong>Note</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.spawn(components)</code> because the entity's components must be relocated in memory each time its archetype changes.
   </p>
 </aside>
+
+### Destroying entities
+
+Entities are destroyed with `world.destroy`:
+
+```typescript
+world.destroy(entity)
+```
 
 ## World Operations
 

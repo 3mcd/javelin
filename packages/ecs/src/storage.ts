@@ -84,7 +84,7 @@ export interface Storage {
 
   getComponentMutations(component: Component): unknown[]
 
-  getMutableComponent<C extends Component>(component: C): Mutable<C>
+  getObservedComponent<C extends Component>(component: C): C
 
   isComponentChanged(component: Component): boolean
 
@@ -216,7 +216,7 @@ export function createStorage(): Storage {
     const source = getEntityArchetype(entity)
     const entityIndex = source.indices[entity]
 
-    let destinationComponents = components.slice() as Readonly<Component>[]
+    let destinationComponents = components.slice()
 
     for (let i = 0; i < source.layout.length; i++) {
       const componentTypeId = source.layout[i]
@@ -280,7 +280,7 @@ export function createStorage(): Storage {
       return
     }
 
-    const component = getMutableComponent(
+    const component = getObservedComponent(
       archetype.table[componentIndex][entityIndex]!,
     )
 
@@ -332,8 +332,8 @@ export function createStorage(): Storage {
     return changeSet
   }
 
-  function getMutableComponent<C extends Component>(component: C) {
-    return mutationCache.proxy(component) as Mutable<C>
+  function getObservedComponent<C extends Component>(component: C) {
+    return mutationCache.proxy(component) as C
   }
 
   function isComponentChanged(component: Component) {
@@ -348,7 +348,7 @@ export function createStorage(): Storage {
     destroy,
     findComponent,
     getEntityComponents: getComponentsOfEntity,
-    getMutableComponent,
+    getObservedComponent,
     getComponentMutations: getMutationsOfComponent,
     insert,
     isComponentChanged,

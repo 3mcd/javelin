@@ -33,7 +33,7 @@ export interface Archetype {
    *
    * The index of each entity is tracked in the `indices array`.
    */
-  readonly table: ReadonlyArray<ReadonlyArray<Readonly<Component | null>>>
+  readonly table: ReadonlyArray<ReadonlyArray<Component | null>>
 
   /**
    * Array where each value is a component type and the index is the column of
@@ -68,7 +68,7 @@ export interface Archetype {
  */
 export function createArchetype(layout: number[]): Archetype {
   const len = layout.length
-  const table: Readonly<Component | null>[][] = []
+  const table: (Component | null)[][] = []
   const entities: number[] = []
   const indices: number[] = []
   const entitiesByIndex: number[] = []
