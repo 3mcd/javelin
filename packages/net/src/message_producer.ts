@@ -6,16 +6,17 @@ import {
   DetachOp,
   mutableEmpty,
   SpawnOp,
-  Storage,
   World,
   WorldOp,
   WorldOpType,
 } from "@javelin/ecs"
+import { createEntityMap } from "./entity_map"
 import {
   JavelinMessage,
   protocol,
   UpdatePayload,
   UpdateUnreliable,
+  UpdateUnreliablePayload,
 } from "./protocol"
 
 export type QueryConfig = {
@@ -47,6 +48,16 @@ function getRelevantIndices<T>(a: ReadonlyArray<T>, b: ReadonlyArray<T>) {
   return result
 }
 
+const entityMapArrayInitializer = (entity: number, value?: any[]) => {
+  if (Array.isArray(value)) {
+    mutableEmpty(value)
+  } else {
+    return []
+  }
+
+  return value
+}
+
 export function createMessageProducer(
   options: MessageProducerOptions,
 ): MessageProducer {
@@ -54,34 +65,17 @@ export function createMessageProducer(
   const allComponentTypeIds = options.components.map(config => config.type.type)
   const priorities = new WeakMap<Component, number>()
   const tmpSortedByPriority: Component[] = []
-  const tmpComponentMutationsByEntity = new Map<number, unknown[]>()
-  const tmpEntitiesByComponent = new WeakMap<Component, number>()
+  const tmpEntityMutations = createEntityMap<unknown[]>(
+    entityMapArrayInitializer,
+  )
+  const tmpComponentsByEntity = createEntityMap<Component[]>(
+    entityMapArrayInitializer,
+  )
+  const tmpComponentEntities = new WeakMap<Component, number>()
+  const tmpUpdatePayload: UpdatePayload = []
+  const tmpUpdateUnreliablePayload: UpdateUnreliablePayload = []
 
   let previousUnreliableSendTime = 0
-
-  function captureMutations(
-    world: World,
-    storage: Storage,
-    entity: number,
-    component: Component,
-  ) {
-    if (world.isComponentChanged(component)) {
-      let entityMutations = tmpComponentMutationsByEntity.get(entity)
-
-      if (!entityMutations) {
-        entityMutations = []
-        tmpComponentMutationsByEntity.set(entity, entityMutations)
-      }
-
-      const mutations = storage.getComponentMutations(component)
-
-      entityMutations.push(component.type)
-
-      for (let i = 0; i < mutations.length; i++) {
-        entityMutations.push(mutations[i] as any)
-      }
-    }
-  }
 
   function getInitialMessages(world: World) {
     const messages = []
@@ -127,7 +121,9 @@ export function createMessageProducer(
     const { archetypes } = storage
     const messages: JavelinMessage[] = []
 
-    tmpComponentMutationsByEntity.clear()
+    mutableEmpty(tmpUpdatePayload)
+
+    tmpEntityMutations.clear()
 
     if (world.ops.length > 0) {
       const filteredOps: WorldOp[] = []
@@ -188,23 +184,28 @@ export function createMessageProducer(
           const entity = archetype.entities[k]
           const component = components[archetype.indices[entity]]!
 
-          captureMutations(world, storage, entity, component)
+          if (world.isComponentChanged(component)) {
+            const entityMutations = tmpEntityMutations[entity]
+            const mutations = storage.getComponentMutations(component)
+
+            for (let i = 0; i < mutations.length; i++) {
+              entityMutations.push(mutations[i] as any)
+            }
+          }
         }
       }
     }
 
-    const payload: UpdatePayload = []
+    tmpEntityMutations.forEach((entity, value) => {
+      tmpUpdatePayload.push(entity)
 
-    for (const [entity, patch] of tmpComponentMutationsByEntity.entries()) {
-      payload.push(entity)
-
-      for (let i = 0; i < patch.length; i++) {
-        payload.push(patch[i])
+      for (let i = 0; i < value.length; i++) {
+        tmpUpdatePayload.push(value[i])
       }
-    }
+    })
 
-    if (payload.length > 0) {
-      messages.push(protocol.update(payload))
+    if (tmpUpdatePayload.length > 0) {
+      messages.push(protocol.update(tmpUpdatePayload))
     }
 
     return messages
@@ -212,8 +213,9 @@ export function createMessageProducer(
 
   function getUnreliableMessages(world: World): UpdateUnreliable[] {
     const time = Date.now()
-    const storage = world[$worldStorageKey]
-    const { archetypes } = storage
+    const {
+      [$worldStorageKey]: { archetypes },
+    } = world
 
     if (time - previousUnreliableSendTime < options.updateInterval) {
       return []
@@ -221,8 +223,10 @@ export function createMessageProducer(
 
     previousUnreliableSendTime = time
 
+    tmpComponentsByEntity.clear()
+
+    mutableEmpty(tmpUpdateUnreliablePayload)
     mutableEmpty(tmpSortedByPriority)
-    tmpComponentMutationsByEntity.clear()
 
     for (let i = 0; i < archetypes.length; i++) {
       const archetype = archetypes[i]
@@ -249,7 +253,7 @@ export function createMessageProducer(
           const entity = archetype.entities[k]
           const component = components[archetype.indices[entity]]!
 
-          tmpEntitiesByComponent.set(component, entity)
+          tmpComponentEntities.set(component, entity)
           tmpSortedByPriority.push(component)
         }
       }
@@ -267,22 +271,21 @@ export function createMessageProducer(
 
     for (let i = 0; i < tmpSortedByPriority.length; i++) {
       const component = tmpSortedByPriority[i]
-      const entity = tmpEntitiesByComponent.get(component)!
+      const entity = tmpComponentEntities.get(component)!
+      const entityComponents = tmpComponentsByEntity[entity]
 
-      captureMutations(world, storage, entity, component)
+      entityComponents.push(component)
     }
 
-    const payload: UpdatePayload = []
+    tmpComponentsByEntity.forEach((entity, components) => {
+      tmpUpdateUnreliablePayload.push(entity)
 
-    for (const [entity, patch] of tmpComponentMutationsByEntity.entries()) {
-      payload.push(entity)
-
-      for (let i = 0; i < patch.length; i++) {
-        payload.push(patch[i])
+      for (let i = 0; i < components.length; i++) {
+        tmpUpdateUnreliablePayload.push(components[i])
       }
-    }
+    })
 
-    return [protocol.updateUnreliable(payload)]
+    return [protocol.updateUnreliable(tmpUpdateUnreliablePayload)]
   }
 
   return {

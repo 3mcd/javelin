@@ -129,7 +129,15 @@ export interface World<T = any> {
    */
   applyOps(ops: WorldOp[]): void
 
-  applyComponentPatch(
+  /**
+   * Apply a component patch to the component of an entity.
+   *
+   * @param entity Entity
+   * @param componentType Component type
+   * @param path Path to property
+   * @param value New value
+   */
+  patch(
     entity: number,
     componentType: number,
     path: string,
@@ -438,16 +446,12 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     )
   }
 
-  const {
-    getObservedComponent,
-    isComponentChanged,
-    applyComponentPatch,
-  } = storage
+  const { getObservedComponent, isComponentChanged, patch } = storage
 
   const world = {
     [$worldStorageKey]: storage,
     addSystem,
-    applyComponentPatch,
+    patch,
     applyOps,
     attach,
     attached,

@@ -27,16 +27,23 @@ export interface Storage {
   insert(entity: number, components: ComponentSpec[]): void
 
   /**
-   * Insert or update a component (e.g. from a remote source).
+   * Update the value at a given path for a component.
    *
    * @param component Latest copy of the component
    */
-  applyComponentPatch(
+  patch(
     entity: number,
     componentType: number,
     path: string,
     value: unknown,
   ): void
+
+  /**
+   * Insert or update a component (e.g. from a remote source).
+   *
+   * @param component Latest copy of the component
+   */
+  upsert(entity: number, components: Component[]): void
 
   /**
    * Remove components from an entity.
@@ -266,7 +273,7 @@ export function createStorage(): Storage {
     archetypeIndicesByEntity[entity] = null
   }
 
-  function applyComponentPatch(
+  function patch(
     entity: number,
     componentType: number,
     path: string,
@@ -280,11 +287,41 @@ export function createStorage(): Storage {
       return
     }
 
-    const component = getObservedComponent(
+    const target = getObservedComponent(
       archetype.table[componentIndex][entityIndex]!,
     )
 
-    applyMutation(component, path, value)
+    applyMutation(target, path, value)
+  }
+
+  const tmpComponentsToInsert: Component[] = []
+
+  function upsert(entity: number, components: Component[]) {
+    const archetype = getEntityArchetype(entity)
+    const entityIndex = archetype.indices[entity]
+
+    mutableEmpty(tmpComponentsToInsert)
+
+    for (let i = 0; i < components.length; i++) {
+      const component = components[i]
+      const componentIndex = archetype.layout.indexOf(component.type)
+
+      if (componentIndex === -1) {
+        // Entity component makeup does not match patch component, insert the new
+        // component.
+        tmpComponentsToInsert.push(component)
+      } else {
+        const target = getObservedComponent(
+          archetype.table[componentIndex][entityIndex]!,
+        )
+        // Apply patch to component.
+        Object.assign(target, component)
+      }
+    }
+
+    if (tmpComponentsToInsert.length > 0) {
+      insert(entity, tmpComponentsToInsert)
+    }
   }
 
   function findComponent<T extends ComponentType>(
@@ -347,13 +384,14 @@ export function createStorage(): Storage {
     create,
     destroy,
     findComponent,
+    getComponentMutations: getMutationsOfComponent,
     getEntityComponents: getComponentsOfEntity,
     getObservedComponent,
-    getComponentMutations: getMutationsOfComponent,
     insert,
     isComponentChanged,
+    patch,
     remove,
     removeByTypeIds,
-    applyComponentPatch,
+    upsert,
   }
 }

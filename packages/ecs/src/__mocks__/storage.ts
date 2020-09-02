@@ -4,12 +4,12 @@ export const createStorage = jest.fn(
   (): Storage => {
     let e = 0
     return {
-      applyComponentPatch: jest.fn(() => true),
+      patch: jest.fn(() => true),
       archetypes: [],
       clearMutations: jest.fn(),
       create: jest.fn(() => e++),
       destroy: jest.fn(),
-      findComponent: jest.fn(() => ({ type: 0, _v: 0 } as any)),
+      findComponent: jest.fn(() => ({ type: 0 } as any)),
       getComponentMutations: jest.fn(),
       getEntityComponents: jest.fn(() => []),
       getObservedComponent: jest.fn((x: any) => x),
@@ -17,6 +17,7 @@ export const createStorage = jest.fn(
       isComponentChanged: jest.fn(() => true),
       remove: jest.fn(),
       removeByTypeIds: jest.fn(),
+      upsert: jest.fn(),
     }
   },
 )

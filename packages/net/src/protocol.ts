@@ -7,6 +7,7 @@ import {
   SchemaKey,
   World,
   WorldOp,
+  Component,
 } from "@javelin/ecs"
 
 export enum JavelinMessageType {
@@ -28,6 +29,9 @@ export type SerializedComponentType<C extends ComponentType = ComponentType> = {
 // [entity, componentTypeA, ComponentPatch, componentTypeB, ComponentPatch, ...]
 export type UpdatePayload = unknown[]
 
+// [entity, ComponentA, ComponentB, entity, ComponentA]
+export type UpdateUnreliablePayload = (number | Component)[]
+
 export type Ops = [JavelinMessageType.Ops, WorldOp[], boolean]
 export type Update = [
   JavelinMessageType.Update,
@@ -39,7 +43,7 @@ export type UpdateUnreliable = [
   JavelinMessageType.UpdateUnreliable,
   boolean,
   unknown,
-  ...UpdatePayload
+  ...UpdateUnreliablePayload
 ]
 export type Spawn = [JavelinMessageType.Spawn, ComponentSpec[]]
 export type Model = [JavelinMessageType.Model, SerializedComponentType[]]
@@ -108,19 +112,19 @@ export const protocol = {
     isLocal,
   ],
   update: (
-    updatePayload: UpdatePayload,
+    payload: UpdatePayload,
     metadata?: unknown,
     isLocal = false,
-  ): Update => [JavelinMessageType.Update, isLocal, metadata, ...updatePayload],
+  ): Update => [JavelinMessageType.Update, isLocal, metadata, ...payload],
   updateUnreliable: (
-    updatePayload: UpdatePayload,
+    payload: UpdateUnreliablePayload,
     metadata?: unknown,
     isLocal = false,
   ): UpdateUnreliable => [
     JavelinMessageType.UpdateUnreliable,
     isLocal,
     metadata,
-    ...updatePayload,
+    ...payload,
   ],
   spawn: (components: ComponentSpec[]): Spawn => [
     JavelinMessageType.Spawn,

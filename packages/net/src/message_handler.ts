@@ -6,6 +6,7 @@ import {
   World,
   WorldOp,
   WorldOpType,
+  $worldStorageKey,
 } from "@javelin/ecs"
 import {
   JavelinMessage,
@@ -15,7 +16,7 @@ import {
 } from "./protocol"
 
 export type MessageHandler = {
-  applyUnreliableUpdate(message: UpdateUnreliable, world: World): void
+  handleUnreliableUpdate(message: UpdateUnreliable, world: World): void
   getLocalEntity(remoteEntity: number): number
   messages: ReadonlyArray<JavelinMessage>
   push(message: JavelinMessage): void
@@ -69,11 +70,51 @@ export function createMessageHandler(
     world.applyOps(ops)
   }
 
-  function applyUnreliableUpdate(update: UpdateUnreliable, world: World) {
-    handleUpdate(update, world)
+  const tmpComponentsToUpsert: Component[] = []
+
+  function handleUnreliableUpdate(update: UpdateUnreliable, world: World) {
+    const { [$worldStorageKey]: storage } = world
+    const [, isLocal] = update
+
+    let entity: number | null = null
+
+    for (let i = 3; i < update.length; i++) {
+      const value = update[i]
+      const valueIsEntity = typeof value === "number"
+      const valueIsFinalComponent = i === update.length - 1
+
+      if (!valueIsEntity) {
+        tmpComponentsToUpsert.push(value as Component)
+      }
+
+      if (
+        // We are visiting a local entity.
+        entity !== null &&
+        // We are at the last component in the update.
+        (valueIsFinalComponent ||
+          // We are visiting a new entity.
+          valueIsEntity)
+      ) {
+        try {
+          storage.upsert(entity, tmpComponentsToUpsert)
+        } catch (err) {
+          // Update failed, potentially due to a race condition between reliable
+          // and unreliable channels.
+        }
+
+        mutableEmpty(tmpComponentsToUpsert)
+      }
+
+      if (valueIsEntity) {
+        // Attempt to locate local counterpart of remote entity.
+        entity = isLocal
+          ? (value as number)
+          : tryGetLocalEntity(value as number)
+      }
+    }
   }
 
-  function handleUpdate(update: Update | UpdateUnreliable, world: World) {
+  function handleReliableUpdate(update: Update, world: World) {
     const [, isLocal] = update
     let i = 5
     let entity: undefined | number = isLocal
@@ -91,7 +132,7 @@ export function createMessageHandler(
         const value = update[i + 1] as unknown
 
         try {
-          world.applyComponentPatch(entity, componentType, path, value)
+          world.patch(entity, componentType, path, value)
         } catch {
           // Entity does not exist.
         }
@@ -174,7 +215,7 @@ export function createMessageHandler(
         handleOps(message[1], message[2], world)
         break
       case JavelinMessageType.Update:
-        handleUpdate(message, world)
+        handleReliableUpdate(message, world)
         break
       case JavelinMessageType.Spawn:
         handleSpawn(message[1], world)
@@ -187,8 +228,7 @@ export function createMessageHandler(
     world: World,
   ) => {
     for (let i = 0; i < messagesUnreliable.length; i++) {
-      const message = messagesUnreliable[i]
-      handleUpdate(message, world)
+      handleUnreliableUpdate(messagesUnreliable[i], world)
     }
   }
 
@@ -214,7 +254,7 @@ export function createMessageHandler(
   }
 
   return {
-    applyUnreliableUpdate,
+    handleUnreliableUpdate,
     getLocalEntity,
     messages: messagesReliable,
     push,
