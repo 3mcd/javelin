@@ -8,7 +8,6 @@ export const createWorld = jest.fn(
     return {
       [$worldStorageKey]: createStorage(),
       addSystem: jest.fn(),
-      applyComponentPatch: jest.fn(),
       applyOps: jest.fn(),
       attach: jest.fn(),
       attached: new Set(),
@@ -20,7 +19,9 @@ export const createWorld = jest.fn(
       getObservedComponent: jest.fn(),
       isComponentChanged: jest.fn(),
       ops: [],
+      patch: jest.fn(),
       registerComponentType: jest.fn(),
+      removeSystem: jest.fn(),
       spawn: jest.fn(() => e++),
       tick: jest.fn(),
       tryGetComponent: jest.fn(),

@@ -38,6 +38,13 @@ export interface World<T = any> {
   addSystem(system: System<T>): void
 
   /**
+   * Remove a system.
+   *
+   * @param system
+   */
+  removeSystem(system: System<T>): void
+
+  /**
    * Create an entity with a provided component makeup.
    *
    * @param components The new entity's components
@@ -315,6 +322,14 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     systems.push(system)
   }
 
+  function removeSystem(system: System<T>) {
+    const index = systems.indexOf(system)
+
+    if (index > -1) {
+      systems.splice(index, 1)
+    }
+  }
+
   function spawn(...components: ReadonlyArray<Component>) {
     const entity = entityCounter++
     const op = opPool.retain() as SpawnOp
@@ -451,7 +466,6 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   const world = {
     [$worldStorageKey]: storage,
     addSystem,
-    patch,
     applyOps,
     attach,
     attached,
@@ -463,7 +477,9 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     getObservedComponent,
     isComponentChanged,
     ops: previousOps,
+    patch,
     registerComponentType,
+    removeSystem,
     spawn,
     tick,
     tryGetComponent,

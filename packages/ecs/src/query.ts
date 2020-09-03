@@ -13,6 +13,13 @@ export type SelectorResult<S extends Selector> = {
     ? ComponentOf<S[K]>
     : never
 }
+export type Query<S extends Selector> = (
+  world: World,
+) => {
+  [Symbol.iterator](): {
+    next(): IteratorYieldResult<QueryResult<S>>
+  }
+}
 export type QueryResult<S extends Selector> = [number, SelectorResult<S>]
 
 /**
@@ -20,7 +27,7 @@ export type QueryResult<S extends Selector> = [number, SelectorResult<S>]
  *
  * @param selector Component makeup of entities
  */
-export function query<S extends Selector>(...selector: S) {
+export function query<S extends Selector>(...selector: S): Query<S> {
   const filters = selector.map(s =>
     "componentPredicate" in s ? s.componentPredicate : null,
   )
