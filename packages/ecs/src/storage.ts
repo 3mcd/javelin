@@ -77,7 +77,7 @@ export interface Storage {
   findComponent<T extends ComponentType>(
     entity: number,
     componentType: T,
-  ): ComponentOf<T>
+  ): ComponentOf<T> | null
 
   /**
    * Get all components for an entity.
@@ -332,9 +332,7 @@ export function createStorage(): Storage {
     const componentIndex = archetype.layout.indexOf(componentType.type)
 
     if (componentIndex === -1) {
-      throw new Error(
-        "Failed to find component. Component could not exist with entity.",
-      )
+      return null
     }
 
     const entityIndex = archetype.indices[entity]

@@ -430,18 +430,20 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     entity: number,
     componentType: T,
   ): ComponentOf<T> {
-    return storage.findComponent(entity, componentType)
+    const component = storage.findComponent(entity, componentType)
+
+    if (component === null) {
+      throw new Error("Component not found")
+    }
+
+    return component
   }
 
   function tryGetComponent<T extends ComponentType>(
     entity: number,
     componentType: T,
   ): ComponentOf<T> | null {
-    try {
-      return getComponent(entity, componentType)
-    } catch {
-      return null
-    }
+    return storage.findComponent(entity, componentType)
   }
 
   function registerComponentType(
