@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.19.1 (2020-09-05)
+
+
+### Performance Improvements
+
+* don't throw unnecessary error in tryGetComponent ([a94d4cc](https://github.com/3mcd/javelin/commit/a94d4ccc871d669476e2135a1884cd5017763be9))
+
+
+
+
+
 # 0.19.0 (2020-09-03)
 
 
