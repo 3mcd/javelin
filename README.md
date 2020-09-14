@@ -13,6 +13,8 @@ Javelin is a suite of packages used to build multiplayer games for the web.
 
 The primary goals of Javelin are speed, minimalism, and ease-of-use. A secondary goal is to provide examples of client-side prediction, input reconciliation, and other algorithms commonly used in fast-paced online games.
 
+This library is comprised of an Entity-Component System (ECS) and an associated networking package used to synchronize game data between a client and server (or other clients).
+
 ## Docs
 
 Visit https://javelin.games
@@ -21,8 +23,8 @@ Visit https://javelin.games
 
 | Package                                        | Description                                                      |
 | ---------------------------------------------- | ---------------------------------------------------------------- |
-| [@javelin/ecs](./packages/ecs)                 | Build games using the Entity-Component System pattern            |
-| [@javelin/net](./packages/net)                 | Synchronize `@javelin/ecs` instances between client and server   |
+| [@javelin/ecs](./packages/ecs)                 | Build games using the ECS pattern                                |
+| [@javelin/net](./packages/net)                 | Synchronize `@javelin/ecs` instances                             |
 | [@javelin/devtool](./packages/devtool)         | Inspect and manipulate remote and local `@javelin/ecs` instances |
 | [@javelin/hrtime-loop](./packages/hrtime-loop) | Create a smooth, high-resolution game loop in NodeJS             |
 
