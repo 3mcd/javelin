@@ -1,5 +1,7 @@
 # `@javelin/ecs`
 
+![](https://flat.badgen.net/bundlephobia/minzip/@javelin/ecs)
+
 A TypeScript Entity-Component System (ECS) for Node and web browsers.
 
 ## Primer
