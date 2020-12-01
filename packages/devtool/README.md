@@ -10,7 +10,8 @@ Developer tool for Javelin ECS.
 
 ```ts
 import { createDevtool } from "@javelin/devtool"
-import { createMessageHandler } from "@javelin/ecs"
+import { createWorld } from "@javelin/ecs"
+import { createMessageHandler } from "@javelin/net"
 
 const systems = []
 const world = createWorld(systems)
