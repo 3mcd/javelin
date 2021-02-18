@@ -16,7 +16,6 @@ const udp = new Client({
 const messageHandler = createMessageHandler()
 const world = createWorld({
   systems: [messageHandler.system, interpolate, render],
-  componentTypes: [Position, RenderTransform, Color],
 })
 
 ;(window as any).world = world
