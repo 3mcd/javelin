@@ -2,15 +2,13 @@ import {
   Component,
   ComponentInitializerArgs,
   ComponentOf,
-  ComponentSpec,
   ComponentType,
 } from "./component"
 import { createComponentPool } from "./helpers"
 import { createStackPool, StackPool } from "./pool"
 import { initializeComponentFromSchema } from "./schema"
 import { createStorage, Storage } from "./storage"
-import { $worldStorageKey, $detached } from "./symbols"
-import { Mutable } from "./types"
+import { $detached, $worldStorageKey } from "./symbols"
 import { mutableEmpty } from "./util"
 import {
   AttachOp,
@@ -49,7 +47,7 @@ export interface World<T = any> {
    *
    * @param components The new entity's components
    */
-  spawn(...components: ReadonlyArray<ComponentSpec>): number
+  spawn(...components: ReadonlyArray<Component>): number
 
   /**
    * Create a component.

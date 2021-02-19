@@ -1,12 +1,11 @@
 import {
+  $worldStorageKey,
   Component,
-  ComponentSpec,
   mutableEmpty,
   System,
   World,
   WorldOp,
   WorldOpType,
-  $worldStorageKey,
 } from "@javelin/ecs"
 import {
   JavelinMessage,
@@ -205,7 +204,7 @@ export function createMessageHandler(
     }
   }
 
-  function handleSpawn(components: ComponentSpec[], world: World) {
+  function handleSpawn(components: Component[], world: World) {
     world.spawn(...components)
   }
 
