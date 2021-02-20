@@ -18,7 +18,6 @@ const server = createServer()
 const udp = new Server({ server })
 const world = createWorld({
   systems: [spawn, physics, cycleColor],
-  componentTypes: [Position, Velocity, Sleep, Color],
 })
 
 const messageProducer = createMessageProducer({
@@ -114,7 +113,7 @@ function tick(dt: number) {
 const loop = createHrtimeLoop(tickRateMs, clock => tick(clock.dt))
 loop.start()
 
-for (let i = 0; i < 20; i++) {
+for (let i = 0; i < 50; i++) {
   createJunk(world)
 }
 

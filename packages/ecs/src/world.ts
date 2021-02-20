@@ -2,15 +2,13 @@ import {
   Component,
   ComponentInitializerArgs,
   ComponentOf,
-  ComponentSpec,
   ComponentType,
 } from "./component"
 import { createComponentPool } from "./helpers"
 import { createStackPool, StackPool } from "./pool"
 import { initializeComponentFromSchema } from "./schema"
 import { createStorage, Storage } from "./storage"
-import { $worldStorageKey, $detached } from "./symbols"
-import { Mutable } from "./types"
+import { $detached, $worldStorageKey } from "./symbols"
 import { mutableEmpty } from "./util"
 import {
   AttachOp,
@@ -49,7 +47,7 @@ export interface World<T = any> {
    *
    * @param components The new entity's components
    */
-  spawn(...components: ReadonlyArray<ComponentSpec>): number
+  spawn(...components: ReadonlyArray<Component>): number
 
   /**
    * Create a component.
@@ -122,14 +120,6 @@ export interface World<T = any> {
   getObservedComponent<C extends Component>(component: C): C
 
   /**
-   * Register a component factory with the world, automatically pooling its
-   * components.
-   *
-   * @param factory Component factory
-   */
-  registerComponentType(factory: ComponentType): void
-
-  /**
    * Apply world ops to this world.
    *
    * @param ops WorldOps to apply
@@ -176,19 +166,14 @@ export type System<T> = (world: World<T>, data: T) => void
 
 type WorldOptions<T> = {
   systems?: System<T>[]
-  componentTypes?: ComponentType[]
   componentPoolSize?: number
 }
 
 export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
-  const {
-    systems = [],
-    componentTypes: componentTypesConfig = [],
-    componentPoolSize = 1000,
-  } = options
-  const ops: WorldOp[] = []
-  const previousOps: WorldOp[] = []
-  const opPool = createStackPool<WorldOp>(
+  const { systems = [], componentPoolSize = 1000 } = options
+  const worldOps: WorldOp[] = []
+  const worldOpsPrevious: WorldOp[] = []
+  const worldOpPool = createStackPool<WorldOp>(
     () => ([] as any) as WorldOp,
     op => {
       mutableEmpty(op)
@@ -207,15 +192,11 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
   let entityCounter = 0
 
-  for (let i = 0; i < componentTypesConfig.length; i++) {
-    registerComponentType(componentTypesConfig[i])
-  }
-
   function flagDetached(component: Component) {
     ;(component as any)[$detached] = true
   }
 
-  function applyCreateOp(op: SpawnOp) {
+  function applySpawnOp(op: SpawnOp) {
     const [, entity, components] = op
 
     for (let i = 0; i < components.length; i++) {
@@ -256,29 +237,19 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     destroyed.add(entity)
   }
 
-  function applyOp(op: WorldOp) {
-    switch (op[0]) {
-      case WorldOpType.Spawn: {
-        applyCreateOp(op)
-        break
-      }
-      case WorldOpType.Attach: {
-        applyAttachOp(op)
-        break
-      }
-      case WorldOpType.Detach: {
-        applyDetachOp(op)
-        break
-      }
-      case WorldOpType.Destroy: {
-        applyDestroyOp(op)
-        break
-      }
-      default:
-        break
-    }
+  function applyWorldOp(worldOp: WorldOp) {
+    worldOpsPrevious.push(worldOp)
 
-    previousOps.push(op)
+    switch (worldOp[0]) {
+      case WorldOpType.Spawn:
+        return applySpawnOp(worldOp)
+      case WorldOpType.Attach:
+        return applyAttachOp(worldOp)
+      case WorldOpType.Detach:
+        return applyDetachOp(worldOp)
+      case WorldOpType.Destroy:
+        return applyDestroyOp(worldOp)
+    }
   }
 
   function maybeReleaseComponent(component: Component) {
@@ -299,8 +270,8 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     storage.clearMutations()
 
     // Clear world op history
-    while (previousOps.length > 0) {
-      opPool.release(previousOps.pop()!)
+    while (worldOpsPrevious.length > 0) {
+      worldOpPool.release(worldOpsPrevious.pop()!)
     }
 
     destroyed.forEach(internalDestroy)
@@ -308,8 +279,8 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
     attached.clear()
 
-    while (ops.length > 0) {
-      applyOp(ops.pop()!)
+    while (worldOps.length > 0) {
+      applyWorldOp(worldOps.pop()!)
     }
 
     // Execute systems
@@ -330,23 +301,18 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     }
   }
 
-  function spawn(...components: ReadonlyArray<Component>) {
-    const entity = entityCounter++
-    const op = opPool.retain() as SpawnOp
-
-    op[0] = WorldOpType.Spawn
-    op[1] = entity
-    op[2] = components
-
-    ops.push(op)
-
-    return entity
-  }
-
   function component<T extends ComponentType>(
     componentType: T,
     ...args: ComponentInitializerArgs<T>
   ): ComponentOf<T> {
+    const componentTypeHasBeenRegistered = componentTypes.includes(
+      componentType,
+    )
+
+    if (!componentTypeHasBeenRegistered) {
+      registerComponentType(componentType)
+    }
+
     const pool = componentPoolsByComponentTypeId.get(
       componentType.type,
     ) as StackPool<ComponentOf<T>>
@@ -365,39 +331,47 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     return component
   }
 
+  function createOp<T extends WorldOp>(...args: T): T {
+    const worldOp = worldOpPool.retain() as T
+
+    for (let i = 0; i < args.length; i++) {
+      worldOp[i] = args[i]
+    }
+
+    return worldOp
+  }
+
+  function spawn(...components: ReadonlyArray<Component>) {
+    const entity = entityCounter++
+    const worldOp = createOp(WorldOpType.Spawn, entity, components)
+
+    worldOps.push(worldOp)
+
+    return entity
+  }
+
   function attach(entity: number, ...components: ReadonlyArray<Component>) {
-    const op = opPool.retain() as AttachOp
+    const op = createOp(WorldOpType.Attach, entity, components)
 
-    op[0] = WorldOpType.Attach
-    op[1] = entity
-    op[2] = components
-
-    ops.push(op)
+    worldOps.push(op)
   }
 
   function detach(entity: number, ...components: ReadonlyArray<Component>) {
-    const op = opPool.retain() as DetachOp
+    const componentTypeIds = components.map(c => c.type)
+    const worldOp = createOp(WorldOpType.Detach, entity, componentTypeIds)
 
-    op[0] = WorldOpType.Detach
-    op[1] = entity
-    op[2] = components.map(c => c.type)
+    worldOps.push(worldOp)
 
     components.forEach(flagDetached)
-
-    ops.push(op)
   }
 
   function destroy(entity: number) {
-    const op = opPool.retain() as DestroyOp
-
-    op[0] = WorldOpType.Destroy
-    op[1] = entity
-
+    const worldOp = createOp(WorldOpType.Destroy, entity)
     const components = storage.getEntityComponents(entity)
 
-    components.forEach(flagDetached)
+    worldOps.push(worldOp)
 
-    ops.push(op)
+    components.forEach(flagDetached)
   }
 
   function applyOps(opsToApply: WorldOp[]) {
@@ -422,7 +396,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
         components.forEach(flagDetached)
       }
 
-      applyOp(op)
+      applyWorldOp(op)
     }
   }
 
@@ -450,7 +424,11 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     componentType: ComponentType,
     poolSize = componentPoolSize,
   ) {
-    if (componentTypes.includes(componentType)) {
+    const registeredComponentTypeWithTypeId = componentTypes.find(
+      ({ type }) => componentType.type === type,
+    )
+
+    if (registeredComponentTypeWithTypeId) {
       throw new Error(
         `Tried to register componentType with type id ${componentType.type} more than once.`,
       )
@@ -478,9 +456,8 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     getComponent,
     getObservedComponent,
     isComponentChanged,
-    ops: previousOps,
+    ops: worldOpsPrevious,
     patch,
-    registerComponentType,
     removeSystem,
     spawn,
     tick,

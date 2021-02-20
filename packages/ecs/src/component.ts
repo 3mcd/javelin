@@ -1,5 +1,4 @@
-import { AnySchema, Schema, PropsOfSchema } from "./schema/schema_types"
-import { Mutable } from "./types"
+import { AnySchema, PropsOfSchema, Schema } from "./schema/schema_types"
 
 export type ComponentProps = { [key: string]: unknown }
 
@@ -27,10 +26,6 @@ export type ComponentType<
 }
 
 export type Component<P extends ComponentProps = ComponentProps> = {
-  type: number
-} & P
-
-export type ComponentSpec<P extends ComponentProps = ComponentProps> = {
   type: number
 } & P
 

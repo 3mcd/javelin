@@ -1,12 +1,6 @@
 import { Archetype, createArchetype } from "./archetype"
-import {
-  Component,
-  ComponentOf,
-  ComponentSpec,
-  ComponentType,
-} from "./component"
-import { applyMutation, createMutationCache, Path } from "./mutation_cache"
-import { Mutable } from "./types"
+import { Component, ComponentOf, ComponentType } from "./component"
+import { applyMutation, createMutationCache } from "./mutation_cache"
 import { mutableEmpty } from "./util"
 
 export interface Storage {
@@ -16,7 +10,7 @@ export interface Storage {
    * @param entity Entity
    * @param components Array of components to associate with the entity
    */
-  create(entity: number, components: ComponentSpec[]): number
+  create(entity: number, components: Component[]): number
 
   /**
    * Associate components with an entity.
@@ -24,7 +18,7 @@ export interface Storage {
    * @param entity Entity
    * @param components Components to insert
    */
-  insert(entity: number, components: ComponentSpec[]): void
+  insert(entity: number, components: Component[]): void
 
   /**
    * Update the value at a given path for a component.
@@ -51,7 +45,7 @@ export interface Storage {
    * @param entity Entity
    * @param components Components to remove
    */
-  remove(entity: number, components: ComponentSpec[]): void
+  remove(entity: number, components: Component[]): void
 
   /**
    * Remove components from an entity by component type id.

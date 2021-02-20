@@ -13,7 +13,6 @@
     "webpack-dev-server": "^3.10.3"
   },
   "dependencies": {
-    "@javelin/devtool": "0.19.2",
     "@javelin/ecs": "0.19.2",
     "@javelin/hrtime-loop": "0.19.2",
     "@javelin/net": "0.19.2",

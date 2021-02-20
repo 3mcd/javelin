@@ -1,5 +1,5 @@
 import {
-  ComponentSpec,
+  Component,
   ComponentType,
   DataType,
   isDataType,
@@ -7,7 +7,6 @@ import {
   SchemaKey,
   World,
   WorldOp,
-  Component,
 } from "@javelin/ecs"
 
 export enum JavelinMessageType {
@@ -45,7 +44,7 @@ export type UpdateUnreliable = [
   unknown,
   ...UpdateUnreliablePayload
 ]
-export type Spawn = [JavelinMessageType.Spawn, ComponentSpec[]]
+export type Spawn = [JavelinMessageType.Spawn, Component[]]
 export type Model = [JavelinMessageType.Model, SerializedComponentType[]]
 
 export type SerializedSchema<S extends Schema = {}> = S extends DataType<
@@ -126,7 +125,7 @@ export const protocol = {
     metadata,
     ...payload,
   ],
-  spawn: (components: ComponentSpec[]): Spawn => [
+  spawn: (components: Component[]): Spawn => [
     JavelinMessageType.Spawn,
     components,
   ],
