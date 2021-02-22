@@ -2,6 +2,7 @@ export type TypedData = { type: number }
 export type ForEachIteratee<T> = (entity: number, data: T) => void
 export interface Archetype<T extends TypedData = TypedData> {
   entities: readonly number[]
+  forEach(iteratee: ForEachIteratee<T[]>): void
   get(entity: number): readonly T[]
   getByType(entity: number, type: number): T
   has(entity: number): boolean
@@ -57,26 +58,6 @@ export function createArchetype<T extends TypedData>(
     entities[row] = head
     rowsByEntity[head] = row
     delete rowsByEntity[entity]
-
-    // const row = rowsByEntity[entity]
-    // const head = entities.pop()!
-    // const start = rowsByEntity[head] * layoutSize
-    // const end = start + layoutSize
-
-    // if (entity === head) {
-    //   for (let i = 0; i < layoutSize; i++) {
-    //     table.pop()
-    //   }
-    //   return
-    // }
-
-    // entities[row] = head
-    // rowsByEntity[head] = row
-    // delete rowsByEntity[entity]
-
-    // for (let i = end; i > start; i--) {
-    //   table[i] = table.pop()!
-    // }
   }
 
   function get(entity: number): readonly T[] {
@@ -115,8 +96,21 @@ export function createArchetype<T extends TypedData>(
     return rowsByEntity[entity] !== undefined
   }
 
+  const tmpForEachData: T[] = []
+
+  function forEach(iteratee: ForEachIteratee<T[]>) {
+    for (let i = 0; i < entities.length; i++) {
+      const start = i * layoutSize
+      for (let j = 0; j < layoutSize; j++) {
+        tmpForEachData[j] = table[start + j]
+      }
+      iteratee(entities[i], tmpForEachData)
+    }
+  }
+
   return {
     entities,
+    forEach,
     get,
     getByType,
     has,

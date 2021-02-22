@@ -45,6 +45,7 @@ function getRelevantIndices<T>(a: ReadonlyArray<T>, b: ReadonlyArray<T>) {
       result.push(i)
     }
   }
+
   return result
 }
 
@@ -71,6 +72,7 @@ export function createMessageProducer(
   const tmpComponentsByEntity = createEntityMap<Component[]>(
     entityMapArrayInitializer,
   )
+  const tmpReadIndices: number[] = []
   const tmpComponentEntities = new WeakMap<Component, number>()
   const tmpUpdatePayload: UpdatePayload = []
   const tmpUpdateUnreliablePayload: UpdateUnreliablePayload = []
@@ -82,31 +84,35 @@ export function createMessageProducer(
     const ops: SpawnOp[] = []
     const { archetypes } = world[$worldStorageKey]
 
-    for (let i = 0; i < archetypes.length; i++) {
-      const { layout, entities, table, indices } = archetypes[i]
-      const componentIndices = getRelevantIndices(layout, allComponentTypeIds)
+    mutableEmpty(tmpReadIndices)
 
-      if (componentIndices.length === 0) {
-        continue
+    for (let i = 0; i < archetypes.length; i++) {
+      const archetype = archetypes[i]
+      const componentIndices = getRelevantIndices(
+        archetype.layout,
+        allComponentTypeIds,
+      )
+
+      for (let i = 0; i < allComponentTypeIds.length; i++) {
+        const componentTypeId = allComponentTypeIds[i]
+        const index = archetype.indexByType[componentTypeId]
+
+        if (typeof index === "number") {
+          tmpReadIndices.push(index)
+        }
       }
 
-      for (let j = 0; j < entities.length; j++) {
-        const entity = entities[j]
-        const entityIndex = indices[entity]
-        const components: Component[] = []
-        const message: SpawnOp = [WorldOpType.Spawn, entity, components]
+      archetype.forEach((entity, components) => {
+        const messageComponents: Component[] = []
+        const message: SpawnOp = [WorldOpType.Spawn, entity, messageComponents]
 
-        for (let k = 0; k < componentIndices.length; k++) {
-          const componentIndex = componentIndices[k]
-          const component = table[componentIndex][entityIndex]!
-
-          if (!(component as any)[$detached]) {
-            components.push(table[componentIndex][entityIndex]!)
-          }
+        for (let i = 0; i < tmpReadIndices.length; i++) {
+          const readIndex = tmpReadIndices[i]
+          messageComponents.push(components[readIndex])
         }
 
         ops.push(message)
-      }
+      })
     }
 
     if (ops.length > 0) {
@@ -171,12 +177,21 @@ export function createMessageProducer(
       for (let j = 0; j < options.components.length; j++) {
         const config = options.components[j]
         const { type } = config.type
-        const row = archetype.layout.indexOf(type)
+        const componentIndex = archetype.indexByType[type]
 
         // Not a valid archetype match or unreliable
-        if (row === -1 || typeof config.priority === "number") {
+        if (
+          componentIndex === undefined ||
+          typeof config.priority === "number"
+        ) {
           continue
         }
+
+        for (let i = 0; i < archetype.entities.length; i++) {
+          archetype.getByType(archetype.entities[i], type)
+        }
+
+        archetype.forEach((entity, components) => {})
 
         const components = archetype.table[row]
 

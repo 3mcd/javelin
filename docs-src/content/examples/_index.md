@@ -5,7 +5,7 @@ sort_by = "weight"
 insert_anchor_links = "right"
 +++
 
-The following is a very simple example of a simulation with naive 2d "physics". The source is ~100 lines of code and is inspectable on this page.
+The following is a very simple example of a simulation with naive 2d physics. The source is ~100 lines of code and is inspectable on this page.
 
 Click anywhere below to make wormholes that absorb space junk:
 
@@ -175,16 +175,12 @@ Click anywhere below to make wormholes that absorb space junk:
   function onMouseUp(event) {
     const { x, y } = relMouseCoords(canvas, event)
     const r = 30
-    const transform = world.component(Transform, x, y);
-    const wormhole = world.component(Wormhole, r);
-    const velocity = world.component(Velocity);
-    const junk = world.component(Junk);
 
     world.spawn(
-      transform,
-      wormhole,
-      velocity,
-      junk
+      world.component(Transform, x, y),
+      world.component(Wormhole, r),
+      world.component(Velocity),
+      world.component(Junk)
     )
 
     if (!initialized) {
