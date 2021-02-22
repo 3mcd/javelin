@@ -144,8 +144,14 @@ export interface World<T = any> {
 
   /**
    * Entity-component storage.
+   * @deprecated
    */
   readonly [$worldStorageKey]: Storage
+
+  /**
+   * Entity-component storage.
+   */
+  readonly storage: Storage
 
   /**
    * Set of WorldOps that were processed last tick.
@@ -462,6 +468,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     patch,
     removeSystem,
     spawn,
+    storage,
     tick,
     tryGetComponent,
   }

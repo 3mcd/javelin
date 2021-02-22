@@ -1,16 +1,8 @@
 import { Archetype } from "./archetype"
-import {
-  Component,
-  ComponentOf,
-  ComponentState,
-  ComponentType,
-} from "./component"
+import { Component, ComponentOf, ComponentType } from "./component"
 import { ComponentFilter } from "./filter"
-import { $worldStorageKey } from "./symbols"
-import { arrayOf, mutableEmpty } from "./util/array"
+import { arrayOf } from "./util/array"
 import { World } from "./world"
-
-const { Detached } = ComponentState
 
 export type Selector = (ComponentType | ComponentFilter)[]
 export type SelectorResult<S extends Selector> = {
@@ -72,8 +64,6 @@ export function query<S extends Selector>(...selector: S): Query<S> {
     outer: while (++entityIndex < length) {
       const start = entityIndex * layoutSize
 
-      queryResult[0] = entities[entityIndex]
-
       for (let i = 0; i < queryLength; i++) {
         const filter = filters[i]
         const component = table[start + tmpReadIndices[i]]
@@ -86,8 +76,10 @@ export function query<S extends Selector>(...selector: S): Query<S> {
           continue outer
         }
 
-        ;(selectorResult as any)[i] = component as Component
+        ;(selectorResult as SelectorResult<ComponentType[]>)[i] = component
       }
+
+      queryResult[0] = entities[entityIndex]
 
       return
     }
@@ -96,13 +88,8 @@ export function query<S extends Selector>(...selector: S): Query<S> {
   }
 
   function goToNextArchetype() {
-    let visiting: Archetype<Component>
-
-    outer: while ((visiting = archetypes[++archetypeIndex])) {
-      const { indexByType } = visiting
-
-      archetype = visiting
-      entityIndex = -1
+    outer: while ((archetype = archetypes[++archetypeIndex])) {
+      const { indexByType } = archetype
 
       for (let i = 0; i < queryLength; i++) {
         const index = indexByType[queryLayout[i]]
@@ -114,13 +101,13 @@ export function query<S extends Selector>(...selector: S): Query<S> {
         tmpReadIndices[i] = index
       }
 
+      entityIndex = -1
+
       loadNextResult()
       return
     }
 
     result.done = true
-    queryResult[0] = -1
-    mutableEmpty(selectorResult)
   }
 
   const iterator = {
@@ -143,7 +130,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
 
   return (nextWorld: World) => {
     world = nextWorld
-    archetypes = nextWorld[$worldStorageKey].archetypes
+    archetypes = nextWorld.storage.archetypes
     archetype = null
     archetypeIndex = -1
     entityIndex = -1
