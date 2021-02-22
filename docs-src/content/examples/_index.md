@@ -157,7 +157,6 @@ Click anywhere below to make wormholes that absorb space junk:
 
   const world = Javelin.createWorld({
     systems: [physics, attract, render],
-    componentTypes: [Transform, Velocity, Wormhole],
   })
   const junkCount = 10000
 
@@ -176,12 +175,16 @@ Click anywhere below to make wormholes that absorb space junk:
   function onMouseUp(event) {
     const { x, y } = relMouseCoords(canvas, event)
     const r = 30
+    const transform = world.component(Transform, x, y);
+    const wormhole = world.component(Wormhole, r);
+    const velocity = world.component(Velocity);
+    const junk = world.component(Junk);
 
     world.spawn(
-      world.component(Transform, x, y),
-      world.component(Wormhole, r),
-      world.component(Velocity),
-      world.component(Junk)
+      transform,
+      wormhole,
+      velocity,
+      junk
     )
 
     if (!initialized) {

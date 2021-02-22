@@ -1,7 +1,6 @@
 import { createWorld, World } from "../world"
 import { detached } from "./detached"
-import { Component } from "../component"
-import { $detached } from "../symbols"
+import { ComponentState } from "../component"
 
 jest.mock("../world")
 
@@ -21,13 +20,15 @@ describe("attached", () => {
     const filter = detached(A)
     const a1 = {
       type: 0,
-      [$detached]: true,
+      state: ComponentState.Detached,
     }
     const a2 = {
       type: 0,
+      state: ComponentState.Initial,
     }
     const a3 = {
       type: 0,
+      state: ComponentState.Initial,
     }
 
     expect(filter.componentPredicate(a1, world)).toBe(true)

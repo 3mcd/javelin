@@ -37,24 +37,46 @@ export function createArchetype<T extends TypedData>(
 
   function remove(entity: number) {
     const row = rowsByEntity[entity]
-    const head = entities.pop()!
-    const start = rowsByEntity[head] * layoutSize
-    const end = start + layoutSize
 
-    if (entity === head) {
+    if (row === entities.length - 1) {
+      entities.pop()
       for (let i = 0; i < layoutSize; i++) {
         table.pop()
       }
       return
     }
 
-    entities[row] = head
-    rowsByEntity[head] = row
-    rowsByEntity[entity] = -1
+    const head = entities.pop()!
+    const start = rowsByEntity[entity] * layoutSize
+    const end = start + layoutSize
 
-    for (let i = end; i > start; i--) {
+    for (let i = end - 1; i >= start; i--) {
       table[i] = table.pop()!
     }
+
+    entities[row] = head
+    rowsByEntity[head] = row
+    delete rowsByEntity[entity]
+
+    // const row = rowsByEntity[entity]
+    // const head = entities.pop()!
+    // const start = rowsByEntity[head] * layoutSize
+    // const end = start + layoutSize
+
+    // if (entity === head) {
+    //   for (let i = 0; i < layoutSize; i++) {
+    //     table.pop()
+    //   }
+    //   return
+    // }
+
+    // entities[row] = head
+    // rowsByEntity[head] = row
+    // delete rowsByEntity[entity]
+
+    // for (let i = end; i > start; i--) {
+    //   table[i] = table.pop()!
+    // }
   }
 
   function get(entity: number): readonly T[] {
@@ -66,7 +88,7 @@ export function createArchetype<T extends TypedData>(
       )
     }
 
-    const start = rowsByEntity[entity] * layoutSize
+    const start = row * layoutSize
     const end = start + layoutSize
     const result: T[] = []
 

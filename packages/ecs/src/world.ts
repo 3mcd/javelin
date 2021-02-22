@@ -2,13 +2,14 @@ import {
   Component,
   ComponentInitializerArgs,
   ComponentOf,
+  ComponentState,
   ComponentType,
 } from "./component"
 import { createComponentPool } from "./helpers"
 import { createStackPool, StackPool } from "./pool"
 import { initializeComponentFromSchema } from "./schema"
 import { createStorage, Storage } from "./storage"
-import { $detached, $worldStorageKey } from "./symbols"
+import { $worldStorageKey } from "./symbols"
 import { mutableEmpty } from "./util"
 import {
   AttachOp,
@@ -193,7 +194,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   let entityCounter = 0
 
   function flagDetached(component: Component) {
-    ;(component as any)[$detached] = true
+    component.state = ComponentState.Detached
   }
 
   function applySpawnOp(op: SpawnOp) {
@@ -201,6 +202,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
     for (let i = 0; i < components.length; i++) {
       attached.add(components[i])
+      ;(components[i] as any).__entity = entity
     }
 
     storage.create(entity, components as Component[])

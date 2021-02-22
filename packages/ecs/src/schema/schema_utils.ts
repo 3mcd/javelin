@@ -1,4 +1,5 @@
-import { $isDataType, $detached } from "../symbols"
+import { ComponentState } from "../component"
+import { $isDataType } from "../symbols"
 import { DataType, PropsOfSchema, Schema, SchemaKey } from "./schema_types"
 
 export function createDataType<T>(
@@ -39,7 +40,7 @@ export function resetComponentFromSchema<S extends Schema>(
   component: any,
   schema: S,
 ) {
-  component[$detached] = false
+  component.state = ComponentState.Initial
 
   for (const prop in schema) {
     const value = schema[prop] as SchemaKey

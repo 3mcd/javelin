@@ -1,10 +1,14 @@
-import { Component, ComponentOf, ComponentType } from "../component"
+import {
+  Component,
+  ComponentOf,
+  ComponentState,
+  ComponentType,
+} from "../component"
 import { createStackPool } from "../pool/stack_pool"
 import {
   initializeComponentFromSchema,
   resetComponentFromSchema,
 } from "../schema/schema_utils"
-import { $detached } from "../symbols"
 
 export function createComponentType<C extends ComponentType>(componentType: C) {
   return componentType
@@ -17,7 +21,7 @@ export function createComponentPool<C extends ComponentType>(
   const pool = createStackPool<ComponentOf<C>>(
     () =>
       initializeComponentFromSchema(
-        { [$detached]: false, type: componentType.type },
+        { state: ComponentState.Initial, type: componentType.type },
         componentType.schema,
       ) as ComponentOf<C>,
     c => resetComponentFromSchema(c, componentType.schema) as ComponentOf<C>,

@@ -1,5 +1,10 @@
 import { AnySchema, PropsOfSchema, Schema } from "./schema/schema_types"
 
+export enum ComponentState {
+  Initial,
+  Detached,
+}
+
 export type ComponentProps = { [key: string]: unknown }
 
 export type ComponentInitializer<S extends Schema> = (
@@ -26,6 +31,7 @@ export type ComponentType<
 }
 
 export type Component<P extends ComponentProps = ComponentProps> = {
+  state: ComponentState
   type: number
 } & P
 

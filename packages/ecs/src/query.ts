@@ -1,9 +1,16 @@
 import { Archetype } from "./archetype"
-import { ComponentOf, ComponentType, Component } from "./component"
+import {
+  Component,
+  ComponentOf,
+  ComponentState,
+  ComponentType,
+} from "./component"
 import { ComponentFilter } from "./filter"
-import { $worldStorageKey, $detached } from "./symbols"
+import { $worldStorageKey } from "./symbols"
 import { arrayOf, mutableEmpty } from "./util/array"
 import { World } from "./world"
+
+const { Detached } = ComponentState
 
 export type Selector = (ComponentType | ComponentFilter)[]
 export type SelectorResult<S extends Selector> = {
@@ -21,31 +28,6 @@ export type Query<S extends Selector> = (
   }
 }
 export type QueryResult<S extends Selector> = [number, SelectorResult<S>]
-
-function writeQueryResult<S extends Selector>(
-  out: SelectorResult<S>,
-  readIndices: number[],
-  components: readonly Component[],
-  filters: (ComponentFilter["componentPredicate"] | null)[],
-  world: World,
-) {
-  for (let i = 0; i < filters.length; i++) {
-    const filter = filters[i]
-    const readIndex = readIndices[i]
-    const component = components[readIndex]
-
-    if (
-      filter === null
-        ? (component as any)[$detached] === true
-        : filter(component, world) === false
-    ) {
-      return null
-    }
-    ;(out as any)[i] = component
-  }
-
-  return out
-}
 
 /**
  * Create a Query with a given set of component types.
@@ -73,8 +55,8 @@ export function query<S extends Selector>(...selector: S): Query<S> {
   const tmpReadIndices: number[] = []
 
   let world: World
-  let archetypes: ReadonlyArray<Archetype>
-  let archetype: Archetype | null
+  let archetypes: ReadonlyArray<Archetype<Component>>
+  let archetype: Archetype<Component> | null
   let archetypeIndex = -1
   let entityIndex = -1
 
@@ -98,7 +80,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
 
         if (
           filter === null
-            ? (component as any)[$detached] === true
+            ? component.state === 1
             : filter(component, world) === false
         ) {
           continue outer
@@ -114,7 +96,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
   }
 
   function goToNextArchetype() {
-    let visiting: Archetype
+    let visiting: Archetype<Component>
 
     outer: while ((visiting = archetypes[++archetypeIndex])) {
       const { indexByType } = visiting

@@ -92,7 +92,7 @@ export interface Storage {
   /**
    * Collection of Archetypes in the world.
    */
-  readonly archetypes: ReadonlyArray<Archetype>
+  readonly archetypes: ReadonlyArray<Archetype<Component>>
 }
 
 export function createStorage(): Storage {
@@ -113,7 +113,7 @@ export function createStorage(): Storage {
     },
   })
   const mutations = new Map<Component, unknown[]>()
-  const archetypes: Archetype[] = []
+  const archetypes: Archetype<Component>[] = []
   // Array where the index corresponds to an entity and the value corresponds
   // to the index of the entity's archetype within the `archetypes` array. When
   // mutating or reading components, we always assume the location is valid
@@ -127,20 +127,20 @@ export function createStorage(): Storage {
    * @param components Components that archetype would contain
    */
   function findArchetype(components: Component[]) {
-    const len = components.length
+    const length = components.length
 
     for (let i = 0; i < archetypes.length; i++) {
       const archetype = archetypes[i]
       const { layout } = archetype
 
       // Verify archetype has same number of components as predicate.
-      if (layout.length !== len) {
+      if (layout.length !== length) {
         continue
       }
 
       let match = true
 
-      for (let j = 0; j < len; j++) {
+      for (let j = 0; j < length; j++) {
         // Affirm that archetype contains each component of predicate.
         if (layout.indexOf(components[j].type) === -1) {
           match = false
