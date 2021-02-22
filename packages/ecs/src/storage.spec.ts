@@ -7,9 +7,12 @@ describe("createStorage", () => {
   it("creates a new archetype for each unique combination of components", () => {
     const storage = createStorage()
 
-    storage.create(1, [{ type: 0 }])
-    storage.create(2, [{ type: 1 }])
-    storage.create(3, [{ type: 0 }, { type: 1 }])
+    storage.create(1, [{ state: 0, type: 0 }])
+    storage.create(2, [{ state: 0, type: 1 }])
+    storage.create(3, [
+      { state: 0, type: 0 },
+      { state: 0, type: 1 },
+    ])
 
     expect(createArchetype).toHaveBeenNthCalledWith(1, [0])
     expect(createArchetype).toHaveBeenNthCalledWith(2, [1])
@@ -17,7 +20,7 @@ describe("createStorage", () => {
   })
   it("also removes entity from archetype when removed", () => {
     const storage = createStorage()
-    const entity = storage.create(0, [{ type: 0 }])
+    const entity = storage.create(0, [{ state: 0, type: 0 }])
 
     storage.destroy(entity)
 
@@ -25,15 +28,16 @@ describe("createStorage", () => {
   })
   it("moves entities into new archetypes when inserting components", () => {
     const storage = createStorage()
-    const components = [{ type: 0 }]
+    const components = [{ state: 0, type: 0 }]
     // The next archetype we create (via storage.create) will encompass the
     // first component.
     ;(createArchetype as jest.Mock).mockImplementation(() => ({
       insert: jest.fn(),
       remove: jest.fn(),
       layout: [0],
-      table: [[components[0]]],
+      table: [components[0]],
       indices: [0],
+      get: jest.fn(() => [components[0]]),
     }))
     const entity = storage.create(0, components)
 
@@ -43,11 +47,11 @@ describe("createStorage", () => {
     ;(createArchetype as jest.Mock).mockImplementation(() => ({
       insert: jest.fn(),
       layout: [0, 1],
-      table: [[components[0]], []],
-      indices: [0, 1],
+      table: [components[0]],
+      get: jest.fn(() => [components[0]]),
     }))
 
-    storage.insert(entity, [{ type: 1 }])
+    storage.insert(entity, [{ state: 0, type: 1 }])
 
     expect(storage.archetypes[0].remove).toHaveBeenCalledWith(entity)
     expect(storage.archetypes.length).toBe(2)

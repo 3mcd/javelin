@@ -18,6 +18,7 @@ describe("changed", () => {
     const filter = changed(A)
     const component = {
       type: 0,
+      state: 0,
     }
 
     ;(world.isComponentChanged as jest.Mock).mockReturnValue(true)

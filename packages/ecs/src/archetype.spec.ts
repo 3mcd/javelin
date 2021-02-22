@@ -1,18 +1,12 @@
 import { createArchetype } from "./archetype"
 
 describe("createArchetype", () => {
-  const flags = {
-    A: 1,
-    B: 2,
-    C: 4,
-  }
   it("initializes a component table from provided component layout", () => {
+    const layout = [1, 2, 3]
     const archetype = createArchetype([1, 2, 3])
 
-    expect(archetype.table.length).toBe(3)
-    expect(archetype.table[0]).toBeInstanceOf(Array)
-    expect(archetype.table[1]).toBeInstanceOf(Array)
-    expect(archetype.table[2]).toBeInstanceOf(Array)
+    expect(archetype.layoutSize).toBe(3)
+    expect(archetype.indexByType.every((x, i) => x === layout[i]))
   })
   it("adds entity to entities array when inserted", () => {
     const entity = 0
@@ -30,8 +24,8 @@ describe("createArchetype", () => {
     archetype.insert(entity1, [{ type: 1 }, { type: 4 }])
     archetype.insert(entity2, [{ type: 1 }, { type: 4 }])
 
-    expect(archetype.indices[entity1]).toBe(0)
-    expect(archetype.indices[entity2]).toBe(1)
+    expect(archetype.entities[0]).toBe(entity1)
+    expect(archetype.entities[1]).toBe(entity2)
   })
   it("updates the component table with inserted components", () => {
     const entity = 0
@@ -40,10 +34,22 @@ describe("createArchetype", () => {
 
     archetype.insert(entity, components)
 
-    const index = archetype.indices[entity]
+    const index = archetype.entities.indexOf(entity)
 
-    expect(archetype.table[0][index]).toBe(components[0])
-    expect(archetype.table[1][index]).toBe(components[1])
+    expect(
+      archetype.table[index + archetype.indexByType[components[0].type]],
+    ).toBe(components[0])
+    expect(
+      archetype.table[index + archetype.indexByType[components[1].type]],
+    ).toBe(components[1])
+    expect(
+      archetype.get(entity)[archetype.indexByType[components[0].type]],
+    ).toBe(components[0])
+    expect(
+      archetype.get(entity)[archetype.indexByType[components[1].type]],
+    ).toBe(components[1])
+    expect(archetype.getByType(entity, components[0].type)).toBe(components[0])
+    expect(archetype.getByType(entity, components[1].type)).toBe(components[1])
   })
   it("removes entity from entities array when removed", () => {
     const entity = 0
@@ -62,11 +68,12 @@ describe("createArchetype", () => {
     archetype.insert(entity1, [{ type: 1 }, { type: 4 }])
     archetype.insert(entity2, [{ type: 1 }, { type: 4 }])
 
-    const index = archetype.indices[entity1]
+    const index = archetype.entities.indexOf(entity1)
+
     archetype.remove(entity1)
 
-    expect(archetype.indices[entity1]).toBe(-1)
-    expect(archetype.indices[entity2]).toBe(index)
+    expect(archetype.entities.indexOf(entity1)).toBe(-1)
+    expect(archetype.entities.indexOf(entity2)).toBe(index)
   })
   it("swaps an entity's components with the head when removed", () => {
     const entity1 = 0
@@ -77,11 +84,15 @@ describe("createArchetype", () => {
     archetype.insert(entity1, [{ type: 1 }, { type: 4 }])
     archetype.insert(entity2, components)
 
-    const index = archetype.indices[entity1]
+    const index = archetype.entities.indexOf(entity1)
 
     archetype.remove(entity1)
 
-    expect(archetype.table[0][index]).toBe(components[0])
-    expect(archetype.table[1][index]).toBe(components[1])
+    expect(
+      archetype.table[index + archetype.indexByType[components[0].type]],
+    ).toBe(components[0])
+    expect(
+      archetype.table[index + archetype.indexByType[components[1].type]],
+    ).toBe(components[1])
   })
 })

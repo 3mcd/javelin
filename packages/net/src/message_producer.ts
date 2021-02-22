@@ -1,5 +1,4 @@
 import {
-  $detached,
   $worldStorageKey,
   Component,
   ComponentType,
@@ -37,18 +36,6 @@ export type MessageProducerOptions = {
   isLocal?: boolean
 }
 
-function getRelevantIndices<T>(a: ReadonlyArray<T>, b: ReadonlyArray<T>) {
-  const result = []
-
-  for (let i = 0; i < a.length; i++) {
-    if (b.includes(a[i])) {
-      result.push(i)
-    }
-  }
-
-  return result
-}
-
 const entityMapArrayInitializer = (entity: number, value?: any[]) => {
   if (Array.isArray(value)) {
     mutableEmpty(value)
@@ -84,14 +71,10 @@ export function createMessageProducer(
     const ops: SpawnOp[] = []
     const { archetypes } = world[$worldStorageKey]
 
-    mutableEmpty(tmpReadIndices)
-
     for (let i = 0; i < archetypes.length; i++) {
       const archetype = archetypes[i]
-      const componentIndices = getRelevantIndices(
-        archetype.layout,
-        allComponentTypeIds,
-      )
+
+      mutableEmpty(tmpReadIndices)
 
       for (let i = 0; i < allComponentTypeIds.length; i++) {
         const componentTypeId = allComponentTypeIds[i]
@@ -108,7 +91,11 @@ export function createMessageProducer(
 
         for (let i = 0; i < tmpReadIndices.length; i++) {
           const readIndex = tmpReadIndices[i]
-          messageComponents.push(components[readIndex])
+          const component = components[readIndex]
+
+          if (component.state === 0) {
+            messageComponents.push(component)
+          }
         }
 
         ops.push(message)
@@ -188,16 +175,8 @@ export function createMessageProducer(
         }
 
         for (let i = 0; i < archetype.entities.length; i++) {
-          archetype.getByType(archetype.entities[i], type)
-        }
-
-        archetype.forEach((entity, components) => {})
-
-        const components = archetype.table[row]
-
-        for (let k = 0; k < archetype.entities.length; k++) {
-          const entity = archetype.entities[k]
-          const component = components[archetype.indices[entity]]!
+          const entity = archetype.entities[i]
+          const component = archetype.getByType(entity, type)
 
           if (world.isComponentChanged(component)) {
             const entityMutations = tmpEntityMutations[entity]
@@ -255,18 +234,16 @@ export function createMessageProducer(
           continue
         }
 
-        const row = archetype.layout.indexOf(type)
+        const index = archetype.indexByType[type]
 
         // Not a valid archetype match
-        if (row === -1) {
+        if (index === undefined) {
           continue
         }
 
-        const components = archetype.table[row]
-
         for (let k = 0; k < archetype.entities.length; k++) {
           const entity = archetype.entities[k]
-          const component = components[archetype.indices[entity]]!
+          const component = archetype.getByType(entity, type)
 
           tmpComponentEntities.set(component, entity)
           tmpSortedByPriority.push(component)

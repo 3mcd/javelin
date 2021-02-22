@@ -1,4 +1,3 @@
-import { $worldStorageKey } from "../symbols"
 import { World } from "../world"
 import { createStorage } from "./storage"
 
@@ -6,7 +5,7 @@ export const createWorld = jest.fn(
   (): World => {
     let e = 0
     return {
-      [$worldStorageKey]: createStorage(),
+      storage: createStorage(),
       addSystem: jest.fn(),
       applyOps: jest.fn(),
       attach: jest.fn(),
@@ -20,7 +19,6 @@ export const createWorld = jest.fn(
       isComponentChanged: jest.fn(),
       ops: [],
       patch: jest.fn(),
-      registerComponentType: jest.fn(),
       removeSystem: jest.fn(),
       spawn: jest.fn(() => e++),
       tick: jest.fn(),

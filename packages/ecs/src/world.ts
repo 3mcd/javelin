@@ -9,7 +9,6 @@ import { createComponentPool } from "./helpers"
 import { createStackPool, StackPool } from "./pool"
 import { initializeComponentFromSchema } from "./schema"
 import { createStorage, Storage } from "./storage"
-import { $worldStorageKey } from "./symbols"
 import { mutableEmpty } from "./util"
 import {
   AttachOp,
@@ -144,12 +143,6 @@ export interface World<T = any> {
 
   /**
    * Entity-component storage.
-   * @deprecated
-   */
-  readonly [$worldStorageKey]: Storage
-
-  /**
-   * Entity-component storage.
    */
   readonly storage: Storage
 
@@ -208,7 +201,6 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
     for (let i = 0; i < components.length; i++) {
       attached.add(components[i])
-      ;(components[i] as any).__entity = entity
     }
 
     storage.create(entity, components as Component[])
@@ -452,7 +444,6 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   const { getObservedComponent, isComponentChanged, patch } = storage
 
   const world = {
-    [$worldStorageKey]: storage,
     addSystem,
     applyOps,
     attach,

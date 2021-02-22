@@ -2,7 +2,6 @@ import { Archetype, createArchetype } from "./archetype"
 import { Component, ComponentType } from "./component"
 import { ComponentFilter } from "./filter"
 import { query } from "./query"
-import { $worldStorageKey } from "./symbols"
 import { createWorld } from "./world"
 import { createComponentType } from "./helpers"
 
@@ -15,64 +14,54 @@ describe("query", () => {
     const B = createComponentType({ name: "B", type: 1, schema: {} })
     const world = createWorld()
     const table = [
-      [
-        { type: 1, foo: 1 },
-        { type: 1, foo: 2 },
-        { type: 1, foo: 3 },
-      ],
-      [
-        { type: 0, foo: 4 },
-        { type: 0, foo: 5 },
-        { type: 0, foo: 6 },
-      ],
+      { type: 1, foo: 1 },
+      { type: 0, foo: 1 },
+      { type: 1, foo: 2 },
+      { type: 0, foo: 2 },
+      { type: 1, foo: 3 },
+      { type: 0, foo: 3 },
     ]
 
-    ;(world as any)[$worldStorageKey].archetypes = [
+    ;(world.storage as any).archetypes = [
       {
-        ...createArchetype([0]),
+        ...createArchetype([1, 0]),
+        entities: [0, 1, 2],
         layout: [1, 0],
-        entities: [1, 2, 0],
-        indices: [2, 1, 0],
+        layoutSize: 2,
         table,
       } as Archetype,
     ]
 
     const q = query(A, B)
 
-    let resultsA = []
-    let resultsB = []
+    let i = 0
 
-    for (const [, [a, b]] of q(world)) {
-      resultsA.push(a)
-      resultsB.push(b)
+    for (const [entity, [a, b]] of q(world)) {
+      expect(entity).toBe(i)
+      expect(a).toBe(table[i * 2 + 1])
+      expect(b).toBe(table[i * 2])
+      i++
     }
-
-    expect(resultsA).toContain(table[1][1])
-    expect(resultsA).toContain(table[1][0])
-    expect(resultsB).toContain(table[0][1])
-    expect(resultsB).toContain(table[0][0])
   })
   it("supports filtering of entities and components", () => {
     const A = createComponentType({ name: "A", type: 0, schema: {} })
     const world = createWorld()
     const table = [
-      [
-        { type: 0, foo: 5 },
-        { type: 0, foo: 1 },
-        { type: 0, foo: 4 },
-      ],
+      { type: 0, foo: 5 },
+      { type: 0, foo: 1 },
+      { type: 0, foo: 4 },
     ]
     const filter = (componentType: ComponentType): ComponentFilter => ({
       componentType,
       componentPredicate: (c: Component) => c.foo === 1,
     })
 
-    ;(world as any)[$worldStorageKey].archetypes = [
+    ;(world.storage as any).archetypes = [
       {
         ...createArchetype([0]),
         layout: [0],
+        layoutSize: 1,
         entities: [0, 1, 2],
-        indices: [0, 1, 2],
         table,
       } as Archetype,
     ]
@@ -81,7 +70,7 @@ describe("query", () => {
 
     for (const [entity, [a]] of q(world)) {
       expect(entity).toBe(1)
-      expect(a).toEqual(table[0][1])
+      expect(a).toEqual(table[1])
     }
   })
 })

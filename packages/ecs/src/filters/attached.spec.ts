@@ -20,9 +20,11 @@ describe("attached", () => {
     const filter = attached(A)
     const a1 = {
       type: 0,
+      state: 0,
     }
     const a2 = {
       type: 0,
+      state: 0,
     }
 
     ;(world.attached as Set<Component>).add(a1)

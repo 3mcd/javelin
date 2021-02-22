@@ -1,5 +1,4 @@
 import {
-  $worldStorageKey,
   Component,
   mutableEmpty,
   System,
@@ -72,7 +71,7 @@ export function createMessageHandler(
   const tmpComponentsToUpsert: Component[] = []
 
   function handleUnreliableUpdate(update: UpdateUnreliable, world: World) {
-    const { [$worldStorageKey]: storage } = world
+    const { storage } = world
     const [, isLocal] = update
 
     let entity: number | null = null
@@ -99,6 +98,7 @@ export function createMessageHandler(
         } catch (err) {
           // Update failed, potentially due to a race condition between reliable
           // and unreliable channels.
+          console.error(err)
         }
 
         mutableEmpty(tmpComponentsToUpsert)

@@ -113,7 +113,7 @@ function tick(dt: number) {
 const loop = createHrtimeLoop(tickRateMs, clock => tick(clock.dt))
 loop.start()
 
-for (let i = 0; i < 50; i++) {
+for (let i = 0; i < 20; i++) {
   createJunk(world)
 }
 

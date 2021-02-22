@@ -19,11 +19,22 @@ export function createComponentPool<C extends ComponentType>(
   poolSize: number,
 ) {
   const pool = createStackPool<ComponentOf<C>>(
-    () =>
-      initializeComponentFromSchema(
-        { state: ComponentState.Initial, type: componentType.type },
+    () => {
+      const componentBase = {
+        type: componentType.type,
+      }
+
+      Object.defineProperty(componentBase, "state", {
+        value: ComponentState.Initial,
+        enumerable: false,
+        writable: true,
+      })
+
+      return initializeComponentFromSchema(
+        componentBase,
         componentType.schema,
-      ) as ComponentOf<C>,
+      ) as ComponentOf<C>
+    },
     c => resetComponentFromSchema(c, componentType.schema) as ComponentOf<C>,
     poolSize,
   )

@@ -28,9 +28,11 @@ export function createArchetype<T extends TypedData>(
 
   function insert(entity: number, data: T[]) {
     const row = entities.push(entity) - 1
+    const length = table.length
 
     for (let i = 0; i < data.length; i++) {
-      table.push(data[i])
+      const value = data[i]
+      table[length + indexByType[value.type]] = value
     }
 
     rowsByEntity[entity] = row
