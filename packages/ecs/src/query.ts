@@ -22,6 +22,31 @@ export type Query<S extends Selector> = (
 }
 export type QueryResult<S extends Selector> = [number, SelectorResult<S>]
 
+function writeQueryResult<S extends Selector>(
+  out: SelectorResult<S>,
+  readIndices: number[],
+  components: readonly Component[],
+  filters: (ComponentFilter["componentPredicate"] | null)[],
+  world: World,
+) {
+  for (let i = 0; i < filters.length; i++) {
+    const filter = filters[i]
+    const readIndex = readIndices[i]
+    const component = components[readIndex]
+
+    if (
+      filter === null
+        ? (component as any)[$detached] === true
+        : filter(component, world) === false
+    ) {
+      return null
+    }
+    ;(out as any)[i] = component
+  }
+
+  return out
+}
+
 /**
  * Create a Query with a given set of component types.
  *
@@ -51,7 +76,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
   let archetypes: ReadonlyArray<Archetype>
   let archetype: Archetype | null
   let archetypeIndex = -1
-  let readIndex = -1
+  let entityIndex = -1
 
   const result: IteratorResult<QueryResult<S>> = {
     value: queryResult as QueryResult<S>,
@@ -59,25 +84,27 @@ export function query<S extends Selector>(...selector: S): Query<S> {
   }
 
   function loadNextResult() {
-    const { table, entitiesByIndex } = archetype!
-    const [col0] = table
+    const { table, entities, layoutSize } = archetype!
+    const length = entities.length
 
-    outer: while (col0[++readIndex]) {
-      queryResult[0] = entitiesByIndex[readIndex]
+    outer: while (++entityIndex < length) {
+      const start = entityIndex * layoutSize
 
-      for (let k = 0; k < queryLength; k++) {
-        const filter = filters[k]
-        const component = table[tmpReadIndices[k]][readIndex]!
+      queryResult[0] = entities[entityIndex]
+
+      for (let i = 0; i < queryLength; i++) {
+        const filter = filters[i]
+        const component = table[start + tmpReadIndices[i]]
 
         if (
-          filter
-            ? filter(component, world) === false
-            : (component as any)[$detached]
+          filter === null
+            ? (component as any)[$detached] === true
+            : filter(component, world) === false
         ) {
           continue outer
         }
 
-        ;(selectorResult as any)[k] = component
+        ;(selectorResult as any)[i] = component as Component
       }
 
       return
@@ -90,15 +117,15 @@ export function query<S extends Selector>(...selector: S): Query<S> {
     let visiting: Archetype
 
     outer: while ((visiting = archetypes[++archetypeIndex])) {
-      const { layout } = visiting
+      const { indexByType } = visiting
 
       archetype = visiting
-      readIndex = -1
+      entityIndex = -1
 
       for (let i = 0; i < queryLength; i++) {
-        const index = layout.indexOf(queryLayout[i])
+        const index = indexByType[queryLayout[i]]
 
-        if (index === -1) {
+        if (index === undefined) {
           continue outer
         }
 
@@ -137,7 +164,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
     archetypes = nextWorld[$worldStorageKey].archetypes
     archetype = null
     archetypeIndex = -1
-    readIndex = -1
+    entityIndex = -1
     result.done = false
 
     return iterable

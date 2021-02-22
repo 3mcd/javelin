@@ -213,26 +213,32 @@ export function createStorage(): Storage {
     archetypeIndicesByEntity[entity] = archetypes.indexOf(destination)
   }
 
+  const tmpInsertComponents: Component[] = []
+
   function insert(entity: number, components: Component[]) {
     const source = getEntityArchetype(entity)
-    const entityIndex = source.indices[entity]
+    const sourceComponents = source.get(entity)
 
-    let destinationComponents = components.slice()
+    mutableEmpty(tmpInsertComponents)
 
-    for (let i = 0; i < source.layout.length; i++) {
-      const componentTypeId = source.layout[i]
+    for (let i = 0; i < sourceComponents.length; i++) {
+      tmpInsertComponents.push(sourceComponents[i])
+    }
 
-      if (components.find(c => c.type === componentTypeId)) {
+    for (let i = 0; i < components.length; i++) {
+      const component = components[i]
+      const componentTypeId = component.type
+
+      if (source.layout.includes(componentTypeId)) {
         throw new Error(
-          `Cannot attach component with type ${componentTypeId} — entity already has component of type.`,
+          `Cannot attach component with type ${componentTypeId}: entity already has component of type.`,
         )
       }
 
-      // UNSAFE: `!` is used because entity location is non-null.
-      destinationComponents.push(source.table[i][entityIndex]!)
+      tmpInsertComponents.push(components[i])
     }
 
-    relocate(source, entity, destinationComponents)
+    relocate(source, entity, tmpInsertComponents)
   }
 
   function remove(entity: number, components: Component[]) {
@@ -243,23 +249,22 @@ export function createStorage(): Storage {
 
   function removeByTypeIds(entity: number, componentTypeIds: number[]) {
     const source = getEntityArchetype(entity)
-    const entityIndex = source.indices[entity]
+    const sourceComponents = source.get(entity)
 
-    let destinationComponents = []
+    mutableEmpty(tmpInsertComponents)
 
-    for (let i = 0; i < source.layout.length; i++) {
-      const type = source.layout[i]
-      const component = source.table[i][entityIndex]! as Component
+    for (let i = 0; i < sourceComponents.length; i++) {
+      const component = sourceComponents[i]
 
-      if (!componentTypeIds.includes(type)) {
-        destinationComponents.push(component)
-      } else {
+      if (componentTypeIds.includes(component.type)) {
         mutationCache.revoke(component)
         mutations.delete(component)
+      } else {
+        tmpInsertComponents.push(component)
       }
     }
 
-    relocate(source, entity, destinationComponents)
+    relocate(source, entity, tmpInsertComponents)
   }
 
   function destroy(entity: number) {
@@ -274,47 +279,42 @@ export function createStorage(): Storage {
     value: unknown,
   ) {
     const archetype = getEntityArchetype(entity)
-    const entityIndex = archetype.indices[entity]
-    const componentIndex = archetype.layout.indexOf(componentType)
 
-    if (componentIndex === -1) {
+    if (!archetype.has(entity)) {
       return
     }
 
     const target = getObservedComponent(
-      archetype.table[componentIndex][entityIndex]!,
+      archetype.getByType(entity, componentType),
     )
 
     applyMutation(target, path, value)
   }
 
-  const tmpComponentsToInsert: Component[] = []
-
   function upsert(entity: number, components: Component[]) {
     const archetype = getEntityArchetype(entity)
-    const entityIndex = archetype.indices[entity]
 
-    mutableEmpty(tmpComponentsToInsert)
+    mutableEmpty(tmpInsertComponents)
 
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const componentIndex = archetype.layout.indexOf(component.type)
+      const componentTypeId = component.type
 
-      if (componentIndex === -1) {
+      if (archetype.indexByType[componentTypeId] === undefined) {
         // Entity component makeup does not match patch component, insert the new
         // component.
-        tmpComponentsToInsert.push(component)
+        tmpInsertComponents.push(component)
       } else {
         const target = getObservedComponent(
-          archetype.table[componentIndex][entityIndex]!,
+          archetype.getByType(entity, componentTypeId),
         )
         // Apply patch to component.
         Object.assign(target, component)
       }
     }
 
-    if (tmpComponentsToInsert.length > 0) {
-      insert(entity, tmpComponentsToInsert)
+    if (tmpInsertComponents.length > 0) {
+      insert(entity, tmpInsertComponents)
     }
   }
 
@@ -323,28 +323,12 @@ export function createStorage(): Storage {
     componentType: T,
   ) {
     const archetype = getEntityArchetype(entity)
-    const componentIndex = archetype.layout.indexOf(componentType.type)
-
-    if (componentIndex === -1) {
-      return null
-    }
-
-    const entityIndex = archetype.indices[entity]
-
-    // UNSAFE: `!` is used because entity location is non-null.
-    return archetype.table[componentIndex][entityIndex]! as ComponentOf<T>
+    return archetype.getByType(entity, componentType.type) as ComponentOf<T>
   }
 
   function getComponentsOfEntity(entity: number) {
     const archetype = getEntityArchetype(entity)
-    const entityIndex = archetype.indices[entity]
-    const result: Component[] = []
-
-    for (let i = 0; i < archetype.table.length; i++) {
-      result.push(archetype.table[i][entityIndex]!)
-    }
-
-    return result
+    return archetype.get(entity) as Component[]
   }
 
   function clearMutations() {

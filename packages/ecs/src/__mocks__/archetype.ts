@@ -9,7 +9,6 @@ export const createArchetype = jest.fn(
       entities: [0],
       insert: jest.fn(),
       remove: jest.fn(),
-      entitiesByIndex: [0],
     }
   },
 )

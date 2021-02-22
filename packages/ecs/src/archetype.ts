@@ -1,136 +1,108 @@
-import { Component } from "./component"
-
-/**
- * An Archetype is a collection of entities that share components of the same
- * type.
- */
-export interface Archetype {
-  /**
-   * Insert an entity into the Archetype.
-   *
-   * @param entity Subject entity
-   * @param components Array of components
-   * @returns void
-   */
-  insert(entity: number, components: Component[]): void
-
-  /**
-   * Remove an entity from the Archetype.
-   *
-   * @param entity Subject entity
-   * @returns void
-   */
+export type TypedData = { type: number }
+export type ForEachIteratee<T> = (entity: number, data: T) => void
+export interface Archetype<T extends TypedData = TypedData> {
+  entities: readonly number[]
+  get(entity: number): readonly T[]
+  getByType(entity: number, type: number): T
+  has(entity: number): boolean
+  indexByType: readonly number[]
+  insert(entity: number, data: T[]): void
+  layout: readonly number[]
+  layoutSize: number
   remove(entity: number): void
-
-  /**
-   * Two-dimensional array of component type->component[] where each index
-   * (column) of the component array corresponds to an entity.
-   *
-   *      (index)    0  1  2
-   *     (entity)    1  3  9
-   *   (Position) [[ p, p, p ]
-   *   (Velocity) [  v, v, v ]]
-   *
-   * The index of each entity is tracked in the `indices array`.
-   */
-  readonly table: ReadonlyArray<ReadonlyArray<Component | null>>
-
-  /**
-   * Array where each value is a component type and the index is the column of
-   * the type's collection in the archetype table.
-   */
-  readonly layout: ReadonlyArray<number>
-
-  /**
-   * Array of entities tracked by this archetype. Not used internally:
-   * primarily a convenience for iteration/checks by consumers.
-   */
-  readonly entities: ReadonlyArray<number>
-
-  /**
-   * Array where each index corresponds to an entity, and each value
-   * corresponds to that entity's index in the component table. In the example
-   * above, this array might look like:
-   *
-   *           1         3            9
-   *   [empty, 0, empty, 1, empty x5, 2]
-   *
-   */
-  readonly indices: ReadonlyArray<number>
-
-  readonly entitiesByIndex: ReadonlyArray<number>
+  table: readonly T[]
 }
 
-/**
- * Create an Archetype.
- *
- * @param layout Array of component types that make up the archetype
- */
-export function createArchetype(layout: number[]): Archetype {
-  const len = layout.length
-  const table: (Component | null)[][] = []
+export function createArchetype<T extends TypedData>(
+  layout: number[],
+): Archetype<T> {
+  const table: T[] = []
   const entities: number[] = []
-  const indices: number[] = []
-  const entitiesByIndex: number[] = []
+  const rowsByEntity: number[] = []
+  const layoutSize = layout.length
+  const indexByType = layout.reduce((a, x, i) => {
+    a[x] = i
+    return a
+  }, [] as number[])
 
-  // Initialize the table with an empty collection of components for each
-  // component type.
-  for (let i = 0; i < len; i++) {
-    table[i] = []
-  }
+  function insert(entity: number, data: T[]) {
+    const row = entities.push(entity) - 1
 
-  let head = -1
-
-  function insert(entity: number, components: Component[]) {
-    head++
-
-    for (let i = 0; i < components.length; i++) {
-      const component = components[i]
-      const componentTypeIndex = layout.indexOf(component.type)
-
-      table[componentTypeIndex][head] = component
+    for (let i = 0; i < data.length; i++) {
+      table.push(data[i])
     }
 
-    entities[head] = entity
-    indices[entity] = head
-    entitiesByIndex[head] = entity
+    rowsByEntity[entity] = row
   }
 
   function remove(entity: number) {
-    const index = indices[entity]
+    const row = rowsByEntity[entity]
+    const head = entities.pop()!
+    const start = rowsByEntity[head] * layoutSize
+    const end = start + layoutSize
 
-    if (index === head) {
-      for (const components of table) components[head] = null
-    } else {
-      for (const components of table) {
-        // Overwrite the entity with the head entity's component.
-        components[index] = components[head]
-        // Unset the head entity's component. Unnecessary since the component
-        // reference would be overwritten on the next insert, but we unset it
-        // anyways for clarity.
-        components[head] = null
+    if (entity === head) {
+      for (let i = 0; i < layoutSize; i++) {
+        table.pop()
       }
+      return
     }
 
-    // Overwrite the removed entity position and index with the leading entity.
-    entities[index] = entities[head]
-    entitiesByIndex[index] = entitiesByIndex[head]
-    indices[entities[head]] = index
-    indices[entity] = -1
+    entities[row] = head
+    rowsByEntity[head] = row
+    rowsByEntity[entity] = -1
 
-    // Remove the duplicate copied entity.
-    entities.pop()
+    for (let i = end; i > start; i--) {
+      table[i] = table.pop()!
+    }
+  }
 
-    head--
+  function get(entity: number): readonly T[] {
+    const row = rowsByEntity[entity]
+
+    if (typeof row !== "number") {
+      throw new Error(
+        `Entity ${entity} not found in archetype (${layout.toString()}).`,
+      )
+    }
+
+    const start = rowsByEntity[entity] * layoutSize
+    const end = start + layoutSize
+    const result: T[] = []
+
+    for (let i = start; i < end; i++) {
+      result.push(table[i])
+    }
+
+    return result
+  }
+
+  function getByType(entity: number, type: number): T {
+    const row = rowsByEntity[entity]
+
+    if (typeof row !== "number") {
+      throw new Error(
+        `Entity ${entity} not found in archetype (${layout.toString()}).`,
+      )
+    }
+
+    return table[rowsByEntity[entity] * layoutSize + indexByType[type]]
+  }
+
+  function has(entity: number) {
+    return rowsByEntity[entity] !== undefined
   }
 
   return {
-    layout,
-    table,
-    indices,
     entities,
+    get,
+    getByType,
+    has,
+    indexByType,
     insert,
+    layout,
+    layoutSize,
     remove,
-    entitiesByIndex,
+    table,
   }
 }
