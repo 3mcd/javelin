@@ -1,5 +1,6 @@
 export type TypedData = { type: number }
 export type ForEachIteratee<T> = (entity: number, data: T) => void
+
 export interface Archetype<T extends TypedData = TypedData> {
   entities: readonly number[]
   forEach(iteratee: ForEachIteratee<T[]>): void
