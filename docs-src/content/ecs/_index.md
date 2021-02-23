@@ -44,47 +44,31 @@ setInterval(() => {
 }, 16.66666)
 ```
 
-The player presses the spacebar on their keyboard, `player.jump()` is executed, and the actor jumps! But what if a player wants to spectate our game instead controlling an actor? In that scenario, it's unnecessary for `Player` to extend `Body`, and we'd either need to write code to ensure that spectators shouldn't update data within the physics simulation, or drastically modify our inheritance structure.
+The player presses the spacebar on their keyboard, `player.jump()` is executed, and the actor jumps! But what if a player wants to spectate our game instead controlling an actor? In that scenario, it's unnecessary for `Player` to extend `Body`, and we'd either need to modify the inheritance structure, or write code to ensure that spectators shouldn't update data within the physics simulation.
 
-Data and behavior are separate concerns in an ECS. High-cohesion game objects are replaced with distinct **entities**, **components**, and **systems**. This pattern gives us the ability to modify the behavior of entities at runtime.
+Data and behavior are separate concerns in an ECS. High-cohesion game objects are split into three distinct concerns: **components**, game data; **entities**, references to a vector of components; and **systems**, game behavior. This pattern gives us the ability to modify the behavior of entities at runtime.
 
 ### Components
 
-Components are plain objects that contain data, but not methods. Ideally all game state lives in components.
+In an ECS, components are typically plain objects that contain data and no methods. Ideally all game state lives in components.
 
-```typescript
-type Player = { name: string }
-type Input = { space: boolean }
-type Body = { velocity: [number, number] }
 ```
-
+Player { name: string }
+Input { space: boolean }
+Body { velocity: [number, number] }
+```
 ### Entities
 
-Entities are tuples of components that represent higher-order game objects. They do not contain any data of their own.
-
-```typescript
-// (Player, Input, Velocity)
-const entity = [
-  { name: "xXpubstomperXx" },
-  { space: true },
-  { velocity: [0, 0] },
-]
-```
-
+An entity is an integer that references a vector of components. An entity typically represents a game object (like a player, vehicle, or weapon) that could be made up of many components, but sometimes may only reference a single component with the purpose of holding global state. They do not contain any data of their own.
 ### Systems
 
-Systems are functions that implement game logic by reading and modifying components. The following example updates the player's physics body based on its input component:
+Systems are functions that implement game logic by reading and modifying components. The following pseudo-code example moves entities with both a Position and a Velocity:
 
-```typescript
-const physicsSystem = () => {
-  const [, input, body] = entity
-
-  if (input.space) {
-    body.velocity[1] += 2
-  }
-}
 ```
-
+for entity of (pos, vel)
+  pos[entity].x += vel[entity].x
+  pos[entity].y += vel[entity].y
+```
 ## Iteration
 
 The above example where a single entity is modified each tick wouldn't scale to a game of any real complexity. The true power of ECS comes with iteration. We can apply the same rules to each entity in our game world with a simple for..of loop.
