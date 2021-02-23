@@ -1,6 +1,7 @@
 const { createWorld } = require("../dist/cjs/world")
-const { query, select } = require("../dist/cjs/query")
+const { query } = require("../dist/cjs/query")
 const { arrayOf } = require("../dist/cjs/util/array")
+const { ComponentState } = require("../dist/cjs/component")
 
 module.exports.run = function run() {
   let n = 1000
@@ -12,12 +13,22 @@ module.exports.run = function run() {
     { schema: {}, type: 4 },
   ]
   const components = [
-    ...arrayOf(142500, () => [{ type: 1 }]),
-    ...arrayOf(142500, () => [{ type: 1 }, { type: 3 }]),
-    ...arrayOf(142500, () => [{ type: 2 }]),
-    ...arrayOf(142500, () => [{ type: 1 }, { type: 2 }, { type: 3 }]),
-    ...arrayOf(142500, () => [{ type: 4 }]),
-    ...arrayOf(142500, () => [{ type: 2 }, { type: 4 }]),
+    ...arrayOf(142500, () => [{ tid: 1, cst: ComponentState.Initialized }]),
+    ...arrayOf(142500, () => [
+      { tid: 1, cst: ComponentState.Initialized },
+      { tid: 3, cst: ComponentState.Initialized },
+    ]),
+    ...arrayOf(142500, () => [{ tid: 2, cst: ComponentState.Initialized }]),
+    ...arrayOf(142500, () => [
+      { tid: 1, cst: ComponentState.Initialized },
+      { tid: 2, cst: ComponentState.Initialized },
+      { tid: 3, cst: ComponentState.Initialized },
+    ]),
+    ...arrayOf(142500, () => [{ tid: 4, cst: ComponentState.Initialized }]),
+    ...arrayOf(142500, () => [
+      { tid: 2, cst: ComponentState.Initialized },
+      { tid: 4, cst: ComponentState.Initialized },
+    ]),
   ]
   const queries = [
     [componentTypes[0]],

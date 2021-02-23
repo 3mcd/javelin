@@ -1,6 +1,7 @@
 import { createWorld, World } from "../world"
 import { attached } from "./attached"
 import { Component } from "../../dist/cjs/component"
+import { ComponentState } from "@javelin/ecs"
 
 jest.mock("../world")
 
@@ -19,10 +20,12 @@ describe("attached", () => {
     }
     const filter = attached(A)
     const a1 = {
-      type: 0,
+      tid: 0,
+      cst: ComponentState.Initialized,
     }
     const a2 = {
-      type: 0,
+      tid: 0,
+      cst: ComponentState.Initialized,
     }
 
     ;(world.attached as Set<Component>).add(a1)

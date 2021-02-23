@@ -1,8 +1,7 @@
 import {
-  $detached,
-  $worldStorageKey,
   Component,
   ComponentType,
+  ComponentState,
   DetachOp,
   mutableEmpty,
   SpawnOp,
@@ -80,7 +79,9 @@ export function createMessageProducer(
   function getInitialMessages(world: World) {
     const messages = []
     const ops: SpawnOp[] = []
-    const { archetypes } = world[$worldStorageKey]
+    const {
+      storage: { archetypes },
+    } = world
 
     for (let i = 0; i < archetypes.length; i++) {
       const { layout, entities, table, indices } = archetypes[i]
@@ -100,7 +101,7 @@ export function createMessageProducer(
           const componentIndex = componentIndices[k]
           const component = table[componentIndex][entityIndex]!
 
-          if (!(component as any).detached) {
+          if (component.cst === ComponentState.Initialized) {
             components.push(table[componentIndex][entityIndex]!)
           }
         }
@@ -135,7 +136,7 @@ export function createMessageProducer(
           case WorldOpType.Spawn:
           case WorldOpType.Attach: {
             const components = op[2].filter(c =>
-              allComponentTypeIds.includes(c.type),
+              allComponentTypeIds.includes(c.tid),
             )
 
             if (components.length > 0) {
@@ -214,7 +215,7 @@ export function createMessageProducer(
   function getUnreliableMessages(world: World): UpdateUnreliable[] {
     const time = Date.now()
     const {
-      [$worldStorageKey]: { archetypes },
+      storage: { archetypes },
     } = world
 
     if (time - previousUnreliableSendTime < options.updateInterval) {

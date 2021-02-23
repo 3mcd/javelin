@@ -1,6 +1,6 @@
 import { createComponentFilter } from "../filter"
-import { $detached } from "../symbols"
+import { ComponentState } from "../component"
 
-export const detached = createComponentFilter(() => c =>
-  (c as any).detached === true,
+export const detached = createComponentFilter(() => ({ cst }) =>
+  cst === ComponentState.Detached,
 )

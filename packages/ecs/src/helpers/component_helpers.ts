@@ -1,35 +1,60 @@
-import { Component, ComponentOf, ComponentType } from "../component"
+import {
+  Component,
+  ComponentOf,
+  ComponentType,
+  ComponentState,
+  ComponentBase,
+} from "../component"
 import { createStackPool } from "../pool/stack_pool"
 import {
   initializeComponentFromSchema,
   resetComponentFromSchema,
 } from "../schema/schema_utils"
-import { $detached } from "../symbols"
 
 export function createComponentType<C extends ComponentType>(componentType: C) {
   return componentType
+}
+
+export function createComponentBase(
+  componentType: ComponentType,
+): ComponentBase {
+  return Object.defineProperties(
+    {},
+    {
+      tid: { value: componentType.type, writable: false, enumerable: true },
+      cst: {
+        value: ComponentState.Initialized,
+        writable: true,
+        enumerable: false,
+      },
+    },
+  )
 }
 
 export function createComponentPool<C extends ComponentType>(
   componentType: C,
   poolSize: number,
 ) {
-  const pool = createStackPool<ComponentOf<C>>(
+  const componentPool = createStackPool<ComponentOf<C>>(
     () =>
       initializeComponentFromSchema(
-        { detached: false, type: componentType.type },
+        createComponentBase(componentType),
         componentType.schema,
       ) as ComponentOf<C>,
     c => resetComponentFromSchema(c, componentType.schema) as ComponentOf<C>,
     poolSize,
   )
 
-  return pool
+  return componentPool
 }
 
 export function isComponentOf<T extends ComponentType>(
   component: Component,
   componentTypeId: T,
 ): component is ComponentOf<T> {
-  return component.type === componentTypeId.type
+  return component.tid === componentTypeId.type
+}
+
+export function flagComponent(component: Component, state: ComponentState) {
+  component.cst = state
 }

@@ -1,5 +1,4 @@
 import {
-  $worldStorageKey,
   Component,
   mutableEmpty,
   System,
@@ -72,7 +71,7 @@ export function createMessageHandler(
   const tmpComponentsToUpsert: Component[] = []
 
   function handleUnreliableUpdate(update: UpdateUnreliable, world: World) {
-    const { [$worldStorageKey]: storage } = world
+    const { storage } = world
     const [, isLocal] = update
 
     let entity: number | null = null
@@ -182,7 +181,7 @@ export function createMessageHandler(
     } else {
       remote = Array.isArray(opOrComponent)
         ? opOrComponent[1]
-        : opOrComponent.type
+        : opOrComponent.tid
     }
 
     const local = remoteToLocal.get(remote)

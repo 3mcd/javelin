@@ -1,5 +1,6 @@
 import { createWorld, World } from "../world"
 import { changed } from "./changed"
+import { ComponentState } from "@javelin/ecs"
 
 jest.mock("../world")
 
@@ -17,7 +18,8 @@ describe("changed", () => {
     }
     const filter = changed(A)
     const component = {
-      type: 0,
+      tid: 0,
+      cst: ComponentState.Initialized,
     }
 
     ;(world.isComponentChanged as jest.Mock).mockReturnValue(true)

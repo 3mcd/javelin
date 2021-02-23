@@ -1,8 +1,7 @@
 import { Archetype, createArchetype } from "./archetype"
-import { Component, ComponentType } from "./component"
+import { Component, ComponentType, ComponentState } from "./component"
 import { ComponentFilter } from "./filter"
 import { query } from "./query"
-import { $worldStorageKey } from "./symbols"
 import { createWorld } from "./world"
 import { createComponentType } from "./helpers"
 
@@ -16,24 +15,24 @@ describe("query", () => {
     const world = createWorld()
     const table = [
       [
-        { type: 1, foo: 1 },
-        { type: 1, foo: 2 },
-        { type: 1, foo: 3 },
+        { tid: 1, cst: ComponentState.Initialized, foo: 1 },
+        { tid: 1, cst: ComponentState.Initialized, foo: 2 },
+        { tid: 1, cst: ComponentState.Initialized, foo: 3 },
       ],
       [
-        { type: 0, foo: 4 },
-        { type: 0, foo: 5 },
-        { type: 0, foo: 6 },
+        { tid: 0, cst: ComponentState.Initialized, foo: 4 },
+        { tid: 0, cst: ComponentState.Initialized, foo: 5 },
+        { tid: 0, cst: ComponentState.Initialized, foo: 6 },
       ],
     ]
 
-    ;(world as any)[$worldStorageKey].archetypes = [
+    ;(world.storage.archetypes as Archetype[]) = [
       {
         ...createArchetype([0]),
         layout: [1, 0],
+        layoutInverse: [1, 0],
         entities: [1, 2, 0],
-        entitiesByIndex: [2, 1, 0],
-        indices: [2, 1, 0],
+        indices: [2, 0, 1],
         table,
       } as Archetype,
     ]
@@ -58,9 +57,9 @@ describe("query", () => {
     const world = createWorld()
     const table = [
       [
-        { type: 0, foo: 5 },
-        { type: 0, foo: 1 },
-        { type: 0, foo: 4 },
+        { tid: 0, cst: ComponentState.Initialized, foo: 5 },
+        { tid: 0, cst: ComponentState.Initialized, foo: 1 },
+        { tid: 0, cst: ComponentState.Initialized, foo: 4 },
       ],
     ]
     const filter = (componentType: ComponentType): ComponentFilter => ({
@@ -68,12 +67,12 @@ describe("query", () => {
       componentPredicate: (c: Component) => c.foo === 1,
     })
 
-    ;(world as any)[$worldStorageKey].archetypes = [
+    ;(world.storage.archetypes as Archetype[]) = [
       {
         ...createArchetype([0]),
         layout: [0],
+        layoutInverse: [0],
         entities: [0, 1, 2],
-        entitiesByIndex: [0, 1, 2],
         indices: [0, 1, 2],
         table,
       } as Archetype,

@@ -142,7 +142,7 @@ export function createStorage(): Storage {
 
       for (let j = 0; j < len; j++) {
         // Affirm that archetype contains each component of predicate.
-        if (layout.indexOf(components[j].type) === -1) {
+        if (layout.indexOf(components[j].tid) === -1) {
           match = false
           break
         }
@@ -165,7 +165,7 @@ export function createStorage(): Storage {
     let archetype = findArchetype(components)
 
     if (!archetype) {
-      archetype = createArchetype(components.map(c => c.type))
+      archetype = createArchetype(components.map(c => c.tid))
       archetypes.push(archetype)
     }
 
@@ -222,7 +222,7 @@ export function createStorage(): Storage {
     for (let i = 0; i < source.layout.length; i++) {
       const componentTypeId = source.layout[i]
 
-      if (components.find(c => c.type === componentTypeId)) {
+      if (components.find(c => c.tid === componentTypeId)) {
         throw new Error(
           `Cannot attach component with type ${componentTypeId} — entity already has component of type.`,
         )
@@ -236,7 +236,7 @@ export function createStorage(): Storage {
   }
 
   function remove(entity: number, components: Component[]) {
-    const typesToRemove = components.map(component => component.type)
+    const typesToRemove = components.map(component => component.tid)
 
     removeByTypeIds(entity, typesToRemove)
   }
@@ -298,7 +298,7 @@ export function createStorage(): Storage {
 
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const componentIndex = archetype.layout.indexOf(component.type)
+      const componentIndex = archetype.layout.indexOf(component.tid)
 
       if (componentIndex === -1) {
         // Entity component makeup does not match patch component, insert the new

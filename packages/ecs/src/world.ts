@@ -2,13 +2,12 @@ import {
   Component,
   ComponentInitializerArgs,
   ComponentOf,
+  ComponentState,
   ComponentType,
 } from "./component"
-import { createComponentPool } from "./helpers"
+import { createComponentPool, flagComponent } from "./helpers"
 import { createStackPool, StackPool } from "./pool"
-import { initializeComponentFromSchema } from "./schema"
 import { createStorage, Storage } from "./storage"
-import { $detached, $worldStorageKey } from "./symbols"
 import { mutableEmpty } from "./util"
 import {
   AttachOp,
@@ -144,7 +143,6 @@ export interface World<T = any> {
   /**
    * Entity-component storage.
    */
-  readonly [$worldStorageKey]: Storage
   readonly storage: Storage
 
   /**
@@ -193,10 +191,6 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
   let entityCounter = 0
 
-  function flagDetached(component: Component) {
-    ;(component as any).detached = true
-  }
-
   function applySpawnOp(op: SpawnOp) {
     const [, entity, components] = op
 
@@ -224,7 +218,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
 
-      if (componentTypeIds.includes(component.type)) {
+      if (componentTypeIds.includes(component.tid)) {
         maybeReleaseComponent(component)
       }
     }
@@ -254,7 +248,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   }
 
   function maybeReleaseComponent(component: Component) {
-    const pool = componentPoolsByComponentTypeId.get(component.type)
+    const pool = componentPoolsByComponentTypeId.get(component.tid)
 
     if (pool) {
       pool.release(component)
@@ -318,12 +312,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
       componentType.type,
     ) as StackPool<ComponentOf<T>>
 
-    const component = pool
-      ? pool.retain()
-      : (initializeComponentFromSchema(
-          { type: componentType.type },
-          componentType.schema,
-        ) as ComponentOf<T>)
+    const component = pool.retain()
 
     if (componentType.initialize) {
       componentType.initialize(component, ...args)
@@ -358,12 +347,14 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   }
 
   function detach(entity: number, ...components: ReadonlyArray<Component>) {
-    const componentTypeIds = components.map(c => c.type)
+    const componentTypeIds = components.map(c => c.tid)
     const worldOp = createOp(WorldOpType.Detach, entity, componentTypeIds)
 
     worldOps.push(worldOp)
 
-    components.forEach(flagDetached)
+    components.forEach(component =>
+      flagComponent(component, ComponentState.Detached),
+    )
   }
 
   function destroy(entity: number) {
@@ -372,7 +363,9 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
     worldOps.push(worldOp)
 
-    components.forEach(flagDetached)
+    components.forEach(component =>
+      flagComponent(component, ComponentState.Detached),
+    )
   }
 
   function applyOps(opsToApply: WorldOp[]) {
@@ -386,15 +379,17 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
         for (let j = 0; j < components.length; j++) {
           const component = components[j]
 
-          if (componentTypeIds.includes(component.type)) {
-            flagDetached(component)
+          if (componentTypeIds.includes(component.tid)) {
+            flagComponent(component, ComponentState.Detached)
           }
         }
       } else if (op[0] === WorldOpType.Destroy) {
         const [, entity] = op
         const components = storage.getEntityComponents(entity)
 
-        components.forEach(flagDetached)
+        components.forEach(component =>
+          flagComponent(component, ComponentState.Detached),
+        )
       }
 
       applyWorldOp(op)
@@ -445,8 +440,6 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   const { getObservedComponent, isComponentChanged, patch } = storage
 
   const world = {
-    [$worldStorageKey]: storage,
-    storage,
     addSystem,
     applyOps,
     attach,
@@ -462,6 +455,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     patch,
     removeSystem,
     spawn,
+    storage,
     tick,
     tryGetComponent,
   }

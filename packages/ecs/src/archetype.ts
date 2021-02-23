@@ -31,7 +31,7 @@ export interface Archetype {
    *   (Position) [[ p, p, p ]
    *   (Velocity) [  v, v, v ]]
    *
-   * The index of each entity is tracked in the `indices array`.
+   * The index of each entity is tracked in the `indices` array.
    */
   readonly table: ReadonlyArray<ReadonlyArray<Component | null>>
 
@@ -40,6 +40,12 @@ export interface Archetype {
    * the type's collection in the archetype table.
    */
   readonly layout: ReadonlyArray<number>
+
+  /**
+   * Array where each index is a component type and the corresponding index is
+   * the component type's column index in the component table.
+   */
+  readonly layoutInverse: ReadonlyArray<number>
 
   /**
    * Array of entities tracked by this archetype. Not used internally:
@@ -69,6 +75,10 @@ export function createArchetype(layout: number[]): Archetype {
   const table: (Component | null)[][] = []
   const entities: number[] = []
   const indices: number[] = []
+  const layoutInverse = layout.reduce((a, x, i) => {
+    a[x] = i
+    return a
+  }, [] as number[])
 
   // Initialize the table with an empty collection of components for each
   // component type.
@@ -79,7 +89,7 @@ export function createArchetype(layout: number[]): Archetype {
   function insert(entity: number, components: Component[]) {
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const componentTypeIndex = layout.indexOf(component.type)
+      const componentTypeIndex = layoutInverse[component.tid]
 
       table[componentTypeIndex].push(component)
     }
@@ -90,23 +100,30 @@ export function createArchetype(layout: number[]): Archetype {
   function remove(entity: number) {
     const length = entities.length
     const index = indices[entity]
+    const head = entities.pop()
+
+    indices[entity] = -1
 
     if (index === length - 1) {
-      for (const components of table) components[length] = null
-    } else {
-      for (const components of table) {
-        components[index] = components.pop()!
-      }
+      for (const column of table) column.pop()
+      return
     }
 
-    // Overwrite the removed entity position and index with the leading entity.
-    entities[index] = entities.pop()!
-    indices[entities[length]] = index
-    delete indices[entity]
+    // Move leading entity's components to removed index position
+    for (const column of table) {
+      column[index] = column.pop()!
+    }
+
+    // Move leading entity to removed index position
+    entities[index] = head!
+
+    // Update previously leading entity's index
+    indices[head!] = index
   }
 
   return {
     layout,
+    layoutInverse,
     table,
     indices,
     entities,

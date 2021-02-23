@@ -1,8 +1,7 @@
 import { Archetype } from "./archetype"
 import { ComponentOf, ComponentType, Component } from "./component"
 import { ComponentFilter } from "./filter"
-import { $worldStorageKey, $detached } from "./symbols"
-import { arrayOf, mutableEmpty } from "./util/array"
+import { arrayOf } from "./util/array"
 import { World } from "./world"
 
 export type Selector = (ComponentType | ComponentFilter)[]
@@ -51,7 +50,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
   let archetypes: ReadonlyArray<Archetype>
   let archetype: Archetype | null
   let archetypeIndex = -1
-  let readIndex = -1
+  let entityIndex = -1
 
   const result: IteratorResult<QueryResult<S>> = {
     value: queryResult as QueryResult<S>,
@@ -62,22 +61,17 @@ export function query<S extends Selector>(...selector: S): Query<S> {
     const { table, entities } = archetype!
     const length = entities.length
 
-    outer: while (++readIndex < length) {
-      queryResult[0] = entities[readIndex]
+    outer: while (++entityIndex < length) {
+      queryResult[0] = entities[entityIndex]
 
-      for (let k = 0; k < queryLength; k++) {
-        const filter = filters[k]
-        const component = table[tmpReadIndices[k]][readIndex]!
+      for (let i = 0; i < queryLength; i++) {
+        const component = table[tmpReadIndices[i]][entityIndex]!
 
-        if (
-          filter
-            ? filter(component, world) === false
-            : (component as any).detached
-        ) {
+        if (filters[i]?.(component, world) ?? component.cst === 0) {
+          ;(selectorResult as Component[])[i] = component
+        } else {
           continue outer
         }
-
-        ;(selectorResult as any)[k] = component
       }
 
       return
@@ -87,30 +81,26 @@ export function query<S extends Selector>(...selector: S): Query<S> {
   }
 
   function goToNextArchetype() {
-    let visiting: Archetype
-
-    outer: while ((visiting = archetypes[++archetypeIndex])) {
-      const { layout } = visiting
-
-      archetype = visiting
-      readIndex = -1
+    outer: while ((archetype = archetypes[++archetypeIndex])) {
+      const { layoutInverse } = archetype
 
       for (let i = 0; i < queryLength; i++) {
-        const index = layout.indexOf(queryLayout[i])
+        const index = layoutInverse[queryLayout[i]]
 
-        if (index === -1) {
+        if (index === undefined) {
           continue outer
         }
 
         tmpReadIndices[i] = index
       }
 
+      entityIndex = -1
+
       loadNextResult()
       return
     }
 
     result.done = true
-    queryResult[0] = -1
   }
 
   const iterator = {
@@ -136,7 +126,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
     archetypes = nextWorld.storage.archetypes
     archetype = null
     archetypeIndex = -1
-    readIndex = -1
+    entityIndex = -1
     result.done = false
 
     return iterable

@@ -1,4 +1,5 @@
-import { $isDataType, $detached } from "../symbols"
+import { Component, ComponentState } from "../component"
+import { $isDataType } from "../symbols"
 import { DataType, PropsOfSchema, Schema, SchemaKey } from "./schema_types"
 
 export function createDataType<T>(
@@ -12,7 +13,7 @@ export function isDataType(obj: any): obj is DataType<any> {
 }
 
 export function initializeComponentFromSchema<S extends Schema>(
-  component: any,
+  component: Component,
   schema: S,
 ): PropsOfSchema<S> {
   for (const prop in schema) {
@@ -36,10 +37,10 @@ export function initializeComponentFromSchema<S extends Schema>(
 }
 
 export function resetComponentFromSchema<S extends Schema>(
-  component: any,
+  component: Component,
   schema: S,
 ) {
-  component.detached = false
+  component.cst = ComponentState.Initialized
 
   for (const prop in schema) {
     const value = schema[prop] as SchemaKey

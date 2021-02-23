@@ -1,11 +1,11 @@
+import { ComponentState, World, WorldOpType } from "@javelin/ecs"
 import { createMessageHandler } from "./message_handler"
 import {
-  Update,
-  UpdateUnreliable,
   JavelinMessageType,
   protocol,
+  Update,
+  UpdateUnreliable,
 } from "./protocol"
-import { World, WorldOpType, $worldStorageKey } from "@javelin/ecs"
 
 describe("createMessageHandler", () => {
   it("applies reliable component updates", () => {
@@ -41,10 +41,18 @@ describe("createMessageHandler", () => {
       6,
     ]
     const opsA = protocol.ops([
-      [WorldOpType.Spawn, 0, [{ type: 0, x: 0, y: 0, z: 0 }]],
+      [
+        WorldOpType.Spawn,
+        0,
+        [{ tid: 0, cst: ComponentState.Initialized, x: 0, y: 0, z: 0 }],
+      ],
     ])
     const opsB = protocol.ops([
-      [WorldOpType.Spawn, 1, [{ type: 0, x: 0, y: 0, z: 0 }]],
+      [
+        WorldOpType.Spawn,
+        1,
+        [{ tid: 0, cst: ComponentState.Initialized, x: 0, y: 0, z: 0 }],
+      ],
     ])
 
     spawn.mockReturnValue(0)
@@ -97,10 +105,18 @@ describe("createMessageHandler", () => {
       3,
     ]
     const opsA = protocol.ops([
-      [WorldOpType.Spawn, 0, [{ type: 0, x: 0, y: 0, z: 0 }]],
+      [
+        WorldOpType.Spawn,
+        0,
+        [{ tid: 0, cst: ComponentState.Initialized, x: 0, y: 0, z: 0 }],
+      ],
     ])
     const opsB = protocol.ops([
-      [WorldOpType.Spawn, 1, [{ type: 0, x: 0, y: 0, z: 0 }]],
+      [
+        WorldOpType.Spawn,
+        1,
+        [{ tid: 0, cst: ComponentState.Initialized, x: 0, y: 0, z: 0 }],
+      ],
     ])
 
     spawn.mockReturnValue(0)
@@ -127,7 +143,7 @@ describe("createMessageHandler", () => {
     const spawn = jest.fn()
     const messageHandler = createMessageHandler()
     const world = ({
-      [$worldStorageKey]: {
+      storage: {
         upsert,
       },
       spawn,
@@ -139,16 +155,24 @@ describe("createMessageHandler", () => {
       null,
       // entity 0 (registered)
       0,
-      { type: 0, x: 1, y: 1 },
+      { tid: 0, cst: ComponentState.Initialized, x: 1, y: 1 },
       // entity 1 (registered)
       1,
-      { type: 0, x: 2, y: 2 },
+      { tid: 0, cst: ComponentState.Initialized, x: 2, y: 2 },
     ]
     const opsA = protocol.ops([
-      [WorldOpType.Spawn, 0, [{ type: 0, x: 0, y: 0 }]],
+      [
+        WorldOpType.Spawn,
+        0,
+        [{ tid: 0, cst: ComponentState.Initialized, x: 0, y: 0 }],
+      ],
     ])
     const opsB = protocol.ops([
-      [WorldOpType.Spawn, 1, [{ type: 0, x: 0, y: 0 }]],
+      [
+        WorldOpType.Spawn,
+        1,
+        [{ tid: 0, cst: ComponentState.Initialized, x: 0, y: 0 }],
+      ],
     ])
 
     spawn.mockReturnValue(0)
@@ -162,7 +186,13 @@ describe("createMessageHandler", () => {
     messageHandler.handleUnreliableUpdate(update, world)
 
     expect(upsert).toHaveBeenCalledTimes(2)
-    expect(upsertCallArgs[0]).toEqual([0, [{ type: 0, x: 1, y: 1 }]])
-    expect(upsertCallArgs[1]).toEqual([1, [{ type: 0, x: 2, y: 2 }]])
+    expect(upsertCallArgs[0]).toEqual([
+      0,
+      [{ tid: 0, cst: ComponentState.Initialized, x: 1, y: 1 }],
+    ])
+    expect(upsertCallArgs[1]).toEqual([
+      1,
+      [{ tid: 0, cst: ComponentState.Initialized, x: 2, y: 2 }],
+    ])
   })
 })
