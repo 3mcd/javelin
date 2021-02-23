@@ -12,12 +12,12 @@ module.exports.run = function run() {
     { schema: {}, type: 4 },
   ]
   const components = [
-    ...arrayOf(75000, () => [{ type: 1 }]),
-    ...arrayOf(75000, () => [{ type: 1 }, { type: 3 }]),
-    ...arrayOf(75000, () => [{ type: 2 }]),
-    ...arrayOf(75000, () => [{ type: 1 }, { type: 2 }, { type: 3 }]),
-    ...arrayOf(75000, () => [{ type: 4 }]),
-    ...arrayOf(75000, () => [{ type: 2 }, { type: 4 }]),
+    ...arrayOf(142500, () => [{ type: 1 }]),
+    ...arrayOf(142500, () => [{ type: 1 }, { type: 3 }]),
+    ...arrayOf(142500, () => [{ type: 2 }]),
+    ...arrayOf(142500, () => [{ type: 1 }, { type: 2 }, { type: 3 }]),
+    ...arrayOf(142500, () => [{ type: 4 }]),
+    ...arrayOf(142500, () => [{ type: 2 }, { type: 4 }]),
   ]
   const queries = [
     [componentTypes[0]],

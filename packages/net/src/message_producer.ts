@@ -100,7 +100,7 @@ export function createMessageProducer(
           const componentIndex = componentIndices[k]
           const component = table[componentIndex][entityIndex]!
 
-          if (!(component as any)[$detached]) {
+          if (!(component as any).detached) {
             components.push(table[componentIndex][entityIndex]!)
           }
         }
@@ -117,7 +117,7 @@ export function createMessageProducer(
   }
 
   function getReliableMessages(world: World) {
-    const storage = world[$worldStorageKey]
+    const storage = world.storage
     const { archetypes } = storage
     const messages: JavelinMessage[] = []
 

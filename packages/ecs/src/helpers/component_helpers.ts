@@ -17,7 +17,7 @@ export function createComponentPool<C extends ComponentType>(
   const pool = createStackPool<ComponentOf<C>>(
     () =>
       initializeComponentFromSchema(
-        { [$detached]: false, type: componentType.type },
+        { detached: false, type: componentType.type },
         componentType.schema,
       ) as ComponentOf<C>,
     c => resetComponentFromSchema(c, componentType.schema) as ComponentOf<C>,

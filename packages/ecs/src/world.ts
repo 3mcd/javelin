@@ -145,6 +145,7 @@ export interface World<T = any> {
    * Entity-component storage.
    */
   readonly [$worldStorageKey]: Storage
+  readonly storage: Storage
 
   /**
    * Set of WorldOps that were processed last tick.
@@ -193,7 +194,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   let entityCounter = 0
 
   function flagDetached(component: Component) {
-    ;(component as any)[$detached] = true
+    ;(component as any).detached = true
   }
 
   function applySpawnOp(op: SpawnOp) {
@@ -445,6 +446,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
   const world = {
     [$worldStorageKey]: storage,
+    storage,
     addSystem,
     applyOps,
     attach,

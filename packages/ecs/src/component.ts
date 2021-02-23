@@ -27,6 +27,7 @@ export type ComponentType<
 
 export type Component<P extends ComponentProps = ComponentProps> = {
   type: number
+  detached: boolean
 } & P
 
 export type ComponentOf<C extends ComponentType> = C extends ComponentType<

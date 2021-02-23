@@ -39,7 +39,7 @@ export function resetComponentFromSchema<S extends Schema>(
   component: any,
   schema: S,
 ) {
-  component[$detached] = false
+  component.detached = false
 
   for (const prop in schema) {
     const value = schema[prop] as SchemaKey

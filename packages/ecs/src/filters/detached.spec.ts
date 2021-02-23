@@ -21,7 +21,7 @@ describe("attached", () => {
     const filter = detached(A)
     const a1 = {
       type: 0,
-      [$detached]: true,
+      .detached: true,
     }
     const a2 = {
       type: 0,

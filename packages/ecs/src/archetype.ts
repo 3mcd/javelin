@@ -57,8 +57,6 @@ export interface Archetype {
    *
    */
   readonly indices: ReadonlyArray<number>
-
-  readonly entitiesByIndex: ReadonlyArray<number>
 }
 
 /**
@@ -71,7 +69,6 @@ export function createArchetype(layout: number[]): Archetype {
   const table: (Component | null)[][] = []
   const entities: number[] = []
   const indices: number[] = []
-  const entitiesByIndex: number[] = []
 
   // Initialize the table with an empty collection of components for each
   // component type.
@@ -79,49 +76,33 @@ export function createArchetype(layout: number[]): Archetype {
     table[i] = []
   }
 
-  let head = -1
-
   function insert(entity: number, components: Component[]) {
-    head++
-
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
       const componentTypeIndex = layout.indexOf(component.type)
 
-      table[componentTypeIndex][head] = component
+      table[componentTypeIndex].push(component)
     }
 
-    entities[head] = entity
-    indices[entity] = head
-    entitiesByIndex[head] = entity
+    indices[entity] = entities.push(entity) - 1
   }
 
   function remove(entity: number) {
+    const length = entities.length
     const index = indices[entity]
 
-    if (index === head) {
-      for (const components of table) components[head] = null
+    if (index === length - 1) {
+      for (const components of table) components[length] = null
     } else {
       for (const components of table) {
-        // Overwrite the entity with the head entity's component.
-        components[index] = components[head]
-        // Unset the head entity's component. Unnecessary since the component
-        // reference would be overwritten on the next insert, but we unset it
-        // anyways for clarity.
-        components[head] = null
+        components[index] = components.pop()!
       }
     }
 
     // Overwrite the removed entity position and index with the leading entity.
-    entities[index] = entities[head]
-    entitiesByIndex[index] = entitiesByIndex[head]
-    indices[entities[head]] = index
-    indices[entity] = -1
-
-    // Remove the duplicate copied entity.
-    entities.pop()
-
-    head--
+    entities[index] = entities.pop()!
+    indices[entities[length]] = index
+    delete indices[entity]
   }
 
   return {
@@ -131,6 +112,5 @@ export function createArchetype(layout: number[]): Archetype {
     entities,
     insert,
     remove,
-    entitiesByIndex,
   }
 }

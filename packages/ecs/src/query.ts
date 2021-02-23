@@ -59,11 +59,11 @@ export function query<S extends Selector>(...selector: S): Query<S> {
   }
 
   function loadNextResult() {
-    const { table, entitiesByIndex } = archetype!
-    const [col0] = table
+    const { table, entities } = archetype!
+    const length = entities.length
 
-    outer: while (col0[++readIndex]) {
-      queryResult[0] = entitiesByIndex[readIndex]
+    outer: while (++readIndex < length) {
+      queryResult[0] = entities[readIndex]
 
       for (let k = 0; k < queryLength; k++) {
         const filter = filters[k]
@@ -72,7 +72,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
         if (
           filter
             ? filter(component, world) === false
-            : (component as any)[$detached]
+            : (component as any).detached
         ) {
           continue outer
         }
@@ -111,7 +111,6 @@ export function query<S extends Selector>(...selector: S): Query<S> {
 
     result.done = true
     queryResult[0] = -1
-    mutableEmpty(selectorResult)
   }
 
   const iterator = {
@@ -134,7 +133,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
 
   return (nextWorld: World) => {
     world = nextWorld
-    archetypes = nextWorld[$worldStorageKey].archetypes
+    archetypes = nextWorld.storage.archetypes
     archetype = null
     archetypeIndex = -1
     readIndex = -1
