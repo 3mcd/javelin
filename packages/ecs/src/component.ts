@@ -2,8 +2,11 @@ import { AnySchema, PropsOfSchema, Schema } from "./schema/schema_types"
 
 export type ComponentProps = Record<string, unknown>
 export enum ComponentState {
-  Initialized = 0,
-  Detached = 1,
+  Orphaned = 0,
+  Attaching = 1,
+  Attached = 2,
+  Detaching = 3,
+  Detached = 4,
 }
 
 export type ComponentInitializer<S extends Schema> = (

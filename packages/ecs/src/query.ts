@@ -67,7 +67,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
       for (let i = 0; i < queryLength; i++) {
         const component = table[tmpReadIndices[i]][entityIndex]!
 
-        if (filters[i]?.(component, world) ?? component.cst === 0) {
+        if (filters[i]?.(component, world) ?? component.cst === 2) {
           ;(selectorResult as Component[])[i] = component
         } else {
           continue outer

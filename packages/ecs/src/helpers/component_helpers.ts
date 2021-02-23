@@ -23,7 +23,7 @@ export function createComponentBase(
     {
       tid: { value: componentType.type, writable: false, enumerable: true },
       cst: {
-        value: ComponentState.Initialized,
+        value: ComponentState.Orphaned,
         writable: true,
         enumerable: false,
       },
@@ -57,4 +57,13 @@ export function isComponentOf<T extends ComponentType>(
 
 export function flagComponent(component: Component, state: ComponentState) {
   component.cst = state
+}
+
+export function flagComponents(
+  components: readonly Component[],
+  state: ComponentState,
+) {
+  for (let i = 0; i < components.length; i++) {
+    components[i].cst = state
+  }
 }

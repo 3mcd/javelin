@@ -5,7 +5,7 @@ import {
   ComponentState,
   ComponentType,
 } from "./component"
-import { createComponentPool, flagComponent } from "./helpers"
+import { createComponentPool, flagComponent, flagComponents } from "./helpers"
 import { createStackPool, StackPool } from "./pool"
 import { createStorage, Storage } from "./storage"
 import { mutableEmpty } from "./util"
@@ -154,11 +154,6 @@ export interface World<T = any> {
    * Array of registered component factories.
    */
   readonly componentTypes: ReadonlyArray<ComponentType>
-
-  /**
-   * Set of components attached last tick.
-   */
-  readonly attached: ReadonlySet<Component>
 }
 
 export type System<T> = (world: World<T>, data: T) => void
@@ -187,16 +182,17 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   const storage = createStorage()
   const componentTypes: ComponentType[] = []
   const destroyed = new Set<number>()
-  const attached = new Set<Component>()
+  const detached = new Map<number, readonly number[]>()
+  const attaching: (readonly Component[])[] = []
 
+  let currentTick = 0
   let entityCounter = 0
 
   function applySpawnOp(op: SpawnOp) {
     const [, entity, components] = op
 
-    for (let i = 0; i < components.length; i++) {
-      attached.add(components[i])
-    }
+    flagComponents(components, ComponentState.Attaching)
+    attaching.push(components)
 
     storage.create(entity, components as Component[])
   }
@@ -204,30 +200,32 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   function applyAttachOp(op: AttachOp) {
     const [, entity, components] = op
 
-    for (let i = 0; i < components.length; i++) {
-      attached.add(components[i])
-    }
+    flagComponents(components, ComponentState.Attaching)
+    attaching.push(components)
 
     storage.insert(entity, components as Component[])
   }
 
   function applyDetachOp(op: DetachOp) {
     const [, entity, componentTypeIds] = op
-    const components = storage.getEntityComponents(entity)
 
-    for (let i = 0; i < components.length; i++) {
-      const component = components[i]
+    for (let i = 0; i < componentTypeIds.length; i++) {
+      const component = storage.findComponentByComponentTypeId(
+        entity,
+        componentTypeIds[i],
+      )!
 
-      if (componentTypeIds.includes(component.tid)) {
-        maybeReleaseComponent(component)
-      }
+      flagComponent(component, ComponentState.Detached)
     }
 
-    storage.removeByTypeIds(entity, componentTypeIds as number[])
+    detached.set(entity, componentTypeIds)
   }
 
   function applyDestroyOp(op: DestroyOp) {
     const [, entity] = op
+    const components = storage.getEntityComponents(entity)
+
+    flagComponents(components, ComponentState.Detached)
 
     destroyed.add(entity)
   }
@@ -255,12 +253,23 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     }
   }
 
-  function internalDestroy(entity: number) {
+  function finalDestroy(entity: number) {
     storage.getEntityComponents(entity).forEach(maybeReleaseComponent)
     storage.destroy(entity)
   }
 
-  function tick(data: T) {
+  function finalDetach(componentTypeIds: readonly number[], entity: number) {
+    for (let i = 0; i < componentTypeIds.length; i++) {
+      const component = storage.findComponentByComponentTypeId(
+        entity,
+        componentTypeIds[i],
+      )!
+      maybeReleaseComponent(component)
+    }
+    storage.removeByTypeIds(entity, componentTypeIds as number[])
+  }
+
+  function maintain() {
     // Clear change cache
     storage.clearMutations()
 
@@ -269,19 +278,34 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
       worldOpPool.release(worldOpsPrevious.pop()!)
     }
 
-    destroyed.forEach(internalDestroy)
-    destroyed.clear()
+    while (attaching.length > 0) {
+      flagComponents(attaching.pop()!, ComponentState.Attached)
+    }
 
-    attached.clear()
+    detached.forEach(finalDetach)
+    detached.clear()
+
+    destroyed.forEach(finalDestroy)
+    destroyed.clear()
 
     while (worldOps.length > 0) {
       applyWorldOp(worldOps.pop()!)
     }
+  }
+
+  function tick(data: T) {
+    if (currentTick === 0) {
+      maintain()
+    }
+
+    maintain()
 
     // Execute systems
     for (let i = 0; i < systems.length; i++) {
       systems[i](world, data)
     }
+
+    currentTick++
   }
 
   function addSystem(system: System<T>) {
@@ -350,46 +374,48 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     const componentTypeIds = components.map(c => c.tid)
     const worldOp = createOp(WorldOpType.Detach, entity, componentTypeIds)
 
-    worldOps.push(worldOp)
+    flagComponents(components, ComponentState.Detaching)
 
-    components.forEach(component =>
-      flagComponent(component, ComponentState.Detached),
-    )
+    worldOps.push(worldOp)
   }
 
   function destroy(entity: number) {
     const worldOp = createOp(WorldOpType.Destroy, entity)
     const components = storage.getEntityComponents(entity)
 
-    worldOps.push(worldOp)
+    flagComponents(components, ComponentState.Detaching)
 
-    components.forEach(component =>
-      flagComponent(component, ComponentState.Detached),
-    )
+    worldOps.push(worldOp)
   }
 
   function applyOps(opsToApply: WorldOp[]) {
     for (let i = 0; i < opsToApply.length; i++) {
       const op = opsToApply[i]
 
-      if (op[0] === WorldOpType.Detach) {
-        const [, entity, componentTypeIds] = op
-        const components = storage.getEntityComponents(entity)
+      switch (op[0]) {
+        case WorldOpType.Detach: {
+          const [, entity, componentTypeIds] = op
+          const components = componentTypeIds.map(
+            componentTypeId =>
+              storage.findComponentByComponentTypeId(entity, componentTypeId)!,
+          )
 
-        for (let j = 0; j < components.length; j++) {
-          const component = components[j]
+          for (let j = 0; j < components.length; j++) {
+            const component = components[j]
 
-          if (componentTypeIds.includes(component.tid)) {
-            flagComponent(component, ComponentState.Detached)
+            if (component) {
+              flagComponent(component, ComponentState.Detaching)
+            }
           }
+          break
         }
-      } else if (op[0] === WorldOpType.Destroy) {
-        const [, entity] = op
-        const components = storage.getEntityComponents(entity)
+        case WorldOpType.Destroy: {
+          const [, entity] = op
+          const components = storage.getEntityComponents(entity)
 
-        components.forEach(component =>
-          flagComponent(component, ComponentState.Detached),
-        )
+          flagComponents(components, ComponentState.Detaching)
+          break
+        }
       }
 
       applyWorldOp(op)
@@ -443,7 +469,6 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     addSystem,
     applyOps,
     attach,
-    attached,
     component,
     componentTypes,
     destroy,

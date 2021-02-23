@@ -63,15 +63,26 @@ export interface Storage {
   destroy(entity: number): void
 
   /**
-   * Locate a component related to a specific entity.
+   * Locate an entity's component by component type.
    *
    * @param entity Subject entity
-   * @param componentType Type of component to locate
+   * @param componentType Component type
    */
   findComponent<T extends ComponentType>(
     entity: number,
     componentType: T,
   ): ComponentOf<T> | null
+
+  /**
+   * Locate an entity's component by component type id.
+   *
+   * @param entity Subject entity
+   * @param componentType Type id of component type
+   */
+  findComponentByComponentTypeId<T extends ComponentType>(
+    entity: number,
+    componentTypeId: number,
+  ): Component | null
 
   /**
    * Get all components for an entity.
@@ -269,21 +280,19 @@ export function createStorage(): Storage {
 
   function patch(
     entity: number,
-    componentType: number,
+    componentTypeId: number,
     path: string,
     value: unknown,
   ) {
     const archetype = getEntityArchetype(entity)
     const entityIndex = archetype.indices[entity]
-    const componentIndex = archetype.layout.indexOf(componentType)
+    const column = archetype.layoutInverse[componentTypeId]
 
-    if (componentIndex === -1) {
+    if (column === undefined) {
       return
     }
 
-    const target = getObservedComponent(
-      archetype.table[componentIndex][entityIndex]!,
-    )
+    const target = getObservedComponent(archetype.table[column][entityIndex]!)
 
     applyMutation(target, path, value)
   }
@@ -298,15 +307,15 @@ export function createStorage(): Storage {
 
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const componentIndex = archetype.layout.indexOf(component.tid)
+      const column = archetype.layoutInverse[component.tid]
 
-      if (componentIndex === -1) {
+      if (column === undefined) {
         // Entity component makeup does not match patch component, insert the new
         // component.
         tmpComponentsToInsert.push(component)
       } else {
         const target = getObservedComponent(
-          archetype.table[componentIndex][entityIndex]!,
+          archetype.table[column][entityIndex]!,
         )
         // Apply patch to component.
         Object.assign(target, component)
@@ -322,17 +331,27 @@ export function createStorage(): Storage {
     entity: number,
     componentType: T,
   ) {
-    const archetype = getEntityArchetype(entity)
-    const componentIndex = archetype.layout.indexOf(componentType.type)
+    return findComponentByComponentTypeId(
+      entity,
+      componentType.type,
+    ) as ComponentOf<T>
+  }
 
-    if (componentIndex === -1) {
+  function findComponentByComponentTypeId<T extends ComponentType>(
+    entity: number,
+    componentTypeId: number,
+  ) {
+    const archetype = getEntityArchetype(entity)
+    const column = archetype.layoutInverse[componentTypeId]
+
+    if (column === undefined) {
       return null
     }
 
     const entityIndex = archetype.indices[entity]
 
     // UNSAFE: `!` is used because entity location is non-null.
-    return archetype.table[componentIndex][entityIndex]! as ComponentOf<T>
+    return archetype.table[column][entityIndex]! as ComponentOf<T>
   }
 
   function getComponentsOfEntity(entity: number) {
@@ -376,6 +395,7 @@ export function createStorage(): Storage {
     create,
     destroy,
     findComponent,
+    findComponentByComponentTypeId,
     getComponentMutations: getMutationsOfComponent,
     getEntityComponents: getComponentsOfEntity,
     getObservedComponent,

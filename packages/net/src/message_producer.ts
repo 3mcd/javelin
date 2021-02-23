@@ -101,7 +101,7 @@ export function createMessageProducer(
           const componentIndex = componentIndices[k]
           const component = table[componentIndex][entityIndex]!
 
-          if (component.cst === ComponentState.Initialized) {
+          if (component.cst === ComponentState.Attached) {
             components.push(table[componentIndex][entityIndex]!)
           }
         }

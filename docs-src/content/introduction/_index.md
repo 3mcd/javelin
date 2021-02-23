@@ -142,8 +142,14 @@ const physics = (world) => {
   }
 };
 
+const trashed = Javelin.query(Javelin.attached(Junk))
+
 const world = Javelin.createWorld({
-  systems: [physics, attract, render],
+  systems: [physics, attract, render, world => {
+    for (const [e] of trashed(world)) {
+      console.log(`Trashed ${e}`)
+    }
+  }],
 });
 const junkCount = 12000;
 
@@ -206,5 +212,4 @@ const interval = setInterval(() => {
 }, 3500);
 
 world.tick();
-
 </script>

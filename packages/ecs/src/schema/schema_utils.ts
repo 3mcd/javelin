@@ -40,7 +40,7 @@ export function resetComponentFromSchema<S extends Schema>(
   component: Component,
   schema: S,
 ) {
-  component.cst = ComponentState.Initialized
+  component.cst = ComponentState.Orphaned
 
   for (const prop in schema) {
     const value = schema[prop] as SchemaKey
