@@ -14,7 +14,7 @@ export type ComponentFilter<T extends ComponentType = ComponentType> = {
    * @param component Subject entity's component
    * @param world World of query
    */
-  componentPredicate(component: Component, world: World): boolean
+  componentPredicate(component: Component, world: World): unknown
 }
 
 export function createComponentFilter<T extends ComponentType>(

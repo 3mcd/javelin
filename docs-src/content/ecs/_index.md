@@ -11,30 +11,27 @@ In traditional OOP game development, entity data and behavior is often architect
 
 <aside>
   <p>
-    <strong>Note</strong> — all code in this section is pseudo-code. Skip to the <a href="/ecs/world">Hello World</a> section if you're ready for real examples.
+    <strong>Note</strong> — this section contains pseudo-code. Skip to the <a href="/ecs/world">Hello World</a> section if you're ready for real examples.
   </p>
 </aside>
 
 ```typescript
 class Body {
-  readonly velocity = [0, 0]
+  readonly velocity = { x: 0, y: 0 }
 }
 
 class Player extends Body {
-  readonly name: string
+  input: Input
 
-  constructor(name: string) {
-    super()
-    this.name = name
-  }
+  constructor(public input: Input) {}
 
   jump() {
-    this.velocity[1] += 2
+    this.velocity[1] += 1
   }
 }
 
 const input = new Input()
-const player = new Player()
+const player = new Player(input)
 
 setInterval(() => {
   if (input.isSpacebarPressed()) {
@@ -44,9 +41,11 @@ setInterval(() => {
 }, 16.66666)
 ```
 
-The player presses the spacebar on their keyboard, `player.jump()` is executed, and the actor jumps! But what if a player wants to spectate our game instead controlling an actor? In that scenario, it's unnecessary for `Player` to extend `Body`, and we'd either need to modify the inheritance structure, or write code to ensure that spectators shouldn't update data within the physics simulation.
+When the player presses the spacebar on their keyboard, `player.jump()` is called, and the physics body jumps! Easy enough.
 
-Data and behavior are separate concerns in an ECS. High-cohesion game objects are split into three distinct concerns: **components**, game data; **entities**, references to a vector of components; and **systems**, game behavior. This pattern gives us the ability to modify the behavior of entities at runtime.
+What if a player wants to spectate our game instead of controlling a character? In that scenario, it would be unnecessary for `Player` to extend `Body`, and we'd either need to modify the inheritance structure, or write defensive code to ensure that spectators shouldn't touch the physics simulation.
+
+Data and behavior are separate concerns in an ECS. High-cohesion game objects are split into three distinct concerns: **components**, game data; **entities**, a mutable array of components, the sum of which represents a game object (like a player); and **systems**, game behavior. This pattern gives us the ability to modify the behavior of entities at runtime.
 
 ### Components
 
@@ -54,46 +53,30 @@ In an ECS, components are typically plain objects that contain data and no metho
 
 ```
 Player { name: string }
-Input { space: boolean }
 Body { velocity: [number, number] }
+Input { space: boolean }
 ```
+
 ### Entities
 
-An entity is an integer that references a vector of components. An entity typically represents a game object (like a player, vehicle, or weapon) that could be made up of many components, but sometimes may only reference a single component with the purpose of holding global state. They do not contain any data of their own.
+An entity is an integer that references a vector (array) of components. An entity typically represents a game object (like a player, vehicle, or weapon) that could be made up of many components, but sometimes may only reference a single component with the purpose of holding global state. They do not contain any data of their own.
+
 ### Systems
 
-Systems are functions that implement game logic by reading and modifying components. The following pseudo-code example moves entities with both a Position and a Velocity:
+Systems are functions that iterate over entities and modify their components. This is how game logic is implemented in an ECS. The following pseudo-code is a depiction of how we might implement the jumping behavior from the above "traditional" example using the ECS pattern.
 
 ```
-for entity of (pos, vel)
-  pos[entity].x += vel[entity].x
-  pos[entity].y += vel[entity].y
-```
-## Iteration
-
-The above example where a single entity is modified each tick wouldn't scale to a game of any real complexity. The true power of ECS comes with iteration. We can apply the same rules to each entity in our game world with a simple for..of loop.
-
-```typescript
-const physicsSystem = () => {
-  for (const [player, input, body] of playersWithBodies) {
-    // do something for each player with input and body components
-  }
-}
+for entity of (player, input, body)
+  if (input[entity].jump)
+    body[entity].y += 1
 ```
 
-We can add jump behavior to _all_ players that have both an input and a body component!
+This example shows a system which iterates all components that have a `Player`, `Body`, and `Input` (e.g. a gamepad) component. Each player's input component is checked to determine if the jump key is pressed. If so, we locate the entity's body component and add to it's y-velocity.
 
 Spectators can now be represented with a `(Player, Input)` entity. Even though they aren't controlling a physics body yet, the `Input` component might allow them to move the game camera around. If the player chooses to enter the fray, we can insert a `Body` component into their entity, allowing them to control an actor in the scene.
 
-```typescript
-for (const [player] of players) {
-  if (player.joining && !hasBody(player)) {
-    world.insert(player, [body])
-    player.joining = false
-  }
-}
 ```
-
-The player's entity is now `(Player, Input, Body)`, making it eligible for physics updates from the physics simulation.
+add(entity, Body)
+```
 
 This pattern can be applied to many types of games. For example, an FPS game might consist of systems that handle physics, user input and movement, projectile collisions, and player inventory.

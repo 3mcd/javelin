@@ -7,14 +7,13 @@ base_url = "https://javelin.games"
 # Whether to automatically compile all Sass files in the sass directory
 compile_sass = true
 
-# Whether to do syntax highlighting
-# Theme can be customised by setting the `highlight_theme` variable to a theme supported by Zola
-highlight_code = true
-
 # Whether to build a search index to be used later on by a JavaScript library
 build_search_index = true
 
-highlight_theme = "snow-light"
+# highlight_theme = "snow-light"
+
+[markdown]
+highlight_code = true
 
 [extra]
 # Put all your custom variables here

@@ -5,7 +5,7 @@ weight = 1
 
 ## npm
 
-Javelin ECS can be installed via `npm` or `yarn`.
+Javelin ECS can be installed via `npm`:
 
 ```bash
 npm i @javelin/ecs

@@ -1,5 +1,5 @@
 +++
-title = "Hello World"
+title = "World"
 weight = 2
 +++
 
@@ -9,7 +9,7 @@ weight = 2
   </p>
 </aside>
 
-A `World` is responsible for maintaining entities and executing systems.
+A `World` is the root-level object in Javelin. Worlds are responsible for maintaining entities and executing systems. They expose methods for creating/removing entities, creating and associating components with entities, and locating the components of entities.
 
 Worlds are created using the `createWorld` function defined in [world.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts). `createWorld` accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.
 
@@ -34,3 +34,22 @@ setInterval(world.tick, 1000)
 ```
 
 More on systems later in the [Systems](/ecs/systems) section!
+
+## Finding Components
+
+Components are generally accessed using [queries](/ecs/systems/#querying-and-iteration); however, queries only locate entities who meet all the query's criteria. This makes it difficult to write conditional logic based on the presence of a component. For example, you may want to apply damage to all entities that match `(Health, Burn)`, but only if the entity doesn't have an `Invulnerable` component.
+
+`world.tryGetComponent` attempts to locate a component of an entity by component type, returning `null` if not found:
+
+```typescript
+if (!world.tryGetComponent(entity, Invulnerable)) {
+  health.value -= burn.value
+}
+```
+
+`world.getComponent` will throw an error if the component is not found, which can be used to assert a relationship between an archetype and another component type.
+
+```typescript
+// an entity of (Health, Burn) should always have a position
+world.getComponent(entity, Position)
+```

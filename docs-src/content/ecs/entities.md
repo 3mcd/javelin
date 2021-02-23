@@ -3,13 +3,13 @@ title = "Entities"
 weight = 4
 +++
 
-Entities are abstract buckets of components that represent higher-order objects in your game. Entities are strictly defined by their component makeup, and do not contain any data or methods themselves.
+Entities are abstract buckets of components that represent higher-order objects in your game. They are strictly defined by their component makeup, and do not contain any data or methods themselves.
 
 ## Entity Management
 
 ### Creating entities
 
-Entities are created using `world.spawn`. This method is a variadic function that accepts 0..n components and returns a newly created entity attached to those components.
+Entities are created using `world.spawn`. This method accepts 0..n components and returns a newly created entity attached to those components.
 
 ```typescript
 const player = { type: 1, name: "elrond" }
@@ -25,7 +25,7 @@ const entity = world.spawn(player, health)
 
 ### Modifying entities
 
-The tuple of components associated with an entity defines its **archetype**. The following code creates an entity of archetype `(1, 2)`. Components can be assigned to existing entities using `world.attach`, and removed from entities using `world.detach`.
+The vector of components associated with an entity defines its **archetype**. The previous code example would create an entity of archetype `(1, 2)`. Components can be assigned to existing entities using `world.attach`, and removed from entities using `world.detach`. The following example modifies an entity of archetype `(1, 2)` to `(1, 2, 3)`, and back to `(1, 2)`:
 
 ```typescript
 const input = { type: 3, space: true }
@@ -41,7 +41,7 @@ world.tick()
 
 <aside>
   <p>
-    <strong>Note</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.spawn(components)</code> because the entity's components must be relocated in memory each time its archetype changes.
+    <strong>Note</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.spawn(components)</code> because the components of the affected entity must be relocated in memory each time the entity's archetype changes.
   </p>
 </aside>
 
@@ -52,6 +52,8 @@ Entities are destroyed with `world.destroy`:
 ```typescript
 world.destroy(entity)
 ```
+
+When an entity is destroyed, its components created with a component type are automatically released back to their object pool.
 
 ## World Operations
 

@@ -69,7 +69,7 @@ const system = (world: World) => {
 
 ### Custom Filters
 
-You can create a custom filter with the `createComponentFilter` function.
+You can create a custom filter with the `createComponentFilter` function. Custom filters can clean up logic within your systems and facilitate code re-use, although they may be slightly less performant than embedding the logic directly inside the system.
 
 ```typescript
 import { createComponentFilter } from "@javelin/ecs"
