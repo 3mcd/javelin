@@ -181,7 +181,7 @@ export function createMessageHandler(
     } else {
       remote = Array.isArray(opOrComponent)
         ? opOrComponent[1]
-        : opOrComponent.tid
+        : opOrComponent._tid
     }
 
     const local = remoteToLocal.get(remote)

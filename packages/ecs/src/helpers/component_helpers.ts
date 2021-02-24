@@ -4,6 +4,7 @@ import {
   ComponentType,
   ComponentState,
   ComponentBase,
+  InternalComponent,
 } from "../component"
 import { createStackPool } from "../pool/stack_pool"
 import {
@@ -21,8 +22,8 @@ export function createComponentBase(
   return Object.defineProperties(
     {},
     {
-      tid: { value: componentType.type, writable: false, enumerable: true },
-      cst: {
+      _tid: { value: componentType.type, writable: false, enumerable: true },
+      _cst: {
         value: ComponentState.Orphaned,
         writable: true,
         enumerable: false,
@@ -52,11 +53,11 @@ export function isComponentOf<T extends ComponentType>(
   component: Component,
   componentTypeId: T,
 ): component is ComponentOf<T> {
-  return component.tid === componentTypeId.type
+  return component._tid === componentTypeId.type
 }
 
 export function flagComponent(component: Component, state: ComponentState) {
-  component.cst = state
+  ;(component as InternalComponent)._cst = state
 }
 
 export function flagComponents(
@@ -64,6 +65,6 @@ export function flagComponents(
   state: ComponentState,
 ) {
   for (let i = 0; i < components.length; i++) {
-    components[i].cst = state
+    flagComponent(components[i], state)
   }
 }

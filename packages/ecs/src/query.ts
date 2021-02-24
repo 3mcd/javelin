@@ -128,7 +128,7 @@ class QueryIterable<S extends Selector = Selector>
 
         if (
           componentFilterPredicates[i]?.(component, world!) ??
-          component.cst === 2
+          component._cst === 2
         ) {
           ;(this.queryResult[1] as Component[])[i] = component
         } else {

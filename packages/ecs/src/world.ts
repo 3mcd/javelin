@@ -230,8 +230,10 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     destroyed.add(entity)
   }
 
-  function applyWorldOp(worldOp: WorldOp) {
-    worldOpsPrevious.push(worldOp)
+  function applyWorldOp(worldOp: WorldOp, record = true) {
+    if (record === true) {
+      worldOpsPrevious.push(worldOp)
+    }
 
     switch (worldOp[0]) {
       case WorldOpType.Spawn:
@@ -246,7 +248,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   }
 
   function maybeReleaseComponent(component: Component) {
-    const pool = componentPoolsByComponentTypeId.get(component.tid)
+    const pool = componentPoolsByComponentTypeId.get(component._tid)
 
     if (pool) {
       pool.release(component)
@@ -371,7 +373,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   }
 
   function detach(entity: number, ...components: ReadonlyArray<Component>) {
-    const componentTypeIds = components.map(c => c.tid)
+    const componentTypeIds = components.map(c => c._tid)
     const worldOp = createOp(WorldOpType.Detach, entity, componentTypeIds)
 
     flagComponents(components, ComponentState.Detaching)
@@ -418,7 +420,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
         }
       }
 
-      applyWorldOp(op)
+      applyWorldOp(op, false)
     }
   }
 

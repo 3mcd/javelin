@@ -15,14 +15,14 @@ describe("query", () => {
     const world = createWorld()
     const table = [
       [
-        { tid: 1, cst: ComponentState.Attached, foo: 1 },
-        { tid: 1, cst: ComponentState.Attached, foo: 2 },
-        { tid: 1, cst: ComponentState.Attached, foo: 3 },
+        { _tid: 1, _cst: ComponentState.Attached, foo: 1 },
+        { _tid: 1, _cst: ComponentState.Attached, foo: 2 },
+        { _tid: 1, _cst: ComponentState.Attached, foo: 3 },
       ],
       [
-        { tid: 0, cst: ComponentState.Attached, foo: 4 },
-        { tid: 0, cst: ComponentState.Attached, foo: 5 },
-        { tid: 0, cst: ComponentState.Attached, foo: 6 },
+        { _tid: 0, _cst: ComponentState.Attached, foo: 4 },
+        { _tid: 0, _cst: ComponentState.Attached, foo: 5 },
+        { _tid: 0, _cst: ComponentState.Attached, foo: 6 },
       ],
     ]
 
@@ -57,9 +57,9 @@ describe("query", () => {
     const world = createWorld()
     const table = [
       [
-        { tid: 0, cst: ComponentState.Attached, foo: 5 },
-        { tid: 0, cst: ComponentState.Attached, foo: 1 },
-        { tid: 0, cst: ComponentState.Attached, foo: 4 },
+        { _tid: 0, _cst: ComponentState.Attached, foo: 5 },
+        { _tid: 0, _cst: ComponentState.Attached, foo: 1 },
+        { _tid: 0, _cst: ComponentState.Attached, foo: 4 },
       ],
     ]
     const filter = (componentType: ComponentType): ComponentFilter => ({

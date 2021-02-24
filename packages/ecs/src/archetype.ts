@@ -89,7 +89,7 @@ export function createArchetype(layout: number[]): Archetype {
   function insert(entity: number, components: Component[]) {
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const componentTypeIndex = layoutInverse[component.tid]
+      const componentTypeIndex = layoutInverse[component._tid]
 
       table[componentTypeIndex].push(component)
     }

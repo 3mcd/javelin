@@ -1,4 +1,4 @@
-import { Component, ComponentState } from "../component"
+import { Component, ComponentState, InternalComponent } from "../component"
 import { $isDataType } from "../symbols"
 import { DataType, PropsOfSchema, Schema, SchemaKey } from "./schema_types"
 
@@ -40,7 +40,7 @@ export function resetComponentFromSchema<S extends Schema>(
   component: Component,
   schema: S,
 ) {
-  component.cst = ComponentState.Orphaned
+  ;(component as InternalComponent)._cst = ComponentState.Orphaned
 
   for (const prop in schema) {
     const value = schema[prop] as SchemaKey

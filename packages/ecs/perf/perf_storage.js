@@ -13,21 +13,21 @@ module.exports.run = function run() {
     { schema: {}, type: 4 },
   ]
   const components = [
-    ...arrayOf(142500, () => [{ tid: 1, cst: ComponentState.Attached }]),
+    ...arrayOf(142500, () => [{ _tid: 1, _cst: ComponentState.Attached }]),
     ...arrayOf(142500, () => [
-      { tid: 1, cst: ComponentState.Attached },
-      { tid: 3, cst: ComponentState.Attached },
+      { _tid: 1, _cst: ComponentState.Attached },
+      { _tid: 3, _cst: ComponentState.Attached },
     ]),
-    ...arrayOf(142500, () => [{ tid: 2, cst: ComponentState.Attached }]),
+    ...arrayOf(142500, () => [{ _tid: 2, _cst: ComponentState.Attached }]),
     ...arrayOf(142500, () => [
-      { tid: 1, cst: ComponentState.Attached },
-      { tid: 2, cst: ComponentState.Attached },
-      { tid: 3, cst: ComponentState.Attached },
+      { _tid: 1, _cst: ComponentState.Attached },
+      { _tid: 2, _cst: ComponentState.Attached },
+      { _tid: 3, _cst: ComponentState.Attached },
     ]),
-    ...arrayOf(142500, () => [{ tid: 4, cst: ComponentState.Attached }]),
+    ...arrayOf(142500, () => [{ _tid: 4, _cst: ComponentState.Attached }]),
     ...arrayOf(142500, () => [
-      { tid: 2, cst: ComponentState.Attached },
-      { tid: 4, cst: ComponentState.Attached },
+      { _tid: 2, _cst: ComponentState.Attached },
+      { _tid: 4, _cst: ComponentState.Attached },
     ]),
   ]
   const queries = [

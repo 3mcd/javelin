@@ -67,7 +67,7 @@ function logDataTransferRate(arrayBuffer: ArrayBuffer) {
   bytes += arrayBuffer.byteLength
 
   if (now - prevTransferLogTime >= LOG_BANDWIDTH_INTERVAL_MS) {
-    console.log(`${bytes / 1000} kb/s`, decode(arrayBuffer))
+    console.log(`${bytes / 1000} kb/s`)
     prevTransferLogTime = now
     bytes = 0
   }

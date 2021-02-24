@@ -101,7 +101,11 @@ export function createMessageProducer(
           const componentIndex = componentIndices[k]
           const component = table[componentIndex][entityIndex]!
 
-          if (component.cst === ComponentState.Attached) {
+          if (
+            component._cst !== ComponentState.Orphaned &&
+            component._cst !== ComponentState.Detaching &&
+            component._cst !== ComponentState.Detached
+          ) {
             components.push(table[componentIndex][entityIndex]!)
           }
         }
@@ -136,7 +140,7 @@ export function createMessageProducer(
           case WorldOpType.Spawn:
           case WorldOpType.Attach: {
             const components = op[2].filter(c =>
-              allComponentTypeIds.includes(c.tid),
+              allComponentTypeIds.includes(c._tid),
             )
 
             if (components.length > 0) {

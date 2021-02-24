@@ -3,22 +3,22 @@ title = "Components"
 weight = 3
 +++
 
-All data within a Javelin game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `tid` — short for type id, a unique integer that is shared between all components of the same kind.
+All data within a Javelin game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `_tid` — short for type id, a unique integer that is shared between all components of the same kind.
 
-The `tid` field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example.
+The `_tid` field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example.
 
 ```typescript
-const position = { tid: 0, x: 2, y: 2 }
-const health = { tid: 0, value: 100 }
+const position = { _tid: 0, x: 2, y: 2 }
+const health = { _tid: 0, value: 100 }
 ```
 
-Using the same `tid` for components with a different shape could result in catastrophic behavior of your application. Wherever you might be working with an entity's position component, there's a chance you could have a health object instead!
+Using the same `_tid` for components with a different shape could result in catastrophic behavior of your application. Wherever you might be working with an entity's position component, there's a chance you could have a health object instead!
 
 Just make the types unique:
 
 ```typescript
-const position = { tid: 0, ... }
-const health = { tid: 1, ... }
+const position = { _tid: 0, ... }
+const health = { _tid: 1, ... }
 ```
 
 ## Component Types

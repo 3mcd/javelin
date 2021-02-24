@@ -19,16 +19,16 @@ describe("attached", () => {
     }
     const filter = detached(A)
     const a1 = {
-      tid: 0,
-      cst: ComponentState.Detached,
+      _tid: 0,
+      _cst: ComponentState.Detached,
     }
     const a2 = {
-      tid: 0,
-      cst: ComponentState.Attached,
+      _tid: 0,
+      _cst: ComponentState.Attached,
     }
     const a3 = {
-      tid: 0,
-      cst: ComponentState.Attached,
+      _tid: 0,
+      _cst: ComponentState.Attached,
     }
 
     expect(filter.componentPredicate(a1, world)).toBe(true)
