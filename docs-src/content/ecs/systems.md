@@ -12,10 +12,11 @@ A system is just a function executed during each world tick. All game logic shou
 Systems are registered with the world via the options passed to `createWorld`, or the `world.addSystem` method.
 
 ```typescript
-const hello = () => console.log("hello")
-const world = createWorld({ systems: [hello] })
-// OR
-world.addSystem(hello)
+const physics = () => ...
+const render = () => ...
+const world = createWorld({ systems: [physics] })
+
+world.addSystem(render)
 ```
 
 Systems have a signature of `(world: World<T>, data: T) => void`, where `world` is the world that is currently executing it, and `data` is the single argument (if any) passed into the tick method, i.e. `world.tick(data)`. Often times `data` contains the amount of time that has elapsed since the previous tick, but it can be any value.
@@ -39,14 +40,11 @@ setInterval(() => {
 
   previousTime = currentTime
 }, 1000 / 60)
-```
 
-The output of the above program looks something like:
-
-```typescript
-16.66666666
-16.66666666
-16.66666666
+--- output:
+> 16.66666666
+> 16.66666666
+> 16.66666666
 ```
 
 <aside>

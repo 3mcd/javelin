@@ -30,13 +30,18 @@ The vector of components associated with an entity defines its **archetype**. Th
 ```typescript
 const input = { type: 3, space: true }
 
-// archetype: (1, 2) -> (1, 2, 3)
 world.attach(entity, input)
 world.tick()
 
-// archetype: (1, 2, 3) -> (1, 2)
+--- archetype:
+(1, 2) -> (1, 2, 3)
+---
+
 world.detach(entity, input)
 world.tick()
+
+--- archetype:
+(1, 2, 3) -> (1, 2)
 ```
 
 <aside>
@@ -53,10 +58,10 @@ Entities are destroyed with `world.destroy`:
 world.destroy(entity)
 ```
 
-When an entity is destroyed, its components created with a component type are automatically released back to their object pool.
+When an entity is destroyed, its components are automatically released back to their object pool if they were derived from a component type.
 
 ## World Operations
 
-In the example above, `world.tick()` was called each time entity was modified. Operations such as creating and destroying entities, as well as attaching and detaching components, are deferred until the next `world.tick()` call. This is done to improve the reliability of systems, so that systems never "miss" changes to entities, discussed in the [Filtering](/ecs/filtering) section. Each of these transactions is represented by a `WorldOp`.
+In the example above, `world.tick()` was called each time entity was modified. Operations like creating and destroying entities, as well as attaching and detaching components, are deferred until the next `world.tick()` call. This is done to improve the reliability of systems, so that systems never "miss" changes to entities, discussed in the [Filtering](/ecs/filtering) section. Each of these changes is represented by a `WorldOp`.
 
 You can review the types of operations in [world_op.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world_op.ts). These objects are used in the Javelin network protocol to synchronize entities reliably between client and server.

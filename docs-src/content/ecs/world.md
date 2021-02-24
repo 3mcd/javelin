@@ -27,7 +27,7 @@ Systems can also be registered after a world is initialized using the `world.add
 world.addSystem(() => console.log("Tock!"))
 ```
 
-Calling `world.tick()` will process operations that occurred during the previous tick such as adding, removing, updating entities. Then, all systems will be executed in the order that they were registered.
+Calling `world.tick()` will process operations (like adding, removing, updating entities) that occurred during the previous tick. Then, all systems will be executed in the order that they were registered.
 
 ```typescript
 setInterval(world.tick, 1000)
@@ -37,13 +37,13 @@ More on systems later in the [Systems](/ecs/systems) section!
 
 ## Finding Components
 
-Components are generally accessed using [queries](/ecs/systems/#querying-and-iteration); however, queries only locate entities who meet all the query's criteria. This makes it difficult to write conditional logic based on the presence of a component. For example, you may want to apply damage to all entities that match `(Health, Burn)`, but only if the entity doesn't have an `Invulnerable` component.
+Components are generally accessed using iterable [queries](/ecs/systems/#querying-and-iteration). However, queries only locate entities who meet each of the selector's criteria. This makes it difficult to write conditional logic based on the presence of a component. For example, you may want to apply damage to all entities that match `(Health, Burn)`, but only if the entity doesn't have an `Invulnerable` component.
 
 `world.tryGetComponent` attempts to locate a component of an entity by component type, returning `null` if not found:
 
 ```typescript
-if (!world.tryGetComponent(entity, Invulnerable)) {
-  health.value -= burn.value
+if (world.tryGetComponent(entity, Invulnerable) === null) {
+  health.value -= burn.valuePerTick
 }
 ```
 

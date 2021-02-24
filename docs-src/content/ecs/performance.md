@@ -40,7 +40,7 @@ Run the performance tests by cloning the repository and running `yarn perf`:
 ```bash
 git clone https://github.com/3mcd/javelin
 cd javelin
-yarn && yarn:perf
+yarn && yarn perf
 ```
 
 Example `yarn perf` output:

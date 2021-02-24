@@ -186,10 +186,11 @@
 >
 </h3>
 <p>Systems are registered with the world via the options passed to <code>createWorld</code>, or the <code>world.addSystem</code> method.</p>
-<pre><code>const hello = () =&gt; console.log(&quot;hello&quot;)
-const world = createWorld({ systems: [hello] })
-// OR
-world.addSystem(hello)
+<pre><code>const physics = () =&gt; ...
+const render = () =&gt; ...
+const world = createWorld({ systems: [physics] })
+
+world.addSystem(render)
 </code></pre>
 <p>Systems have a signature of <code>(world: World&lt;T&gt;, data: T) =&gt; void</code>, where <code>world</code> is the world that is currently executing it, and <code>data</code> is the single argument (if any) passed into the tick method, i.e. <code>world.tick(data)</code>. Often times <code>data</code> contains the amount of time that has elapsed since the previous tick, but it can be any value.</p>
 <p>When <code>world.tick</code> is called, each system is executed in the order that it was registered.</p>
@@ -208,11 +209,11 @@ setInterval(() =&gt; {
 
   previousTime = currentTime
 }, 1000 / 60)
-</code></pre>
-<p>The output of the above program looks something like:</p>
-<pre><code>16.66666666
-16.66666666
-16.66666666
+
+--- output:
+&gt; 16.66666666
+&gt; 16.66666666
+&gt; 16.66666666
 </code></pre>
 <aside>
   <p>
@@ -232,8 +233,8 @@ const players = query(Position, Player)
 </code></pre>
 <p>A query is a function that is executed with a world. This function returns an iterator that yields tuples of <code>(entity, Component[])</code> for entities that meet the selector's criteria.</p>
 <p>The order of the components in the results matches the order of components types in the selector. That is, <code>query(Position, Player)</code> will yield tuples of components <code>(Position, Player)</code>, regardless of how the components are stored in an archetype.</p>
-<pre><code>world.spawn([world.component(Player), world.component(Position)])
-world.spawn([world.component(Position), world.component(Player)])
+<pre><code>world.spawn(world.component(Player), world.component(Position))
+world.spawn(world.component(Position), world.component(Player))
 
 const render = (world: World, dt: number) =&gt; {
   for (const [entity, [position, player]] of players(world)) {

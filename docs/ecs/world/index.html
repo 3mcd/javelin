@@ -181,7 +181,7 @@
     <strong>Note</strong> — the following chapters assume that you are familiar with basic ECS concepts discussed in the <a href="/ecs">opening section</a>.
   </p>
 </aside>
-<p>A <code>World</code> is the root-level object in Javelin. Worlds are responsible for maintaining entities and executing systems. They expose methods for creating/removing entities, creating and associating components with entities, and locating the components of entities.</p>
+<p><code>World</code> is the root-level object in Javelin. Worlds are responsible for maintaining entities and executing systems. They expose methods for creating/removing entities, creating and associating components with entities, and locating the components of entities.</p>
 <p>Worlds are created using the <code>createWorld</code> function defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts">world.ts</a>. <code>createWorld</code> accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.</p>
 <pre><code>import { createWorld } from &quot;@javelin/ecs&quot;
 
@@ -192,7 +192,7 @@ const world = createWorld({
 <p>Systems can also be registered after a world is initialized using the <code>world.addSystem</code> method:</p>
 <pre><code>world.addSystem(() =&gt; console.log(&quot;Tock!&quot;))
 </code></pre>
-<p>Calling <code>world.tick()</code> will process operations that occurred during the previous tick such as adding, removing, updating entities. Then, all systems will be executed in the order that they were registered.</p>
+<p>Calling <code>world.tick()</code> will process operations (like adding, removing, updating entities) that occurred during the previous tick. Then, all systems will be executed in the order that they were registered.</p>
 <pre><code>setInterval(world.tick, 1000)
 </code></pre>
 <p>More on systems later in the <a href="/ecs/systems">Systems</a> section!</p>
@@ -200,10 +200,10 @@ const world = createWorld({
   >#</a
 >
 </h2>
-<p>Components are generally accessed using <a href="/ecs/systems/#querying-and-iteration">queries</a>; however, queries only locate entities who meet all the query's criteria. This makes it difficult to write conditional logic based on the presence of a component. For example, you may want to apply damage to all entities that match <code>(Health, Burn)</code>, but only if the entity doesn't have an <code>Invulnerable</code> component.</p>
+<p>Components are generally accessed using iterable <a href="/ecs/systems/#querying-and-iteration">queries</a>. However, queries only locate entities who meet each of the selector's criteria. This makes it difficult to write conditional logic based on the presence of a component. For example, you may want to apply damage to all entities that match <code>(Health, Burn)</code>, but only if the entity doesn't have an <code>Invulnerable</code> component.</p>
 <p><code>world.tryGetComponent</code> attempts to locate a component of an entity by component type, returning <code>null</code> if not found:</p>
-<pre><code>if (!world.tryGetComponent(entity, Invulnerable)) {
-  health.value -= burn.value
+<pre><code>if (world.tryGetComponent(entity, Invulnerable) === null) {
+  health.value -= burn.valuePerTick
 }
 </code></pre>
 <p><code>world.getComponent</code> will throw an error if the component is not found, which can be used to assert a relationship between an archetype and another component type.</p>

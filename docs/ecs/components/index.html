@@ -176,7 +176,7 @@
                     <div class="book-content">
                         
 <h1>Components</h1>
-<p>All data within a Javelin game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: <code>_tid</code> — short for type id, a unique integer that is shared between all components of the same kind.</p>
+<p>All data within a <code>World</code> is stored in components. Components are just plain objects; unremarkable, other than one reserved field: <code>_tid</code> — short for type id, a unique integer that is shared between all components of the same kind.</p>
 <p>The <code>_tid</code> field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example.</p>
 <pre><code>const position = { _tid: 0, x: 2, y: 2 }
 const health = { _tid: 0, value: 100 }
@@ -190,7 +190,7 @@ const health = { _tid: 1, ... }
   >#</a
 >
 </h2>
-<p>It is recommended to use the <code>createComponentType</code> helper to define the component types your world will use. Component types make it easy to initialize components from a schema, and components created with a component type are automatically pooled.</p>
+<p>It's recommended to use the <code>createComponentType</code> helper to define the component types your world will use. Component types make it easy to initialize components from a schema, and components created with a component type are automatically pooled.</p>
 <pre><code>import { createComponentType, number } from &quot;@javelin/ecs&quot;
 
 const Position = createComponentType({
@@ -207,13 +207,12 @@ const Position = createComponentType({
 >
 </h3>
 <p>A component type's schema defines the field names and data types that make up the shape of the component. The schema is used to initialize component instances and reset them when they are detached from an entity.</p>
-<p>The schema currently supports the following data types, which are each exported from <code>@javelin/ecs</code>:</p>
-<ul>
-<li><code>number (0)</code></li>
-<li><code>boolean (false)</code></li>
-<li><code>string (&quot;&quot;)</code></li>
-<li><code>array(number | boolean | string | array) ([])</code></li>
-</ul>
+<p>The schema currently supports the following data types:</p>
+<pre><code>number  (default = 0)
+boolean (default = false)
+string  (default = &quot;&quot;)
+array   (default = [])
+</code></pre>
 <p>A default value for a data type can be specified in the schema by wrapping the data type in an object:</p>
 <pre><code>schema: {
   x: { type: number, defaultValue: -1 }
@@ -226,12 +225,12 @@ const Position = createComponentType({
 <p>Components can be initialized from component types via <code>world.component</code>:</p>
 <pre><code>const position = world.component(Position)
 
-position.x // 0
-position.y // 0
+position.x (0)
+position.y (0)
 </code></pre>
 <p>You may also specify an initializer function for a component type to make component creation easier.</p>
 <pre><code>const Position = createComponentType({
-  // ...
+  ...
   initialize(position, x = 0, y = 0) {
     position.x = x
     position.y = y
@@ -240,27 +239,27 @@ position.y // 0
 
 const position = world.component(
   Position,
-  10, // x
-  20, // y
+  10, (x)
+  20, (y)
 )
-
-position.x // 10
-position.y // 20
 </code></pre>
 <h3 id="object-pooling">Object Pooling<a class="zola-anchor" href="#object-pooling" aria-label="Anchor link for: object-pooling"
   >#</a
 >
 </h3>
-<p>Components created via a component type are automatically pooled. By default, the pool will initialize 10^3 components for usage, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singletons or components that are created/destroyed extremely often. You can modify the pool size either by setting the <code>componentPoolSize</code> option on the config object passed to <code>createWorld()</code></p>
+<p>Components created via a component type are automatically pooled. By default, the pool will initialize 10^3 components for usage, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singletons or components that are created/destroyed extremely often. You can modify the default pool size of all component types by setting the <code>componentPoolSize</code> option on the config object passed to <code>createWorld()</code></p>
 <pre><code>const world = createWorld({
   componentPoolSize: 100,
 })
 </code></pre>
-<p>or when registering the component type with <code>world.registerComponentType</code></p>
+<p>or you can specify the pool size for a single component type when registering the it with <code>world.registerComponentType</code></p>
 <pre><code>world.registerComponentType(Position, 10000)
 </code></pre>
-<p>The configured or default pool size will be used if a component is created via component type prior to manual registration.</p>
- 
+<aside>
+  <p>
+    <strong>Note</strong> — the configured or default pool size will be used if a component type is encountered by <code>world.component()</code> prior to manual registration.
+  </p>
+</aside> 
                     </div>
                 </div>
             </div>
