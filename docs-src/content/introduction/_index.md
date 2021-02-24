@@ -127,21 +127,42 @@ const render = (world) => {
     context.fillRect(Math.floor(x), Math.floor(y), 1, 1);
   }
 
-  for (const [e, [{ x, y }, { r }]] of wormholes(world)) {
-    // console.log(e)
+  for (const [e, [{ x, y }, { r }]] of wormholes(world)) {    
+    let maxPos;
+    let maxLen = Infinity;
+
+    for (const [e2, [pos2]] of wormholes(world)) {
+      if (e === e2) {
+        continue;
+      }
+
+      const {x: x2, y: y2} = pos2;
+      const dx = x - x2;
+      const dy = y - y2;
+      const len = Math.sqrt(dx * dx + dy * dy);
+
+      if (len < maxLen) {
+        maxLen = len;
+        maxPos = pos2;
+      }
+    }
+
+    if (maxPos) {
+      context.strokeStyle = "#99c7c7";
+      context.lineWidth = 0.5;
+      context.beginPath();
+      context.moveTo(x, y);
+      context.lineTo(maxPos.x, maxPos.y);
+      context.closePath();
+      context.stroke();
+    }
+  }
+
+  for (const [e, [{ x, y }, { r }]] of wormholes(world)) {    
     context.fillStyle = colorInfluenced;
     context.beginPath();
     context.arc(Math.floor(x), Math.floor(y), r / 10, 0, 2 * Math.PI);
     context.fill();
-
-    // for (const [e, [{x: x2, y: y2}]] of wormholes(world)) {
-      // console.log(x2)
-      // context.moveTo(x, y)
-      // context.beginPath();
-      // context.lineTo(x2, y2);
-      // context.closePath();
-      // context.stroke();
-    // }
   }
 };
 
@@ -152,16 +173,10 @@ const physics = (world) => {
   }
 };
 
-const consumed = Javelin.query(Javelin.detached(Junk))
-
 const world = Javelin.createWorld({
-  systems: [physics, attract, render, world => {
-    for (const [e] of consumed(world)) {
-      console.log(`consumed ${e}`)
-    }
-  }],
+  systems: [physics, attract, render],
 });
-const junkCount = 12000;
+const junkCount = 10000;
 
 for (let i = 0; i < junkCount; i++) {
   const x = Math.random() * (canvas.width * 1.5) - 0.25 * canvas.width
