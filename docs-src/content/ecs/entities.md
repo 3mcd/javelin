@@ -3,7 +3,7 @@ title = "Entities"
 weight = 4
 +++
 
-Entities are abstract buckets of components that represent higher-order objects in your game. They are strictly defined by their component makeup, and do not contain any data or methods themselves.
+Entities are just unique integers. Each entity is a pointer to a unique collection of components that represent higher-order objects in your game. They are strictly defined by their component makeup, and do not contain any data or methods themselves.
 
 ## Entity Management
 

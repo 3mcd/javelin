@@ -74,8 +74,8 @@ A query is a function that is executed with a world. This function returns an it
 The order of the components in the results matches the order of components types in the selector. That is, `query(Position, Player)` will yield tuples of components `(Position, Player)`, regardless of how the components are stored in an archetype.
 
 ```typescript
-world.spawn([world.component(Player), world.component(Position)])
-world.spawn([world.component(Position), world.component(Player)])
+world.spawn(world.component(Player), world.component(Position))
+world.spawn(world.component(Position), world.component(Player))
 
 const render = (world: World, dt: number) => {
   for (const [entity, [position, player]] of players(world)) {

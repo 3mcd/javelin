@@ -23,7 +23,7 @@ You can see how archtypes and component storage are implemented in [archetype.ts
 
 ## Memory
 
-Javelin ECS aims to achieve a small memory / GC footprint. Below is a screenshot of an allocation timeline where 10k entities are iterated by 3 systems per tick at 60Hz. The memory growth (0.3mb) is consistent with standard `setInterval` or `requestAnimationFrame` performance and there is no "sawtooth" pattern of frequent, minor GC events.
+Javelin aims to achieve a small memory / GC footprint. Below is a screenshot of an allocation timeline where 10k entities are iterated by 3 systems per tick at 60Hz. The memory growth (0.3mb) is consistent with standard `setInterval` or `requestAnimationFrame` performance and there is no "sawtooth" pattern of frequent, minor GC events.
 
 **Simple `requestAnimationFrame` loop**
 ![](/perf-raf.png)
@@ -31,7 +31,7 @@ Javelin ECS aims to achieve a small memory / GC footprint. Below is a screenshot
 **Simple `requestAnimationFrame` loop @ 10k entities/tick**
 ![](/perf-raf-ecs.png)
 
-A custom iterator is implemented in [query.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/query.ts) which re-uses the same iterable instance for each query execution. Upgrading to a handwritten iterator from generator functions doubled the speed of iteration and eliminated ~5kb/s worth of garbage accumulation.
+A custom iterator is implemented in [query.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/query.ts) which re-uses the same iterable instance for each query execution. Upgrading to a handwritten iterator from generator functions doubled the speed of iteration and eliminated ~5kb/s worth of garbage accumulation at 60Hz.
 
 ## Performance Tests
 
@@ -49,14 +49,14 @@ Example `yarn perf` output:
 ========================================
 perf_storage
 ========================================
-create: 401.421ms
-run: 16.899s
-destroy: 106.127ms
+create: 424.487ms
+run: 16.624s
+destroy: 103.358ms
 entities      | 855000
 components    | 4
 queries       | 4
 ticks         | 1000
 iter          | 997500000
 iter_tick     | 997500
-avg_tick      | 17.474ms
+avg_tick      | 17.015ms
 ```

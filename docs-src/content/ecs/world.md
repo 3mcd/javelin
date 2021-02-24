@@ -9,7 +9,7 @@ weight = 2
   </p>
 </aside>
 
-A `World` is the root-level object in Javelin. Worlds are responsible for maintaining entities and executing systems. They expose methods for creating/removing entities, creating and associating components with entities, and locating the components of entities.
+`World` is the root-level object in Javelin. Worlds are responsible for maintaining entities and executing systems. They expose methods for creating/removing entities, creating and associating components with entities, and locating the components of entities.
 
 Worlds are created using the `createWorld` function defined in [world.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts). `createWorld` accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.
 
