@@ -15,6 +15,8 @@
 
       <!-- CSS -->
       
+      <link rel="preconnect" href="https://fonts.gstatic.com">
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="https://javelin.games/book.css">
       
@@ -76,7 +78,7 @@
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
                                                         
-                                                        Hello World
+                                                        World
                                                     </a>
                                                 </li>
                                             
@@ -146,19 +148,9 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;devtools&#x2F;">
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;resources&#x2F;">
                                         
-                                        Devtools
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;examples&#x2F;">
-                                        
-                                        Examples
+                                        Resources
                                     </a>
                                     
                                 </li>
@@ -191,96 +183,63 @@
 <p>In traditional OOP game development, entity data and behavior is often architected using a class heirarchy. Take the following example, where a <code>Player</code> class extends a physics <code>Body</code> class to enhance players with physics properties:</p>
 <aside>
   <p>
-    <strong>Note</strong> — all code in this section is pseudo-code. Skip to the <a href="/ecs/world">Hello World</a> section if you're ready for real examples.
+    <strong>Note</strong> — this section contains pseudo-code. Skip to the <a href="/ecs/world">Hello World</a> section if you're ready for real examples.
   </p>
 </aside>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">class </span><span style="color:#555c64;">Body {
-  </span><span style="color:#388282;">readonly </span><span style="color:#555c64;">velocity </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">]
+<pre><code>class Body {
+  readonly velocity = { x: 0, y: 0 }
 }
 
-</span><span style="color:#388282;">class </span><span style="color:#555c64;">Player </span><span style="color:#388282;">extends </span><span style="color:#88669e;">Body </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">readonly </span><span style="color:#555c64;">name</span><span style="color:#388282;">: </span><span style="color:#88669e;">string
+class Player extends Body {
+  input: Input
 
-  </span><span style="color:#388282;">constructor</span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">name</span><span style="color:#388282;">: </span><span style="color:#88669e;">string</span><span style="color:#555c64;">) {
-    super()
-    this.name </span><span style="color:#388282;">= </span><span style="color:#555c64;">name
-  }
+  constructor(public input: Input) {}
 
   jump() {
-    this.velocity[</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">] </span><span style="color:#388282;">+= </span><span style="color:#4179ad;">2
-  </span><span style="color:#555c64;">}
+    this.velocity[1] += 1
+  }
 }
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">input </span><span style="color:#388282;">= new </span><span style="color:#555c64;">Input()
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">player </span><span style="color:#388282;">= new </span><span style="color:#555c64;">Player()
+const input = new Input()
+const player = new Player(input)
 
-setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(input.isSpacebarPressed()) {
-    </span><span style="color:#8c95a0;">// apply force to launch player into the air
-    </span><span style="color:#555c64;">player.jump()
+setInterval(() =&gt; {
+  if (input.isSpacebarPressed()) {
+    // apply force to launch player into the air
+    player.jump()
   }
-}, </span><span style="color:#4179ad;">16.66666</span><span style="color:#555c64;">)
-</span></code></pre>
-<p>The player presses the spacebar on their keyboard, <code>player.jump()</code> is executed, and the actor jumps! But what if a player wants to spectate our game instead controlling an actor? In that scenario, it's unnecessary for <code>Player</code> to extend <code>Body</code>, and we'd either need to write code to ensure that spectators shouldn't update data within the physics simulation, or drastically modify our inheritance structure.</p>
-<p>Data and behavior are separate concerns in an ECS. High-cohesion game objects are replaced with distinct <strong>entities</strong>, <strong>components</strong>, and <strong>systems</strong>. This pattern gives us the ability to modify the behavior of entities at runtime.</p>
+}, 16.66666)
+</code></pre>
+<p>When the player presses the spacebar on their keyboard, <code>player.jump()</code> is called, and the physics body jumps! Easy enough.</p>
+<p>What if a player wants to spectate our game instead of controlling a character? In that scenario, it would be unnecessary for <code>Player</code> to extend <code>Body</code>, and we'd either need to modify the inheritance structure, or write defensive code to ensure that spectators shouldn't touch the physics simulation.</p>
+<p>Data and behavior are separate concerns in an ECS. High-cohesion game objects are split into three distinct concerns: <strong>components</strong>, game data; <strong>entities</strong>, a mutable array of components, the sum of which represents a game object (like a player); and <strong>systems</strong>, game behavior. This pattern gives us the ability to modify the behavior of entities at runtime.</p>
 <h3 id="components">Components<a class="zola-anchor" href="#components" aria-label="Anchor link for: components"
   >#</a
 >
 </h3>
-<p>Components are plain objects that contain data, but not methods. Ideally all game state lives in components.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">type </span><span style="color:#555c64;">Player </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ name</span><span style="color:#388282;">: </span><span style="color:#88669e;">string </span><span style="color:#555c64;">}
-</span><span style="color:#388282;">type </span><span style="color:#555c64;">Input </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ space</span><span style="color:#388282;">: </span><span style="color:#88669e;">boolean </span><span style="color:#555c64;">}
-</span><span style="color:#388282;">type </span><span style="color:#555c64;">Body </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ velocity</span><span style="color:#388282;">: </span><span style="color:#555c64;">[</span><span style="color:#88669e;">number</span><span style="color:#555c64;">, </span><span style="color:#88669e;">number</span><span style="color:#555c64;">] }
-</span></code></pre><h3 id="entities">Entities<a class="zola-anchor" href="#entities" aria-label="Anchor link for: entities"
+<p>In an ECS, components are typically plain objects that contain data and no methods. Ideally all game state lives in components.</p>
+<pre><code>Player { name: string }
+Body { velocity: [number, number] }
+Input { space: boolean }
+</code></pre>
+<h3 id="entities">Entities<a class="zola-anchor" href="#entities" aria-label="Anchor link for: entities"
   >#</a
 >
 </h3>
-<p>Entities are tuples of components that represent higher-order game objects. They do not contain any data of their own.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#8c95a0;">// (Player, Input, Velocity)
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">entity </span><span style="color:#388282;">= </span><span style="color:#555c64;">[
-  { name: </span><span style="color:#4179ad;">&quot;xXpubstomperXx&quot; </span><span style="color:#555c64;">},
-  { space: </span><span style="color:#a35d66;">true </span><span style="color:#555c64;">},
-  { velocity: [</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">] },
-]
-</span></code></pre><h3 id="systems">Systems<a class="zola-anchor" href="#systems" aria-label="Anchor link for: systems"
+<p>An entity is an integer that references a vector (array) of components. An entity typically represents a game object (like a player, vehicle, or weapon) that could be made up of many components, but sometimes may only reference a single component with the purpose of holding global state. They do not contain any data of their own.</p>
+<h3 id="systems">Systems<a class="zola-anchor" href="#systems" aria-label="Anchor link for: systems"
   >#</a
 >
 </h3>
-<p>Systems are functions that implement game logic by reading and modifying components. The following example updates the player's physics body based on its input component:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">physicsSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">const </span><span style="color:#555c64;">[, input, body] </span><span style="color:#388282;">= </span><span style="color:#555c64;">entity
-
-  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(input.space) {
-    body.velocity[</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">] </span><span style="color:#388282;">+= </span><span style="color:#4179ad;">2
-  </span><span style="color:#555c64;">}
-}
-</span></code></pre><h2 id="iteration">Iteration<a class="zola-anchor" href="#iteration" aria-label="Anchor link for: iteration"
-  >#</a
->
-</h2>
-<p>The above example where a single entity is modified each tick wouldn't scale to a game of any real complexity. The true power of ECS comes with iteration. We can apply the same rules to each entity in our game world with a simple for..of loop.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">physicsSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player, input, body] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playersWithBodies) {
-    </span><span style="color:#8c95a0;">// do something for each player with input and body components
-  </span><span style="color:#555c64;">}
-}
-</span></code></pre>
-<p>We can add jump behavior to <em>all</em> players that have both an input and a body component!</p>
+<p>Systems are functions that iterate over entities and modify their components. This is how game logic is implemented in an ECS. The following pseudo-code is a depiction of how we might implement the jumping behavior from the above &quot;traditional&quot; example using the ECS pattern.</p>
+<pre><code>for entity of (player, input, body)
+  if (input[entity].jump)
+    body[entity].y += 1
+</code></pre>
+<p>This example shows a system which iterates all components that have a <code>Player</code>, <code>Body</code>, and <code>Input</code> (e.g. a gamepad) component. Each player's input component is checked to determine if the jump key is pressed. If so, we locate the entity's body component and add to it's y-velocity.</p>
 <p>Spectators can now be represented with a <code>(Player, Input)</code> entity. Even though they aren't controlling a physics body yet, the <code>Input</code> component might allow them to move the game camera around. If the player chooses to enter the fray, we can insert a <code>Body</code> component into their entity, allowing them to control an actor in the scene.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[player] </span><span style="color:#388282;">of </span><span style="color:#555c64;">players) {
-  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(player.joining </span><span style="color:#388282;">&amp;&amp; !</span><span style="color:#555c64;">hasBody(player)) {
-    world.insert(player, [body])
-    player.joining </span><span style="color:#388282;">= </span><span style="color:#a35d66;">false
-  </span><span style="color:#555c64;">}
-}
-</span></code></pre>
-<p>The player's entity is now <code>(Player, Input, Body)</code>, making it eligible for physics updates from the physics simulation.</p>
+<pre><code>add(entity, Body)
+</code></pre>
 <p>This pattern can be applied to many types of games. For example, an FPS game might consist of systems that handle physics, user input and movement, projectile collisions, and player inventory.</p>
  
                     </div>

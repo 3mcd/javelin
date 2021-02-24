@@ -15,6 +15,8 @@
 
       <!-- CSS -->
       
+      <link rel="preconnect" href="https://fonts.gstatic.com">
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="https://javelin.games/book.css">
       
@@ -76,7 +78,7 @@
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
                                                         
-                                                        Hello World
+                                                        World
                                                     </a>
                                                 </li>
                                             
@@ -146,19 +148,9 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;devtools&#x2F;">
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;resources&#x2F;">
                                         
-                                        Devtools
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;examples&#x2F;">
-                                        
-                                        Examples
+                                        Resources
                                     </a>
                                     
                                 </li>
@@ -197,36 +189,35 @@
 </h3>
 <p>Sometimes you don't need to know exactly which properties on a component changed, only that it <em>was</em> changed. In this case, you can use either the <code>changed</code> component filter in a query, or use the <code>world.isComponentChanged</code> method, which returns <code>true</code> if the component was changed last tick, and <code>false</code> if it wasn't.</p>
 <p>Using the <code>changed</code> filter:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">healthChanged </span><span style="color:#388282;">= </span><span style="color:#555c64;">query(changed(Health))
+<pre><code>const healthChanged = query(changed(Health))
 
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [health]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">healthChanged(world)) {
-  </span><span style="color:#8c95a0;">// `entity` is an entity who&#39;s health component changed last tick
-</span><span style="color:#555c64;">}
-</span></code></pre>
-<p>Using <code>world.isComponentChanged</code>:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [health]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">healthy(world)) {
-  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(world.isComponentChanged(health)) {
-    </span><span style="color:#8c95a0;">// `health` changed last tick
-  </span><span style="color:#555c64;">}
+for (const [entity, [health]] of healthChanged(world)) {
+  // `entity` is an entity who's health component changed last tick
 }
-</span></code></pre><h3 id="observing">Observing<a class="zola-anchor" href="#observing" aria-label="Anchor link for: observing"
+</code></pre>
+<p>Using <code>world.isComponentChanged</code>:</p>
+<pre><code>for (const [entity, [health]] of healthy(world)) {
+  if (world.isComponentChanged(health)) {
+    // `health` changed last tick
+  }
+}
+</code></pre>
+<h3 id="observing">Observing<a class="zola-anchor" href="#observing" aria-label="Anchor link for: observing"
   >#</a
 >
 </h3>
 <p>If you want to know exactly what changes were made to a component during the current tick, use <code>world.getComponentMutations</code>. This method returns a 1-dimensional array of changes made to a component. Take the following example:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [position, input]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">someQuery(world)) {
-  </span><span style="color:#388282;">const </span><span style="color:#555c64;">observedPosition </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.getObservedComponent(position)
+<pre><code>for (const [entity, [position, input]] of someQuery(world)) {
+  const observedPosition = world.getObservedComponent(position)
 
-  observedPosition.x </span><span style="color:#388282;">= </span><span style="color:#4179ad;">2
-  </span><span style="color:#555c64;">observedPosition.y </span><span style="color:#388282;">= </span><span style="color:#4179ad;">3
-  </span><span style="color:#555c64;">observedPosition.extra.asleep </span><span style="color:#388282;">= </span><span style="color:#a35d66;">true
+  observedPosition.x = 2
+  observedPosition.y = 3
+  observedPosition.extra.asleep = true
 
-  </span><span style="color:#555c64;">world.getComponentMutations(position) </span><span style="color:#8c95a0;">// -&gt; [&quot;x&quot;, 2, &quot;y&quot;, 3, &quot;extra.asleep&quot;, true]
-</span><span style="color:#555c64;">}
-</span></code></pre><h3 id="networking">Networking<a class="zola-anchor" href="#networking" aria-label="Anchor link for: networking"
+  world.getComponentMutations(position) // -&gt; [&quot;x&quot;, 2, &quot;y&quot;, 3, &quot;extra.asleep&quot;, true]
+}
+</code></pre>
+<h3 id="networking">Networking<a class="zola-anchor" href="#networking" aria-label="Anchor link for: networking"
   >#</a
 >
 </h3>

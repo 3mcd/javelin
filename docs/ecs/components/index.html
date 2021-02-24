@@ -15,6 +15,8 @@
 
       <!-- CSS -->
       
+      <link rel="preconnect" href="https://fonts.gstatic.com">
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="https://javelin.games/book.css">
       
@@ -76,7 +78,7 @@
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
                                                         
-                                                        Hello World
+                                                        World
                                                     </a>
                                                 </li>
                                             
@@ -146,19 +148,9 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;devtools&#x2F;">
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;resources&#x2F;">
                                         
-                                        Devtools
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;examples&#x2F;">
-                                        
-                                        Examples
+                                        Resources
                                     </a>
                                     
                                 </li>
@@ -184,49 +176,37 @@
                     <div class="book-content">
                         
 <h1>Components</h1>
-<p>All data within a Javelin game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: <code>type</code> — a unique integer that classifies the component. Components of the same shape should also share a <code>type</code>.</p>
-<p>The <code>type</code> field establishes the taxonomy that Javelin uses to correctly store and retrieve components. Take the following example.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#8c95a0;">// Bad!
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">position </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, x: </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">, y: </span><span style="color:#4179ad;">2 </span><span style="color:#555c64;">}
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">health </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, value: </span><span style="color:#4179ad;">100 </span><span style="color:#555c64;">}
-</span></code></pre>
-<p>As we'll see later, this would result in catastrophic behavior of your application. Wherever you might be working with an entity's position component, there's a chance you could have a health object instead!</p>
+<p>All data within a Javelin game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: <code>_tid</code> — short for type id, a unique integer that is shared between all components of the same kind.</p>
+<p>The <code>_tid</code> field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example.</p>
+<pre><code>const position = { _tid: 0, x: 2, y: 2 }
+const health = { _tid: 0, value: 100 }
+</code></pre>
+<p>Using the same <code>_tid</code> for components with a different shape could result in catastrophic behavior of your application. Wherever you might be working with an entity's position component, there's a chance you could have a health object instead!</p>
 <p>Just make the types unique:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#8c95a0;">// &lt;3
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">position </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#388282;">... </span><span style="color:#555c64;">}
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">health </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ type: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">, </span><span style="color:#388282;">... </span><span style="color:#555c64;">}
-</span></code></pre><h2 id="component-types">Component Types<a class="zola-anchor" href="#component-types" aria-label="Anchor link for: component-types"
+<pre><code>const position = { _tid: 0, ... }
+const health = { _tid: 1, ... }
+</code></pre>
+<h2 id="component-types">Component Types<a class="zola-anchor" href="#component-types" aria-label="Anchor link for: component-types"
   >#</a
 >
 </h2>
-<p>Unless you're trying to integrate with an existing codebase or library, it's recommended to use the <code>createComponentType</code> helper to define the component types your world will use. Component types make it easy to initialize components from a schema, and they can help produce components that are automatically pooled.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createComponentType, number } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
+<p>It is recommended to use the <code>createComponentType</code> helper to define the component types your world will use. Component types make it easy to initialize components from a schema, and components created with a component type are automatically pooled.</p>
+<pre><code>import { createComponentType, number } from &quot;@javelin/ecs&quot;
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">Position </span><span style="color:#388282;">= </span><span style="color:#555c64;">createComponentType({
-  type: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">,
+const Position = createComponentType({
+  type: 1,
   schema: {
     x: number,
     y: number,
   },
 })
-</span></code></pre>
-<p>The component type <strong>must</strong> be registered using <code>world.registerComponentType</code> to take advantage of pooling:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({
-  componentTypes: [</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">],
-})
-</span><span style="color:#8c95a0;">// OR
-</span><span style="color:#555c64;">world.registerComponentType(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">)
-</span></code></pre>
+</code></pre>
 <p>A component type has, at minimum, a type (discussed above) and <strong>schema</strong>.</p>
 <h3 id="schema">Schema<a class="zola-anchor" href="#schema" aria-label="Anchor link for: schema"
   >#</a
 >
 </h3>
-<p>A component type's schema defines the field names and data types that make up the shape of the component. The schema is used to initialize component instances and reset them when they are detached.</p>
+<p>A component type's schema defines the field names and data types that make up the shape of the component. The schema is used to initialize component instances and reset them when they are detached from an entity.</p>
 <p>The schema currently supports the following data types, which are each exported from <code>@javelin/ecs</code>:</p>
 <ul>
 <li><code>number (0)</code></li>
@@ -235,51 +215,52 @@
 <li><code>array(number | boolean | string | array) ([])</code></li>
 </ul>
 <p>A default value for a data type can be specified in the schema by wrapping the data type in an object:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">schema: {
-  x: { type: number, defaultValue: </span><span style="color:#388282;">-</span><span style="color:#4179ad;">1 </span><span style="color:#555c64;">}
+<pre><code>schema: {
+  x: { type: number, defaultValue: -1 }
 }
-</span></code></pre><h3 id="creating-components">Creating components<a class="zola-anchor" href="#creating-components" aria-label="Anchor link for: creating-components"
+</code></pre>
+<h3 id="creating-components">Creating components<a class="zola-anchor" href="#creating-components" aria-label="Anchor link for: creating-components"
   >#</a
 >
 </h3>
 <p>Components can be initialized from component types via <code>world.component</code>:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">position </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.component(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">)
+<pre><code>const position = world.component(Position)
 
-position.x </span><span style="color:#8c95a0;">// 0
-</span><span style="color:#555c64;">position.y </span><span style="color:#8c95a0;">// 0
-</span></code></pre>
+position.x // 0
+position.y // 0
+</code></pre>
 <p>You may also specify an initializer function for a component type to make component creation easier.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">Position </span><span style="color:#388282;">= </span><span style="color:#555c64;">createComponentType({
-  </span><span style="color:#8c95a0;">// ...
-  </span><span style="color:#555c64;">initialize(</span><span style="color:#8a6c3c;">position</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">x </span><span style="color:#388282;">= </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">y </span><span style="color:#388282;">= </span><span style="color:#4179ad;">0</span><span style="color:#555c64;">) {
-    position.x </span><span style="color:#388282;">= </span><span style="color:#555c64;">x
-    position.y </span><span style="color:#388282;">= </span><span style="color:#555c64;">y
+<pre><code>const Position = createComponentType({
+  // ...
+  initialize(position, x = 0, y = 0) {
+    position.x = x
+    position.y = y
   },
 })
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">position </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.component(
-  </span><span style="color:#88669e;">Position</span><span style="color:#555c64;">,
-  </span><span style="color:#4179ad;">10</span><span style="color:#555c64;">, </span><span style="color:#8c95a0;">// x
-  </span><span style="color:#4179ad;">20</span><span style="color:#555c64;">, </span><span style="color:#8c95a0;">// y
-</span><span style="color:#555c64;">)
+const position = world.component(
+  Position,
+  10, // x
+  20, // y
+)
 
-position.x </span><span style="color:#8c95a0;">// 10
-</span><span style="color:#555c64;">position.y </span><span style="color:#8c95a0;">// 20
-</span></code></pre><h3 id="object-pooling">Object Pooling<a class="zola-anchor" href="#object-pooling" aria-label="Anchor link for: object-pooling"
+position.x // 10
+position.y // 20
+</code></pre>
+<h3 id="object-pooling">Object Pooling<a class="zola-anchor" href="#object-pooling" aria-label="Anchor link for: object-pooling"
   >#</a
 >
 </h3>
-<p>Components created via factory are automatically pooled. By default, the pool will initialize 10^3 components for usage, and will grow by the same amount when the pool shinks to zero. You can modify the pool size either by setting the <code>componentPoolSize</code> option on the config object passed to <code>createWorld()</code>, or when registering the component type with <code>world.registerComponentType</code>:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({
-  componentPoolSize: </span><span style="color:#4179ad;">100</span><span style="color:#555c64;">,
+<p>Components created via a component type are automatically pooled. By default, the pool will initialize 10^3 components for usage, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singletons or components that are created/destroyed extremely often. You can modify the pool size either by setting the <code>componentPoolSize</code> option on the config object passed to <code>createWorld()</code></p>
+<pre><code>const world = createWorld({
+  componentPoolSize: 100,
 })
-</span><span style="color:#8c95a0;">// or
-</span><span style="color:#555c64;">world.registerComponentType(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">10000</span><span style="color:#555c64;">)
-</span></code></pre> 
+</code></pre>
+<p>or when registering the component type with <code>world.registerComponentType</code></p>
+<pre><code>world.registerComponentType(Position, 10000)
+</code></pre>
+<p>The configured or default pool size will be used if a component is created via component type prior to manual registration.</p>
+ 
                     </div>
                 </div>
             </div>

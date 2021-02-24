@@ -15,6 +15,8 @@
 
       <!-- CSS -->
       
+      <link rel="preconnect" href="https://fonts.gstatic.com">
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="https://javelin.games/book.css">
       
@@ -76,7 +78,7 @@
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
                                                         
-                                                        Hello World
+                                                        World
                                                     </a>
                                                 </li>
                                             
@@ -146,19 +148,9 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;devtools&#x2F;">
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;resources&#x2F;">
                                         
-                                        Devtools
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;examples&#x2F;">
-                                        
-                                        Examples
+                                        Resources
                                     </a>
                                     
                                 </li>
@@ -188,8 +180,12 @@
   >#</a
 >
 </h2>
-<p>Javelin ECS can currently process ~500k entities per 16ms tick.</p>
-<p>An entity's components are partitioned into tables called <strong>archetypes</strong>. An archetype contains the components of entities that share the same composition. This array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. For example, when querying for entities with components <code>(A, B)</code>, we can skip iteration of entities within all archetypes that aren't superset of <code>(A, B)</code>.</p>
+<p>Javelin stores components in arrays called <strong>archetypes</strong>. An archetype contains components of entities that share the exact same composition. This array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. For example, when querying for entities with components <code>(A, B)</code>, we can skip iteration of entities within all archetypes that aren't superset of <code>(A, B)</code>.</p>
+<p>Performance is highly dependent on your game's archetype makeup and logic. However, in a simple benchmark that iterates and performs basic arithmetic on four component types across six archetypes, Javelin can achieve (at 60Hz):</p>
+<ul>
+<li>~600k iterations per tick on a 2GHz Intel i5 processor (2020 Macbook Pro 13-inch)</li>
+<li>~900k iterations per tick on a 3.79 GHz AMD processor (Ryzen 3900XT)</li>
+</ul>
 <p>You can see how archtypes and component storage are implemented in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/archetype.ts">archetype.ts</a> and <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/storage.ts">storage.ts</a>, respectively.</p>
 <h3 id="resources">Resources<a class="zola-anchor" href="#resources" aria-label="Anchor link for: resources"
   >#</a
@@ -205,7 +201,7 @@
   >#</a
 >
 </h2>
-<p>Javelin ECS uses little memory and thus produces little garbage. Below is a screenshot of an allocation timeline where 10k entities are iterated by 3 systems per tick at 60Hz. The memory growth (0.3mb) is consistent with standard <code>setInterval</code> or <code>requestAnimationFrame</code> performance and there is no &quot;sawtooth&quot; pattern of frequent, minor GC events.</p>
+<p>Javelin ECS aims to achieve a small memory / GC footprint. Below is a screenshot of an allocation timeline where 10k entities are iterated by 3 systems per tick at 60Hz. The memory growth (0.3mb) is consistent with standard <code>setInterval</code> or <code>requestAnimationFrame</code> performance and there is no &quot;sawtooth&quot; pattern of frequent, minor GC events.</p>
 <p><strong>Simple <code>requestAnimationFrame</code> loop</strong>
 <img src="/perf-raf.png" alt="" /></p>
 <p><strong>Simple <code>requestAnimationFrame</code> loop @ 10k entities/tick</strong>
@@ -216,27 +212,26 @@
 >
 </h2>
 <p>Run the performance tests by cloning the repository and running <code>yarn perf</code>:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">git clone https://github.com/3mcd/javelin
+<pre><code>git clone https://github.com/3mcd/javelin
 cd javelin
-yarn </span><span style="color:#388282;">&amp;&amp; </span><span style="color:#555c64;">yarn:perf
-</span></code></pre>
+yarn &amp;&amp; yarn:perf
+</code></pre>
 <p>Example <code>yarn perf</code> output:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">========================================
-perf_storage_pooled
+<pre><code>========================================
+perf_storage
 ========================================
-create: 171.759ms
-run: 15315.012ms
-destroy: 42.628ms
-entities      | 450000
+create: 401.421ms
+run: 16.899s
+destroy: 106.127ms
+entities      | 855000
 components    | 4
 queries       | 4
 ticks         | 1000
-iter          | 525525000
-iter_tick     | 525525
-avg_tick      | 15.862ms
-</span></code></pre> 
+iter          | 997500000
+iter_tick     | 997500
+avg_tick      | 17.474ms
+</code></pre>
+ 
                     </div>
                 </div>
             </div>

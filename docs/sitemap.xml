@@ -4,9 +4,6 @@
         <loc>https://javelin.games/</loc>
     </url>
     <url>
-        <loc>https://javelin.games/devtools/</loc>
-    </url>
-    <url>
         <loc>https://javelin.games/ecs/</loc>
     </url>
     <url>
@@ -37,12 +34,12 @@
         <loc>https://javelin.games/ecs/world/</loc>
     </url>
     <url>
-        <loc>https://javelin.games/examples/</loc>
-    </url>
-    <url>
         <loc>https://javelin.games/introduction/</loc>
     </url>
     <url>
         <loc>https://javelin.games/networking/</loc>
+    </url>
+    <url>
+        <loc>https://javelin.games/resources/</loc>
     </url>
 </urlset>

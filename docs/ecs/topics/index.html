@@ -15,6 +15,8 @@
 
       <!-- CSS -->
       
+      <link rel="preconnect" href="https://fonts.gstatic.com">
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="https://javelin.games/book.css">
       
@@ -76,7 +78,7 @@
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
                                                         
-                                                        Hello World
+                                                        World
                                                     </a>
                                                 </li>
                                             
@@ -146,19 +148,9 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;devtools&#x2F;">
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;resources&#x2F;">
                                         
-                                        Devtools
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;examples&#x2F;">
-                                        
-                                        Examples
+                                        Resources
                                     </a>
                                     
                                 </li>
@@ -190,29 +182,27 @@
 </h2>
 <p>Sometimes it's useful for a system to trigger behavior in a different system. For example, you might have a physics system that wraps a third-party library whose methods you'd like to expose to other parts of your game.</p>
 <p>Let's say you want to apply an impulse to a physics body when a player jumps so it gains some momentum in a direction. One way of doing this is to model the operation as a component.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">type </span><span style="color:#555c64;">Impulse </span><span style="color:#388282;">= </span><span style="color:#555c64;">{
-  x</span><span style="color:#388282;">: </span><span style="color:#88669e;">number
-  </span><span style="color:#555c64;">y</span><span style="color:#388282;">: </span><span style="color:#88669e;">number
-</span><span style="color:#555c64;">}
-</span></code></pre>
+<pre><code>type Impulse = {
+  x: number
+  y: number
+}
+</code></pre>
 <p>When you want to apply a impulse to an entity, you could insert an <code>Impulse</code> component on the current tick, and remove it on the following tick.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#8c95a0;">// player input system
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity] </span><span style="color:#388282;">of </span><span style="color:#555c64;">jumping(world)) {
+<pre><code>// player input system
+for (const [entity] of jumping(world)) {
   world.attach(entity, world.component(Impulse))
 }
 
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [, impulse]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playersWithImpulse(world)) {
+for (const [entity, [, impulse]] of playersWithImpulse(world)) {
   world.detach(entity, impulse)
 }
-</span></code></pre><pre style="background-color:#f6f8f8;">
-<code><span style="color:#8c95a0;">// physics system
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [impulse]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">playersWithImpulse(world)) {
-  </span><span style="color:#388282;">const </span><span style="color:#555c64;">body </span><span style="color:#388282;">= </span><span style="color:#555c64;">getBodyByEntity(entity)
+</code></pre>
+<pre><code>// physics system
+for (const [entity, [impulse]] of playersWithImpulse(world)) {
+  const body = getBodyByEntity(entity)
   physicsEngine.applyImpulseLocal(body, impulse)
 }
-</span></code></pre>
+</code></pre>
 <p>This will work fine for a small game; however, adding and removing components in an archetypal ECS can be slow. It's also a little nasty to have to clean up after each operation for what should be fire-and-forget as far as the player input system is concerned.</p>
 <h3 id="topics">Topics<a class="zola-anchor" href="#topics" aria-label="Anchor link for: topics"
   >#</a
@@ -220,39 +210,36 @@
 </h3>
 <p>Topics are simple FIFO buffers that hold on to messages between ticks that can be used to signal events or expose an RPC-like API to a system.</p>
 <p>Topics are created using the <code>createTopic&lt;T&gt;()</code> function, where <code>T</code> is the type (e.g. a union type) of message managed by the topic. The <code>createTopic</code> function is defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/topic.ts">topic.ts</a>.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createTopic } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
+<pre><code>import { createTopic } from &quot;@javelin/ecs&quot;
 
-</span><span style="color:#8c95a0;">// (&quot;impulse&quot;, entity: number, velocity: [x: number, y: number])
-</span><span style="color:#388282;">type </span><span style="color:#555c64;">ImpulseCommand </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">, </span><span style="color:#88669e;">number</span><span style="color:#555c64;">, [</span><span style="color:#88669e;">number</span><span style="color:#555c64;">, </span><span style="color:#88669e;">number</span><span style="color:#555c64;">]]
+// (&quot;impulse&quot;, entity: number, velocity: [x: number, y: number])
+type ImpulseCommand = [&quot;impulse&quot;, number, [number, number]]
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsTopic </span><span style="color:#388282;">= </span><span style="color:#555c64;">createTopic&lt;ImpulseCommand&gt;()
-</span></code></pre>
+const physicsTopic = createTopic&lt;ImpulseCommand&gt;()
+</code></pre>
 <p>Messages are enqueued using the <code>topic.push()</code> method.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">message</span><span style="color:#388282;">: </span><span style="color:#555c64;">ImpulseCommand </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">23</span><span style="color:#555c64;">, [</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">]]
+<pre><code>const message: ImpulseCommand = [&quot;impulse&quot;, 23, [0, 2]]
 topic.push(message)
-</span></code></pre>
+</code></pre>
 <p>Messages are unavailable until the <code>topic.flush()</code> method is called. It's recommended to flush the topics in your main game loop, after calling <code>world.tick</code>.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">tick </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+<pre><code>const tick = () =&gt; {
   world.tick()
   physicsTopic.flush()
 }
-</span></code></pre>
+</code></pre>
 <p>Messages can then be read using a for..of loop.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ physicsTopic } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;./physics_topic&quot;
+<pre><code>import { physicsTopic } from &quot;./physics_topic&quot;
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsSystem </span><span style="color:#388282;">= </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">command </span><span style="color:#388282;">of </span><span style="color:#555c64;">physicsTopic) {
-    </span><span style="color:#388282;">if </span><span style="color:#555c64;">(command[</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">] </span><span style="color:#388282;">=== </span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">) {
-      </span><span style="color:#388282;">const </span><span style="color:#555c64;">body </span><span style="color:#388282;">= </span><span style="color:#555c64;">getBodyByEntity(command[</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">])
-      physicsEngine.applyImpulseLocal(body, command[</span><span style="color:#4179ad;">2</span><span style="color:#555c64;">])
+const physicsSystem = (world: World) =&gt; {
+  for (const command of physicsTopic) {
+    if (command[0] === &quot;impulse&quot;) {
+      const body = getBodyByEntity(command[1])
+      physicsEngine.applyImpulseLocal(body, command[2])
     }
   }
 }
-</span></code></pre><h3 id="immediate-processing">Immediate Processing<a class="zola-anchor" href="#immediate-processing" aria-label="Anchor link for: immediate-processing"
+</code></pre>
+<h3 id="immediate-processing">Immediate Processing<a class="zola-anchor" href="#immediate-processing" aria-label="Anchor link for: immediate-processing"
   >#</a
 >
 </h3>
@@ -262,9 +249,9 @@ topic.push(message)
     <strong>Note</strong> — System registration order matters when using <code>pushImmediate</code>. Since the messages will be thrown away at the end of the tick, any systems upstream from the one that used <code>pushImmediate</code> will never have the opportunity to read the message.
   </p>
 </aside>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">topic.pushImmediate([</span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">24</span><span style="color:#555c64;">, [</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">]])
-</span></code></pre> 
+<pre><code>topic.pushImmediate([&quot;impulse&quot;, 24, [0, 2]])
+</code></pre>
+ 
                     </div>
                 </div>
             </div>

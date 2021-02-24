@@ -15,6 +15,8 @@
 
       <!-- CSS -->
       
+      <link rel="preconnect" href="https://fonts.gstatic.com">
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="https://javelin.games/book.css">
       
@@ -76,7 +78,7 @@
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
                                                         
-                                                        Hello World
+                                                        World
                                                     </a>
                                                 </li>
                                             
@@ -146,19 +148,9 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;devtools&#x2F;">
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;resources&#x2F;">
                                         
-                                        Devtools
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;examples&#x2F;">
-                                        
-                                        Examples
+                                        Resources
                                     </a>
                                     
                                 </li>
@@ -194,37 +186,35 @@
 >
 </h3>
 <p>Systems are registered with the world via the options passed to <code>createWorld</code>, or the <code>world.addSystem</code> method.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">hello </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;hello&quot;</span><span style="color:#555c64;">)
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({ systems: [hello] })
-</span><span style="color:#8c95a0;">// OR
-</span><span style="color:#555c64;">world.addSystem(hello)
-</span></code></pre>
+<pre><code>const hello = () =&gt; console.log(&quot;hello&quot;)
+const world = createWorld({ systems: [hello] })
+// OR
+world.addSystem(hello)
+</code></pre>
 <p>Systems have a signature of <code>(world: World&lt;T&gt;, data: T) =&gt; void</code>, where <code>world</code> is the world that is currently executing it, and <code>data</code> is the single argument (if any) passed into the tick method, i.e. <code>world.tick(data)</code>. Often times <code>data</code> contains the amount of time that has elapsed since the previous tick, but it can be any value.</p>
 <p>When <code>world.tick</code> is called, each system is executed in the order that it was registered.</p>
 <p>The following is a world that will log the time elapsed since the last tick at around 60Hz:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({
-  systems: [(</span><span style="color:#8a6c3c;">world</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">dt</span><span style="color:#388282;">: </span><span style="color:#88669e;">number</span><span style="color:#555c64;">) </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(dt)],
+<pre><code>const world = createWorld({
+  systems: [(world, dt: number) =&gt; console.log(dt)],
 })
 
-</span><span style="color:#388282;">let </span><span style="color:#555c64;">previousTime </span><span style="color:#388282;">= </span><span style="color:#88669e;">Date</span><span style="color:#555c64;">.now()
+let previousTime = Date.now()
 
-setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">const </span><span style="color:#555c64;">currentTime </span><span style="color:#388282;">= </span><span style="color:#88669e;">Date</span><span style="color:#555c64;">.now()
-  </span><span style="color:#388282;">const </span><span style="color:#555c64;">delta </span><span style="color:#388282;">= </span><span style="color:#555c64;">currentTime </span><span style="color:#388282;">- </span><span style="color:#555c64;">previousTime
+setInterval(() =&gt; {
+  const currentTime = Date.now()
+  const delta = currentTime - previousTime
 
   world.tick(delta)
 
-  previousTime </span><span style="color:#388282;">= </span><span style="color:#555c64;">currentTime
-}, </span><span style="color:#4179ad;">1000 </span><span style="color:#388282;">/ </span><span style="color:#4179ad;">60</span><span style="color:#555c64;">)
-</span></code></pre>
+  previousTime = currentTime
+}, 1000 / 60)
+</code></pre>
 <p>The output of the above program looks something like:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#4179ad;">16.66666666
+<pre><code>16.66666666
 16.66666666
 16.66666666
-</span></code></pre><aside>
+</code></pre>
+<aside>
   <p>
     <strong>Note</strong> — maintaining state using tick <code>data</code> is comparable to using global variables. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the <a href="/ecs/topics">Topics</a> section.
   </p>
@@ -236,46 +226,44 @@ setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="col
 <p>Systems query collections of entities and operate on their data to yield the next game state. These iterable collections are created using <strong>queries</strong> that define an archetype (or sub-archetype) to query by. Depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next.</p>
 <p>This is the cornerstone of ECS that enables runtime composition. Adding and removing components also adds and removes behavior. In addition, the isolation of game logic into systems makes your game world easier to debug and provides a clear target for performance and unit tests.</p>
 <p>Queries are created with the <code>query</code> function, which takes a <strong>selector</strong> of component types.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ query } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
+<pre><code>import { query } from &quot;@javelin/ecs&quot;
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">players </span><span style="color:#388282;">= </span><span style="color:#555c64;">query(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">, Player)
-</span></code></pre>
+const players = query(Position, Player)
+</code></pre>
 <p>A query is a function that is executed with a world. This function returns an iterator that yields tuples of <code>(entity, Component[])</code> for entities that meet the selector's criteria.</p>
 <p>The order of the components in the results matches the order of components types in the selector. That is, <code>query(Position, Player)</code> will yield tuples of components <code>(Position, Player)</code>, regardless of how the components are stored in an archetype.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">world.spawn([world.component(Player), world.component(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">)])
-world.spawn([world.component(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">), world.component(Player)])
+<pre><code>world.spawn([world.component(Player), world.component(Position)])
+world.spawn([world.component(Position), world.component(Player)])
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">render </span><span style="color:#388282;">= </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World, </span><span style="color:#8a6c3c;">dt</span><span style="color:#388282;">: </span><span style="color:#88669e;">number</span><span style="color:#555c64;">) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, [position, player]] </span><span style="color:#388282;">of </span><span style="color:#555c64;">players(world)) {
-    </span><span style="color:#8c95a0;">// render each player with a name tag
-    </span><span style="color:#555c64;">draw(sprites.player, position, player.name, dt)
+const render = (world: World, dt: number) =&gt; {
+  for (const [entity, [position, player]] of players(world)) {
+    // render each player with a name tag
+    draw(sprites.player, position, player.name, dt)
   }
 }
-</span></code></pre><h3 id="query-caveats">Query caveats<a class="zola-anchor" href="#query-caveats" aria-label="Anchor link for: query-caveats"
+</code></pre>
+<h3 id="query-caveats">Query caveats<a class="zola-anchor" href="#query-caveats" aria-label="Anchor link for: query-caveats"
   >#</a
 >
 </h3>
 <p>The tuple of components yielded by queries is re-used each iteration. This means that you shouldn't store the results of a query for use later like this:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">results </span><span style="color:#388282;">= </span><span style="color:#555c64;">[]
+<pre><code>const results = []
 
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[, components] </span><span style="color:#388282;">of </span><span style="color:#555c64;">shocked(world)) {
+for (const [, components] of shocked(world)) {
   results.push(components)
 }
-</span></code></pre>
+</code></pre>
 <p>Every index of <code>results</code> corresponds to the same array, which is the tuple of components attached to the entity of the last iteration.</p>
 <p>The same applies to <code>Array.from()</code>, or any other method that expands an iterator into another container. If you <em>do</em> need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">applyStatusEffects </span><span style="color:#388282;">= </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">dt</span><span style="color:#388282;">: </span><span style="color:#88669e;">number</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">const </span><span style="color:#555c64;">shockedEnemies </span><span style="color:#388282;">= </span><span style="color:#555c64;">[]
+<pre><code>const applyStatusEffects = (dt: number, world: World) =&gt; {
+  const shockedEnemies = []
 
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[, components] </span><span style="color:#388282;">of </span><span style="color:#555c64;">shocked(world)) {
-    shockedEnemies.push(</span><span style="color:#388282;">...</span><span style="color:#555c64;">components)
+  for (const [, components] of shocked(world)) {
+    shockedEnemies.push(...components)
   }
 }
-</span></code></pre> 
+</code></pre>
+ 
                     </div>
                 </div>
             </div>

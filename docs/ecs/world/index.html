@@ -15,6 +15,8 @@
 
       <!-- CSS -->
       
+      <link rel="preconnect" href="https://fonts.gstatic.com">
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="https://javelin.games/book.css">
       
@@ -76,7 +78,7 @@
                                                 <li class="active">
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
                                                         
-                                                        Hello World
+                                                        World
                                                     </a>
                                                 </li>
                                             
@@ -146,19 +148,9 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;devtools&#x2F;">
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;resources&#x2F;">
                                         
-                                        Devtools
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;examples&#x2F;">
-                                        
-                                        Examples
+                                        Resources
                                     </a>
                                     
                                 </li>
@@ -183,30 +175,41 @@
                     
                     <div class="book-content">
                         
-<h1>Hello World</h1>
+<h1>World</h1>
 <aside>
   <p>
     <strong>Note</strong> — the following chapters assume that you are familiar with basic ECS concepts discussed in the <a href="/ecs">opening section</a>.
   </p>
 </aside>
-<p>A <code>World</code> is responsible for maintaining entities and executing systems.</p>
+<p>A <code>World</code> is the root-level object in Javelin. Worlds are responsible for maintaining entities and executing systems. They expose methods for creating/removing entities, creating and associating components with entities, and locating the components of entities.</p>
 <p>Worlds are created using the <code>createWorld</code> function defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts">world.ts</a>. <code>createWorld</code> accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createWorld } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
+<pre><code>import { createWorld } from &quot;@javelin/ecs&quot;
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({
-  systems: [() </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;Tick!&quot;</span><span style="color:#555c64;">)],
+const world = createWorld({
+  systems: [() =&gt; console.log(&quot;Tick!&quot;)],
 })
-</span></code></pre>
+</code></pre>
 <p>Systems can also be registered after a world is initialized using the <code>world.addSystem</code> method:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">world.addSystem(() </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;Tock!&quot;</span><span style="color:#555c64;">))
-</span></code></pre>
+<pre><code>world.addSystem(() =&gt; console.log(&quot;Tock!&quot;))
+</code></pre>
 <p>Calling <code>world.tick()</code> will process operations that occurred during the previous tick such as adding, removing, updating entities. Then, all systems will be executed in the order that they were registered.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">setInterval(world.tick, </span><span style="color:#4179ad;">1000</span><span style="color:#555c64;">)
-</span></code></pre>
+<pre><code>setInterval(world.tick, 1000)
+</code></pre>
 <p>More on systems later in the <a href="/ecs/systems">Systems</a> section!</p>
+<h2 id="finding-components">Finding Components<a class="zola-anchor" href="#finding-components" aria-label="Anchor link for: finding-components"
+  >#</a
+>
+</h2>
+<p>Components are generally accessed using <a href="/ecs/systems/#querying-and-iteration">queries</a>; however, queries only locate entities who meet all the query's criteria. This makes it difficult to write conditional logic based on the presence of a component. For example, you may want to apply damage to all entities that match <code>(Health, Burn)</code>, but only if the entity doesn't have an <code>Invulnerable</code> component.</p>
+<p><code>world.tryGetComponent</code> attempts to locate a component of an entity by component type, returning <code>null</code> if not found:</p>
+<pre><code>if (!world.tryGetComponent(entity, Invulnerable)) {
+  health.value -= burn.value
+}
+</code></pre>
+<p><code>world.getComponent</code> will throw an error if the component is not found, which can be used to assert a relationship between an archetype and another component type.</p>
+<pre><code>// an entity of (Health, Burn) should always have a position
+world.getComponent(entity, Position)
+</code></pre>
  
                     </div>
                 </div>

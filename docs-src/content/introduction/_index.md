@@ -174,7 +174,7 @@ const physics = (world) => {
 };
 
 const world = Javelin.createWorld({
-  systems: [physics, attract],
+  systems: [physics, attract, render],
 });
 const junkCount = 10000;
 
