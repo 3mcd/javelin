@@ -44,7 +44,8 @@ export function query<S extends Selector>(...selector: S): Query<S> {
   // corresponds to the index of that component in the archetype currently
   // being iterated. This lets us map the components to the correct index in
   // queryResult.
-  const tmpReadIndices: number[] = []
+  let readIndices: number[]
+  const readIndicesByArchetype = new WeakMap<Archetype, number[]>()
 
   let world: World
   let archetypes: ReadonlyArray<Archetype>
@@ -65,7 +66,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
       queryResult[0] = entities[entityIndex]
 
       for (let i = 0; i < queryLength; i++) {
-        const component = table[tmpReadIndices[i]][entityIndex]!
+        const component = table[readIndices[i]][entityIndex]!
 
         if (filters[i]?.(component, world) ?? component.cst === 2) {
           ;(selectorResult as Component[])[i] = component
@@ -82,16 +83,24 @@ export function query<S extends Selector>(...selector: S): Query<S> {
 
   function goToNextArchetype() {
     outer: while ((archetype = archetypes[++archetypeIndex])) {
-      const { layoutInverse } = archetype
+      readIndices = readIndicesByArchetype.get(archetype)!
 
-      for (let i = 0; i < queryLength; i++) {
-        const index = layoutInverse[queryLayout[i]]
+      if (readIndices === undefined) {
+        const { layoutInverse } = archetype
 
-        if (index === undefined) {
-          continue outer
+        readIndices = []
+
+        for (let i = 0; i < queryLength; i++) {
+          const index = layoutInverse[queryLayout[i]]
+
+          if (index === undefined) {
+            continue outer
+          }
+
+          readIndices[i] = index
         }
 
-        tmpReadIndices[i] = index
+        readIndicesByArchetype.set(archetype, readIndices)
       }
 
       entityIndex = -1

@@ -92,13 +92,17 @@ position.y // 20
 
 ### Object Pooling
 
-Components created via a component type are automatically pooled. By default, the pool will initialize 10^3 components for usage, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singletons or components that are created/destroyed extremely often. You can modify the pool size either by setting the `componentPoolSize` option on the config object passed to `createWorld()`, or when registering the component type with `world.registerComponentType`:
+Components created via a component type are automatically pooled. By default, the pool will initialize 10^3 components for usage, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singletons or components that are created/destroyed extremely often. You can modify the pool size either by setting the `componentPoolSize` option on the config object passed to `createWorld()`
 
 ```typescript
 const world = createWorld({
   componentPoolSize: 100,
 })
-// or
+```
+
+or when registering the component type with `world.registerComponentType`
+
+```typescript
 world.registerComponentType(Position, 10000)
 ```
 

@@ -116,7 +116,7 @@ const attract = (world) => {
   }
 };
 
-const colorInfluenced = "#222";
+const colorInfluenced = "#388282";
 const colorUninfluenced = "#aaa";
 
 const render = (world) => {
@@ -127,11 +127,21 @@ const render = (world) => {
     context.fillRect(Math.floor(x), Math.floor(y), 1, 1);
   }
 
-  for (const [, [{ x, y }, { r }]] of wormholes(world)) {
+  for (const [e, [{ x, y }, { r }]] of wormholes(world)) {
+    // console.log(e)
     context.fillStyle = colorInfluenced;
     context.beginPath();
     context.arc(Math.floor(x), Math.floor(y), r / 10, 0, 2 * Math.PI);
     context.fill();
+
+    // for (const [e, [{x: x2, y: y2}]] of wormholes(world)) {
+      // console.log(x2)
+      // context.moveTo(x, y)
+      // context.beginPath();
+      // context.lineTo(x2, y2);
+      // context.closePath();
+      // context.stroke();
+    // }
   }
 };
 
@@ -142,12 +152,12 @@ const physics = (world) => {
   }
 };
 
-const trashed = Javelin.query(Javelin.attached(Junk))
+const consumed = Javelin.query(Javelin.detached(Junk))
 
 const world = Javelin.createWorld({
   systems: [physics, attract, render, world => {
-    for (const [e] of trashed(world)) {
-      console.log(`Trashed ${e}`)
+    for (const [e] of consumed(world)) {
+      console.log(`consumed ${e}`)
     }
   }],
 });
