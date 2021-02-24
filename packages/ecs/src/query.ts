@@ -1,7 +1,8 @@
 import { Archetype } from "./archetype"
-import { ComponentOf, ComponentType, Component } from "./component"
-import { ComponentFilter } from "./filter"
-import { arrayOf } from "./util/array"
+import { Component, ComponentOf, ComponentType } from "./component"
+import { ComponentFilter, ComponentFilterPredicate } from "./filter"
+import { createStackPool } from "./pool"
+import { mutableEmpty } from "./util/array"
 import { World } from "./world"
 
 export type Selector = (ComponentType | ComponentFilter)[]
@@ -21,69 +22,73 @@ export type Query<S extends Selector> = (
 }
 export type QueryResult<S extends Selector> = [number, SelectorResult<S>]
 
-/**
- * Create a Query with a given set of component types.
- *
- * @param selector Component makeup of entities
- */
-export function query<S extends Selector>(...selector: S): Query<S> {
-  const filters = selector.map(s =>
-    "componentPredicate" in s ? s.componentPredicate : null,
-  )
-  const queryLength = selector.length
-  const queryLayout = selector.map(s =>
-    "componentType" in s ? s.componentType.type : s.type,
-  )
-  // Temporary array of components yielded by the query. This array is reused
-  // for each resulting tuple, meaning it should not be stored by the consumer
-  // between iterations (unless copied, i.e. results.slice()).
-  const selectorResult = arrayOf(queryLength) as SelectorResult<S>
-  const queryResult: QueryResult<S> = [-1, selectorResult]
-  // Temporary array of integers where each index corresponds to the index of
-  // the outgoing component (i.e. queryLayout index), and each value
-  // corresponds to the index of that component in the archetype currently
-  // being iterated. This lets us map the components to the correct index in
-  // queryResult.
-  const tmpReadIndices: number[] = []
-
-  let running = false
-  let world: World
-  let archetypes: ReadonlyArray<Archetype>
-  let archetype: Archetype | null
-  let archetypeIndex = -1
-  let entityIndex = -1
-
-  const result: IteratorResult<QueryResult<S>> = {
-    value: queryResult as QueryResult<S>,
-    done: false,
+class QueryIterable<S extends Selector = Selector>
+  implements Iterable<QueryResult<S>> {
+  private queryLength: number = -1
+  private queryLayout: number[] = []
+  private componentFilterPredicates: (ComponentFilterPredicate | null)[] = []
+  private queryResult: [number, SelectorResult<S>] = [
+    -1,
+    [] as SelectorResult<S>,
+  ]
+  private readIndices: number[] = []
+  private iterable: {
+    next(): IteratorYieldResult<QueryResult<S>>
   }
 
-  function loadNextResult() {
-    const { table, entities } = archetype!
-    const length = entities.length
+  private onDone: ((q: this) => void) | null = null
+  private _onDone = () => this.onDone!(this)
 
-    outer: while (++entityIndex < length) {
-      queryResult[0] = entities[entityIndex]
+  // iterator state
+  private world: World | null = null
+  private iteratorResult: IteratorYieldResult<QueryResult<S>>
+  private entityIndex: number = -1
+  private archetypeIndex: number = -1
+  private currentArchetype: Archetype | null = null
 
-      for (let i = 0; i < queryLength; i++) {
-        const component = table[tmpReadIndices[i]][entityIndex]!
+  constructor(selector: S) {
+    this.componentFilterPredicates = selector.map(s =>
+      "componentPredicate" in s ? s.componentPredicate : null,
+    )
+    this.queryLayout = selector.map(s =>
+      "componentType" in s ? s.componentType.type : s.type,
+    )
+    this.queryLength = selector.length
+    this.iterable = {
+      next: this.next,
+    }
+    this.iteratorResult = {
+      value: this.queryResult,
+      done: false,
+    }
+  }
 
-        if (filters[i]?.(component, world) ?? component.cst === 2) {
-          ;(selectorResult as Component[])[i] = component
-        } else {
-          continue outer
-        }
-      }
+  reset() {
+    this.entityIndex = -1
+    this.archetypeIndex = -1
+    this.currentArchetype = null
+    this.queryResult[0] = -1
+    this.iteratorResult.done = false
+    mutableEmpty(this.queryResult[1]) // might not be necessary
+  }
 
-      return
+  next = (): IteratorYieldResult<QueryResult<S>> => {
+    if (this.currentArchetype === null) {
+      this.visitNextArchetype()
+    } else {
+      this.visitNextEntity()
     }
 
-    goToNextArchetype()
+    return this.iteratorResult
   }
 
-  function goToNextArchetype() {
-    outer: while ((archetype = archetypes[++archetypeIndex])) {
-      const { layoutInverse } = archetype
+  visitNextArchetype() {
+    const { queryLayout, queryLength, readIndices, world } = this
+
+    outer: while (
+      (this.currentArchetype = world!.storage.archetypes[++this.archetypeIndex])
+    ) {
+      const { layoutInverse } = this.currentArchetype!
 
       for (let i = 0; i < queryLength; i++) {
         const index = layoutInverse[queryLayout[i]]
@@ -92,50 +97,82 @@ export function query<S extends Selector>(...selector: S): Query<S> {
           continue outer
         }
 
-        tmpReadIndices[i] = index
+        readIndices[i] = index
       }
 
-      entityIndex = -1
+      this.entityIndex = -1
+      this.visitNextEntity()
 
-      loadNextResult()
       return
     }
 
-    running = false
-    result.done = true
+    ;(this.iteratorResult as any).done = true
+    setTimeout(this._onDone)
   }
 
-  const iterator = {
-    next() {
-      if (archetype === null) {
-        goToNextArchetype()
-      } else {
-        loadNextResult()
+  visitNextEntity() {
+    const {
+      currentArchetype,
+      readIndices,
+      componentFilterPredicates,
+      world,
+    } = this
+    const { table, entities } = currentArchetype!
+    const length = entities.length
+
+    outer: while (++this.entityIndex < length) {
+      this.queryResult[0] = entities[this.entityIndex]
+
+      for (let i = 0; i < this.queryLength; i++) {
+        const component = table[readIndices[i]][this.entityIndex]!
+
+        if (
+          componentFilterPredicates[i]?.(component, world!) ??
+          component.cst === 2
+        ) {
+          ;(this.queryResult[1] as Component[])[i] = component
+        } else {
+          continue outer
+        }
       }
 
-      return result
-    },
-  }
-
-  const iterable = {
-    [Symbol.iterator]() {
-      return iterator
-    },
-  }
-
-  return (nextWorld: World) => {
-    if (running) {
-      return query(...selector)(nextWorld)
+      return
     }
 
-    running = true
-    world = nextWorld
-    archetypes = nextWorld.storage.archetypes
-    archetype = null
-    archetypeIndex = -1
-    entityIndex = -1
-    result.done = false
+    this.visitNextArchetype()
+  }
 
-    return iterable
+  [Symbol.iterator]() {
+    return this.iterable
+  }
+
+  init(world: World, onDone: (q: this) => void) {
+    this.reset()
+    this.world = world
+    this.onDone = onDone
+  }
+}
+
+/**
+ * Create a Query with a given set of component types.
+ *
+ * @param selector Component makeup of entities
+ */
+export function query<S extends Selector>(...selector: S): Query<S> {
+  const pool = createStackPool(
+    () => new QueryIterable(selector),
+    q => {
+      q.reset()
+      return q
+    },
+    100,
+  )
+
+  return (world: World) => {
+    const query = pool.retain()
+
+    query.init(world, pool.release)
+
+    return query
   }
 }

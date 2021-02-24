@@ -9,7 +9,6 @@ export const createWorld = jest.fn(
       addSystem: jest.fn(),
       applyOps: jest.fn(),
       attach: jest.fn(),
-      attached: new Set(),
       component: jest.fn(),
       componentTypes: [],
       destroy: jest.fn(),

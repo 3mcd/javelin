@@ -19,7 +19,7 @@ describe("createArchetype", () => {
     const entity = 0
     const archetype = createArchetype([1])
 
-    archetype.insert(entity, [{ tid: 1, cst: ComponentState.Initialized }])
+    archetype.insert(entity, [{ tid: 1, cst: ComponentState.Attached }])
 
     expect(archetype.entities.indexOf(entity)).toBe(0)
   })
@@ -29,12 +29,12 @@ describe("createArchetype", () => {
     const archetype = createArchetype([1, 4])
 
     archetype.insert(entity1, [
-      { tid: 1, cst: ComponentState.Initialized },
-      { tid: 4, cst: ComponentState.Initialized },
+      { tid: 1, cst: ComponentState.Attached },
+      { tid: 4, cst: ComponentState.Attached },
     ])
     archetype.insert(entity2, [
-      { tid: 1, cst: ComponentState.Initialized },
-      { tid: 4, cst: ComponentState.Initialized },
+      { tid: 1, cst: ComponentState.Attached },
+      { tid: 4, cst: ComponentState.Attached },
     ])
 
     expect(archetype.indices[entity1]).toBe(0)
@@ -44,8 +44,8 @@ describe("createArchetype", () => {
     const entity = 0
     const archetype = createArchetype([1, 4])
     const components = [
-      { tid: 1, cst: ComponentState.Initialized },
-      { tid: 4, cst: ComponentState.Initialized },
+      { tid: 1, cst: ComponentState.Attached },
+      { tid: 4, cst: ComponentState.Attached },
     ]
 
     archetype.insert(entity, components)
@@ -59,7 +59,7 @@ describe("createArchetype", () => {
     const entity = 0
     const archetype = createArchetype([1])
 
-    archetype.insert(entity, [{ tid: 1, cst: ComponentState.Initialized }])
+    archetype.insert(entity, [{ tid: 1, cst: ComponentState.Attached }])
     archetype.remove(entity)
 
     expect(archetype.entities.indexOf(entity)).toBe(-1)
@@ -70,12 +70,12 @@ describe("createArchetype", () => {
     const archetype = createArchetype([1, 4])
 
     archetype.insert(entity1, [
-      { tid: 1, cst: ComponentState.Initialized },
-      { tid: 4, cst: ComponentState.Initialized },
+      { tid: 1, cst: ComponentState.Attached },
+      { tid: 4, cst: ComponentState.Attached },
     ])
     archetype.insert(entity2, [
-      { tid: 1, cst: ComponentState.Initialized },
-      { tid: 4, cst: ComponentState.Initialized },
+      { tid: 1, cst: ComponentState.Attached },
+      { tid: 4, cst: ComponentState.Attached },
     ])
 
     const index = archetype.indices[entity1]
@@ -89,13 +89,13 @@ describe("createArchetype", () => {
     const entity2 = 1
     const archetype = createArchetype([1, 4])
     const components = [
-      { tid: 1, cst: ComponentState.Initialized },
-      { tid: 4, cst: ComponentState.Initialized },
+      { tid: 1, cst: ComponentState.Attached },
+      { tid: 4, cst: ComponentState.Attached },
     ]
 
     archetype.insert(entity1, [
-      { tid: 1, cst: ComponentState.Initialized },
-      { tid: 4, cst: ComponentState.Initialized },
+      { tid: 1, cst: ComponentState.Attached },
+      { tid: 4, cst: ComponentState.Attached },
     ])
     archetype.insert(entity2, components)
 

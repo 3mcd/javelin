@@ -8,11 +8,11 @@ describe("createStorage", () => {
   it("creates a new archetype for each unique combination of components", () => {
     const storage = createStorage()
 
-    storage.create(1, [{ tid: 0, cst: ComponentState.Initialized }])
-    storage.create(2, [{ tid: 1, cst: ComponentState.Initialized }])
+    storage.create(1, [{ tid: 0, cst: ComponentState.Attached }])
+    storage.create(2, [{ tid: 1, cst: ComponentState.Attached }])
     storage.create(3, [
-      { tid: 0, cst: ComponentState.Initialized },
-      { tid: 1, cst: ComponentState.Initialized },
+      { tid: 0, cst: ComponentState.Attached },
+      { tid: 1, cst: ComponentState.Attached },
     ])
 
     expect(createArchetype).toHaveBeenNthCalledWith(1, [0])
@@ -21,9 +21,7 @@ describe("createStorage", () => {
   })
   it("also removes entity from archetype when removed", () => {
     const storage = createStorage()
-    const entity = storage.create(0, [
-      { tid: 0, cst: ComponentState.Initialized },
-    ])
+    const entity = storage.create(0, [{ tid: 0, cst: ComponentState.Attached }])
 
     storage.destroy(entity)
 
@@ -31,7 +29,7 @@ describe("createStorage", () => {
   })
   it("moves entities into new archetypes when inserting components", () => {
     const storage = createStorage()
-    const components = [{ tid: 0, cst: ComponentState.Initialized }]
+    const components = [{ tid: 0, cst: ComponentState.Attached }]
     // The next archetype we create (via storage.create) will encompass the
     // first component.
     ;(createArchetype as jest.Mock).mockImplementation(() => ({
@@ -53,7 +51,7 @@ describe("createStorage", () => {
       indices: [0, 1],
     }))
 
-    storage.insert(entity, [{ tid: 1, cst: ComponentState.Initialized }])
+    storage.insert(entity, [{ tid: 1, cst: ComponentState.Attached }])
 
     expect(storage.archetypes[0].remove).toHaveBeenCalledWith(entity)
     expect(storage.archetypes.length).toBe(2)

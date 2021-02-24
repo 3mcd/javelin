@@ -10,6 +10,7 @@ export const createStorage = jest.fn(
       create: jest.fn(() => e++),
       destroy: jest.fn(),
       findComponent: jest.fn(() => ({ type: 0 } as any)),
+      findComponentByComponentTypeId: jest.fn(() => ({ type: 0 } as any)),
       getComponentMutations: jest.fn(),
       getEntityComponents: jest.fn(() => []),
       getObservedComponent: jest.fn((x: any) => x),

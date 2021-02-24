@@ -6,7 +6,7 @@ export const createArchetype = jest.fn(
     return {
       layout,
       layoutInverse: [0],
-      table: layout.map(() => [{ tid: 0, cst: ComponentState.Initialized }]),
+      table: layout.map(() => [{ tid: 0, cst: ComponentState.Attached }]),
       indices: [0],
       entities: [0],
       insert: jest.fn(),

@@ -24,11 +24,11 @@ describe("attached", () => {
     }
     const a2 = {
       tid: 0,
-      cst: ComponentState.Initialized,
+      cst: ComponentState.Attached,
     }
     const a3 = {
       tid: 0,
-      cst: ComponentState.Initialized,
+      cst: ComponentState.Attached,
     }
 
     expect(filter.componentPredicate(a1, world)).toBe(true)

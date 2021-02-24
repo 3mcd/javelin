@@ -1,5 +1,9 @@
-import { Component, ComponentOf, ComponentType } from "./component"
+import { ComponentOf, ComponentType } from "./component"
 import { World } from "./world"
+
+export type ComponentFilterPredicate<
+  T extends ComponentType = ComponentType
+> = (component: ComponentOf<T>, world: World) => boolean
 
 /**
  * A Filter is an object containing methods used to filter queries by entity
@@ -14,13 +18,13 @@ export type ComponentFilter<T extends ComponentType = ComponentType> = {
    * @param component Subject entity's component
    * @param world World of query
    */
-  componentPredicate(component: Component, world: World): unknown
+  componentPredicate: ComponentFilterPredicate<T>
 }
 
 export function createComponentFilter<T extends ComponentType>(
-  getPredicate: () => (component: ComponentOf<T>, world: World) => boolean,
+  getPredicate: () => ComponentFilterPredicate<T>,
 ) {
-  return <T extends ComponentType>(componentType: T): ComponentFilter<T> => ({
+  return (componentType: T): ComponentFilter<T> => ({
     componentType,
     componentPredicate: getPredicate(),
   })

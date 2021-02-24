@@ -19,7 +19,7 @@ describe("changed", () => {
     const filter = changed(A)
     const component = {
       tid: 0,
-      cst: ComponentState.Initialized,
+      cst: ComponentState.Attached,
     }
 
     ;(world.isComponentChanged as jest.Mock).mockReturnValue(true)
