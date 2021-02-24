@@ -1,5 +1,5 @@
 import { Archetype } from "./archetype"
-import { ComponentOf, ComponentType, Component } from "./component"
+import { Component, ComponentOf, ComponentType } from "./component"
 import { ComponentFilter } from "./filter"
 import { arrayOf } from "./util/array"
 import { World } from "./world"
@@ -44,8 +44,8 @@ export function query<S extends Selector>(...selector: S): Query<S> {
   // corresponds to the index of that component in the archetype currently
   // being iterated. This lets us map the components to the correct index in
   // queryResult.
-  let readIndices: number[]
-  const readIndicesByArchetype = new WeakMap<Archetype, number[]>()
+  const readIndicesByArchetypeIndex: (number[] | null)[] = []
+  let currentArchetypeReadIndices: number[] | null
 
   let world: World
   let archetypes: ReadonlyArray<Archetype>
@@ -66,7 +66,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
       queryResult[0] = entities[entityIndex]
 
       for (let i = 0; i < queryLength; i++) {
-        const component = table[readIndices[i]][entityIndex]!
+        const component = table[currentArchetypeReadIndices![i]][entityIndex]!
 
         if (filters[i]?.(component, world) ?? component.cst === 2) {
           ;(selectorResult as Component[])[i] = component
@@ -83,24 +83,10 @@ export function query<S extends Selector>(...selector: S): Query<S> {
 
   function goToNextArchetype() {
     outer: while ((archetype = archetypes[++archetypeIndex])) {
-      readIndices = readIndicesByArchetype.get(archetype)!
+      currentArchetypeReadIndices = readIndicesByArchetypeIndex[archetypeIndex]
 
-      if (readIndices === undefined) {
-        const { layoutInverse } = archetype
-
-        readIndices = []
-
-        for (let i = 0; i < queryLength; i++) {
-          const index = layoutInverse[queryLayout[i]]
-
-          if (index === undefined) {
-            continue outer
-          }
-
-          readIndices[i] = index
-        }
-
-        readIndicesByArchetype.set(archetype, readIndices)
+      if (currentArchetypeReadIndices === null) {
+        continue outer
       }
 
       entityIndex = -1
@@ -137,6 +123,25 @@ export function query<S extends Selector>(...selector: S): Query<S> {
     archetypeIndex = -1
     entityIndex = -1
     result.done = false
+
+    for (let i = 0; i < archetypes.length; i++) {
+      const { layoutInverse } = archetypes[i]
+
+      let indices: number[] | null = readIndicesByArchetypeIndex[i] || []
+
+      for (let j = 0; j < queryLength; j++) {
+        const index = layoutInverse[queryLayout[j]]
+
+        if (index === undefined) {
+          indices = null
+          break
+        }
+
+        indices[j] = index
+      }
+
+      readIndicesByArchetypeIndex[i] = indices
+    }
 
     return iterable
   }
