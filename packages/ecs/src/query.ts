@@ -69,7 +69,6 @@ class QueryIterable<S extends Selector = Selector>
     this.currentArchetype = null
     this.queryResult[0] = -1
     this.iteratorResult.done = false
-    mutableEmpty(this.queryResult[1]) // might not be necessary
   }
 
   next = (): IteratorYieldResult<QueryResult<S>> => {
@@ -147,7 +146,6 @@ class QueryIterable<S extends Selector = Selector>
   }
 
   init(world: World, onDone: (q: this) => void) {
-    this.reset()
     this.world = world
     this.onDone = onDone
   }
