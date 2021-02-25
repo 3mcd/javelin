@@ -1871,29 +1871,29 @@
   dependencies:
     "@types/yargs-parser" "*"
 
-"@web-udp/client@^4.1.0":
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/@web-udp/client/-/client-4.1.0.tgz#a275f378015bed3829c1aa3aa0c13631472834f3"
-  integrity sha512-2PZ/jx1U2thy4pprdumB896APOVNKmEyQm26hh+7qfvnICFPZ8Dk/r3oBIUnM5bU7+PHIuuWxIQx5kvtBGX4bw==
+"@web-udp/client@^4.2.1":
+  version "4.2.1"
+  resolved "https://registry.yarnpkg.com/@web-udp/client/-/client-4.2.1.tgz#61915eb26ced2100563b60933c186fc49e4dc497"
+  integrity sha512-zF4zrPp/GD4etEvjs+ZvLHeLONA99eaXQWfypPG6FyhTKJZXfCJUMq+EBLT6G/HrTTMkK0pBUg2wb6NRb7sHlg==
   dependencies:
     "@babel/runtime" "7.4.5"
-    "@web-udp/protocol" "^4.0.2"
+    "@web-udp/protocol" "^4.2.1"
     shortid "2.2.14"
-    wrtc "0.4.5"
+    wrtc "0.4.7"
     ws "7.0.1"
 
-"@web-udp/protocol@^4.0.2":
-  version "4.0.2"
-  resolved "https://registry.yarnpkg.com/@web-udp/protocol/-/protocol-4.0.2.tgz#745a988957810bd4e9b1533e24806878ad1c8cbd"
-  integrity sha512-QdZfKD6a7mRaXNnNUru9Ce04KxLiySfC5N0UnTThUW9x2Ex4lkzoLJndwUDdJJUtH86Z8pGNaVI2dvoqx7Znbg==
+"@web-udp/protocol@^4.2.1":
+  version "4.2.1"
+  resolved "https://registry.yarnpkg.com/@web-udp/protocol/-/protocol-4.2.1.tgz#e41613a4904e4fedb488ee465fba150278d7218f"
+  integrity sha512-Tmr6LdZh7Bk6+FrsS1Ao9y8dvSoP2b+ZrCXCVkcN9QPVEWO9CIqy6OG+3dE1JFg8y3yYqYZEivZlinYVGx9duQ==
 
-"@web-udp/server@^4.1.0":
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/@web-udp/server/-/server-4.1.0.tgz#6ead505c85f7070c2c40be1f7a58fcdbc7f449d7"
-  integrity sha512-3sUnT6VdXXykImqGrDaE2Yr71bmnOVzmlxvEJS9vejHfgsJpgqNiBsSGAr0NhQkx8lCJ1QwMsBz4TysvbGd+Fw==
+"@web-udp/server@^4.2.1":
+  version "4.2.1"
+  resolved "https://registry.yarnpkg.com/@web-udp/server/-/server-4.2.1.tgz#dfa7d3bd2f3016d7fa50e61f15e172bb6cb0ef36"
+  integrity sha512-nZuUJiAjZKQzmzSCRJ+xy13fRqTRhkbRKguJSfiMO0y95O3GNpu8biaUnFDL03Q9EofzwSS6HgKszhTcW9rAeQ==
   dependencies:
-    "@web-udp/client" "^4.1.0"
-    "@web-udp/protocol" "^4.0.2"
+    "@web-udp/client" "^4.2.1"
+    "@web-udp/protocol" "^4.2.1"
     shortid "2.2.14"
     ws "7.0.1"
 
@@ -10476,10 +10476,10 @@ write-pkg@^3.1.0:
     sort-keys "^2.0.0"
     write-json-file "^2.2.0"
 
-wrtc@0.4.5:
-  version "0.4.5"
-  resolved "https://registry.yarnpkg.com/wrtc/-/wrtc-0.4.5.tgz#6839540904bf38f13e6e3fb27ee1448e8458bbb6"
-  integrity sha512-AEqbxwz8LX9bRrSI8UTn6bFiGj8/28nguYJ0RTk1905HZwM8Rx16D1oX0FfJHWmYHEg5XhODGcVa33d9ORHFyw==
+wrtc@0.4.7:
+  version "0.4.7"
+  resolved "https://registry.yarnpkg.com/wrtc/-/wrtc-0.4.7.tgz#c61530cd662713e50bffe64b7a78673ce070426c"
+  integrity sha512-P6Hn7VT4lfSH49HxLHcHhDq+aFf/jd9dPY7lDHeFhZ22N3858EKuwm2jmnlPzpsRGEPaoF6XwkcxY5SYnt4f/g==
   dependencies:
     node-pre-gyp "^0.13.0"
   optionalDependencies:

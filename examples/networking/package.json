@@ -17,8 +17,8 @@
     "@javelin/hrtime-loop": "0.19.2",
     "@javelin/net": "0.19.2",
     "@msgpack/msgpack": "^1.12.1",
-    "@web-udp/client": "^4.1.0",
-    "@web-udp/server": "^4.1.0",
+    "@web-udp/client": "^4.2.1",
+    "@web-udp/server": "^4.2.1",
     "pixi.js": "^5.3.3"
   },
   "scripts": {
