@@ -61,7 +61,7 @@ jobs:
         uses: peter-evans/create-pull-request@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Update v${{ steps.changelog.outputs.version }}"
+          commit-message: "chore(release): v${{ steps.changelog.outputs.version }}"
           committer: GitHub <noreply@github.com>
           author: "${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>"
           title: "v${{ steps.changelog.outputs.version }}"
