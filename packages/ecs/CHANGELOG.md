@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.19.3 (2021-02-25)
+
+**Note:** Version bump only for package @javelin/ecs
+
+
+
+
+
 ## 0.19.2 (2020-09-08)
 
 **Note:** Version bump only for package @javelin/ecs
