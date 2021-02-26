@@ -49,7 +49,7 @@ module.exports.run = function run() {
 
   world.addSystem(() => {
     for (let j = 0; j < queries.length; j++) {
-      for (const _ of queries[j](world)) {
+      for (const _ of queries[j]) {
         c++
       }
     }

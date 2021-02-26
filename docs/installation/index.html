@@ -49,6 +49,16 @@
                             
                             
                                 
+                                <li class="active">
+                                    
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
+                                        
+                                        Installation
+                                    </a>
+                                    
+                                </li>
+                            
+                                
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
@@ -67,13 +77,6 @@
                                     </a>
                                     
                                         <ul>
-                                            
-                                                <li class="active">
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;installation&#x2F;">
-                                                        
-                                                        Installation
-                                                    </a>
-                                                </li>
                                             
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
@@ -176,18 +179,12 @@
                     <div class="book-content">
                         
 <h1>Installation</h1>
-<h2 id="npm">npm<a class="zola-anchor" href="#npm" aria-label="Anchor link for: npm"
-  >#</a
->
-</h2>
+<h2 id="npm">npm</h2>
 <p>Javelin ECS can be installed via <code>npm</code>:</p>
 <pre><code>npm i @javelin/ecs
 </code></pre>
 <p>The following three builds are published to NPM:</p>
-<h3 id="umd">UMD<a class="zola-anchor" href="#umd" aria-label="Anchor link for: umd"
-  >#</a
->
-</h3>
+<h3 id="umd">UMD</h3>
 <p><strong>Path</strong>: <code>dist/javelin-ecs.bundle.min.js</code></p>
 <p>You can include the minified UMD bundle in your HTML via <code>&lt;script&gt;</code> tag. All module exports are available via <code>window.Javelin</code>:</p>
 <!-- prettier-ignore -->
@@ -196,19 +193,13 @@
   const world = Javelin.createWorld()
 &lt;/script&gt;
 </code></pre>
-<h3 id="es-modules">ES Modules<a class="zola-anchor" href="#es-modules" aria-label="Anchor link for: es-modules"
-  >#</a
->
-</h3>
+<h3 id="es-modules">ES Modules</h3>
 <p><strong>Path</strong>: <code>dist/esm/index.js</code></p>
 <p>The package.json <code>module</code> field points to the ESM build, which will be automatically discovered by tools like Webpack and Rollup. You can of course also import the ES module directly in browsers that support ECMAScript modules.</p>
 <!-- prettier-ignore -->
 <pre><code>&lt;script type=&quot;module&quot; src=&quot;node_modules/@javelin/ecs/dist/esm/index.js&quot;&gt;&lt;/script&gt;
 </code></pre>
-<h3 id="commonjs">CommonJS<a class="zola-anchor" href="#commonjs" aria-label="Anchor link for: commonjs"
-  >#</a
->
-</h3>
+<h3 id="commonjs">CommonJS</h3>
 <aside>
   <p><strong>Note</strong> — this build does not support tree shaking.</p>
 </aside>

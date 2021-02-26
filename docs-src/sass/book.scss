@@ -30,15 +30,15 @@ html {
 }
 
 html {
-  font-size: 16px;
+  font-size: 15px;
   color: #32363b;
 
   @include min-screen($breakpoint--laptop) {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   @include min-screen($breakpoint--desktop) {
-    font-size: 19px;
+    font-size: 18px;
   }
 }
 

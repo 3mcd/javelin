@@ -20,18 +20,18 @@ When you want to apply a impulse to an entity, you could insert an `Impulse` com
 
 ```typescript
 // player input system
-for (const [entity] of jumping(world)) {
+for (const [entity] of queries.jumping) {
   world.attach(entity, world.component(Impulse))
 }
 
-for (const [entity, [, impulse]] of playersWithImpulse(world)) {
+for (const [entity, impulse] of queries.withImpulse) {
   world.detach(entity, impulse)
 }
 ```
 
 ```typescript
 // physics system
-for (const [entity, [impulse]] of playersWithImpulse(world)) {
+for (const [entity, impulse] of queries.withImpulse) {
   const body = getBodyByEntity(entity)
   physicsEngine.applyImpulseLocal(body, impulse)
 }
@@ -48,8 +48,11 @@ Topics are created using the `createTopic<T>()` function, where `T` is the type 
 ```typescript
 import { createTopic } from "@javelin/ecs"
 
-// ("impulse", entity: number, velocity: [x: number, y: number])
-type ImpulseCommand = ["impulse", number, [number, number]]
+type ImpulseCommand = [
+  type: "impulse",
+  entity: number,
+  force: [number, number],
+]
 
 const physicsTopic = createTopic<ImpulseCommand>()
 ```
@@ -75,7 +78,7 @@ Messages can then be read using a for..of loop.
 ```typescript
 import { physicsTopic } from "./physics_topic"
 
-const physicsSystem = (world: World) => {
+const sys_physics = () => {
   for (const command of physicsTopic) {
     if (command[0] === "impulse") {
       const body = getBodyByEntity(command[1])

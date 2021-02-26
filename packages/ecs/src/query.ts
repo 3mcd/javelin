@@ -1,9 +1,8 @@
 import { Archetype } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
 import { ComponentFilter, ComponentFilterPredicate } from "./filter"
+import { globals } from "./internal/globals"
 import { createStackPool } from "./pool"
-import { mutableEmpty } from "./util/array"
-import { World } from "./world"
 
 export type Selector = (ComponentType | ComponentFilter)[]
 export type SelectorResult<S extends Selector> = {
@@ -11,42 +10,36 @@ export type SelectorResult<S extends Selector> = {
     ? ComponentOf<S[K]["componentType"]>
     : S[K] extends ComponentType
     ? ComponentOf<S[K]>
-    : never
+    : Component
 }
-export type Query<S extends Selector> = (
-  world: World,
-) => {
+export type Query<S extends Selector> = {
   [Symbol.iterator](): {
     next(): IteratorYieldResult<QueryResult<S>>
   }
 }
-export type QueryResult<S extends Selector> = [number, SelectorResult<S>]
+export type QueryResult<S extends Selector> = [number, ...SelectorResult<S>]
 
-class QueryIterable<S extends Selector = Selector>
-  implements Iterable<QueryResult<S>> {
+class QueryIterable<S extends Selector = Selector> {
   private queryLength: number = -1
   private queryLayout: number[] = []
   private componentFilterPredicates: (ComponentFilterPredicate | null)[] = []
-  private queryResult: [number, SelectorResult<S>] = [
-    -1,
-    [] as SelectorResult<S>,
-  ]
+  private queryResult: QueryResult<S> = ([-1] as unknown) as QueryResult<S>
   private readIndices: number[] = []
-  private iterable: {
-    next(): IteratorYieldResult<QueryResult<S>>
-  }
 
   private onDone: ((q: this) => void) | null = null
-  private _onDone = () => this.onDone!(this)
+  private onDoneBound = () => this.onDone!(this)
 
   // iterator state
-  private world: World | null = null
   private iteratorResult: IteratorYieldResult<QueryResult<S>>
   private entityIndex: number = -1
   private archetypeIndex: number = -1
   private currentArchetype: Archetype | null = null
 
-  constructor(selector: S) {
+  readonly iterable: {
+    next(): IteratorYieldResult<QueryResult<S>>
+  }
+
+  constructor(selector: S, onDone: (q: QueryIterable<S>) => void) {
     this.componentFilterPredicates = selector.map(s =>
       "componentPredicate" in s ? s.componentPredicate : null,
     )
@@ -61,13 +54,13 @@ class QueryIterable<S extends Selector = Selector>
       value: this.queryResult,
       done: false,
     }
+    this.onDone = onDone
   }
 
   reset() {
     this.entityIndex = -1
     this.archetypeIndex = -1
     this.currentArchetype = null
-    this.queryResult[0] = -1
     this.iteratorResult.done = false
   }
 
@@ -82,10 +75,12 @@ class QueryIterable<S extends Selector = Selector>
   }
 
   visitNextArchetype() {
-    const { queryLayout, queryLength, readIndices, world } = this
+    const { queryLayout, queryLength, readIndices } = this
 
     outer: while (
-      (this.currentArchetype = world!.storage.archetypes[++this.archetypeIndex])
+      (this.currentArchetype = globals.__CURRENT__WORLD__!.storage.archetypes[
+        ++this.archetypeIndex
+      ])
     ) {
       const { layoutInverse } = this.currentArchetype!
 
@@ -106,16 +101,11 @@ class QueryIterable<S extends Selector = Selector>
     }
 
     ;(this.iteratorResult as any).done = true
-    setTimeout(this._onDone)
+    setTimeout(this.onDoneBound)
   }
 
   visitNextEntity() {
-    const {
-      currentArchetype,
-      readIndices,
-      componentFilterPredicates,
-      world,
-    } = this
+    const { currentArchetype, readIndices, componentFilterPredicates } = this
     const { table, entities } = currentArchetype!
     const length = entities.length
 
@@ -126,10 +116,13 @@ class QueryIterable<S extends Selector = Selector>
         const component = table[readIndices[i]][this.entityIndex]!
 
         if (
-          componentFilterPredicates[i]?.(component, world!) ??
+          componentFilterPredicates[i]?.(
+            component,
+            globals.__CURRENT__WORLD__!,
+          ) ??
           component._cst === 2
         ) {
-          ;(this.queryResult[1] as Component[])[i] = component
+          ;(this.queryResult as SelectorResult<S>)[i + 1] = component
         } else {
           continue outer
         }
@@ -140,15 +133,6 @@ class QueryIterable<S extends Selector = Selector>
 
     this.visitNextArchetype()
   }
-
-  [Symbol.iterator]() {
-    return this.iterable
-  }
-
-  init(world: World, onDone: (q: this) => void) {
-    this.world = world
-    this.onDone = onDone
-  }
 }
 
 /**
@@ -157,8 +141,8 @@ class QueryIterable<S extends Selector = Selector>
  * @param selector Component makeup of entities
  */
 export function query<S extends Selector>(...selector: S): Query<S> {
-  const pool = createStackPool(
-    () => new QueryIterable(selector),
+  const pool = createStackPool<QueryIterable<S>>(
+    pool => new QueryIterable(selector, pool.release),
     q => {
       q.reset()
       return q
@@ -166,11 +150,9 @@ export function query<S extends Selector>(...selector: S): Query<S> {
     100,
   )
 
-  return (world: World) => {
-    const query = pool.retain()
-
-    query.init(world, pool.release)
-
-    return query
+  return {
+    [Symbol.iterator]() {
+      return pool.retain().iterable
+    },
   }
 }

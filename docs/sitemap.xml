@@ -19,9 +19,6 @@
         <loc>https://javelin.games/ecs/filtering/</loc>
     </url>
     <url>
-        <loc>https://javelin.games/ecs/installation/</loc>
-    </url>
-    <url>
         <loc>https://javelin.games/ecs/performance/</loc>
     </url>
     <url>
@@ -32,6 +29,9 @@
     </url>
     <url>
         <loc>https://javelin.games/ecs/world/</loc>
+    </url>
+    <url>
+        <loc>https://javelin.games/installation/</loc>
     </url>
     <url>
         <loc>https://javelin.games/introduction/</loc>

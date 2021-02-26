@@ -3,13 +3,15 @@ import { Velocity } from "../components"
 
 let elapsed = 0
 
-const velocities = query(Velocity)
+const queries = {
+  velocities: query(Velocity),
+}
 
-export function spawn(world: World, dt: number) {
-  elapsed += Math.max(dt, 0)
+export function spawn(world: World<number>) {
+  elapsed += Math.max(world.state.currentTickData, 0)
 
   if (elapsed > 5000) {
-    for (const [, [velocity]] of velocities(world)) {
+    for (const [, velocity] of queries.velocities) {
       world.getObservedComponent(velocity).y += Math.random() * 10
       world.getObservedComponent(velocity).x += 1 - Math.random() * 2
       elapsed = 0

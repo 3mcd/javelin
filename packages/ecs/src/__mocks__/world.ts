@@ -5,6 +5,7 @@ export const createWorld = jest.fn(
   (): World => {
     let e = 0
     return {
+      id: 1,
       storage: createStorage(),
       addSystem: jest.fn(),
       applyOps: jest.fn(),
@@ -22,6 +23,12 @@ export const createWorld = jest.fn(
       spawn: jest.fn(() => e++),
       tick: jest.fn(),
       tryGetComponent: jest.fn(),
+      state: {
+        currentTick: 0,
+        currentTickData: null,
+      },
     }
   },
 )
+
+export let __CURRENT__WORLD__ = null

@@ -9,8 +9,8 @@ Javelin stores components in arrays called **archetypes**. An archetype contains
 
 Performance is highly dependent on your game's archetype makeup and logic. However, in a simple benchmark that iterates and performs basic arithmetic on four component types across six archetypes, Javelin can achieve (at 60Hz):
 
-- ~600k iterations per tick on a 2GHz Intel i5 processor (2020 Macbook Pro 13-inch)
-- ~900k iterations per tick on a 3.79 GHz AMD processor (Ryzen 3900XT)
+- ~800k iterations per tick on a 2GHz Intel i5 processor (2020 Macbook Pro 13-inch)
+- ~1.2m iterations per tick on a 3.79 GHz AMD processor (Ryzen 3900XT)
 
 You can see how archtypes and component storage are implemented in [archetype.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/archetype.ts) and [storage.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/storage.ts), respectively.
 

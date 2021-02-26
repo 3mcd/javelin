@@ -51,6 +51,16 @@
                                 
                                 <li >
                                     
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
+                                        
+                                        Installation
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
                                         
                                         Introduction
@@ -67,13 +77,6 @@
                                     </a>
                                     
                                         <ul>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;installation&#x2F;">
-                                                        
-                                                        Installation
-                                                    </a>
-                                                </li>
                                             
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
@@ -186,17 +189,22 @@
 >
 </h3>
 <p>Systems are registered with the world via the options passed to <code>createWorld</code>, or the <code>world.addSystem</code> method.</p>
-<pre><code>const physics = () =&gt; ...
-const render = () =&gt; ...
-const world = createWorld({ systems: [physics] })
+<pre><code>const sys_physics = () =&gt; ...
+const sys_render = () =&gt; ...
+const world = createWorld({ systems: [sys_physics] })
 
-world.addSystem(render)
+world.addSystem(sys_render)
 </code></pre>
-<p>Systems have a signature of <code>(world: World&lt;T&gt;, data: T) =&gt; void</code>, where <code>world</code> is the world that is currently executing it, and <code>data</code> is the single argument (if any) passed into the tick method, i.e. <code>world.tick(data)</code>. Often times <code>data</code> contains the amount of time that has elapsed since the previous tick, but it can be any value.</p>
-<p>When <code>world.tick</code> is called, each system is executed in the order that it was registered.</p>
+<p>When <code>world.tick()</code> is called, each system is executed in the order that it was registered.</p>
+<aside>
+  <p>
+    <strong>Note</strong> — a prefix like <code>sys_</code> can help distinguish systems from normal functions. But use whatever naming convention you like!
+  </p>
+</aside>
+<p>Systems have a signature of <code>(world: World&lt;T&gt;) =&gt; void</code>, where the first argument is the world that is currently mid-tick. A single value can be passed to <code>world.tick(data)</code>, which is then available in each system via <code>world.state.currentTickData</code>. Often times this value holds the amount of time that has elapsed since the previous tick, but it can be any value.</p>
 <p>The following is a world that will log the time elapsed since the last tick at around 60Hz:</p>
-<pre><code>const world = createWorld({
-  systems: [(world, dt: number) =&gt; console.log(dt)],
+<pre><code>const world = createWorld&lt;number&gt;({
+  systems: [world =&gt; console.log(world.state.currentTickData)],
 })
 
 let previousTime = Date.now()
@@ -224,8 +232,8 @@ setInterval(() =&gt; {
   >#</a
 >
 </h2>
-<p>Systems query collections of entities and operate on their data to yield the next game state. These iterable collections are created using <strong>queries</strong> that define an archetype (or sub-archetype) to query by. Depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next.</p>
-<p>This is the cornerstone of ECS that enables runtime composition. Adding and removing components also adds and removes behavior. In addition, the isolation of game logic into systems makes your game world easier to debug and provides a clear target for performance and unit tests.</p>
+<p>Systems query collections of entities and operate on their data to yield the next game state. These iterable collections are created using <strong>queries</strong> that specify a set of component types to query.</p>
+<p>Depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next. This is the cornerstone of ECS: modifying component makeup also modifies game behavior. In addition, the isolation of game logic into systems makes your game world easier to debug and provides a clear target for performance and unit tests.</p>
 <p>Queries are created with the <code>query</code> function, which takes a <strong>selector</strong> of component types.</p>
 <pre><code>import { query } from &quot;@javelin/ecs&quot;
 
@@ -236,12 +244,28 @@ const players = query(Position, Player)
 <pre><code>world.spawn(world.component(Player), world.component(Position))
 world.spawn(world.component(Position), world.component(Player))
 
-const render = (world: World, dt: number) =&gt; {
-  for (const [entity, [position, player]] of players(world)) {
+const sys_render = () =&gt; {
+  for (const [entity, position, player] of players) {
     // render each player with a name tag
-    draw(sprites.player, position, player.name, dt)
+    draw(sprites.player, position, player.name)
   }
 }
+</code></pre>
+<h3 id="accessing-the-world">Accessing the world<a class="zola-anchor" href="#accessing-the-world" aria-label="Anchor link for: accessing-the-world"
+  >#</a
+>
+</h3>
+<p>In order to mutate game state you'll need access to the <code>World</code> that called the system.</p>
+<p>The world that is currently executing a tick is passed as the system's first argument:</p>
+<pre><code>function sys_munch_doritos(world: World&lt;number&gt;) {
+  console.log(world.state.currentTickData) // logs 0.1666666667
+}
+
+world.addSystem(sys_munch_doritos)
+world.tick(1000 / 60)
+
+--- output:
+&gt; 16.66666666
 </code></pre>
 <h3 id="query-caveats">Query caveats<a class="zola-anchor" href="#query-caveats" aria-label="Anchor link for: query-caveats"
   >#</a
@@ -250,17 +274,17 @@ const render = (world: World, dt: number) =&gt; {
 <p>The tuple of components yielded by queries is re-used each iteration. This means that you shouldn't store the results of a query for use later like this:</p>
 <pre><code>const results = []
 
-for (const [, components] of shocked(world)) {
-  results.push(components)
+for (const result of shocked) {
+  results.push(result)
 }
 </code></pre>
 <p>Every index of <code>results</code> corresponds to the same array, which is the tuple of components attached to the entity of the last iteration.</p>
 <p>The same applies to <code>Array.from()</code>, or any other method that expands an iterator into another container. If you <em>do</em> need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.</p>
-<pre><code>const applyStatusEffects = (dt: number, world: World) =&gt; {
-  const shockedEnemies = []
+<pre><code>const sys_status_effects = () =&gt; {
+  const results = []
 
-  for (const [, components] of shocked(world)) {
-    shockedEnemies.push(...components)
+  for (const [, ...components] of shocked) {
+    results.push(components)
   }
 }
 </code></pre>

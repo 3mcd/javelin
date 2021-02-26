@@ -51,6 +51,16 @@
                                 
                                 <li >
                                     
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
+                                        
+                                        Installation
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
                                         
                                         Introduction
@@ -67,13 +77,6 @@
                                     </a>
                                     
                                         <ul>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;installation&#x2F;">
-                                                        
-                                                        Installation
-                                                    </a>
-                                                </li>
                                             
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
@@ -189,16 +192,16 @@
 </code></pre>
 <p>When you want to apply a impulse to an entity, you could insert an <code>Impulse</code> component on the current tick, and remove it on the following tick.</p>
 <pre><code>// player input system
-for (const [entity] of jumping(world)) {
+for (const [entity] of queries.jumping) {
   world.attach(entity, world.component(Impulse))
 }
 
-for (const [entity, [, impulse]] of playersWithImpulse(world)) {
+for (const [entity, impulse] of queries.withImpulse) {
   world.detach(entity, impulse)
 }
 </code></pre>
 <pre><code>// physics system
-for (const [entity, [impulse]] of playersWithImpulse(world)) {
+for (const [entity, impulse] of queries.withImpulse) {
   const body = getBodyByEntity(entity)
   physicsEngine.applyImpulseLocal(body, impulse)
 }
@@ -212,8 +215,11 @@ for (const [entity, [impulse]] of playersWithImpulse(world)) {
 <p>Topics are created using the <code>createTopic&lt;T&gt;()</code> function, where <code>T</code> is the type (e.g. a union type) of message managed by the topic. The <code>createTopic</code> function is defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/topic.ts">topic.ts</a>.</p>
 <pre><code>import { createTopic } from &quot;@javelin/ecs&quot;
 
-// (&quot;impulse&quot;, entity: number, velocity: [x: number, y: number])
-type ImpulseCommand = [&quot;impulse&quot;, number, [number, number]]
+type ImpulseCommand = [
+  type: &quot;impulse&quot;,
+  entity: number,
+  force: [number, number],
+]
 
 const physicsTopic = createTopic&lt;ImpulseCommand&gt;()
 </code></pre>
@@ -230,7 +236,7 @@ topic.push(message)
 <p>Messages can then be read using a for..of loop.</p>
 <pre><code>import { physicsTopic } from &quot;./physics_topic&quot;
 
-const physicsSystem = (world: World) =&gt; {
+const sys_physics = () =&gt; {
   for (const command of physicsTopic) {
     if (command[0] === &quot;impulse&quot;) {
       const body = getBodyByEntity(command[1])

@@ -4,6 +4,7 @@ import { ComponentFilter } from "./filter"
 import { query } from "./query"
 import { createWorld } from "./world"
 import { createComponentType } from "./helpers"
+import { globals } from "./internal/globals"
 
 jest.mock("./archetype")
 jest.mock("./world")
@@ -37,12 +38,14 @@ describe("query", () => {
       } as Archetype,
     ]
 
+    globals.__CURRENT__WORLD__ = world
+
     const q = query(A, B)
 
     let resultsA = []
     let resultsB = []
 
-    for (const [, [a, b]] of q(world)) {
+    for (const [, a, b] of q) {
       resultsA.push(a)
       resultsB.push(b)
     }
@@ -78,10 +81,12 @@ describe("query", () => {
       } as Archetype,
     ]
 
+    globals.__CURRENT__WORLD__ = world
+
     const q = query(filter(A))
 
-    for (const [entity, [a]] of q(world)) {
-      expect(entity).toBe(1)
+    for (const [e, a] of q) {
+      expect(e).toBe(1)
       expect(a).toEqual(table[0][1])
     }
   })

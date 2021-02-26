@@ -5,14 +5,14 @@ export type StackPool<T> = {
 }
 
 export function createStackPool<T>(
-  type: () => T,
+  type: (pool: StackPool<T>) => T,
   reset: (obj: T) => T,
   size: number,
 ): StackPool<T> {
   const heap: T[] = []
   const allocate = () => {
     for (let i = 0; i < size; i++) {
-      heap.push(type())
+      heap.push(type(pool))
     }
   }
   const retain = () => {
@@ -26,9 +26,11 @@ export function createStackPool<T>(
     heap.push(reset(obj))
   }
 
-  return {
+  const pool = {
     allocate,
     retain,
     release,
   }
+
+  return pool
 }

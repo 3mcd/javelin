@@ -51,6 +51,16 @@
                                 
                                 <li >
                                     
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
+                                        
+                                        Installation
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
                                         
                                         Introduction
@@ -67,13 +77,6 @@
                                     </a>
                                     
                                         <ul>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;installation&#x2F;">
-                                                        
-                                                        Installation
-                                                    </a>
-                                                </li>
                                             
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
@@ -180,12 +183,12 @@
   >#</a
 >
 </h2>
-<p>In traditional OOP game development, entity data and behavior is often architected using a class heirarchy. Take the following example, where a <code>Player</code> class extends a physics <code>Body</code> class to enhance players with physics properties:</p>
 <aside>
   <p>
     <strong>Note</strong> — this section contains pseudo-code. Skip to the <a href="/ecs/world">Hello World</a> section if you're ready for real examples.
   </p>
 </aside>
+<p>Entity data and behavior is often architected using class heirarchies in game development. Take the following example, where a <code>Player</code> class extends a physics <code>Body</code> class to enhance players with physics properties:</p>
 <pre><code>class Body {
   readonly velocity = { x: 0, y: 0 }
 }
@@ -212,7 +215,7 @@ setInterval(() =&gt; {
 </code></pre>
 <p>When the player presses the spacebar on their keyboard, <code>player.jump()</code> is called, and the physics body jumps! Easy enough.</p>
 <p>What if a player wants to spectate our game instead of controlling a character? In that scenario, it would be unnecessary for <code>Player</code> to extend <code>Body</code>, and we'd either need to modify the inheritance structure, or write defensive code to ensure that spectators shouldn't touch the physics simulation.</p>
-<p>Data and behavior are separate concerns in an ECS. High-cohesion game objects are split into three distinct concerns: <strong>components</strong>, game data; <strong>entities</strong>, a mutable array of components, the sum of which represents a game object (like a player); and <strong>systems</strong>, game behavior. This pattern gives us the ability to modify the behavior of entities at runtime.</p>
+<p>Data and behavior are separate concerns in an ECS. High-cohesion game objects are substituted with three distinct concerns: (1) <strong>components</strong> – game data, (2) <strong>entities</strong> – game objects (like a tree, chest, or spawn position), and (3) <strong>systems</strong> – game behavior. </p>
 <h3 id="components">Components<a class="zola-anchor" href="#components" aria-label="Anchor link for: components"
   >#</a
 >
@@ -226,12 +229,12 @@ Input { space: boolean }
   >#</a
 >
 </h3>
-<p>An entity is an integer that references a vector (array) of components. An entity typically represents a game object (like a player, vehicle, or weapon) that could be made up of many components, but sometimes may only reference a single component with the purpose of holding global state. They do not contain any data of their own.</p>
+<p>In Javelin, an entity is an integer that references a vector (array) of components. An entity typically represents a game object (like a player, vehicle, or weapon) that could be made up of many components, but sometimes may only reference a single component with the purpose of holding global state. Entities do not store any data of their own, and are fully defined by their component makeup.</p>
 <h3 id="systems">Systems<a class="zola-anchor" href="#systems" aria-label="Anchor link for: systems"
   >#</a
 >
 </h3>
-<p>Systems are functions that iterate over entities and modify their components. This is how game logic is implemented in an ECS. The following pseudo-code is a depiction of how we might implement the jumping behavior from the above &quot;traditional&quot; example using the ECS pattern.</p>
+<p>Systems are functions that iterate over entities and modify their components. Systems contain most (ideally all) game logic in an ECS. The following pseudo-code is a depiction of how we might implement the jumping behavior from the above &quot;traditional&quot; example using the ECS pattern.</p>
 <pre><code>for entity of (player, input, body)
   if (input[entity].jump)
     body[entity].y += 1

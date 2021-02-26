@@ -51,6 +51,16 @@
                                 
                                 <li >
                                     
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
+                                        
+                                        Installation
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
                                         
                                         Introduction
@@ -67,13 +77,6 @@
                                     </a>
                                     
                                         <ul>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;installation&#x2F;">
-                                                        
-                                                        Installation
-                                                    </a>
-                                                </li>
                                             
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
@@ -189,14 +192,16 @@
 </h3>
 <p>Sometimes you don't need to know exactly which properties on a component changed, only that it <em>was</em> changed. In this case, you can use either the <code>changed</code> component filter in a query, or use the <code>world.isComponentChanged</code> method, which returns <code>true</code> if the component was changed last tick, and <code>false</code> if it wasn't.</p>
 <p>Using the <code>changed</code> filter:</p>
-<pre><code>const healthChanged = query(changed(Health))
+<pre><code>const queries = {
+  changed: query(changed(Health))
+}
 
-for (const [entity, [health]] of healthChanged(world)) {
+for (const [entity, health] of queries.changed) {
   // `entity` is an entity who's health component changed last tick
 }
 </code></pre>
 <p>Using <code>world.isComponentChanged</code>:</p>
-<pre><code>for (const [entity, [health]] of healthy(world)) {
+<pre><code>for (const [entity, health] of healthy(world)) {
   if (world.isComponentChanged(health)) {
     // `health` changed last tick
   }
@@ -207,7 +212,7 @@ for (const [entity, [health]] of healthChanged(world)) {
 >
 </h3>
 <p>If you want to know exactly what changes were made to a component during the current tick, use <code>world.getComponentMutations</code>. This method returns a 1-dimensional array of changes made to a component. Take the following example:</p>
-<pre><code>for (const [entity, [position, input]] of someQuery(world)) {
+<pre><code>for (const [entity, position, input] of queries.vehicles) {
   const observedPosition = world.getObservedComponent(position)
 
   observedPosition.x = 2
