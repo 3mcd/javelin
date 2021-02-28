@@ -31,4 +31,4 @@ export const createWorld = jest.fn(
   },
 )
 
-export let __CURRENT__WORLD__ = null
+export let __CURRENT_WORLD__ = null

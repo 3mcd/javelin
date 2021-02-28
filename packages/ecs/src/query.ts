@@ -78,9 +78,9 @@ class QueryIterable<S extends Selector = Selector> {
     const { queryLayout, queryLength, readIndices } = this
 
     outer: while (
-      (this.currentArchetype = globals.__CURRENT__WORLD__!.storage.archetypes[
-        ++this.archetypeIndex
-      ])
+      (this.currentArchetype = globals.__WORLDS__[
+        globals.__CURRENT_WORLD__
+      ]!.storage.archetypes[++this.archetypeIndex])
     ) {
       const { layoutInverse } = this.currentArchetype!
 
@@ -118,7 +118,7 @@ class QueryIterable<S extends Selector = Selector> {
         if (
           componentFilterPredicates[i]?.(
             component,
-            globals.__CURRENT__WORLD__!,
+            globals.__WORLDS__[globals.__CURRENT_WORLD__]!,
           ) ??
           component._cst === 2
         ) {

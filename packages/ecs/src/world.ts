@@ -178,10 +178,7 @@ export type WorldState<T = unknown> = {
   currentTickData: T
 }
 
-let worldCounter = 0
-
 export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
-  const id = worldCounter++
   const { systems = [], componentPoolSize = 1000 } = options
   const worldOps: WorldOp[] = []
   const worldOpsPrevious: WorldOp[] = []
@@ -317,7 +314,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   }
 
   function tick(data: T) {
-    globals.__CURRENT__WORLD__ = world
+    globals.__CURRENT_WORLD__ = id
     state.currentTickData = data
 
     if (state.currentTick === 0) {
@@ -328,6 +325,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
     // Execute systems
     for (let i = 0; i < systems.length; i++) {
+      globals.__CURRENT_SYSTEM__ = i
       systems[i](world)
     }
 
@@ -501,7 +499,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     detach,
     getComponent,
     getObservedComponent,
-    id,
+    id: -1,
     isComponentChanged,
     ops: worldOpsPrevious,
     patch,
@@ -512,6 +510,8 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     tick,
     tryGetComponent,
   }
+
+  let id = (world.id = globals.__WORLDS__.push(world) - 1)
 
   return world
 }
