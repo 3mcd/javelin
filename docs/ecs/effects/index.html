@@ -69,7 +69,7 @@
                                 </li>
                             
                                 
-                                <li class="active">
+                                <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
                                         
@@ -127,7 +127,7 @@
                                                     </a>
                                                 </li>
                                             
-                                                <li >
+                                                <li class="active">
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
                                                         
                                                         Effects
@@ -185,73 +185,213 @@
                     
                     <div class="book-content">
                         
-<h1>ECS</h1>
-<h2 id="what-s-an-ecs">What's an ECS?<a class="zola-anchor" href="#what-s-an-ecs" aria-label="Anchor link for: what-s-an-ecs"
+<h1>Effects</h1>
+<h2 id="interacting-with-dependencies">Interacting with dependencies<a class="zola-anchor" href="#interacting-with-dependencies" aria-label="Anchor link for: interacting-with-dependencies"
   >#</a
 >
 </h2>
+<p>You'll often need to interact with some asynchronous code, third-party library, or API that wouldn't fit cleanly into Javelin's synchronous/serializable model. An <strong>effect</strong> is a container for one of these resources.</p>
+<p>The below example demonstrates a worker effect that might perform some expensive computation in a worker thread and return a result back to the system when finished.</p>
+<pre><code>const sys_physics = () =&gt; {
+  const { result, doExpensiveComputation } = workerEffect()
+
+  if (!result) {
+   doExpensiveComputation()
+  } else {
+    // do something with result
+  }
+}
+</code></pre>
+<p>Javelin exports a function <code>createEffect</code> which accepts a callback as its first argument. This callback is should define any state (variables) used by the effect, and return a function to be executed each tick.</p>
+<p>Below is an effect that will return <code>false</code> until the provided duration passes:</p>
+<pre><code>import { createEffect } from &quot;@javelin/ecs&quot;
+
+const timer = createEffect(() =&gt; {
+  // effect state
+  let state = 0
+  // effect function
+  return (world, duration: number) =&gt; {
+    if (state === 0) {
+      state = 1
+      setTimeout(() =&gt; (state = 2), duration)
+    }
+    return state === 2
+  }
+})
+</code></pre>
 <aside>
   <p>
-    <strong>Note</strong> — this section contains pseudo-code. Skip to the <a href="/ecs/world">Hello World</a> section if you're ready for real examples.
+    <strong>Note</strong> — effects in Javelin have some similarities to React effects. They are executed each update (tick) and  read/modify closed-over variables. In a way, Javelin's effects are a combination of React's <code>useEffect</code> and <code>useRef</code>.
   </p>
 </aside>
-<p>Entity data and behavior is often architected using class heirarchies in game development. Take the following example, where a <code>Player</code> class extends a physics <code>Body</code> class to enhance players with physics properties:</p>
-<pre><code>class Body {
-  readonly velocity = { x: 0, y: 0 }
+<p>Effects have a single rule: they must be called in the same order order and at the same frequency every tick. This means that you shouldn't call effects conditionally (i.e. in a if/else statement or a loop).</p>
+<p>By default, Javelin will create a copy of the effect closure for each effect call. This lets you use multiple effects of the same type without conflict. Take the example below, where both timers run alongside eachother, with the second timer finishing one second after the first.</p>
+<pre><code>const sys_a = () =&gt; {
+  if (timer(1000)) console.log(&quot;a&quot;)
+  if (timer(2000)) console.log(&quot;b&quot;)
 }
 
-class Player extends Body {
-  input: Input
+(1000ms)
+&gt; &quot;a&quot;
+(1000ms)
+&gt; &quot;b&quot;
+</code></pre>
+<h2 id="effect-modes">Effect modes<a class="zola-anchor" href="#effect-modes" aria-label="Anchor link for: effect-modes"
+  >#</a
+>
+</h2>
+<p>Effects can exist in one of two modes: <strong>local</strong> or <strong>global</strong>. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure and one callback function per local effect within a system. Global effects are executed a maximum of one time per tick. All calls to global effects refer to the same closure and callback. Local mode is enabled by default.</p>
+<h3 id="local-effects">Local effects<a class="zola-anchor" href="#local-effects" aria-label="Anchor link for: local-effects"
+  >#</a
+>
+</h3>
+<p>Local effects are useful if you want to perform a one-off task, like perform an API request:</p>
+<pre><code>const sys_quest_ui = () =&gt; {
+  const context = canvasEffect()
+  const { done, quests } = fetchEffect(&quot;/quests?complete=false&quot;)
 
-  constructor(public input: Input) {}
-
-  jump() {
-    this.velocity[1] += 1
+  if (done) {
+    // render quest log
   }
 }
+</code></pre>
+<p>Although you should strive to have all game state in components, it can be tedious to create a singleton component each time you need some state within a system. Effects can be used to wrap arbitrary values that persist between ticks.</p>
+<pre><code>const sys_fibonacci = () =&gt; {
+  const a = refEffect(0)
+  const b = refEffect(1)
+  const bPrev = b.value
 
-const input = new Input()
-const player = new Player(input)
+  b.value += a.value
+  a.value = bPrev
 
-setInterval(() =&gt; {
-  if (input.isSpacebarPressed()) {
-    // apply force to launch player into the air
-    player.jump()
+  console.log(a.value)
+}
+</code></pre>
+<aside>
+  <p>
+    <strong>Note</strong> — using effects to store system state may bother the ECS purist, but it's undeniably convenient and practical, especially for simple cases where state wouldn't need to be serialized or shared with another system.
+  </p>
+</aside>
+<h3 id="global-effects">Global effects<a class="zola-anchor" href="#global-effects" aria-label="Anchor link for: global-effects"
+  >#</a
+>
+</h3>
+<p>The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS.</p>
+<p>Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.</p>
+<pre><code>const simulationEffect = createEffect(() =&gt; {
+  const simulation = new Library.Simulation()
+  return world =&gt; {
+    // add new bodies to physics simulation
+    for (const [e] of queries.attached) ...
+    // remove detached bodies from physics simulation
+    for (const [e] of queries.detached) ...
+    // copy simulation state to ECS state
+    for (const [e] of queries.simulated) ...
+    // step simulation in sync with world
+    simulation.step(world.state.currentTickData)
+    return simulation
   }
-}, 16.66666)
+}, {
+  global: true
+});
+
+const sys_physics = () =&gt; {
+  const simulation = simulationEffect()
+
+  for (const [e, body, input] of queries.jumping) {
+    simulation.applyImpulse(body.simulationId, ...)
+  }
+}
 </code></pre>
-<p>When the player presses the spacebar on their keyboard, <code>player.jump()</code> is called, and the physics body jumps! Easy enough.</p>
-<p>What if a player wants to spectate our game instead of controlling a character? In that scenario, it would be unnecessary for <code>Player</code> to extend <code>Body</code>, and we'd either need to modify the inheritance structure, or write defensive code to ensure that spectators shouldn't touch the physics simulation.</p>
-<p>Data and behavior are separate concerns in an ECS. High-cohesion game objects are substituted with three distinct concerns: (1) <strong>components</strong> – game data, (2) <strong>entities</strong> – game objects (like a tree, chest, or spawn position), and (3) <strong>systems</strong> – game behavior. </p>
-<h3 id="components">Components<a class="zola-anchor" href="#components" aria-label="Anchor link for: components"
-  >#</a
->
-</h3>
-<p>In an ECS, components are typically plain objects that contain data and no methods. Ideally all game state lives in components.</p>
-<pre><code>Player { name: string }
-Body { velocity: [number, number] }
-Input { space: boolean }
-</code></pre>
-<h3 id="entities">Entities<a class="zola-anchor" href="#entities" aria-label="Anchor link for: entities"
-  >#</a
->
-</h3>
-<p>In Javelin, an entity is an integer that references a vector (array) of components. An entity typically represents a game object (like a player, vehicle, or weapon) that could be made up of many components, but sometimes may only reference a single component with the purpose of holding global state. Entities do not store any data of their own, and are fully defined by their component makeup.</p>
-<h3 id="systems">Systems<a class="zola-anchor" href="#systems" aria-label="Anchor link for: systems"
-  >#</a
->
-</h3>
-<p>Systems are functions that iterate over entities and modify their components. Systems contain most (ideally all) game logic in an ECS. The following pseudo-code is a depiction of how we might implement the jumping behavior from the above &quot;traditional&quot; example using the ECS pattern.</p>
-<pre><code>for entity of (player, input, body)
-  if (input[entity].jump)
-    body[entity].y += 1
-</code></pre>
-<p>This example shows a system which iterates all components that have a <code>Player</code>, <code>Body</code>, and <code>Input</code> (e.g. a gamepad) component. Each player's input component is checked to determine if the jump key is pressed. If so, we locate the entity's body component and add to it's y-velocity.</p>
-<p>Spectators can now be represented with a <code>(Player, Input)</code> entity. Even though they aren't controlling a physics body yet, the <code>Input</code> component might allow them to move the game camera around. If the player chooses to enter the fray, we can insert a <code>Body</code> component into their entity, allowing them to control an actor in the scene.</p>
-<pre><code>add(entity, Body)
-</code></pre>
-<p>This pattern can be applied to many types of games. For example, an FPS game might consist of systems that handle physics, user input and movement, projectile collisions, and player inventory.</p>
- 
+<p>Inspect this page's source to see some example effects in action.</p>
+<script>
+  const effects = {
+    ref: Javelin.createEffect(() => {
+      let initial = true
+      const state = {}
+      return (world, initialValue) => {
+        if (initial) {
+          state.value = initialValue
+        }
+        initial = false
+        return state
+      }
+    }),
+    wait: Javelin.createEffect(() => {
+      return (world, duration) => {
+        const state = effects.ref(0)
+        if (state.value === 0) {
+          state.value = 1
+          setTimeout(() => (state.value = 2), duration)
+        }
+        return state.value === 2
+      }
+    }),
+    fetch: Javelin.createEffect(() => {
+      let state = 0;
+      let result = null;
+      return (world, url, invalidate = false) => {
+        if (invalidate) {
+          state = 0
+        }
+        if (state === 1) {
+          return result
+        }
+        return fetch(url).then(response => response.json()).then(r => {
+          result = r;
+          state = 1;
+        })
+      }
+    })
+  }
+  const system_a = () => {
+    const doneA = effects.wait(1000)
+    const doneB = effects.wait(3000)
+    const runningA = effects.ref(true)
+    const runningB = effects.ref(true)
+
+    if (doneA && runningA.value) {
+      console.log("a")
+      runningA.value = false
+    }
+
+    if (doneB && runningB.value) {
+      console.log("b")
+      runningB.value = false
+    }
+  }
+  const system_b = () => {
+    const running = effects.ref(true)
+    const response = effects.fetch("https://jsonplaceholder.typicode.com/todos/1")
+
+    if (response && running.value) {
+      console.log(response)
+      running.value = false
+    }
+  }
+  const sys_fibonacci = () => {
+    const a = effects.ref(0)
+    const b = effects.ref(1)
+    const x = b.value
+
+    if (x < 10000) {
+      b.value += a.value
+      a.value = x
+
+      console.log(a.value)
+    }
+  }
+
+  const world = Javelin.createWorld({
+    systems: [
+      system_a,
+      system_b,
+      sys_fibonacci
+    ]
+  })
+
+  setInterval(world.tick, 500)
+</script> 
                     </div>
                 </div>
             </div>

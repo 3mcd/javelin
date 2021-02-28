@@ -13,6 +13,9 @@
         <loc>https://javelin.games/ecs/components/</loc>
     </url>
     <url>
+        <loc>https://javelin.games/ecs/effects/</loc>
+    </url>
+    <url>
         <loc>https://javelin.games/ecs/entities/</loc>
     </url>
     <url>
