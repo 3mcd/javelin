@@ -24,7 +24,7 @@ export function createEffect<S, A extends any[]>(
   let currentSystem: number
   let cellCount: number = -1
 
-  const onState = (nextState: S, w: number, s: number, c: number) =>
+  const setState = (nextState: S, w: number, s: number, c: number) =>
     (stateLookup[w][s][c] = nextState)
 
   return (...args: A) => {
@@ -34,7 +34,11 @@ export function createEffect<S, A extends any[]>(
     const world = globals.__WORLDS__[currentWorld]
     const currentTick = world.state.currentTick
 
-    if (previousWorld !== currentWorld && previousWorld !== undefined) {
+    if (
+      options.global === true ||
+      (previousWorld !== currentWorld && previousWorld !== undefined)
+    ) {
+      cellCount = 0
     } else if (
       previousTick !== currentTick ||
       (previousSystem !== currentSystem && previousSystem !== undefined)
@@ -48,7 +52,11 @@ export function createEffect<S, A extends any[]>(
       const previousCellCount = systemCellCount[previousSystem]
 
       if (previousCellCount !== undefined && previousCellCount !== cellCount) {
-        throw new Error("woops")
+        throw new Error(
+          `Failed to execute effect: encountered too ${
+            previousCellCount > cellCount ? "few" : "many"
+          } hooks this tick`,
+        )
       }
 
       systemCellCount[previousSystem] = cellCount
@@ -86,6 +94,7 @@ export function createEffect<S, A extends any[]>(
     } else if (executor.running === true) {
       return state
     }
+
     const result = executor(world, ...args)
 
     if (typeof result === "object" && result !== null && "then" in result) {
@@ -94,13 +103,13 @@ export function createEffect<S, A extends any[]>(
       let c = cellCount
       executor.running = true
       result
-        .then(result => onState(result, w, s, c))
+        .then(result => setState(result, w, s, c))
         .catch(error =>
           console.error(`Uncaught error in effect: ${error.message}`, error),
         )
         .then(() => (executor.running = false))
     } else {
-      state = onState(result, currentWorld, currentSystem, cellCount)
+      state = setState(result, currentWorld, currentSystem, cellCount)
     }
 
     previousTick = currentTick
