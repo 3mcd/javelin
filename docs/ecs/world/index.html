@@ -51,9 +51,9 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
                                         
-                                        Installation
+                                        Introduction
                                     </a>
                                     
                                 </li>
@@ -61,9 +61,9 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
                                         
-                                        Introduction
+                                        Installation
                                     </a>
                                     
                                 </li>
@@ -220,6 +220,11 @@ const world = createWorld({
 <pre><code>// an entity of (Health, Burn) should always have a position
 world.getComponent(entity, Position)
 </code></pre>
+<h2 id="clearing-data">Clearing Data<a class="zola-anchor" href="#clearing-data" aria-label="Anchor link for: clearing-data"
+  >#</a
+>
+</h2>
+<p>Use <code>world.reset()</code> to completely reset a world. This method will clear all entity and component data, attempting to release pooled components along the way.</p>
  
                     </div>
                 </div>
