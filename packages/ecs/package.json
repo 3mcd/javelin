@@ -1,6 +1,6 @@
 {
   "name": "@javelin/ecs",
-  "version": "0.19.3",
+  "version": "0.19.4",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "browser": "dist/javelin-ecs.bundle.js",
