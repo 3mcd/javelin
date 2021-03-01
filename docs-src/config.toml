@@ -19,5 +19,5 @@ highlight_code = true
 # Put all your custom variables here
 theme = "book"
 book_numbered_chapters = false
-library_version = "0.19.3"
+library_version = "0.19.4"
 repo_url = "https://github.com/3mcd/javelin"
