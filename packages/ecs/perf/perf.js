@@ -69,6 +69,12 @@ module.exports.run = function run() {
   }
   console.timeEnd("destroy")
 
+  components.forEach(c => world.spawn(...c))
+
+  console.time("reset")
+  world.reset()
+  console.timeEnd("reset")
+
   console.log(`entities      | ${components.length}`)
   console.log(`components    | ${componentTypes.length}`)
   console.log(`queries       | ${queries.length}`)

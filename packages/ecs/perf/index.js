@@ -1,8 +1,6 @@
 const hr = Array(40).fill("=").join("")
 
-const perfs = [
-  { name: "perf_storage", run: require("./perf_storage").run },
-]
+const perfs = [{ name: "perf", run: require("./perf").run }]
 
 perfs.forEach(p => {
   console.log(hr)

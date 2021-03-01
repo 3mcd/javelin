@@ -100,6 +100,8 @@ export interface Storage {
 
   isComponentChanged(component: Component): boolean
 
+  clear(): void
+
   /**
    * Collection of Archetypes in the world.
    */
@@ -389,8 +391,15 @@ export function createStorage(): Storage {
     return changeSet ? changeSet.length > 0 : false
   }
 
+  function clear() {
+    mutations.clear()
+    mutableEmpty(archetypes)
+    mutableEmpty(archetypeIndicesByEntity)
+  }
+
   return {
     archetypes,
+    clear,
     clearMutations,
     create,
     destroy,

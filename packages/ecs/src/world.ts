@@ -146,6 +146,12 @@ export interface World<T = any> {
   ): void
 
   /**
+   * Reset the world to its initial state, removing all entities, components,
+   * systems, world ops, and internal state.
+   */
+  reset(): void
+
+  /**
    * Entity-component storage.
    */
   readonly storage: Storage
@@ -179,7 +185,15 @@ export type WorldState<T = unknown> = {
   currentSystem: number
 }
 
-export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
+function getInitialWorldState<T>() {
+  return {
+    currentTickData: (null as unknown) as T,
+    currentTick: 0,
+    currentSystem: 0,
+  }
+}
+
+export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   const { systems = [], componentPoolSize = 1000 } = options
   const worldOps: WorldOp[] = []
   const worldOpsPrevious: WorldOp[] = []
@@ -200,12 +214,8 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   const destroyed = new Set<number>()
   const detached = new Map<number, readonly number[]>()
   const attaching: (readonly Component[])[] = []
-  const state: WorldState<T> = {
-    currentTickData: (null as unknown) as T,
-    currentTick: 0,
-    currentSystem: 0,
-  }
 
+  let state: WorldState<T> = getInitialWorldState()
   let entityCounter = 0
 
   function applySpawnOp(op: SpawnOp) {
@@ -489,6 +499,49 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     )
   }
 
+  function reset() {
+    mutableEmpty(worldOps)
+    mutableEmpty(worldOpsPrevious)
+    mutableEmpty(componentTypes)
+    mutableEmpty(systems)
+    mutableEmpty(attaching)
+
+    componentPoolsByComponentTypeId.clear()
+    destroyed.clear()
+    detached.clear()
+
+    state = getInitialWorldState()
+
+    entityCounter = 0
+
+    while (worldOps.length > 0) {
+      worldOpPool.release(worldOps.pop()!)
+    }
+
+    while (worldOpsPrevious.length > 0) {
+      worldOpPool.release(worldOpsPrevious.pop()!)
+    }
+
+    // Prior to clearing storage, release each component back to its pool.
+    for (let i = 0; i < storage.archetypes.length; i++) {
+      const archetype = storage.archetypes[i]
+
+      for (let j = 0; j < archetype.layout.length; j++) {
+        const column = archetype.table[j]
+        const componentPool = componentPoolsByComponentTypeId.get(
+          archetype.layout[j],
+        )
+
+        for (let k = 0; k < column.length; k++) {
+          const component = column[k]
+          componentPool?.release(component!)
+        }
+      }
+    }
+
+    storage.clear()
+  }
+
   const { getObservedComponent, isComponentChanged, patch } = storage
 
   const world = {
@@ -506,8 +559,9 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     ops: worldOpsPrevious,
     patch,
     removeSystem,
-    state,
+    reset,
     spawn,
+    state,
     storage,
     tick,
     tryGetComponent,

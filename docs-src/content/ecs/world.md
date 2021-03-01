@@ -53,3 +53,7 @@ if (world.tryGetComponent(entity, Invulnerable) === null) {
 // an entity of (Health, Burn) should always have a position
 world.getComponent(entity, Position)
 ```
+
+## Clearing Data
+
+Use `world.reset()` to completely reset a world. This method will clear all entity and component data, attempting to release pooled components along the way.
