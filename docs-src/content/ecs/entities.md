@@ -12,8 +12,8 @@ An entity is a pointer to a unique collection of components that represent highe
 Entities are created using `world.spawn`. This method accepts 0..n components and returns the newly created entity.
 
 ```typescript
-const player = { type: 1, name: "elrond" }
-const health = { type: 2, value: 100 }
+const player = { _tid: 1, name: "elrond" }
+const health = { _tid: 2, value: 100 }
 const entity = world.spawn(player, health)
 ```
 
@@ -28,7 +28,7 @@ const entity = world.spawn(player, health)
 The vector of components associated with an entity defines its **archetype**. The above example would create an entity of archetype `(Player, Health)`. Components can be assigned to existing entities using `world.attach`, and removed from entities using `world.detach`. The following example modifies an entity of archetype `(Player, Health)` to `(Player, Health, Input)`, and then back to `(Player, Health)`:
 
 ```typescript
-const input = { type: 3, space: true }
+const input = { _tid: 3, space: true }
 
 world.attach(entity, input)
 world.tick()

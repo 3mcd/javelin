@@ -1,6 +1,6 @@
 +++
 title = "Change Detection"
-weight = 8
+weight = 9
 +++
 
 Javelin implements a very basic change detection algorithm using [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) that can observe deeply nested changes made to components.

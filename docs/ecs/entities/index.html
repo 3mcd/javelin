@@ -114,6 +114,13 @@
                                                 </li>
                                             
                                                 <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
+                                                        
+                                                        Effects
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;topics&#x2F;">
                                                         
                                                         Topics
@@ -124,13 +131,6 @@
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;change-detection&#x2F;">
                                                         
                                                         Change Detection
-                                                    </a>
-                                                </li>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
-                                                        
-                                                        Effects
                                                     </a>
                                                 </li>
                                             
@@ -196,8 +196,8 @@
 >
 </h3>
 <p>Entities are created using <code>world.spawn</code>. This method accepts 0..n components and returns the newly created entity.</p>
-<pre><code>const player = { type: 1, name: &quot;elrond&quot; }
-const health = { type: 2, value: 100 }
+<pre><code>const player = { _tid: 1, name: &quot;elrond&quot; }
+const health = { _tid: 2, value: 100 }
 const entity = world.spawn(player, health)
 </code></pre>
 <aside>
@@ -210,7 +210,7 @@ const entity = world.spawn(player, health)
 >
 </h3>
 <p>The vector of components associated with an entity defines its <strong>archetype</strong>. The above example would create an entity of archetype <code>(Player, Health)</code>. Components can be assigned to existing entities using <code>world.attach</code>, and removed from entities using <code>world.detach</code>. The following example modifies an entity of archetype <code>(Player, Health)</code> to <code>(Player, Health, Input)</code>, and then back to <code>(Player, Health)</code>:</p>
-<pre><code>const input = { type: 3, space: true }
+<pre><code>const input = { _tid: 3, space: true }
 
 world.attach(entity, input)
 world.tick()

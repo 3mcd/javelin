@@ -1,6 +1,6 @@
 +++
 title = "Effects"
-weight = 8
+weight = 6
 +++
 
 ## Interacting with dependencies

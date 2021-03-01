@@ -114,6 +114,13 @@
                                                 </li>
                                             
                                                 <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
+                                                        
+                                                        Effects
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;topics&#x2F;">
                                                         
                                                         Topics
@@ -124,13 +131,6 @@
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;change-detection&#x2F;">
                                                         
                                                         Change Detection
-                                                    </a>
-                                                </li>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
-                                                        
-                                                        Effects
                                                     </a>
                                                 </li>
                                             
@@ -259,8 +259,87 @@ const Wormhole = Javelin.createComponentType({
   },
 });
 
+const effects = {
+  interval: Javelin.createEffect(() => {
+    let state = 0
+    return (world, t) => {
+      if (state === 1) {
+        return false
+      }
+      state = 1
+      setTimeout(() => (state = 0), t)
+      return true
+    }
+  }),
+  click: Javelin.createEffect(() => {
+    const state = { clicked: false, coords: null }
+    document.addEventListener("click", event => {
+      state.clicked = true
+      state.coords = relMouseCoords(canvas, event)
+    })
+
+    return () => {
+      if (state.clicked) {
+        const result = {...state}
+        state.clicked = false
+        return result
+      }
+      return state
+    }
+  }),
+  ref: Javelin.createEffect(() => {
+    let initial = true
+    const state = {}
+    return (world, initialValue) => {
+      if (initial) {
+        state.value = initialValue
+      }
+      initial = false
+      return state
+    }
+  })
+}
+
 const wormholes = Javelin.query(Transform, Wormhole, Velocity);
 const junk = Javelin.query(Transform, Velocity, Junk);
+
+const sys_spawn = world => {
+  const { clicked, coords } = effects.click()
+  const hasClickedOnce = effects.ref(false)
+  const shouldSpawnJunk = effects.ref(true)
+  const shouldSpawnWormhole = effects.interval(3500)
+
+  if (shouldSpawnJunk.value) {
+    for (let i = 0; i < 10000; i++) {
+      const x = Math.random() * (canvas.width * 1.5) - 0.25 * canvas.width
+      const y = Math.random() * (canvas.height * 1.5) - 0.25 * canvas.height
+      world.spawn(
+        world.component(Transform, x, y),
+        world.component(Velocity),
+        world.component(Junk)
+      );
+    }
+
+    shouldSpawnJunk.value = false;
+  }
+
+  if (clicked) {
+    hasClickedOnce.value = true
+    spawnWormhole(
+      coords.x,
+      coords.y,
+      30,
+    )
+  }
+
+  if (!hasClickedOnce.value && shouldSpawnWormhole) {
+    spawnWormhole(
+      Math.random() * canvas.width,
+      Math.random() * canvas.height,
+      Math.random() * 60
+    )
+  }
+}
 
 const sys_attract = (world) => {
   for (let [we, wt, w, wv] of wormholes) {
@@ -353,26 +432,12 @@ const sys_physics = (world) => {
 
 const world = Javelin.createWorld({
   systems: [
+    sys_spawn,
     sys_physics,
     sys_attract,
     sys_render,
   ],
 });
-const junkCount = 10000;
-
-for (let i = 0; i < junkCount; i++) {
-  const x = Math.random() * (canvas.width * 1.5) - 0.25 * canvas.width
-  const y = Math.random() * (canvas.height * 1.5) - 0.25 * canvas.height
-  world.spawn(
-    world.component(Transform, x, y),
-    world.component(Velocity),
-    world.component(Junk)
-  );
-}
-
-let initialized = false;
-
-canvas.addEventListener("mouseup", onMouseUp);
 
 function spawnWormhole(x, y, r) {
   world.spawn(
@@ -383,42 +448,12 @@ function spawnWormhole(x, y, r) {
   );
 }
 
-function onMouseUp(event) {
-  const { x, y } = relMouseCoords(canvas, event);
-  const r = 30;
-
-  spawnWormhole(x, y, r);
-  clearInterval(interval);
-
-  if (!initialized) {
-    loop();
-    initialized = true;
-  }
-}
-
 function loop() {
   world.tick();
   requestAnimationFrame(loop);
 }
 
-let i = 0
-
-const interval = setInterval(() => {
-  if (++i >= 10) {
-    clearInterval(interval)
-  }
-  spawnWormhole(
-    Math.random() * canvas.width,
-    Math.random() * canvas.height,
-    Math.random() * 60
-  );
-  if (!initialized) {
-    initialized = true;
-    loop();
-  }
-}, 3500);
-
-world.tick();
+loop()
 </script>
  
                     </div>
