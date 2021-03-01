@@ -203,6 +203,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   const state: WorldState<T> = {
     currentTickData: (null as unknown) as T,
     currentTick: 0,
+    currentSystem: 0,
   }
 
   let entityCounter = 0
