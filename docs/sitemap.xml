@@ -13,13 +13,13 @@
         <loc>https://javelin.games/ecs/components/</loc>
     </url>
     <url>
+        <loc>https://javelin.games/ecs/effects/</loc>
+    </url>
+    <url>
         <loc>https://javelin.games/ecs/entities/</loc>
     </url>
     <url>
         <loc>https://javelin.games/ecs/filtering/</loc>
-    </url>
-    <url>
-        <loc>https://javelin.games/ecs/installation/</loc>
     </url>
     <url>
         <loc>https://javelin.games/ecs/performance/</loc>
@@ -32,6 +32,9 @@
     </url>
     <url>
         <loc>https://javelin.games/ecs/world/</loc>
+    </url>
+    <url>
+        <loc>https://javelin.games/installation/</loc>
     </url>
     <url>
         <loc>https://javelin.games/introduction/</loc>

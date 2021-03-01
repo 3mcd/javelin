@@ -7,13 +7,14 @@ const visible = createComponentFilter<typeof RenderTransform>(() => component =>
   component.x >= 0 && component.x <= 800 && component.y >= 0,
 )
 
-const culledPositions = query(visible(RenderTransform))
+const queries = {
+  offscreen: query(visible(RenderTransform)),
+}
 
 export function render(world: World) {
-  // render system
   graphics.clear()
 
-  for (const [entity, [position]] of culledPositions(world)) {
+  for (const [entity, position] of queries.offscreen) {
     const color = world.tryGetComponent(entity, Color)
 
     graphics.beginFill(color?.value || 0x00ff00)

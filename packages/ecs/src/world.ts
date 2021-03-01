@@ -6,6 +6,7 @@ import {
   ComponentType,
 } from "./component"
 import { createComponentPool, flagComponent, flagComponents } from "./helpers"
+import { globals } from "./internal/globals"
 import { createStackPool, StackPool } from "./pool"
 import { createStorage, Storage } from "./storage"
 import { mutableEmpty } from "./util"
@@ -17,8 +18,12 @@ import {
   WorldOp,
   WorldOpType,
 } from "./world_op"
-
 export interface World<T = any> {
+  /**
+   * The unique identifier for this world.
+   */
+  id: number
+
   /**
    * Move the world forward one tick by executing all systems in order with the
    * provided tick data.
@@ -154,13 +159,24 @@ export interface World<T = any> {
    * Array of registered component factories.
    */
   readonly componentTypes: ReadonlyArray<ComponentType>
+
+  /**
+   * Current world state including current tick number and tick data.
+   */
+  readonly state: { readonly [K in keyof WorldState<T>]: WorldState<T>[K] }
 }
 
-export type System<T> = (world: World<T>, data: T) => void
+export type System<T> = (world: World<T>) => void
 
-type WorldOptions<T> = {
+export type WorldOptions<T> = {
   systems?: System<T>[]
   componentPoolSize?: number
+}
+
+export type WorldState<T = unknown> = {
+  currentTick: number
+  currentTickData: T
+  currentSystem: number
 }
 
 export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
@@ -184,8 +200,11 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   const destroyed = new Set<number>()
   const detached = new Map<number, readonly number[]>()
   const attaching: (readonly Component[])[] = []
+  const state: WorldState<T> = {
+    currentTickData: (null as unknown) as T,
+    currentTick: 0,
+  }
 
-  let currentTick = 0
   let entityCounter = 0
 
   function applySpawnOp(op: SpawnOp) {
@@ -296,7 +315,10 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
   }
 
   function tick(data: T) {
-    if (currentTick === 0) {
+    globals.__CURRENT_WORLD__ = id
+    state.currentTickData = data
+
+    if (state.currentTick === 0) {
       maintain()
     }
 
@@ -304,10 +326,11 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
     // Execute systems
     for (let i = 0; i < systems.length; i++) {
-      systems[i](world, data)
+      world.state.currentSystem = i
+      systems[i](world)
     }
 
-    currentTick++
+    state.currentTick++
   }
 
   function addSystem(system: System<T>) {
@@ -477,15 +500,19 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
     detach,
     getComponent,
     getObservedComponent,
+    id: -1,
     isComponentChanged,
     ops: worldOpsPrevious,
     patch,
     removeSystem,
+    state,
     spawn,
     storage,
     tick,
     tryGetComponent,
   }
+
+  let id = (world.id = globals.__WORLDS__.push(world) - 1)
 
   return world
 }

@@ -13,7 +13,7 @@ Check out the code at the [GitHub repo](https://github.com/3mcd/javelin) or, mov
 
 <style>
   canvas {
-    background: #fff;
+    background: #388282;
     width: 800px;
     height: 300px;
   }
@@ -84,12 +84,12 @@ const Wormhole = Javelin.createComponentType({
 const wormholes = Javelin.query(Transform, Wormhole, Velocity);
 const junk = Javelin.query(Transform, Velocity, Junk);
 
-const attract = (world) => {
-  for (let [we, [wt, w, wv]] of wormholes(world)) {
+const sys_attract = (world) => {
+  for (let [we, wt, w, wv] of wormholes) {
     wv.x *= 0.95;
     wv.y *= 0.95;
 
-    for (let [je, [jt, jv, j]] of junk(world)) {
+    for (let [je, jt, jv, j] of junk) {
       if (we === je) {
         continue;
       }
@@ -116,22 +116,22 @@ const attract = (world) => {
   }
 };
 
-const colorInfluenced = "#388282";
-const colorUninfluenced = "#aaa";
+const colorInfluenced = "#fff";
+const colorUninfluenced = "#99c7c7";
 
-const render = (world) => {
+const sys_render = (world) => {
   context.clearRect(0, 0, 800, 300);
 
-  for (const [e, [{ x, y }, , { influenced }]] of junk(world)) {
+  for (const [e, { x, y }, , { influenced }] of junk) {
     context.fillStyle = influenced ? colorInfluenced : colorUninfluenced;
     context.fillRect(Math.floor(x), Math.floor(y), 1, 1);
   }
 
-  for (const [e, [{ x, y }, { r }]] of wormholes(world)) {    
+  for (const [e, { x, y }, { r }] of wormholes) {    
     let maxPos;
     let maxLen = Infinity;
 
-    for (const [e2, [pos2]] of wormholes(world)) {
+    for (const [e2, pos2] of wormholes) {
       if (e === e2) {
         continue;
       }
@@ -158,7 +158,7 @@ const render = (world) => {
     }
   }
 
-  for (const [e, [{ x, y }, { r }]] of wormholes(world)) {    
+  for (const [e, { x, y }, { r }] of wormholes) {    
     context.fillStyle = colorInfluenced;
     context.beginPath();
     context.arc(Math.floor(x), Math.floor(y), r / 10, 0, 2 * Math.PI);
@@ -166,15 +166,19 @@ const render = (world) => {
   }
 };
 
-const physics = (world) => {
-  for (const [, [t, { x, y }]] of junk(world)) {
+const sys_physics = (world) => {
+  for (const [, t, { x, y }] of junk) {
     t.x += x;
     t.y += y;
   }
 };
 
 const world = Javelin.createWorld({
-  systems: [physics, attract, render],
+  systems: [
+    sys_physics,
+    sys_attract,
+    sys_render,
+  ],
 });
 const junkCount = 10000;
 

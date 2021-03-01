@@ -6,10 +6,12 @@ const size = 2
 const floorSize = 10
 const floorOffset = 600 - size - floorSize
 
-const awake = query(Position, Velocity)
+const queries = {
+  awake: query(Position, Velocity),
+}
 
-export function physics(world: World, dt: number) {
-  for (const [, [position, velocity]] of awake(world)) {
+export function physics(world: World) {
+  for (const [, position, velocity] of queries.awake) {
     const mutPosition = world.getObservedComponent(position)
     const mutVelocity = world.getObservedComponent(velocity)
 

@@ -1,4 +1,4 @@
-type PropertyKey = number | string
+type PropertyKey = string | symbol
 
 export type Path = string
 export type ProxyTarget =
@@ -114,7 +114,7 @@ export const createMutationCache = ({
   const proxyTargetLookup = new WeakMap<ProxyTarget, ProxyTarget>()
   const locked = new WeakSet<ProxyTarget>()
 
-  function getPath(target: ProxyTarget, key: PropertyKey) {
+  function getPath(target: ProxyTarget, key: string) {
     const basePath = targetPaths.get(target)
 
     if (basePath === ROOT_PATH) {
@@ -166,7 +166,11 @@ export const createMutationCache = ({
 
       ;(target as any)[propertyKey] = value
 
-      if (previous !== value && !locked.has(target)) {
+      if (
+        previous !== value &&
+        !locked.has(target) &&
+        typeof propertyKey !== "symbol"
+      ) {
         onChange(
           targetRoots.get(target)!,
           target,

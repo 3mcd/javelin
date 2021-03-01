@@ -3,16 +3,18 @@ import { Color, Position } from "../../common/components"
 
 let elapsed = 0
 
-const bodies = query(Position)
-const colors = query(Color)
+const queries = {
+  bodies: query(Position),
+  colors: query(Color),
+}
 
-export function cycleColor(world: World, dt: number) {
-  elapsed += Math.max(dt, 0)
+export function cycleColor(world: World<number>) {
+  elapsed += Math.max(world.state.currentTickData, 0)
 
   if (elapsed > 1000) {
     elapsed = 0
 
-    for (const [entity] of bodies(world)) {
+    for (const [entity] of queries.bodies) {
       if (Math.random() > 0.2) {
         continue
       }
@@ -26,7 +28,7 @@ export function cycleColor(world: World, dt: number) {
       }
     }
 
-    for (const [, [color]] of colors(world)) {
+    for (const [, color] of queries.colors) {
       const mutColor = world.getObservedComponent(color)
 
       if (color.value === 0xff0000) {

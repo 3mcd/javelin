@@ -51,6 +51,16 @@
                                 
                                 <li >
                                     
+                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
+                                        
+                                        Installation
+                                    </a>
+                                    
+                                </li>
+                            
+                                
+                                <li >
+                                    
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
                                         
                                         Introduction
@@ -67,13 +77,6 @@
                                     </a>
                                     
                                         <ul>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;installation&#x2F;">
-                                                        
-                                                        Installation
-                                                    </a>
-                                                </li>
                                             
                                                 <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
@@ -121,6 +124,13 @@
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;change-detection&#x2F;">
                                                         
                                                         Change Detection
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
+                                                        
+                                                        Effects
                                                     </a>
                                                 </li>
                                             
@@ -176,15 +186,12 @@
                     <div class="book-content">
                         
 <h1>Filtering</h1>
-<h2 id="change-detection">Change Detection<a class="zola-anchor" href="#change-detection" aria-label="Anchor link for: change-detection"
+<h2 id="reacting-to-changes">Reacting to changes<a class="zola-anchor" href="#reacting-to-changes" aria-label="Anchor link for: reacting-to-changes"
   >#</a
 >
 </h2>
-<p>Sometimes it's useful to capture changes made to entities and their components. For example, it may be useful to know when a component is attached to (or detached from) an entity in order to notify a third-party library, or update another component in your game.</p>
-<p>By default, query results will exclude detached components, and include newly attached components alongside an entity's existing components.</p>
-<aside>
-  <p><strong>Note</strong> — components detached during the current tick are excluded from query results. Imagine a system that detaches the <code>Body</code> component of entities when a player's health drops to zero. If detached components were always included, an entity whose <code>Body</code> was detached could continue to trigger collisions with other entities during the current tick, leading to unexpected behavior.</p>
-</aside>
+<p>It's often useful to query components that were added, removed, or modified. For example, you may want to know when a component is attached to, or detached from, an entity in order to notify a third-party library, or update another entity.</p>
+<p>Components detached during the current tick are excluded from query results by default. Imagine a system that detaches the <code>Body</code> component of entities when a player's health drops to zero. If detached components were always included, an entity whose <code>Body</code> was detached could continue to trigger collisions with other entities during the current tick, leading to unexpected behavior.</p>
 <p>The result of a query can be narrowed using filters. Queries are filtered by wrapping one or more of the component types in a selector with a filter function, e.g:</p>
 <pre><code>query(Player, detached(Body))
 </code></pre>
@@ -192,12 +199,14 @@
   >#</a
 >
 </h3>
-<p>The <code>attached</code> filter will narrow a query to include only entities whose the selected components were added <strong>last tick</strong>.</p>
+<p>The <code>attached</code> filter will narrow a query to include only entities whose selected components were added <strong>last tick</strong>.</p>
 <pre><code>import { attached } from &quot;@javelin/ecs&quot;
 
-const attachedBodies = query(Player, attached(Body))
-const system = (world: World) =&gt; {
-  for (const [entity, [player, body]] of attachedBodies(world)) {
+const queries = {
+  attached: query(Player, attached(Body)),
+}
+const sys_physics = () =&gt; {
+  for (const [entity, player, body] of queries.attached) {
     // `body` was attached to `entity` last tick
   }
 }
@@ -206,12 +215,14 @@ const system = (world: World) =&gt; {
   >#</a
 >
 </h3>
-<p>The <code>detached</code> filter will narrow a query to include only entities whose selected components were detached either <strong>last tick</strong> or the <strong>current tick</strong>.</p>
+<p>The <code>detached</code> filter will narrow a query to include only entities whose selected components were detached during the last tick.</p>
 <pre><code>import { detached } from &quot;@javelin/ecs&quot;
 
-const detachedBodies = query(Player, detached(Body))
-const system = (world: World) =&gt; {
-  for (const [entity, [player, body]] of detachedBodies(world)) {
+const queries = {
+  detached: query(Player, detached(Body))
+}
+const sys_physics = (world: World) =&gt; {
+  for (const [entity, player, body] of queries.detached) {
     // `body` was removed from `entity` this tick OR last tick
   }
 }
@@ -224,8 +235,8 @@ const system = (world: World) =&gt; {
 <pre><code>import { changed, query } from &quot;@javelin/ecs&quot;
 
 const healthy = query(changed(Health), Player))
-const system = (world: World) =&gt; {
-  for (const [entity, [health, player]] of healthy(world)) {
+const sys_physics = (world: World) =&gt; {
+  for (const [entity, health, player] of healthy) {
     // `health` has changed since last tick
     if (health.value &lt;= 0) {
       world.detach(entity, health)
@@ -240,12 +251,16 @@ const system = (world: World) =&gt; {
 <p>You can create a custom filter with the <code>createComponentFilter</code> function. Custom filters can clean up logic within your systems and facilitate code re-use, although they may be slightly less performant than embedding the logic directly inside the system.</p>
 <pre><code>import { createComponentFilter } from &quot;@javelin/ecs&quot;
 
-const dead = createComponentFilter(() =&gt; (health: ComponentOf&lt;typeof Health&gt;) =&gt;
+const killed = createComponentFilter(() =&gt; (health: ComponentOf&lt;typeof Health&gt;) =&gt;
   health.value &lt;= 0,
 )
-const killed = query(dead(Health))
-const system = (world: World) =&gt; {
-  for (const [entity, [health]] of killed(world)) {
+
+const queries = {
+  killed: query(killed(Health)),
+}
+
+const sys_physics = (world: World) =&gt; {
+  for (const [entity, health] of queries.killed) {
     world.detach(entity, health)
   }
 }

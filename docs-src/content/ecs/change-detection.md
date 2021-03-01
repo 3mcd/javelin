@@ -18,9 +18,11 @@ Sometimes you don't need to know exactly which properties on a component changed
 Using the `changed` filter:
 
 ```typescript
-const healthChanged = query(changed(Health))
+const queries = {
+  changed: query(changed(Health))
+}
 
-for (const [entity, [health]] of healthChanged(world)) {
+for (const [entity, health] of queries.changed) {
   // `entity` is an entity who's health component changed last tick
 }
 ```
@@ -28,7 +30,7 @@ for (const [entity, [health]] of healthChanged(world)) {
 Using `world.isComponentChanged`:
 
 ```typescript
-for (const [entity, [health]] of healthy(world)) {
+for (const [entity, health] of healthy(world)) {
   if (world.isComponentChanged(health)) {
     // `health` changed last tick
   }
@@ -40,7 +42,7 @@ for (const [entity, [health]] of healthy(world)) {
 If you want to know exactly what changes were made to a component during the current tick, use `world.getComponentMutations`. This method returns a 1-dimensional array of changes made to a component. Take the following example:
 
 ```typescript
-for (const [entity, [position, input]] of someQuery(world)) {
+for (const [entity, position, input] of queries.vehicles) {
   const observedPosition = world.getObservedComponent(position)
 
   observedPosition.x = 2

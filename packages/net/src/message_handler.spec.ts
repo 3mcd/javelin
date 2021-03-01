@@ -57,14 +57,14 @@ describe("createMessageHandler", () => {
 
     spawn.mockReturnValue(0)
     messageHandler.push(opsA)
-    messageHandler.system(world, null)
+    messageHandler.system(world)
 
     spawn.mockReturnValue(1)
     messageHandler.push(opsB)
-    messageHandler.system(world, null)
+    messageHandler.system(world)
 
     messageHandler.push(update)
-    messageHandler.system(world, null)
+    messageHandler.system(world)
 
     expect(patch).toHaveBeenCalledTimes(6)
     expect(patch).nthCalledWith(1, 0, 0, "x", 1)
@@ -121,14 +121,14 @@ describe("createMessageHandler", () => {
 
     spawn.mockReturnValue(0)
     messageHandler.push(opsA)
-    messageHandler.system(world, null)
+    messageHandler.system(world)
 
     spawn.mockReturnValue(1)
     messageHandler.push(opsB)
-    messageHandler.system(world, null)
+    messageHandler.system(world)
 
     messageHandler.push(update)
-    messageHandler.system(world, null)
+    messageHandler.system(world)
 
     expect(patch).toHaveBeenCalledTimes(2)
     expect(patch).nthCalledWith(1, 0, 0, "x", 1)
@@ -177,11 +177,11 @@ describe("createMessageHandler", () => {
 
     spawn.mockReturnValue(0)
     messageHandler.push(opsA)
-    messageHandler.system(world, null)
+    messageHandler.system(world)
 
     spawn.mockReturnValue(1)
     messageHandler.push(opsB)
-    messageHandler.system(world, null)
+    messageHandler.system(world)
 
     messageHandler.handleUnreliableUpdate(update, world)
 
