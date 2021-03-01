@@ -116,18 +116,29 @@ describe("createEffect", () => {
   })
 
   it("reuses same closure for global mode", () => {
-    const callback = jest.fn()
-    const effect = createEffect(() => callback)
+    let ref: {}
+    const effect = createEffect(
+      () => {
+        ref = {}
+        return () => ref
+      },
+      { global: true },
+    )
 
-    effect()
-    effect()
+    const a = effect()
+    const b = effect()
 
-    reset(1)
+    reset(0, 0, 1)
 
-    effect()
-    effect()
+    const c = effect()
+    const d = effect()
 
-    expect(callback).toHaveBeenCalledTimes(4)
+    reset(1, 0, 0)
+
+    const e = effect()
+    const f = effect()
+
+    expect([a, b, c, d, e, f].every(x => ref === x)).toBe(true)
   })
 
   it("throws when executing fewer effects than previous tick", () => {

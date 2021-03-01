@@ -37,7 +37,7 @@ export function createEffect<S, A extends any[]>(
     const world = globals.__WORLDS__[currentWorld]
     const currentTick = world.state.currentTick
 
-    currentSystem = world.state.currentSystem
+    currentSystem = options.global ? 0 : world.state.currentSystem
 
     if (
       options.global === true ||
