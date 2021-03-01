@@ -295,12 +295,18 @@ const timer = createEffect(() =&gt; {
   global: true
 });
 
-const sys_physics = () =&gt; {
+const sys_jump = () =&gt; {
   const simulation = simulationEffect()
 
   for (const [e, body, input] of queries.jumping) {
     simulation.applyImpulse(body.simulationId, ...)
   }
+}
+
+const sys_move = () =&gt; {
+  // references the same simulation as in sys_jump
+  const simulation = simulationEffect()
+  ...
 }
 </code></pre>
 <p>Inspect this page's source to see some example effects in action.</p>

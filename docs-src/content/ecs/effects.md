@@ -128,12 +128,18 @@ const simulationEffect = createEffect(() => {
   global: true
 });
 
-const sys_physics = () => {
+const sys_jump = () => {
   const simulation = simulationEffect()
 
   for (const [e, body, input] of queries.jumping) {
     simulation.applyImpulse(body.simulationId, ...)
   }
+}
+
+const sys_move = () => {
+  // references the same simulation as in sys_jump
+  const simulation = simulationEffect()
+  ...
 }
 ```
 
