@@ -176,6 +176,7 @@ export type WorldOptions<T> = {
 export type WorldState<T = unknown> = {
   currentTick: number
   currentTickData: T
+  currentSystem: number
 }
 
 export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
@@ -325,7 +326,7 @@ export const createWorld = <T>(options: WorldOptions<T> = {}): World<T> => {
 
     // Execute systems
     for (let i = 0; i < systems.length; i++) {
-      globals.__CURRENT_SYSTEM__ = i
+      world.state.currentSystem = i
       systems[i](world)
     }
 

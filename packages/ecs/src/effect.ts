@@ -24,15 +24,20 @@ export function createEffect<S, A extends any[]>(
   let currentSystem: number
   let cellCount: number = -1
 
-  const setState = (nextState: S, w: number, s: number, c: number) =>
-    (stateLookup[w][s][c] = nextState)
+  const setState = (
+    nextState: S,
+    world: number,
+    system: number,
+    cell: number,
+  ) => (stateLookup[world][system][cell] = nextState)
 
   return (...args: A) => {
     currentWorld = globals.__CURRENT_WORLD__
-    currentSystem = options.global ? 0 : globals.__CURRENT_SYSTEM__
 
     const world = globals.__WORLDS__[currentWorld]
     const currentTick = world.state.currentTick
+
+    currentSystem = world.state.currentSystem
 
     if (
       options.global === true ||
@@ -98,12 +103,12 @@ export function createEffect<S, A extends any[]>(
     const result = executor(world, ...args)
 
     if (typeof result === "object" && result !== null && "then" in result) {
-      let w = currentWorld
-      let s = currentSystem
-      let c = cellCount
+      let world = currentWorld
+      let system = currentSystem
+      let cell = cellCount
       executor.running = true
       result
-        .then(result => setState(result, w, s, c))
+        .then(result => setState(result, world, system, cell))
         .catch(error =>
           console.error(`Uncaught error in effect: ${error.message}`, error),
         )

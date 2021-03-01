@@ -8,8 +8,5 @@ export default {
     format: "umd",
     name: "Javelin",
   },
-  plugins: [
-    nodeResolve(),
-    // terser(),
-  ],
+  plugins: [nodeResolve(), terser()],
 }

@@ -38,7 +38,8 @@ describe("query", () => {
       } as Archetype,
     ]
 
-    globals.__CURRENT_WORLD__ = world
+    globals.__WORLDS__ = [world]
+    globals.__CURRENT_WORLD__ = 0
 
     const q = query(A, B)
 
@@ -81,7 +82,8 @@ describe("query", () => {
       } as Archetype,
     ]
 
-    globals.__CURRENT_WORLD__ = world
+    globals.__WORLDS__ = [world]
+    globals.__CURRENT_WORLD__ = 0
 
     const q = query(filter(A))
 

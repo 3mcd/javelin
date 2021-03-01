@@ -26,6 +26,7 @@ export const createWorld = jest.fn(
       state: {
         currentTick: 0,
         currentTickData: null,
+        currentSystem: 0,
       },
     }
   },
