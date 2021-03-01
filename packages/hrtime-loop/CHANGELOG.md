@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.19.4 (2021-03-01)
+
+
+### Bug Fixes
+
+* ts error ([fed2f95](https://github.com/3mcd/javelin/commit/fed2f9535b7b3859b41132cc92e8a054b9491ca4))
+
+
+
+
+
 ## 0.19.3 (2021-02-25)
 
 **Note:** Version bump only for package @javelin/hrtime-loop
