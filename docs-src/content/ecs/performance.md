@@ -3,6 +3,8 @@ title = "Performance"
 weight = 9
 +++
 
+Performance is one of the primary goals of Javelin. Iteration speed and memory are two major performance concerns for an ECS, and this section expands on each.
+
 ## Iteration
 
 Javelin stores components in arrays called **archetypes**. An archetype contains components of entities that share the exact same composition. This array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. For example, when querying for entities with components `(A, B)`, we can skip iteration of entities within all archetypes that aren't superset of `(A, B)`.

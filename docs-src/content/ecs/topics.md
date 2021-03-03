@@ -3,9 +3,11 @@ title = "Topics"
 weight = 7
 +++
 
-## Inter-System Communication
+Systems are typically **pure**, as they only read/modify the components of queried entities. However, as your game grows, you may want a system to trigger behavior in a different system. For example, you may write a physics system that wraps a third-party library whose methods you'd like to expose to other physics-interested systems.
 
-Sometimes it's useful for a system to trigger behavior in a different system. For example, you might have a physics system that wraps a third-party library whose methods you'd like to expose to other parts of your game.
+**Topics** facilitate a way to do this without resorting to global state, unlike global [effects](/ecs/effects).
+
+## Inter-System Communication
 
 Let's say you want to apply an impulse to a physics body when a player jumps so it gains some momentum in a direction. One way of doing this is to model the operation as a component.
 
@@ -16,28 +18,30 @@ type Impulse = {
 }
 ```
 
-When you want to apply a impulse to an entity, you could insert an `Impulse` component on the current tick, and remove it on the following tick.
+When you need to apply a impulse to an entity, you insert an `Impulse` component on the current tick, and remove it on the following tick.
 
 ```typescript
-// player input system
-for (const [entity] of queries.jumping) {
-  world.attach(entity, world.component(Impulse))
+const sys_input = () => {
+  for (const [entity] of queries.jumping) {
+    world.attach(entity, world.component(Impulse))
+  }
+
+  for (const [entity, impulse] of queries.withImpulse) {
+    world.detach(entity, impulse)
+  }
 }
 
-for (const [entity, impulse] of queries.withImpulse) {
-  world.detach(entity, impulse)
+const sys_physics = () => {
+  for (const [entity, impulse] of queries.withImpulse) {
+    const body = getBodyByEntity(entity)
+    physicsEngine.applyImpulseLocal(body, impulse)
+  }
 }
 ```
 
-```typescript
-// physics system
-for (const [entity, impulse] of queries.withImpulse) {
-  const body = getBodyByEntity(entity)
-  physicsEngine.applyImpulseLocal(body, impulse)
-}
-```
-
-This will work fine for a small game; however, adding and removing components in an archetypal ECS can be slow. It's also a little nasty to have to clean up after each operation for what should be fire-and-forget as far as the player input system is concerned.
+This might work fine for a small game; however, there are a couple of problems with this approach:
+1. Adding and removing components in an archetypal ECS is slow
+2. Your physics system must wait until the next tick to detect the newly attached impluse component
 
 ### Topics
 

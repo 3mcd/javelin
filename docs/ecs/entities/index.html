@@ -61,16 +61,6 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
-                                        
-                                        Installation
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
                                         
                                         ECS
@@ -186,12 +176,13 @@
                     <div class="book-content">
                         
 <h1>Entities</h1>
-<p>An entity is a pointer to a unique collection of components that represent higher-order objects in your game. Entities are strictly defined by their component makeup, and do not contain any data or methods of their own.</p>
+<p>An <strong>entity</strong> is a pointer to a unique collection of components that represent higher-order objects in your game. Entities are strictly defined by their component makeup, and do not contain any data or methods of their own.</p>
 <h2 id="entity-management">Entity Management<a class="zola-anchor" href="#entity-management" aria-label="Anchor link for: entity-management"
   >#</a
 >
 </h2>
-<h3 id="creating-entities">Creating entities<a class="zola-anchor" href="#creating-entities" aria-label="Anchor link for: creating-entities"
+<p>A world has several methods for managing entities.</p>
+<h3 id="creating-entities">Creating Entities<a class="zola-anchor" href="#creating-entities" aria-label="Anchor link for: creating-entities"
   >#</a
 >
 </h3>
@@ -205,11 +196,12 @@ const entity = world.spawn(player, health)
     <strong>Note</strong> — although entities are simply auto-incrementing integers (starting at <code>0</code>), they should be treated as opaque values.
   </p>
 </aside>
-<h3 id="modifying-entities">Modifying entities<a class="zola-anchor" href="#modifying-entities" aria-label="Anchor link for: modifying-entities"
+<h3 id="modifying-entities">Modifying Entities<a class="zola-anchor" href="#modifying-entities" aria-label="Anchor link for: modifying-entities"
   >#</a
 >
 </h3>
-<p>The vector of components associated with an entity defines its <strong>archetype</strong>. The above example would create an entity of archetype <code>(Player, Health)</code>. Components can be assigned to existing entities using <code>world.attach</code>, and removed from entities using <code>world.detach</code>. The following example modifies an entity of archetype <code>(Player, Health)</code> to <code>(Player, Health, Input)</code>, and then back to <code>(Player, Health)</code>:</p>
+<p>The vector of components associated with an entity defines its <strong>archetype</strong>. The above example would create an entity of archetype <code>(Player, Health)</code>.</p>
+<p>Components can be assigned to existing entities using <code>world.attach</code>, and removed from entities using <code>world.detach</code>. The following example modifies an entity of archetype <code>(Player, Health)</code> to <code>(Player, Health, Input)</code>, and then back to <code>(Player, Health)</code>:</p>
 <pre><code>const input = { _tid: 3, space: true }
 
 world.attach(entity, input)
@@ -229,7 +221,7 @@ world.tick()
     <strong>Note</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.spawn(components)</code> because the components of the affected entity must be relocated in memory each time the entity's archetype changes.
   </p>
 </aside>
-<h3 id="destroying-entities">Destroying entities<a class="zola-anchor" href="#destroying-entities" aria-label="Anchor link for: destroying-entities"
+<h3 id="destroying-entities">Destroying Entities<a class="zola-anchor" href="#destroying-entities" aria-label="Anchor link for: destroying-entities"
   >#</a
 >
 </h3>

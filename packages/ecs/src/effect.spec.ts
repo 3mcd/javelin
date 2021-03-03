@@ -27,10 +27,7 @@ describe("createEffect", () => {
     effect()
 
     expect(callback).toHaveBeenCalledTimes(2)
-    expect(callback).toHaveBeenCalledWith(
-      globals.__WORLDS__[globals.__CURRENT_WORLD__],
-      "foo",
-    )
+    expect(callback).toHaveBeenCalledWith("foo")
   })
 
   it("returns value of callback", () => {
@@ -43,7 +40,7 @@ describe("createEffect", () => {
   })
 
   it("creates closure for each effect call", () => {
-    const effect = createEffect(() => (world, x: number) => x + 1)
+    const effect = createEffect(() => (x: number) => x + 1)
 
     expect(effect(1)).toBe(2)
     expect(effect(2)).toBe(3)
@@ -57,9 +54,9 @@ describe("createEffect", () => {
   })
 
   it("creates new closures per-world", () => {
-    const effect = createEffect(() => {
+    const effect = createEffect(world => {
       let x = 0
-      return (world, n: number) => {
+      return (n: number) => {
         x += n
         return [world, x] as const
       }
@@ -141,6 +138,21 @@ describe("createEffect", () => {
     expect([a, b, c, d, e, f].every(x => ref === x)).toBe(true)
   })
 
+  it("executes once per tick in global mode", () => {
+    const callback = jest.fn()
+    const effect = createEffect(() => callback, { global: true })
+
+    effect()
+    effect()
+
+    reset(1, 0, 0)
+
+    effect()
+    effect()
+
+    expect(callback).toHaveBeenCalledTimes(2)
+  })
+
   it("throws when executing fewer effects than previous tick", () => {
     const effect = createEffect(() => () => {})
 
@@ -189,5 +201,19 @@ describe("createEffect", () => {
     effect()
 
     expect(() => reset(3, 0, 0)).not.toThrow()
+  })
+
+  it("balances global locks with async locks", async () => {
+    const callback = jest.fn(() => Promise.resolve())
+    const effect = createEffect(() => callback, {
+      global: true,
+    })
+
+    effect()
+    await flushPromises()
+    reset(0, 0, 1)
+    effect()
+
+    expect(callback).toHaveBeenCalledTimes(1)
   })
 })

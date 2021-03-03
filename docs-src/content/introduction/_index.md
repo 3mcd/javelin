@@ -84,7 +84,7 @@ const Wormhole = Javelin.createComponentType({
 const effects = {
   interval: Javelin.createEffect(() => {
     let state = 0
-    return (world, t) => {
+    return (t) => {
       if (state === 1) {
         return false
       }
@@ -112,7 +112,7 @@ const effects = {
   ref: Javelin.createEffect(() => {
     let initial = true
     const state = {}
-    return (world, initialValue) => {
+    return (initialValue) => {
       if (initial) {
         state.value = initialValue
       }

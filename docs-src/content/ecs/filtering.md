@@ -3,9 +3,9 @@ title = "Filtering"
 weight = 5
 +++
 
-## Reacting to changes
+It's often useful to query components that were added, removed, or modified. For example, you may want to know when a component is attached to, or detached from, an entity in order to notify a third-party library, or update another entity. You can use **filters** to narrow the results of a query.
 
-It's often useful to query components that were added, removed, or modified. For example, you may want to know when a component is attached to, or detached from, an entity in order to notify a third-party library, or update another entity.
+## Reacting to Changes
 
 Components detached during the current tick are excluded from query results by default. Imagine a system that detaches the `Body` component of entities when a player's health drops to zero. If detached components were always included, an entity whose `Body` was detached could continue to trigger collisions with other entities during the current tick, leading to unexpected behavior.
 
@@ -17,7 +17,7 @@ query(Player, detached(Body))
 
 ### Attached
 
-The `attached` filter will narrow a query to include only entities whose selected components were added **last tick**.
+The `attached` filter will narrow a query to include only entities whose selected components were added last tick.
 
 ```typescript
 import { attached } from "@javelin/ecs"

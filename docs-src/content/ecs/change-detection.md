@@ -53,6 +53,6 @@ for (const [entity, position, input] of queries.vehicles) {
 }
 ```
 
-### Networking
+## Networking
 
 `@javelin/net` uses this change detection algorithm to optimize packet size by only including the component data that changed during the previous tick in network messages. This means that changes made to unobserved components will not be sent to clients.
