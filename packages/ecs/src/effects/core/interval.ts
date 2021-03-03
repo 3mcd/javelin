@@ -1,4 +1,4 @@
-import { createEffect } from "@javelin/ecs"
+import { createEffect } from "../../effect"
 import { ref } from "./ref"
 import { timer } from "./timer"
 

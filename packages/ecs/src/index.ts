@@ -1,6 +1,7 @@
 export * from "./archetype"
 export * from "./component"
 export * from "./effect"
+export * from "./effects"
 export * from "./filter"
 export * from "./filters"
 export * from "./helpers"

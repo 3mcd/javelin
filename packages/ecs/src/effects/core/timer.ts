@@ -1,4 +1,4 @@
-import { createEffect } from "@javelin/ecs"
+import { createEffect } from "../../effect"
 
 export const timer = createEffect(() => {
   let state = 0

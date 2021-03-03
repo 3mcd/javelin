@@ -1,4 +1,4 @@
-import { createEffect } from "@javelin/ecs"
+import { createEffect } from "../../effect"
 
 export type RefState<T> = { value: T }
 

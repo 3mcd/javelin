@@ -188,3 +188,32 @@ if (done) {
   }
 }
 ```
+
+<script>
+  const sys_interval = () => {
+    const ref = Javelin.ref(0)
+    const log = Javelin.interval(4000)
+
+    if (log) {
+      console.log("interval", ++ref.value)
+    }
+  }
+  const sys_json = () => {
+    // start request after 1s
+    const timer = Javelin.timer(1000)
+    // cancel request after 5s
+    const cancel = Javelin.timer(5000)
+    const request = Javelin.json(
+      !cancel && timer ? `https://jsonplaceholder.typicode.com/todos/1` : null
+    )
+
+    console.log(request)
+  }
+  const world = Javelin.createWorld({
+    systems: [sys_json, sys_interval]
+  })
+
+  setInterval(() => {
+    world.tick()
+  }, 2000);
+</script>

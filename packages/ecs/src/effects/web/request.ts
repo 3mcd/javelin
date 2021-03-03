@@ -1,4 +1,4 @@
-import { createEffect } from "@javelin/ecs"
+import { createEffect } from "../../effect"
 
 export type RequestState<T = Response> =
   // initial
@@ -43,6 +43,10 @@ export const request = createEffect(() => {
     options: Parameters<typeof fetch>[1],
     invalidate = previousUrl !== undefined && url !== previousUrl,
   ) => {
+    if (url === null) {
+      return state
+    }
+
     if (invalidate) {
       state = { response: state.response, error: null, done: false }
       abortController.abort()
@@ -53,7 +57,7 @@ export const request = createEffect(() => {
       return state
     }
 
-    if (url !== null && !fetching) {
+    if (!fetching) {
       fetching = true
       previousUrl = url
       fetch(url, { ...options, signal: abortController.signal })

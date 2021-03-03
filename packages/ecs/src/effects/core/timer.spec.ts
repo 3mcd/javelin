@@ -1,4 +1,4 @@
-import { $reset } from "../../__mocks__/@javelin/ecs"
+import { $reset } from "../../__mocks__/effect"
 import { timer } from "./timer"
 
 describe("timer", () => {

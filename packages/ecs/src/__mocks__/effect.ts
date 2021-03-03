@@ -1,6 +1,4 @@
-import { EffectExecutor, EffectFactory, World } from "@javelin/ecs"
-
-export * from "@javelin/ecs"
+import { EffectExecutor, EffectFactory, World } from "../../dist/cjs"
 
 export const $reset = Symbol("reset")
 
