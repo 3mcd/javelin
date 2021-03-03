@@ -1,5 +1,6 @@
-import { $reset } from "../../__mocks__/effect"
 import { request } from "./request"
+
+jest.mock("../../effect")
 
 function flushPromises() {
   return new Promise(resolve => setImmediate(resolve))
@@ -14,7 +15,7 @@ describe("request", () => {
 
   beforeEach(() => {
     response = {}
-    ;(request as any)[$reset]()
+    ;(request as any).reset()
     ;(global as any).fetch = jest.fn(() => Promise.resolve(response))
   })
 
@@ -68,17 +69,23 @@ describe("request", () => {
 
   it("notifies consumer when response is done", async () => {
     const args = ["test", {}] as const
+
     request(...args)
+
     await flushPromises()
+
     expect(request(...args)).toEqual({ response, error: null, done: true })
   })
 
   it("notifies consumer when error occurs", async () => {
     const args = ["test", {}] as const
     const error = new Error("foo")
+
     ;(global as any).fetch = jest.fn(() => Promise.reject(error))
     request(...args)
+
     await flushPromises()
+
     expect(request(...args)).toEqual({ response: null, error, done: true })
   })
 
@@ -86,12 +93,17 @@ describe("request", () => {
     const foo = { data: "foo" }
     const bar = { data: "bar" }
     const args = ["test", {}] as const
+
     response = foo
     request(...args)
+
     await flushPromises()
+
     response = bar
     request(...args, true)
+
     await flushPromises()
+
     expect(request(...args)).toEqual({
       response: bar,
       error: null,
@@ -102,12 +114,16 @@ describe("request", () => {
   it("resets error state on subsequent successful request", async () => {
     const args = ["test", {}] as const
     const error = new Error("foo")
+
     ;(global as any).fetch = jest.fn(() => Promise.reject(error))
     request(...args)
+
     await flushPromises()
     ;(global as any).fetch = jest.fn(() => Promise.resolve(response))
     request(...args, true)
+
     await flushPromises()
+
     expect(request(...args)).toEqual({ response, error: null, done: true })
   })
 })

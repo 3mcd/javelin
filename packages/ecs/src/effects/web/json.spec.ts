@@ -1,16 +1,16 @@
-import { $reset } from "../../__mocks__/effect"
 import { json } from "./json"
 import { request } from "./__mocks__/request"
+
+jest.mock("../../effect")
+jest.mock("./request")
 
 function flushPromises() {
   return new Promise(resolve => setImmediate(resolve))
 }
 
-jest.mock("./request")
-
 describe("json", () => {
   beforeEach(() => {
-    ;(json as any)[$reset]()
+    ;(json as any).reset()
   })
 
   it("parses json response of request", async () => {

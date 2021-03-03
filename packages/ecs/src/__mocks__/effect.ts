@@ -1,7 +1,5 @@
 import { EffectExecutor, EffectFactory, World } from "../../dist/cjs"
 
-export const $reset = Symbol("reset")
-
 export function createEffect<S, A extends any[]>(
   factory: EffectFactory<S, A>,
 ): EffectExecutor<S, A> {
@@ -12,9 +10,8 @@ export function createEffect<S, A extends any[]>(
     return executor(...args)
   }
 
-  Object.defineProperty(api, $reset, {
-    value: reset,
-  })
+  // @ts-ignore
+  api.reset = reset
 
   reset()
 

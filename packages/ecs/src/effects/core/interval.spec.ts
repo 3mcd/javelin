@@ -1,10 +1,11 @@
-import { $reset } from "../../__mocks__/effect"
 import { interval } from "./interval"
+
+jest.mock("../../effect")
 
 describe("interval", () => {
   beforeEach(() => {
     jest.useFakeTimers()
-    ;(interval as any)[$reset]()
+    ;(interval as any).reset()
   })
 
   afterEach(() => {

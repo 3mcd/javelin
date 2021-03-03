@@ -142,6 +142,12 @@ const sys_move = () => {
 
 Some useful effects are included with the core ECS package. A few are outlined below.
 
+<aside>
+  <p>
+    <strong>Note</strong> — check the source code of this page to see a few effects in action.
+  </p>
+</aside>
+
 ### `ref<T>(initialValue: T): { value: T }`
 
 A ref is a mutable value that persists between ticks.

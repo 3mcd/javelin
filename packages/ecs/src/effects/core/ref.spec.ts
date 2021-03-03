@@ -1,9 +1,10 @@
-import { $reset } from "../../__mocks__/effect"
 import { ref } from "./ref"
+
+jest.mock("../../effect")
 
 describe("ref", () => {
   beforeEach(() => {
-    ;(ref as any)[$reset]()
+    ;(ref as any).reset()
   })
 
   it("wraps initial value", () => {

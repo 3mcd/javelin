@@ -1,10 +1,11 @@
-import { $reset } from "../../__mocks__/effect"
 import { timer } from "./timer"
+
+jest.mock("../../effect")
 
 describe("timer", () => {
   beforeEach(() => {
     jest.useFakeTimers()
-    ;(timer as any)[$reset]()
+    ;(timer as any).reset()
   })
 
   afterEach(() => {
