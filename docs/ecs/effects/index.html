@@ -11,7 +11,6 @@
 
       
       <script src="/javelin-ecs.bundle.min.js" type="text/javascript"></script>
-      <script src="/javelin-effects.bundle.min.js" type="text/javascript"></script>
       
 
       <!-- CSS -->
@@ -300,7 +299,7 @@ const sys_move = () =&gt; {
   >#</a
 >
 </h2>
-<p>A package named <code>@javelin/effects</code> is published alongside the core ECS package which <a href="https://github.com/3mcd/javelin/tree/master/packages/effects">contains several useful effects</a>. A few are outlined below.</p>
+<p>Some useful effects are included with the core ECS package. A few are outlined below.</p>
 <h3 id="ref-t-initialvalue-t-value-t"><code>ref&lt;T&gt;(initialValue: T): { value: T }</code><a class="zola-anchor" href="#ref-t-initialvalue-t-value-t" aria-label="Anchor link for: ref-t-initialvalue-t-value-t"
   >#</a
 >
@@ -344,7 +343,34 @@ if (done) {
   }
 }
 </code></pre>
- 
+<script>
+  const sys_interval = () => {
+    const ref = Javelin.ref(0)
+    const log = Javelin.interval(4000)
+
+    if (log) {
+      console.log("interval", ++ref.value)
+    }
+  }
+  const sys_json = () => {
+    // start request after 1s
+    const timer = Javelin.timer(1000)
+    // cancel request after 5s
+    const cancel = Javelin.timer(5000)
+    const request = Javelin.json(
+      !cancel && timer ? `https://jsonplaceholder.typicode.com/todos/1` : null
+    )
+
+    console.log(request)
+  }
+  const world = Javelin.createWorld({
+    systems: [sys_json, sys_interval]
+  })
+
+  setInterval(() => {
+    world.tick()
+  }, 2000);
+</script> 
                     </div>
                 </div>
             </div>

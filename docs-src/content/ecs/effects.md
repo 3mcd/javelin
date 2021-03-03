@@ -140,7 +140,7 @@ const sys_move = () => {
 
 ## Built-ins
 
-A package named `@javelin/effects` is published alongside the core ECS package which [contains several useful effects](https://github.com/3mcd/javelin/tree/master/packages/effects). A few are outlined below.
+Some useful effects are included with the core ECS package. A few are outlined below.
 
 ### `ref<T>(initialValue: T): { value: T }`
 
