@@ -61,7 +61,7 @@ schema: {
 }
 ```
 
-### Creating components
+### Creating Components
 
 Components can be initialized from component types via `world.component`:
 

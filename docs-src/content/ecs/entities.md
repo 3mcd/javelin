@@ -3,11 +3,13 @@ title = "Entities"
 weight = 4
 +++
 
-An entity is a pointer to a unique collection of components that represent higher-order objects in your game. Entities are strictly defined by their component makeup, and do not contain any data or methods of their own.
+An **entity** is a pointer to a unique collection of components that represent higher-order objects in your game. Entities are strictly defined by their component makeup, and do not contain any data or methods of their own.
 
 ## Entity Management
 
-### Creating entities
+A world has several methods for managing entities.
+
+### Creating Entities
 
 Entities are created using `world.spawn`. This method accepts 0..n components and returns the newly created entity.
 
@@ -23,9 +25,11 @@ const entity = world.spawn(player, health)
   </p>
 </aside>
 
-### Modifying entities
+### Modifying Entities
 
-The vector of components associated with an entity defines its **archetype**. The above example would create an entity of archetype `(Player, Health)`. Components can be assigned to existing entities using `world.attach`, and removed from entities using `world.detach`. The following example modifies an entity of archetype `(Player, Health)` to `(Player, Health, Input)`, and then back to `(Player, Health)`:
+The vector of components associated with an entity defines its **archetype**. The above example would create an entity of archetype `(Player, Health)`.
+
+Components can be assigned to existing entities using `world.attach`, and removed from entities using `world.detach`. The following example modifies an entity of archetype `(Player, Health)` to `(Player, Health, Input)`, and then back to `(Player, Health)`:
 
 ```typescript
 const input = { _tid: 3, space: true }
@@ -49,7 +53,7 @@ world.tick()
   </p>
 </aside>
 
-### Destroying entities
+### Destroying Entities
 
 Entities are destroyed with `world.destroy`:
 

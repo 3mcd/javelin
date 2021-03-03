@@ -3,15 +3,14 @@ title = "Effects"
 weight = 6
 +++
 
-## Interacting with dependencies
-
 You'll often need to interact with some asynchronous code, third-party library, or API that wouldn't fit cleanly into Javelin's synchronous/serializable model. An **effect** is a container for one of these resources.
+## Handling Side-Effects
 
 The below example demonstrates a worker effect that might perform some expensive computation in a worker thread and return a result back to the system when finished.
 
  ```ts
  const sys_physics = () => {
-   const { result, doExpensiveComputation } = workerEffect()
+   const { result, doExpensiveComputation } = effects.worker()
 
    if (!result) {
     doExpensiveComputation()
@@ -21,18 +20,18 @@ The below example demonstrates a worker effect that might perform some expensive
  }
  ```
 
- Javelin exports a function `createEffect` which accepts a callback as its first argument. This callback is should define any state (variables) used by the effect, and return a function to be executed each tick.
+ Javelin exports a function `createEffect` which accepts a callback as its first argument. This callback receives the active `World` as its first parameter, should define any state (variables) used by the effect, and return a function to be executed each tick.
 
 Below is an effect that will return `false` until the provided duration passes:
 
 ```ts
 import { createEffect } from "@javelin/ecs"
 
-const timer = createEffect(() => {
+const timer = createEffect(world => {
   // effect state
   let state = 0
   // effect function
-  return (world, duration: number) => {
+  return (duration: number) => {
     if (state === 0) {
       state = 1
       setTimeout(() => (state = 2), duration)
@@ -64,17 +63,17 @@ const sys_a = () => {
 > "b"
 ```
 
-## Effect modes
+## Effect Modes
 
-Effects can exist in one of two modes: **local** or **global**. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure and one callback function per local effect within a system. Global effects are executed a maximum of one time per tick. All calls to global effects refer to the same closure and callback. Local mode is enabled by default.
+Effects can exist in either **local mode** or **global mode**. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure and one callback function per local effect within a system. Global effects are executed a maximum of one time per tick. All calls to global effects refer to the same closure and callback. Local mode is enabled by default.
 
-### Local effects
+### Local Effects
 
 Local effects are useful if you want to perform a one-off task, like perform an API request:
 
 ```ts
 const sys_quest_ui = () => {
-  const context = canvasEffect()
+  const context = effects.canvas()
   const { done, quests } = fetchEffect("/quests?complete=false")
 
   if (done) {
@@ -87,8 +86,8 @@ Although you should strive to have all game state in components, it can be tedio
 
 ```ts
 const sys_fibonacci = () => {
-  const a = refEffect(0)
-  const b = refEffect(1)
+  const a = effects.ref(0)
+  const b = effects.ref(1)
   const bPrev = b.value
 
   b.value += a.value
@@ -104,25 +103,21 @@ const sys_fibonacci = () => {
   </p>
 </aside>
 
-### Global effects
+### Global Effects
 
 The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS.
 
 Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.
 
 ```ts
-const simulationEffect = createEffect(() => {
-  const simulation = new Library.Simulation()
-  return world => {
-    // add new bodies to physics simulation
-    for (const [e] of queries.attached) ...
-    // remove detached bodies from physics simulation
-    for (const [e] of queries.detached) ...
-    // copy simulation state to ECS state
-    for (const [e] of queries.simulated) ...
-    // step simulation in sync with world
-    simulation.step(world.state.currentTickData)
-    return simulation
+const simulation = createEffect(world => {
+  const sim = new Library.Simulation()
+  return () => {
+    for (const [e] of queries.attached) ...   // add new bodies to simulation
+    for (const [e] of queries.detached) ...   // remove detached bodies from simulation
+    for (const [e] of queries.simulated) ...  // copy simulation state to components
+    sim.step(world.state.currentTickData)     // step simulation in sync with world
+    return sim
   }
 }, {
   global: true
@@ -143,93 +138,53 @@ const sys_move = () => {
 }
 ```
 
-Inspect this page's source to see some example effects in action.
+## Built-ins
 
-<script>
-  const effects = {
-    ref: Javelin.createEffect(() => {
-      let initial = true
-      const state = {}
-      return (world, initialValue) => {
-        if (initial) {
-          state.value = initialValue
-        }
-        initial = false
-        return state
-      }
-    }),
-    wait: Javelin.createEffect(() => {
-      return (world, duration) => {
-        const state = effects.ref(0)
-        if (state.value === 0) {
-          state.value = 1
-          setTimeout(() => (state.value = 2), duration)
-        }
-        return state.value === 2
-      }
-    }),
-    fetch: Javelin.createEffect(() => {
-      let state = 0;
-      let result = null;
-      return (world, url, invalidate = false) => {
-        if (invalidate) {
-          state = 0
-        }
-        if (state === 1) {
-          return result
-        }
-        return fetch(url).then(response => response.json()).then(r => {
-          result = r;
-          state = 1;
-        })
-      }
-    })
+A package named `@javelin/effects` is published alongside the core ECS package which [contains several useful effects](https://github.com/3mcd/javelin/tree/master/packages/effects). A few are outlined below.
+
+### `ref<T>(initialValue: T): { value: T }`
+
+A ref is a mutable value that persists between ticks.
+
+The following example demonstrates a ref which stores the radius of the largest organism in a game. This value is persisted through ticks, so it ultimately references the radius of the largest organism queried across **all ticks**, not just the current tick. 
+```ts
+const biggest = ref<number | null>(null)
+
+for (const [entity, circle] of organisms) {
+  if (circle.radius > biggest.value) {
+    biggest.value = circle.radius
   }
-  const system_a = () => {
-    const doneA = effects.wait(1000)
-    const doneB = effects.wait(3000)
-    const runningA = effects.ref(true)
-    const runningB = effects.ref(true)
+}
+```
 
-    if (doneA && runningA.value) {
-      console.log("a")
-      runningA.value = false
-    }
+### `interval(duration: number): boolean`
 
-    if (doneB && runningB.value) {
-      console.log("b")
-      runningB.value = false
-    }
+The interval effect returns `false` until the specified duration passes, at which point it will begin returning `true`. It will then immediately flip back to false until the duration passes again.
+
+You could use `interval` to write a system that sends user input to a server at regular intervals:
+
+```ts
+const send = interval(INPUT_SEND_FREQUENCY)
+...
+if (send) {
+  channel.send(input)
+}
+```
+
+### `json<T>(path: string | null, options: FetchDict, invalidate: boolean): RequestState<T>`
+
+The json effect initiates an HTTP request and returns an object that describes the state of the request. Passing a `null` URL will cancel any ongoing requests.
+
+```ts
+const { done, response, error } = json(
+  player.value
+    ? `/players/${player.value.id}/inbox`
+    : null
+)
+
+if (done) {
+  for (const message of response) {
+    draw(...)
   }
-  const system_b = () => {
-    const running = effects.ref(true)
-    const response = effects.fetch("https://jsonplaceholder.typicode.com/todos/1")
-
-    if (response && running.value) {
-      console.log(response)
-      running.value = false
-    }
-  }
-  const sys_fibonacci = () => {
-    const a = effects.ref(0)
-    const b = effects.ref(1)
-    const x = b.value
-
-    if (x < 10000) {
-      b.value += a.value
-      a.value = x
-
-      console.log(a.value)
-    }
-  }
-
-  const world = Javelin.createWorld({
-    systems: [
-      system_a,
-      system_b,
-      sys_fibonacci
-    ]
-  })
-
-  setInterval(world.tick, 500)
-</script>
+}
+```

@@ -3,11 +3,35 @@ title = "Systems"
 weight = 4
 +++
 
-## Implementing Game Logic
+A **system** is simply a function executed during each world tick. All game logic should live within systems.
 
-A system is just a function executed during each world tick. All game logic should live within systems.
+## Game Logic
 
-### Registering a system
+Each system should implement some subset of your game's logic. Ideally a system manages a small number of concerns. There is minimal performance overhead to having multiple small systems versus monolithic ones, and smaller systems are easier to read, test, and maintain.
+
+Below is an example set of systems that could be found in a top-down ARPG.
+
+| System            | Description                                                  |
+|-------------------|--------------------------------------------------------------|
+| `sys_ai_enemy`      | Enemy AI logic                                               |
+| `sys_ai_companions` | Companion AI logic                                           |
+| `sys_input`         | Sample mouse/keyboard input                                  |
+| `sys_combat`        | Transform controller input to combat actions                 |
+| `sys_movement`      | Transform controller input to movement actions               |
+| `sys_physics`       | Apply forces and step physics simulation                     |
+| `sys_pickups`       | Detect collisions with items and update player inventory     |
+| `sys_render`        | Render game                                                  |
+| `sys_render_ui`     | Render user interface                                        |
+| ...               |                                                              |
+
+### Registering a System
+
+
+A system is a void function that accepts a `World` instance as its only parameter:
+
+```ts
+const sys_ai_enemy = (world: World) => {}
+```
 
 Systems are registered with the world via the options passed to `createWorld`, or the `world.addSystem` method.
 
@@ -89,7 +113,7 @@ const sys_render = () => {
 }
 ```
 
-### Accessing the world
+### Modifying State
 
 In order to mutate game state you'll need access to the `World` that called the system.
 
@@ -107,7 +131,7 @@ world.tick(1000 / 60)
 > 16.66666666
 ```
 
-### Query caveats
+### Query Caveats
 
 The tuple of components yielded by queries is re-used each iteration. This means that you shouldn't store the results of a query for use later like this:
 

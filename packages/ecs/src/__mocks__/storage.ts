@@ -7,6 +7,7 @@ export const createStorage = jest.fn(
       patch: jest.fn(() => true),
       archetypes: [],
       clearMutations: jest.fn(),
+      clear: jest.fn(),
       create: jest.fn(() => e++),
       destroy: jest.fn(),
       findComponent: jest.fn(() => ({ type: 0 } as any)),

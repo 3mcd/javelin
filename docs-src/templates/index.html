@@ -55,7 +55,7 @@
                                         {% if config.extra.book_number_chapters %}<strong>{{ chapter_num }}.</strong>{% endif %}
                                         {{ subsection.title }}
                                     </a>
-                                    {% if subsection.pages %}
+                                    {% if subsection.pages and subsection.path in current_path %}
                                         <ul>
                                             {% for page in subsection.pages %}
                                                 <li {% if current_path == page.path %}class="active"{% endif %}>

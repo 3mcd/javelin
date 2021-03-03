@@ -1,20 +1,40 @@
 import { globals } from "./internal/globals"
 import { World } from "./world"
 
-export type EffectApi<S, A extends any[]> = { running?: boolean } & ((
-  world: World,
+export type EffectApi<S, A extends any[]> = (
   ...args: A
-) => S | Promise<S>)
-export type EffectFactory<S, A extends any[]> = () => EffectApi<S, A>
+) => UnwrappedEffectState<S>
+export type EffectExecutor<S, A extends any[]> = (...args: A) => S
+export type EffectFactory<S, A extends any[]> = (
+  world: World,
+) => EffectExecutor<S, A>
 export type EffectOptions = { throw?: boolean; global?: boolean }
 
-export function createEffect<S, A extends any[]>(
+type UnwrappedEffectState<S> = S extends Promise<infer PS> ? PS | null : S
+
+type CellEffectData<S, A extends any[]> = {
+  executor: EffectExecutor<S, A>
+  lockAsync: boolean
+  lockGlobal: boolean
+  lockGlobalTick: number
+  state: UnwrappedEffectState<S>
+}
+
+type SystemEffectData<S = any, A extends any[] = []> = {
+  cellCount: number
+  cells: CellEffectData<S, A>[]
+}
+
+function isPromise<T = unknown>(object: unknown): object is Promise<T> {
+  return typeof object === "object" && object !== null && "then" in object
+}
+
+export function createEffect<S = unknown, A extends any[] = []>(
   factory: EffectFactory<S, A>,
   options: EffectOptions = { throw: false, global: false },
-) {
-  const systemCellCountLookup: number[][] = []
-  const effectLookup: EffectApi<S, A>[][][] = []
-  const stateLookup: S[][][] = []
+): EffectApi<S, A> {
+  const { global } = options
+  const systemEffectDataByWorldId: SystemEffectData[][] = []
 
   let previousTick: number
   let previousWorld: number
@@ -24,103 +44,103 @@ export function createEffect<S, A extends any[]>(
   let currentSystem: number
   let cellCount: number = -1
 
-  const setState = (
-    nextState: S,
-    world: number,
-    system: number,
-    cell: number,
-  ) => (stateLookup[world][system][cell] = nextState)
-
-  return (...args: A) => {
+  return function effect(...args: A) {
     currentWorld = globals.__CURRENT_WORLD__
 
     const world = globals.__WORLDS__[currentWorld]
     const currentTick = world.state.currentTick
 
-    currentSystem = options.global ? 0 : world.state.currentSystem
+    currentSystem = global ? 0 : world.state.currentSystem
+
+    let currentWorldSystemEffectData = systemEffectDataByWorldId[currentWorld]
+
+    if (systemEffectDataByWorldId[currentWorld] === undefined) {
+      currentWorldSystemEffectData = systemEffectDataByWorldId[
+        currentWorld
+      ] = []
+    }
+
+    let currentSystemEffect = currentWorldSystemEffectData[currentSystem]
+
+    if (currentSystemEffect === undefined) {
+      currentSystemEffect = currentWorldSystemEffectData[currentSystem] = {
+        cells: [],
+        cellCount: -1,
+      }
+    }
 
     if (
-      options.global === true ||
+      global === true ||
       (previousWorld !== currentWorld && previousWorld !== undefined)
     ) {
       cellCount = 0
     } else if (
-      previousTick !== currentTick ||
-      (previousSystem !== currentSystem && previousSystem !== undefined)
+      previousSystem !== undefined &&
+      (previousTick !== currentTick || previousSystem !== currentSystem)
     ) {
-      let systemCellCount = systemCellCountLookup[currentWorld]
+      let previousSystemEffectData =
+        currentWorldSystemEffectData[previousSystem]
 
-      if (systemCellCountLookup[currentWorld] === undefined) {
-        systemCellCount = systemCellCountLookup[currentWorld] = []
-      }
-
-      const previousCellCount = systemCellCount[previousSystem]
-
-      if (previousCellCount !== undefined && previousCellCount !== cellCount) {
+      if (
+        previousSystemEffectData.cellCount !== -1 &&
+        previousSystemEffectData.cellCount !== cellCount
+      ) {
         throw new Error(
           `Failed to execute effect: encountered too ${
-            previousCellCount > cellCount ? "few" : "many"
+            previousSystemEffectData.cellCount > cellCount ? "few" : "many"
           } hooks this tick`,
         )
       }
 
-      systemCellCount[previousSystem] = cellCount
+      previousSystemEffectData.cellCount = cellCount
       cellCount = 0
     } else {
       cellCount++
     }
 
-    if (stateLookup[currentWorld] === undefined) {
-      stateLookup[currentWorld] = []
+    let cell = currentSystemEffect.cells[cellCount] as CellEffectData<S, A>
+
+    if (!cell) {
+      cell = currentSystemEffect.cells[cellCount] = {
+        executor: factory(world),
+        lockGlobal: false,
+        lockAsync: false,
+        lockGlobalTick: -1,
+        state: null as UnwrappedEffectState<S>,
+      }
     }
 
-    let cellLookup = stateLookup[currentWorld][currentSystem]
-
-    if (cellLookup === undefined) {
-      cellLookup = stateLookup[currentWorld][currentSystem] = []
+    if (global) {
+      if (cell.lockGlobalTick !== world.state.currentTick) {
+        cell.lockGlobal = false
+        cell.lockGlobalTick = world.state.currentTick
+      } else {
+        cell.lockGlobal = true
+      }
     }
 
-    if (effectLookup[currentWorld] === undefined) {
-      effectLookup[currentWorld] = []
+    if (cell.lockGlobal || cell.lockAsync) {
+      return cell.state
     }
 
-    let executorLookup = effectLookup[currentWorld][currentSystem]
+    const result = cell.executor(...args)
 
-    if (executorLookup === undefined) {
-      executorLookup = effectLookup[currentWorld][currentSystem] = []
-    }
-
-    let executor = executorLookup[cellCount]
-    let state: S = cellLookup[cellCount]
-
-    if (executor === undefined) {
-      executor = factory()
-      executorLookup[cellCount] = executor
-    } else if (executor.running === true) {
-      return state
-    }
-
-    const result = executor(world, ...args)
-
-    if (typeof result === "object" && result !== null && "then" in result) {
-      let world = currentWorld
-      let system = currentSystem
-      let cell = cellCount
-      executor.running = true
+    if (isPromise<UnwrappedEffectState<S>>(result)) {
+      cell.lockAsync = true
       result
-        .then(result => setState(result, world, system, cell))
+        .then(result => (cell.state = result))
         .catch(error =>
           console.error(`Uncaught error in effect: ${error.message}`, error),
         )
-        .then(() => (executor.running = false))
+        .then(() => (cell.lockAsync = false))
     } else {
-      state = setState(result, currentWorld, currentSystem, cellCount)
+      cell.state = result as UnwrappedEffectState<S>
     }
 
     previousTick = currentTick
     previousWorld = currentWorld
     previousSystem = currentSystem
 
-    return state
+    return cell.state
   }
 }
