@@ -56,15 +56,16 @@
                                         Introduction
                                     </a>
                                     
-                                </li>
-                            
-                                
-                                <li >
-                                    
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
-                                        
-                                        Installation
-                                    </a>
+                                        <ul>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;installation&#x2F;">
+                                                        
+                                                        Installation
+                                                    </a>
+                                                </li>
+                                            
+                                        </ul>
                                     
                                 </li>
                             
@@ -75,73 +76,6 @@
                                         
                                         ECS
                                     </a>
-                                    
-                                        <ul>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;world&#x2F;">
-                                                        
-                                                        World
-                                                    </a>
-                                                </li>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;components&#x2F;">
-                                                        
-                                                        Components
-                                                    </a>
-                                                </li>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;entities&#x2F;">
-                                                        
-                                                        Entities
-                                                    </a>
-                                                </li>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;systems&#x2F;">
-                                                        
-                                                        Systems
-                                                    </a>
-                                                </li>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;filtering&#x2F;">
-                                                        
-                                                        Filtering
-                                                    </a>
-                                                </li>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
-                                                        
-                                                        Effects
-                                                    </a>
-                                                </li>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;topics&#x2F;">
-                                                        
-                                                        Topics
-                                                    </a>
-                                                </li>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;change-detection&#x2F;">
-                                                        
-                                                        Change Detection
-                                                    </a>
-                                                </li>
-                                            
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;performance&#x2F;">
-                                                        
-                                                        Performance
-                                                    </a>
-                                                </li>
-                                            
-                                        </ul>
                                     
                                 </li>
                             
@@ -262,7 +196,7 @@ const Wormhole = Javelin.createComponentType({
 const effects = {
   interval: Javelin.createEffect(() => {
     let state = 0
-    return (world, t) => {
+    return (t) => {
       if (state === 1) {
         return false
       }
@@ -290,7 +224,7 @@ const effects = {
   ref: Javelin.createEffect(() => {
     let initial = true
     const state = {}
-    return (world, initialValue) => {
+    return (initialValue) => {
       if (initial) {
         state.value = initialValue
       }

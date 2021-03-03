@@ -61,16 +61,6 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
-                                        
-                                        Installation
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
                                         
                                         ECS
@@ -186,14 +176,14 @@
                     <div class="book-content">
                         
 <h1>Effects</h1>
-<h2 id="interacting-with-dependencies">Interacting with dependencies<a class="zola-anchor" href="#interacting-with-dependencies" aria-label="Anchor link for: interacting-with-dependencies"
+<p>You'll often need to interact with some asynchronous code, third-party library, or API that wouldn't fit cleanly into Javelin's synchronous/serializable model. An <strong>effect</strong> is a container for one of these resources.</p>
+<h2 id="handling-side-effects">Handling Side-Effects<a class="zola-anchor" href="#handling-side-effects" aria-label="Anchor link for: handling-side-effects"
   >#</a
 >
 </h2>
-<p>You'll often need to interact with some asynchronous code, third-party library, or API that wouldn't fit cleanly into Javelin's synchronous/serializable model. An <strong>effect</strong> is a container for one of these resources.</p>
 <p>The below example demonstrates a worker effect that might perform some expensive computation in a worker thread and return a result back to the system when finished.</p>
 <pre><code>const sys_physics = () =&gt; {
-  const { result, doExpensiveComputation } = workerEffect()
+  const { result, doExpensiveComputation } = effects.worker()
 
   if (!result) {
    doExpensiveComputation()
@@ -202,15 +192,15 @@
   }
 }
 </code></pre>
-<p>Javelin exports a function <code>createEffect</code> which accepts a callback as its first argument. This callback is should define any state (variables) used by the effect, and return a function to be executed each tick.</p>
+<p>Javelin exports a function <code>createEffect</code> which accepts a callback as its first argument. This callback receives the active <code>World</code> as its first parameter, should define any state (variables) used by the effect, and return a function to be executed each tick.</p>
 <p>Below is an effect that will return <code>false</code> until the provided duration passes:</p>
 <pre><code>import { createEffect } from &quot;@javelin/ecs&quot;
 
-const timer = createEffect(() =&gt; {
+const timer = createEffect(world =&gt; {
   // effect state
   let state = 0
   // effect function
-  return (world, duration: number) =&gt; {
+  return (duration: number) =&gt; {
     if (state === 0) {
       state = 1
       setTimeout(() =&gt; (state = 2), duration)
@@ -236,18 +226,18 @@ const timer = createEffect(() =&gt; {
 (1000ms)
 &gt; &quot;b&quot;
 </code></pre>
-<h2 id="effect-modes">Effect modes<a class="zola-anchor" href="#effect-modes" aria-label="Anchor link for: effect-modes"
+<h2 id="effect-modes">Effect Modes<a class="zola-anchor" href="#effect-modes" aria-label="Anchor link for: effect-modes"
   >#</a
 >
 </h2>
-<p>Effects can exist in one of two modes: <strong>local</strong> or <strong>global</strong>. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure and one callback function per local effect within a system. Global effects are executed a maximum of one time per tick. All calls to global effects refer to the same closure and callback. Local mode is enabled by default.</p>
-<h3 id="local-effects">Local effects<a class="zola-anchor" href="#local-effects" aria-label="Anchor link for: local-effects"
+<p>Effects can exist in either <strong>local mode</strong> or <strong>global mode</strong>. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure and one callback function per local effect within a system. Global effects are executed a maximum of one time per tick. All calls to global effects refer to the same closure and callback. Local mode is enabled by default.</p>
+<h3 id="local-effects">Local Effects<a class="zola-anchor" href="#local-effects" aria-label="Anchor link for: local-effects"
   >#</a
 >
 </h3>
 <p>Local effects are useful if you want to perform a one-off task, like perform an API request:</p>
 <pre><code>const sys_quest_ui = () =&gt; {
-  const context = canvasEffect()
+  const context = effects.canvas()
   const { done, quests } = fetchEffect(&quot;/quests?complete=false&quot;)
 
   if (done) {
@@ -257,8 +247,8 @@ const timer = createEffect(() =&gt; {
 </code></pre>
 <p>Although you should strive to have all game state in components, it can be tedious to create a singleton component each time you need some state within a system. Effects can be used to wrap arbitrary values that persist between ticks.</p>
 <pre><code>const sys_fibonacci = () =&gt; {
-  const a = refEffect(0)
-  const b = refEffect(1)
+  const a = effects.ref(0)
+  const b = effects.ref(1)
   const bPrev = b.value
 
   b.value += a.value
@@ -272,24 +262,20 @@ const timer = createEffect(() =&gt; {
     <strong>Note</strong> — using effects to store system state may bother the ECS purist, but it's undeniably convenient and practical, especially for simple cases where state wouldn't need to be serialized or shared with another system.
   </p>
 </aside>
-<h3 id="global-effects">Global effects<a class="zola-anchor" href="#global-effects" aria-label="Anchor link for: global-effects"
+<h3 id="global-effects">Global Effects<a class="zola-anchor" href="#global-effects" aria-label="Anchor link for: global-effects"
   >#</a
 >
 </h3>
 <p>The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS.</p>
 <p>Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.</p>
-<pre><code>const simulationEffect = createEffect(() =&gt; {
-  const simulation = new Library.Simulation()
-  return world =&gt; {
-    // add new bodies to physics simulation
-    for (const [e] of queries.attached) ...
-    // remove detached bodies from physics simulation
-    for (const [e] of queries.detached) ...
-    // copy simulation state to ECS state
-    for (const [e] of queries.simulated) ...
-    // step simulation in sync with world
-    simulation.step(world.state.currentTickData)
-    return simulation
+<pre><code>const simulation = createEffect(world =&gt; {
+  const sim = new Library.Simulation()
+  return () =&gt; {
+    for (const [e] of queries.attached) ...   // add new bodies to simulation
+    for (const [e] of queries.detached) ...   // remove detached bodies from simulation
+    for (const [e] of queries.simulated) ...  // copy simulation state to components
+    sim.step(world.state.currentTickData)     // step simulation in sync with world
+    return sim
   }
 }, {
   global: true
@@ -309,95 +295,55 @@ const sys_move = () =&gt; {
   ...
 }
 </code></pre>
-<p>Inspect this page's source to see some example effects in action.</p>
-<script>
-  const effects = {
-    ref: Javelin.createEffect(() => {
-      let initial = true
-      const state = {}
-      return (world, initialValue) => {
-        if (initial) {
-          state.value = initialValue
-        }
-        initial = false
-        return state
-      }
-    }),
-    wait: Javelin.createEffect(() => {
-      return (world, duration) => {
-        const state = effects.ref(0)
-        if (state.value === 0) {
-          state.value = 1
-          setTimeout(() => (state.value = 2), duration)
-        }
-        return state.value === 2
-      }
-    }),
-    fetch: Javelin.createEffect(() => {
-      let state = 0;
-      let result = null;
-      return (world, url, invalidate = false) => {
-        if (invalidate) {
-          state = 0
-        }
-        if (state === 1) {
-          return result
-        }
-        return fetch(url).then(response => response.json()).then(r => {
-          result = r;
-          state = 1;
-        })
-      }
-    })
+<h2 id="built-ins">Built-ins<a class="zola-anchor" href="#built-ins" aria-label="Anchor link for: built-ins"
+  >#</a
+>
+</h2>
+<p>A package named <code>@javelin/effects</code> is published alongside the core ECS package which <a href="https://github.com/3mcd/javelin/tree/master/packages/effects">contains several useful effects</a>. A few are outlined below.</p>
+<h3 id="ref-t-initialvalue-t-value-t"><code>ref&lt;T&gt;(initialValue: T): { value: T }</code><a class="zola-anchor" href="#ref-t-initialvalue-t-value-t" aria-label="Anchor link for: ref-t-initialvalue-t-value-t"
+  >#</a
+>
+</h3>
+<p>A ref is a mutable value that persists between ticks.</p>
+<p>The following example demonstrates a ref which stores the radius of the largest organism in a game. This value is persisted through ticks, so it ultimately references the radius of the largest organism queried across <strong>all ticks</strong>, not just the current tick. </p>
+<pre><code>const biggest = ref&lt;number | null&gt;(null)
+
+for (const [entity, circle] of organisms) {
+  if (circle.radius &gt; biggest.value) {
+    biggest.value = circle.radius
   }
-  const system_a = () => {
-    const doneA = effects.wait(1000)
-    const doneB = effects.wait(3000)
-    const runningA = effects.ref(true)
-    const runningB = effects.ref(true)
+}
+</code></pre>
+<h3 id="interval-duration-number-boolean"><code>interval(duration: number): boolean</code><a class="zola-anchor" href="#interval-duration-number-boolean" aria-label="Anchor link for: interval-duration-number-boolean"
+  >#</a
+>
+</h3>
+<p>The interval effect returns <code>false</code> until the specified duration passes, at which point it will begin returning <code>true</code>. It will then immediately flip back to false until the duration passes again.</p>
+<p>You could use <code>interval</code> to write a system that sends user input to a server at regular intervals:</p>
+<pre><code>const send = interval(INPUT_SEND_FREQUENCY)
+...
+if (send) {
+  channel.send(input)
+}
+</code></pre>
+<h3 id="json-t-path-string-null-options-fetchdict-invalidate-boolean-requeststate-t"><code>json&lt;T&gt;(path: string | null, options: FetchDict, invalidate: boolean): RequestState&lt;T&gt;</code><a class="zola-anchor" href="#json-t-path-string-null-options-fetchdict-invalidate-boolean-requeststate-t" aria-label="Anchor link for: json-t-path-string-null-options-fetchdict-invalidate-boolean-requeststate-t"
+  >#</a
+>
+</h3>
+<p>The json effect initiates an HTTP request and returns an object that describes the state of the request. Passing a <code>null</code> URL will cancel any ongoing requests.</p>
+<pre><code>const { done, response, error } = json(
+  player.value
+    ? `/players/${player.value.id}/inbox`
+    : null
+)
 
-    if (doneA && runningA.value) {
-      console.log("a")
-      runningA.value = false
-    }
-
-    if (doneB && runningB.value) {
-      console.log("b")
-      runningB.value = false
-    }
+if (done) {
+  for (const message of response) {
+    draw(...)
   }
-  const system_b = () => {
-    const running = effects.ref(true)
-    const response = effects.fetch("https://jsonplaceholder.typicode.com/todos/1")
-
-    if (response && running.value) {
-      console.log(response)
-      running.value = false
-    }
-  }
-  const sys_fibonacci = () => {
-    const a = effects.ref(0)
-    const b = effects.ref(1)
-    const x = b.value
-
-    if (x < 10000) {
-      b.value += a.value
-      a.value = x
-
-      console.log(a.value)
-    }
-  }
-
-  const world = Javelin.createWorld({
-    systems: [
-      system_a,
-      system_b,
-      sys_fibonacci
-    ]
-  })
-
-  setInterval(world.tick, 500)
-</script> 
+}
+</code></pre>
+ 
                     </div>
                 </div>
             </div>

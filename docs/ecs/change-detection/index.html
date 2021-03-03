@@ -61,16 +61,6 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
-                                        
-                                        Installation
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
                                         
                                         ECS
@@ -229,10 +219,10 @@ for (const [entity, health] of queries.changed) {
   world.getComponentMutations(position) // -&gt; [&quot;x&quot;, 2, &quot;y&quot;, 3, &quot;extra.asleep&quot;, true]
 }
 </code></pre>
-<h3 id="networking">Networking<a class="zola-anchor" href="#networking" aria-label="Anchor link for: networking"
+<h2 id="networking">Networking<a class="zola-anchor" href="#networking" aria-label="Anchor link for: networking"
   >#</a
 >
-</h3>
+</h2>
 <p><code>@javelin/net</code> uses this change detection algorithm to optimize packet size by only including the component data that changed during the previous tick in network messages. This means that changes made to unobserved components will not be sent to clients.</p>
  
                     </div>

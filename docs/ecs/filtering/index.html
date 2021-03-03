@@ -61,16 +61,6 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
-                                        
-                                        Installation
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
                                         
                                         ECS
@@ -186,11 +176,11 @@
                     <div class="book-content">
                         
 <h1>Filtering</h1>
-<h2 id="reacting-to-changes">Reacting to changes<a class="zola-anchor" href="#reacting-to-changes" aria-label="Anchor link for: reacting-to-changes"
+<p>It's often useful to query components that were added, removed, or modified. For example, you may want to know when a component is attached to, or detached from, an entity in order to notify a third-party library, or update another entity. You can use <strong>filters</strong> to narrow the results of a query.</p>
+<h2 id="reacting-to-changes">Reacting to Changes<a class="zola-anchor" href="#reacting-to-changes" aria-label="Anchor link for: reacting-to-changes"
   >#</a
 >
 </h2>
-<p>It's often useful to query components that were added, removed, or modified. For example, you may want to know when a component is attached to, or detached from, an entity in order to notify a third-party library, or update another entity.</p>
 <p>Components detached during the current tick are excluded from query results by default. Imagine a system that detaches the <code>Body</code> component of entities when a player's health drops to zero. If detached components were always included, an entity whose <code>Body</code> was detached could continue to trigger collisions with other entities during the current tick, leading to unexpected behavior.</p>
 <p>The result of a query can be narrowed using filters. Queries are filtered by wrapping one or more of the component types in a selector with a filter function, e.g:</p>
 <pre><code>query(Player, detached(Body))
@@ -199,7 +189,7 @@
   >#</a
 >
 </h3>
-<p>The <code>attached</code> filter will narrow a query to include only entities whose selected components were added <strong>last tick</strong>.</p>
+<p>The <code>attached</code> filter will narrow a query to include only entities whose selected components were added last tick.</p>
 <pre><code>import { attached } from &quot;@javelin/ecs&quot;
 
 const queries = {

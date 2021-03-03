@@ -61,16 +61,6 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
-                                        
-                                        Installation
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
                                         
                                         ECS
@@ -186,34 +176,41 @@
                     <div class="book-content">
                         
 <h1>Topics</h1>
+<p>Systems are typically <strong>pure</strong>, as they only read/modify the components of queried entities. However, as your game grows, you may want a system to trigger behavior in a different system. For example, you may write a physics system that wraps a third-party library whose methods you'd like to expose to other physics-interested systems.</p>
+<p><strong>Topics</strong> facilitate a way to do this without resorting to global state, unlike global <a href="/ecs/effects">effects</a>.</p>
 <h2 id="inter-system-communication">Inter-System Communication<a class="zola-anchor" href="#inter-system-communication" aria-label="Anchor link for: inter-system-communication"
   >#</a
 >
 </h2>
-<p>Sometimes it's useful for a system to trigger behavior in a different system. For example, you might have a physics system that wraps a third-party library whose methods you'd like to expose to other parts of your game.</p>
 <p>Let's say you want to apply an impulse to a physics body when a player jumps so it gains some momentum in a direction. One way of doing this is to model the operation as a component.</p>
 <pre><code>type Impulse = {
   x: number
   y: number
 }
 </code></pre>
-<p>When you want to apply a impulse to an entity, you could insert an <code>Impulse</code> component on the current tick, and remove it on the following tick.</p>
-<pre><code>// player input system
-for (const [entity] of queries.jumping) {
-  world.attach(entity, world.component(Impulse))
+<p>When you need to apply a impulse to an entity, you insert an <code>Impulse</code> component on the current tick, and remove it on the following tick.</p>
+<pre><code>const sys_input = () =&gt; {
+  for (const [entity] of queries.jumping) {
+    world.attach(entity, world.component(Impulse))
+  }
+
+  for (const [entity, impulse] of queries.withImpulse) {
+    world.detach(entity, impulse)
+  }
 }
 
-for (const [entity, impulse] of queries.withImpulse) {
-  world.detach(entity, impulse)
+const sys_physics = () =&gt; {
+  for (const [entity, impulse] of queries.withImpulse) {
+    const body = getBodyByEntity(entity)
+    physicsEngine.applyImpulseLocal(body, impulse)
+  }
 }
 </code></pre>
-<pre><code>// physics system
-for (const [entity, impulse] of queries.withImpulse) {
-  const body = getBodyByEntity(entity)
-  physicsEngine.applyImpulseLocal(body, impulse)
-}
-</code></pre>
-<p>This will work fine for a small game; however, adding and removing components in an archetypal ECS can be slow. It's also a little nasty to have to clean up after each operation for what should be fire-and-forget as far as the player input system is concerned.</p>
+<p>This might work fine for a small game; however, there are a couple of problems with this approach:</p>
+<ol>
+<li>Adding and removing components in an archetypal ECS is slow</li>
+<li>Your physics system must wait until the next tick to detect the newly attached impluse component</li>
+</ol>
 <h3 id="topics">Topics<a class="zola-anchor" href="#topics" aria-label="Anchor link for: topics"
   >#</a
 >

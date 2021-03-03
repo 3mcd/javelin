@@ -61,16 +61,6 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
-                                        
-                                        Installation
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
                                         
                                         ECS
@@ -191,8 +181,8 @@
     <strong>Note</strong> — the following chapters assume that you are familiar with basic ECS concepts discussed in the <a href="/ecs">opening section</a>.
   </p>
 </aside>
-<p><code>World</code> is the root-level object in Javelin. Worlds are responsible for maintaining entities and executing systems. They expose methods for creating/removing entities, creating and associating components with entities, and locating the components of entities.</p>
-<p>Worlds are created using the <code>createWorld</code> function defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts">world.ts</a>. <code>createWorld</code> accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.</p>
+<p><strong>Worlds</strong> are responsible for maintaining entities and executing systems. They expose methods for creating and removing entities, associating components with entities, and locating the components of entities.</p>
+<p>A world is created using the <code>createWorld</code> function defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts">world.ts</a>. <code>createWorld</code> accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.</p>
 <pre><code>import { createWorld } from &quot;@javelin/ecs&quot;
 
 const world = createWorld({

@@ -61,16 +61,6 @@
                                 
                                 <li >
                                     
-                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;installation&#x2F;">
-                                        
-                                        Installation
-                                    </a>
-                                    
-                                </li>
-                            
-                                
-                                <li >
-                                    
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
                                         
                                         ECS
@@ -186,15 +176,32 @@
                     <div class="book-content">
                         
 <h1>Systems</h1>
-<h2 id="implementing-game-logic">Implementing Game Logic<a class="zola-anchor" href="#implementing-game-logic" aria-label="Anchor link for: implementing-game-logic"
+<p>A <strong>system</strong> is simply a function executed during each world tick. All game logic should live within systems.</p>
+<h2 id="game-logic">Game Logic<a class="zola-anchor" href="#game-logic" aria-label="Anchor link for: game-logic"
   >#</a
 >
 </h2>
-<p>A system is just a function executed during each world tick. All game logic should live within systems.</p>
-<h3 id="registering-a-system">Registering a system<a class="zola-anchor" href="#registering-a-system" aria-label="Anchor link for: registering-a-system"
+<p>Each system should implement some subset of your game's logic. Ideally a system manages a small number of concerns. There is minimal performance overhead to having multiple small systems versus monolithic ones, and smaller systems are easier to read, test, and maintain.</p>
+<p>Below is an example set of systems that could be found in a top-down ARPG.</p>
+<table><thead><tr><th>System</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>sys_ai_enemy</code></td><td>Enemy AI logic</td></tr>
+<tr><td><code>sys_ai_companions</code></td><td>Companion AI logic</td></tr>
+<tr><td><code>sys_input</code></td><td>Sample mouse/keyboard input</td></tr>
+<tr><td><code>sys_combat</code></td><td>Transform controller input to combat actions</td></tr>
+<tr><td><code>sys_movement</code></td><td>Transform controller input to movement actions</td></tr>
+<tr><td><code>sys_physics</code></td><td>Apply forces and step physics simulation</td></tr>
+<tr><td><code>sys_pickups</code></td><td>Detect collisions with items and update player inventory</td></tr>
+<tr><td><code>sys_render</code></td><td>Render game</td></tr>
+<tr><td><code>sys_render_ui</code></td><td>Render user interface</td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody></table>
+<h3 id="registering-a-system">Registering a System<a class="zola-anchor" href="#registering-a-system" aria-label="Anchor link for: registering-a-system"
   >#</a
 >
 </h3>
+<p>A system is a void function that accepts a <code>World</code> instance as its only parameter:</p>
+<pre><code>const sys_ai_enemy = (world: World) =&gt; {}
+</code></pre>
 <p>Systems are registered with the world via the options passed to <code>createWorld</code>, or the <code>world.addSystem</code> method.</p>
 <pre><code>const sys_physics = () =&gt; ...
 const sys_render = () =&gt; ...
@@ -258,7 +265,7 @@ const sys_render = () =&gt; {
   }
 }
 </code></pre>
-<h3 id="accessing-the-world">Accessing the world<a class="zola-anchor" href="#accessing-the-world" aria-label="Anchor link for: accessing-the-world"
+<h3 id="modifying-state">Modifying State<a class="zola-anchor" href="#modifying-state" aria-label="Anchor link for: modifying-state"
   >#</a
 >
 </h3>
@@ -274,7 +281,7 @@ world.tick(1000 / 60)
 --- output:
 &gt; 16.66666666
 </code></pre>
-<h3 id="query-caveats">Query caveats<a class="zola-anchor" href="#query-caveats" aria-label="Anchor link for: query-caveats"
+<h3 id="query-caveats">Query Caveats<a class="zola-anchor" href="#query-caveats" aria-label="Anchor link for: query-caveats"
   >#</a
 >
 </h3>
