@@ -82,7 +82,7 @@ describe("createArchetype", () => {
     const index = archetype.indices[entity1]
     archetype.remove(entity1)
 
-    expect(archetype.indices[entity1]).toBe(-1)
+    expect(archetype.indices[entity1]).toBe(undefined)
     expect(archetype.indices[entity2]).toBe(index)
   })
   it("swaps an entity's components with the head when removed", () => {
