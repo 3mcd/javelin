@@ -235,7 +235,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   const attaching: (readonly Component[])[] = []
 
   const systems: System<T>[] = []
-  const systemIdBySystemIndex: number[] = []
+  const systemIdBySystem = new WeakMap<System<T>, number>()
 
   let state: WorldState<T> = getInitialWorldState()
   let entityCounter = 0
@@ -362,16 +362,17 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
     // Execute systems
     for (let i = 0; i < systems.length; i++) {
-      world.state.currentSystem = systemIdBySystemIndex[i]
-      systems[i](world)
+      const system = systems[i]
+      world.state.currentSystem = systemIdBySystem.get(system)!
+      system(world)
     }
 
     state.currentTick++
   }
 
   function addSystem(system: System<T>) {
-    const index = systems.push(system) - 1
-    systemIdBySystemIndex[index] = systemCounter++
+    systems.push(system)
+    systemIdBySystem.set(system, systemCounter++)
   }
 
   function removeSystem(system: System<T>) {
@@ -379,7 +380,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
     if (index > -1) {
       systems.splice(index, 1)
-      delete systemIdBySystemIndex[index]
+      systemIdBySystem.delete(system)
     }
   }
 
