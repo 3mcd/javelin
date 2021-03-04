@@ -38,11 +38,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Bump
+      - name: Version Bump
         run: |
           yarn bump --yes
 
-      - name: Publish code coverage report
+      - name: Publish Coverage Report
         uses: codecov/codecov-action@v1
         with:
           file: ./coverage/clover.xml
@@ -57,7 +57,7 @@ jobs:
           version=$(node -p 'require("./lerna.json").version')
           echo "::set-output name=version::${version}"
 
-      - name: Create release pull request
+      - name: Create Release PR
         uses: peter-evans/create-pull-request@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
