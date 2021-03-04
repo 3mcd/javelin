@@ -3,15 +3,16 @@
   overflow-y: auto;
   flex: 1 0 auto;
   color: #425461;
-  padding-top: 8px;
+  padding-top: 16px;
   z-index: 1;
   position: static;
-  margin-bottom: 1.7rem;
+  margin-bottom: 1.7rem 0;
   top: 0;
 
   @include min-screen($breakpoint--mobile) {
     position: sticky;
     flex: 0 0 #{$sidebar-width};
+    margin-top: calc(3.8rem + 0.333333rem);
   }
 
   h1 {

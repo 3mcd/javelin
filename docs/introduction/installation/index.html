@@ -52,8 +52,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
-                                        
-                                        Introduction
+                                        <span>1. </span>
+                                        <strong>Introduction</strong>
                                     </a>
                                     
                                         <ul>
@@ -73,8 +73,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
-                                        
-                                        ECS
+                                        <span>2. </span>
+                                        <strong>ECS</strong>
                                     </a>
                                     
                                 </li>
@@ -83,8 +83,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;networking&#x2F;">
-                                        
-                                        Networking
+                                        <span>3. </span>
+                                        <strong>Networking</strong>
                                     </a>
                                     
                                 </li>
@@ -93,8 +93,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;resources&#x2F;">
-                                        
-                                        Resources
+                                        <span>4. </span>
+                                        <strong>Resources</strong>
                                     </a>
                                     
                                 </li>
@@ -125,8 +125,9 @@
 >
 </h2>
 <p>Javelin ECS can be installed via <code>npm</code>:</p>
-<pre><code>npm i @javelin/ecs
-</code></pre>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">npm i @javelin/ecs
+</span></code></pre>
 <p>The following three builds are published to NPM:</p>
 <h3 id="umd">UMD<a class="zola-anchor" href="#umd" aria-label="Anchor link for: umd"
   >#</a
@@ -135,32 +136,32 @@
 <p><strong>Path</strong>: <code>dist/javelin-ecs.bundle.min.js</code></p>
 <p>You can include the minified UMD bundle in your HTML via <code>&lt;script&gt;</code> tag. All module exports are available via <code>window.Javelin</code>:</p>
 <!-- prettier-ignore -->
-<pre><code>&lt;script src=&quot;node_modules/@javelin/ecs/dist/javelin-ecs.bundle.min.js&quot;&gt;&lt;/script&gt;
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">&lt;script </span><span style="color:#388282;">src</span><span style="color:#555c64;">=</span><span style="color:#4179ad;">&quot;node_modules/@javelin/ecs/dist/javelin-ecs.bundle.min.js&quot;</span><span style="color:#555c64;">&gt;&lt;/script&gt;
 &lt;script&gt;
-  const world = Javelin.createWorld()
+  </span><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#88669e;">Javelin</span><span style="color:#555c64;">.createWorld()
 &lt;/script&gt;
-</code></pre>
-<h3 id="es-modules">ES Modules<a class="zola-anchor" href="#es-modules" aria-label="Anchor link for: es-modules"
+</span></code></pre><h3 id="es-modules">ES Modules<a class="zola-anchor" href="#es-modules" aria-label="Anchor link for: es-modules"
   >#</a
 >
 </h3>
 <p><strong>Path</strong>: <code>dist/esm/index.js</code></p>
 <p>The package.json <code>module</code> field points to the ESM build, which will be automatically discovered by tools like Webpack and Rollup. You can of course also import the ES module directly in browsers that support ECMAScript modules.</p>
 <!-- prettier-ignore -->
-<pre><code>&lt;script type=&quot;module&quot; src=&quot;node_modules/@javelin/ecs/dist/esm/index.js&quot;&gt;&lt;/script&gt;
-</code></pre>
-<h3 id="commonjs">CommonJS<a class="zola-anchor" href="#commonjs" aria-label="Anchor link for: commonjs"
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">&lt;script </span><span style="color:#388282;">type</span><span style="color:#555c64;">=</span><span style="color:#4179ad;">&quot;module&quot; </span><span style="color:#388282;">src</span><span style="color:#555c64;">=</span><span style="color:#4179ad;">&quot;node_modules/@javelin/ecs/dist/esm/index.js&quot;</span><span style="color:#555c64;">&gt;&lt;/script&gt;
+</span></code></pre><h3 id="commonjs">CommonJS<a class="zola-anchor" href="#commonjs" aria-label="Anchor link for: commonjs"
   >#</a
 >
 </h3>
 <aside>
-  <p><strong>Note</strong> — this build does not support tree shaking.</p>
+  <p><strong>Tip</strong> — this build does not support tree shaking.</p>
 </aside>
 <p><strong>Path</strong>: <code>dist/cjs/index.js</code></p>
 <p>The package.json <code>main</code> field points to the CommonJS build, which will be included automatically when loaded with Node's <code>require()</code>:</p>
-<pre><code>const Javelin = require(&quot;@javelin/ecs&quot;)
-</code></pre>
- 
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">Javelin </span><span style="color:#388282;">= </span><span style="color:#555c64;">require(</span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;</span><span style="color:#555c64;">)
+</span></code></pre> 
                     </div>
                 </div>
             </div>

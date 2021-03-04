@@ -98,7 +98,7 @@ Sometimes messages should be handled as quickly as possible, like when processin
 
 <aside>
   <p>
-    <strong>Note</strong> — System registration order matters when using <code>pushImmediate</code>. Since the messages will be thrown away at the end of the tick, any systems upstream from the one that used <code>pushImmediate</code> will never have the opportunity to read the message.
+    <strong>Tip</strong> — System registration order matters when using <code>pushImmediate</code>. Since the messages will be thrown away at the end of the tick, any systems upstream from the one that used <code>pushImmediate</code> will never have the opportunity to read the message.
   </p>
 </aside>
 

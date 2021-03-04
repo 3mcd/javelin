@@ -95,7 +95,8 @@ const effects = {
   }),
   click: Javelin.createEffect(() => {
     const state = { clicked: false, coords: null }
-    document.addEventListener("click", event => {
+
+    canvas.addEventListener("click", event => {
       state.clicked = true
       state.coords = relMouseCoords(canvas, event)
     })
@@ -158,7 +159,7 @@ const sys_spawn = world => {
     spawnWormhole(
       Math.random() * canvas.width,
       Math.random() * canvas.height,
-      Math.random() * 60
+      Math.max(10, Math.random() * 60)
     )
   }
 }

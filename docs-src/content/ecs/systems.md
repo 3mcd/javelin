@@ -45,12 +45,6 @@ world.addSystem(sys_render)
 
 When `world.tick()` is called, each system is executed in the order that it was registered.
 
-<aside>
-  <p>
-    <strong>Note</strong> — a prefix like <code>sys_</code> can help distinguish systems from normal functions. But use whatever naming convention you like!
-  </p>
-</aside>
-
 Systems have a signature of `(world: World<T>) => void`, where the first argument is the world that is currently mid-tick. A single value can be passed to `world.tick(data)`, which is then available in each system via `world.state.currentTickData`. Often times this value holds the amount of time that has elapsed since the previous tick, but it can be any value.
 
 The following is a world that will log the time elapsed since the last tick at around 60Hz:
@@ -79,7 +73,7 @@ setInterval(() => {
 
 <aside>
   <p>
-    <strong>Note</strong> — maintaining state using tick <code>data</code> is comparable to using global variables. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the <a href="/ecs/topics">Topics</a> section.
+    <strong>Tip</strong> — maintaining state using tick <code>data</code> is comparable to using global variables. Consider moving this state into a singleton component. Or, if you need inter-system communication, you can pass messages using topics, which are discussed in the <a href="/ecs/topics">Topics</a> section.
   </p>
 </aside>
 
@@ -119,7 +113,7 @@ In order to mutate game state you'll need access to the `World` that called the 
 
 The world that is currently executing a tick is passed as the system's first argument:
 
-```
+```ts
 function sys_munch_doritos(world: World<number>) {
   console.log(world.state.currentTickData) // logs 0.1666666667
 }

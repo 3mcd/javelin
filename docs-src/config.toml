@@ -10,14 +10,13 @@ compile_sass = true
 # Whether to build a search index to be used later on by a JavaScript library
 build_search_index = true
 
+highlight_code = true
 highlight_theme = "snow-light"
 
-[markdown]
-highlight_code = true
 
 [extra]
 # Put all your custom variables here
 theme = "book"
-book_numbered_chapters = false
+book_numbered_chapters = true
 library_version = "0.19.4"
 repo_url = "https://github.com/3mcd/javelin"
