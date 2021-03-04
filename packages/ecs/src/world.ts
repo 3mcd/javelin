@@ -18,6 +18,7 @@ import {
   WorldOp,
   WorldOpType,
 } from "./world_op"
+
 export interface World<T = any> {
   /**
    * The unique identifier for this world.
@@ -194,7 +195,7 @@ function getInitialWorldState<T>() {
 }
 
 export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
-  const { systems = [], componentPoolSize = 1000 } = options
+  const { componentPoolSize = 1000 } = options
   const worldOps: WorldOp[] = []
   const worldOpsPrevious: WorldOp[] = []
   const worldOpPool = createStackPool<WorldOp>(
@@ -205,18 +206,24 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     },
     1000,
   )
+  const componentTypes: ComponentType[] = []
   const componentPoolsByComponentTypeId = new Map<
     number,
     StackPool<Component>
   >()
   const storage = createStorage()
-  const componentTypes: ComponentType[] = []
   const destroyed = new Set<number>()
   const detached = new Map<number, readonly number[]>()
   const attaching: (readonly Component[])[] = []
 
+  const systems: System<T>[] = []
+  const systemIdBySystemIndex: number[] = []
+
   let state: WorldState<T> = getInitialWorldState()
   let entityCounter = 0
+  let systemCounter = 0
+
+  options.systems?.forEach(addSystem)
 
   function applySpawnOp(op: SpawnOp) {
     const [, entity, components] = op
@@ -337,7 +344,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
     // Execute systems
     for (let i = 0; i < systems.length; i++) {
-      world.state.currentSystem = i
+      world.state.currentSystem = systemIdBySystemIndex[i]
       systems[i](world)
     }
 
@@ -345,7 +352,8 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function addSystem(system: System<T>) {
-    systems.push(system)
+    const index = systems.push(system) - 1
+    systemIdBySystemIndex[index] = systemCounter++
   }
 
   function removeSystem(system: System<T>) {
@@ -353,6 +361,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
     if (index > -1) {
       systems.splice(index, 1)
+      delete systemIdBySystemIndex[index]
     }
   }
 
