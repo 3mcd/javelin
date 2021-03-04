@@ -15,9 +15,9 @@ describe("createStorage", () => {
       { _tid: 1, _cst: ComponentState.Attached },
     ])
 
-    expect(createArchetype).toHaveBeenNthCalledWith(1, [0])
-    expect(createArchetype).toHaveBeenNthCalledWith(2, [1])
-    expect(createArchetype).toHaveBeenNthCalledWith(3, [0, 1])
+    expect(createArchetype).toHaveBeenNthCalledWith(1, { layout: [0] })
+    expect(createArchetype).toHaveBeenNthCalledWith(2, { layout: [1] })
+    expect(createArchetype).toHaveBeenNthCalledWith(3, { layout: [0, 1] })
   })
   it("also removes entity from archetype when removed", () => {
     const storage = createStorage()

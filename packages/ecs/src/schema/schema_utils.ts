@@ -1,3 +1,4 @@
+import { factory } from "typescript"
 import { Component, ComponentState, InternalComponent } from "../component"
 import { $isDataType } from "../symbols"
 import { DataType, PropsOfSchema, Schema, SchemaKey } from "./schema_types"
@@ -60,4 +61,70 @@ export function resetComponentFromSchema<S extends Schema>(
   }
 
   return component as PropsOfSchema<S>
+}
+
+export type SerializedSchema<S extends Schema = Schema> = S extends DataType<
+  infer T
+>
+  ? T
+  : {
+      [K in keyof S]: S[K] extends Schema
+        ? SerializedSchema<S>
+        : S[K] extends DataType<any>
+        ? S[K]["name"]
+        : never
+    }
+
+export function serializeSchema<S extends Schema>(
+  schema: S,
+): SerializedSchema<S> {
+  const out: any = {}
+
+  for (const prop in schema) {
+    const value = schema[prop] as SchemaKey
+
+    if (isDataType(value)) {
+      out[prop] = value.name
+    } else if ("type" in value && isDataType(value.type)) {
+      out[prop] = value.type.name
+    } else {
+      out[prop] = serializeSchema(value as Schema)
+    }
+  }
+
+  return out as SerializedSchema<S>
+}
+
+export function schemaEqualsSerializedSchema(
+  schema: Schema,
+  serializedSchema: SerializedSchema,
+) {
+  if (Object.keys(schema).length !== Object.keys(serializedSchema).length) {
+    return false
+  }
+
+  for (const prop in schema) {
+    const value = schema[prop] as SchemaKey
+
+    if (isDataType(value)) {
+      if (serializedSchema[prop] !== value.name) {
+        return false
+      }
+    } else if ("type" in value && isDataType(value.type)) {
+      if (serializedSchema[prop] !== value.type.name) {
+        return false
+      }
+    } else {
+      const result = schemaEqualsSerializedSchema(
+        value as Schema,
+        serializedSchema[prop],
+      )
+
+      if (!result) {
+        return false
+      }
+    }
+  }
+
+  return true
 }

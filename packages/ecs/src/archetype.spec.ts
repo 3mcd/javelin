@@ -1,5 +1,6 @@
-import { createArchetype } from "./archetype"
+import { ArchetypeSnapshot, createArchetype } from "./archetype"
 import { ComponentState } from "./component"
+import { unpackSparseArray } from "./util"
 
 describe("createArchetype", () => {
   const flags = {
@@ -8,7 +9,7 @@ describe("createArchetype", () => {
     C: 4,
   }
   it("initializes a component table from provided component layout", () => {
-    const archetype = createArchetype([1, 2, 3])
+    const archetype = createArchetype({ layout: [1, 2, 3] })
 
     expect(archetype.table.length).toBe(3)
     expect(archetype.table[0]).toBeInstanceOf(Array)
@@ -17,7 +18,7 @@ describe("createArchetype", () => {
   })
   it("adds entity to entities array when inserted", () => {
     const entity = 0
-    const archetype = createArchetype([1])
+    const archetype = createArchetype({ layout: [1] })
 
     archetype.insert(entity, [{ _tid: 1, _cst: ComponentState.Attached }])
 
@@ -26,7 +27,7 @@ describe("createArchetype", () => {
   it("assigns entities an index when inserted", () => {
     const entity1 = 0
     const entity2 = 1
-    const archetype = createArchetype([1, 4])
+    const archetype = createArchetype({ layout: [1, 4] })
 
     archetype.insert(entity1, [
       { _tid: 1, _cst: ComponentState.Attached },
@@ -42,7 +43,7 @@ describe("createArchetype", () => {
   })
   it("updates the component table with inserted components", () => {
     const entity = 0
-    const archetype = createArchetype([1, 4])
+    const archetype = createArchetype({ layout: [1, 4] })
     const components = [
       { _tid: 1, _cst: ComponentState.Attached },
       { _tid: 4, _cst: ComponentState.Attached },
@@ -57,7 +58,7 @@ describe("createArchetype", () => {
   })
   it("removes entity from entities array when removed", () => {
     const entity = 0
-    const archetype = createArchetype([1])
+    const archetype = createArchetype({ layout: [1] })
 
     archetype.insert(entity, [{ _tid: 1, _cst: ComponentState.Attached }])
     archetype.remove(entity)
@@ -67,7 +68,7 @@ describe("createArchetype", () => {
   it("unsets an entity's index when removed and replaces it with the head", () => {
     const entity1 = 0
     const entity2 = 1
-    const archetype = createArchetype([1, 4])
+    const archetype = createArchetype({ layout: [1, 4] })
 
     archetype.insert(entity1, [
       { _tid: 1, _cst: ComponentState.Attached },
@@ -87,7 +88,7 @@ describe("createArchetype", () => {
   it("swaps an entity's components with the head when removed", () => {
     const entity1 = 0
     const entity2 = 1
-    const archetype = createArchetype([1, 4])
+    const archetype = createArchetype({ layout: [1, 4] })
     const components = [
       { _tid: 1, _cst: ComponentState.Attached },
       { _tid: 4, _cst: ComponentState.Attached },
@@ -105,5 +106,37 @@ describe("createArchetype", () => {
 
     expect(archetype.table[0][index]).toBe(components[0])
     expect(archetype.table[1][index]).toBe(components[1])
+  })
+  it("restores from snapshot", () => {
+    const snapshot: ArchetypeSnapshot = {
+      layout: [1, 2, 3],
+      table: [
+        [
+          { _tid: 1, _cst: 2 },
+          { _tid: 1, _cst: 2 },
+          { _tid: 1, _cst: 2 },
+        ],
+        [
+          { _tid: 2, _cst: 2 },
+          { _tid: 2, _cst: 2 },
+          { _tid: 2, _cst: 2 },
+        ],
+        [
+          { _tid: 3, _cst: 2 },
+          { _tid: 3, _cst: 2 },
+          { _tid: 3, _cst: 2 },
+        ],
+      ],
+      indices: {
+        3: 0,
+        7: 1,
+        10: 2,
+      },
+    }
+    const archetype = createArchetype({ snapshot })
+
+    expect(archetype.layout).toEqual([1, 2, 3])
+    expect(archetype.entities.slice().sort((a, b) => a - b)).toEqual([3, 7, 10])
+    expect(archetype.indices).toEqual([, , , 0, , , , 1, , , 2])
   })
 })

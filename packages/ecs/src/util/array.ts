@@ -41,3 +41,28 @@ export function arrayOf<T = void>(
     .fill(undefined)
     .map((_, i) => f(i))
 }
+
+export type PackedSparseArray<T> = { [key: number]: T }
+
+export function packSparseArray<T>(array: readonly T[]) {
+  return array.reduce((a, x, i) => {
+    a[i] = x
+    return a
+  }, {} as PackedSparseArray<T>)
+}
+
+export function unpackSparseArray<T>(
+  packedSparseArray: PackedSparseArray<T>,
+): T[] {
+  const sparseArray: T[] = []
+
+  for (const index in packedSparseArray) {
+    const i = parseInt(index, 10)
+
+    if (!isNaN(i)) {
+      sparseArray[i] = packedSparseArray[index]
+    }
+  }
+
+  return sparseArray
+}

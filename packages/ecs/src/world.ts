@@ -5,10 +5,17 @@ import {
   ComponentState,
   ComponentType,
 } from "./component"
-import { createComponentPool, flagComponent, flagComponents } from "./helpers"
+import {
+  createComponentPool,
+  flagComponent,
+  flagComponents,
+  serializeComponentType,
+  SerializedComponentType,
+} from "./helpers"
 import { globals } from "./internal/globals"
 import { createStackPool, StackPool } from "./pool"
-import { createStorage, Storage } from "./storage"
+import { schemaEqualsSerializedSchema } from "./schema"
+import { createStorage, Storage, StorageSnapshot } from "./storage"
 import { mutableEmpty } from "./util"
 import {
   AttachOp,
@@ -153,6 +160,11 @@ export interface World<T = any> {
   reset(): void
 
   /**
+   * Create a serializable snapshot of the world that can be restored later.
+   */
+  snapshot(): WorldSnapshot
+
+  /**
    * Entity-component storage.
    */
   readonly storage: Storage
@@ -173,11 +185,17 @@ export interface World<T = any> {
   readonly state: { readonly [K in keyof WorldState<T>]: WorldState<T>[K] }
 }
 
+export type WorldSnapshot = {
+  componentTypes: SerializedComponentType[]
+  storage: StorageSnapshot
+}
+
 export type System<T> = (world: World<T>) => void
 
 export type WorldOptions<T> = {
-  systems?: System<T>[]
   componentPoolSize?: number
+  snapshot?: WorldSnapshot
+  systems?: System<T>[]
 }
 
 export type WorldState<T = unknown> = {
@@ -211,7 +229,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     number,
     StackPool<Component>
   >()
-  const storage = createStorage()
+  const storage = createStorage({ snapshot: options.snapshot?.storage })
   const destroyed = new Set<number>()
   const detached = new Map<number, readonly number[]>()
   const attaching: (readonly Component[])[] = []
@@ -497,8 +515,26 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
     if (registeredComponentTypeWithTypeId) {
       throw new Error(
-        `Tried to register componentType with type id ${componentType.type} more than once.`,
+        `Failed to register component type: a componentType with same id is already registered`,
       )
+    }
+
+    if (options.snapshot) {
+      const snapshotComponentTypeWithTypeId = options.snapshot.componentTypes.find(
+        s => s.type === componentType.type,
+      )
+
+      if (
+        snapshotComponentTypeWithTypeId &&
+        !schemaEqualsSerializedSchema(
+          componentType.schema,
+          snapshotComponentTypeWithTypeId.schema,
+        )
+      ) {
+        throw new Error(
+          `Failed to register component type: component type schema does not match world snapshot`,
+        )
+      }
     }
 
     componentTypes.push(componentType)
@@ -551,6 +587,13 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     storage.clear()
   }
 
+  function snapshot(): WorldSnapshot {
+    return {
+      componentTypes: componentTypes.map(serializeComponentType),
+      storage: storage.snapshot(),
+    }
+  }
+
   const { getObservedComponent, isComponentChanged, patch } = storage
 
   const world = {
@@ -569,6 +612,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     patch,
     removeSystem,
     reset,
+    snapshot,
     spawn,
     state,
     storage,
