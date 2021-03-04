@@ -52,8 +52,8 @@
                                 <li class="active">
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
-                                        
-                                        Introduction
+                                        <span>1. </span>
+                                        <strong>Introduction</strong>
                                     </a>
                                     
                                         <ul>
@@ -73,8 +73,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
-                                        
-                                        ECS
+                                        <span>2. </span>
+                                        <strong>ECS</strong>
                                     </a>
                                     
                                 </li>
@@ -83,8 +83,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;networking&#x2F;">
-                                        
-                                        Networking
+                                        <span>3. </span>
+                                        <strong>Networking</strong>
                                     </a>
                                     
                                 </li>
@@ -93,8 +93,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;resources&#x2F;">
-                                        
-                                        Resources
+                                        <span>4. </span>
+                                        <strong>Resources</strong>
                                     </a>
                                     
                                 </li>
@@ -207,7 +207,8 @@ const effects = {
   }),
   click: Javelin.createEffect(() => {
     const state = { clicked: false, coords: null }
-    document.addEventListener("click", event => {
+
+    canvas.addEventListener("click", event => {
       state.clicked = true
       state.coords = relMouseCoords(canvas, event)
     })
@@ -270,7 +271,7 @@ const sys_spawn = world => {
     spawnWormhole(
       Math.random() * canvas.width,
       Math.random() * canvas.height,
-      Math.random() * 60
+      Math.max(10, Math.random() * 60)
     )
   }
 }

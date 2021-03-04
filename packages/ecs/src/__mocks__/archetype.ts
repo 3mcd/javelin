@@ -2,7 +2,7 @@ import { Archetype } from "../archetype"
 import { ComponentState } from "@javelin/ecs"
 
 export const createArchetype = jest.fn(
-  (layout: number[]): Archetype => {
+  ({ layout }): Archetype => {
     return {
       layout,
       layoutInverse: [0],

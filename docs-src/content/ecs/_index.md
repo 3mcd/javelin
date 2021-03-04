@@ -5,56 +5,71 @@ sort_by = "weight"
 insert_anchor_links = "right"
 +++
 
-## What's an ECS?
+This section aims to serve as a quick primer on Entity Component Systems (ECS) and how to think in ECS. The goal is not to belittle other methods of building games or make ECS seem like a panacea, because ECS does come with its own challenges. Godot has a great article about [why Godot does not use ECS](https://godotengine.org/article/why-isnt-godot-ecs-based-game-engine) that I recommend you read if you are trying to determine whether or not you should use Javelin.
 
 <aside>
   <p>
-    <strong>Note</strong> — this section contains pseudo-code. Skip to the <a href="/ecs/world">Hello World</a> section if you're ready for real examples.
+    <strong>Tip</strong> — this section contains pseudo-code. Skip to the <a href="/ecs/world">Hello World</a> section if you're ready for real examples.
   </p>
 </aside>
 
-Entity data and behavior is often architected using class heirarchies in game development. Take the following example, where a `Player` class extends a physics `Body` class to enhance players with physics properties:
+## What's an ECS?
+
+A best practice in OOP game development is to favor composition over inheritance when designing game data and behavior. Take the following example, where a `Player` class accepts `Body` and `Input` objects to enhance players with physics properties and input control:
 
 ```typescript
 class Body {
   readonly velocity = { x: 0, y: 0 }
 }
 
-class Player extends Body {
+class Player {
+  body: Body
   input: Input
 
-  constructor(public input: Input) {}
+  constructor(public body: Body, public input: Input) {}
 
   jump() {
-    this.velocity[1] += 1
+    this.body.velocity[1] += 1
+  }
+
+  update() {
+    if (this.input.key("space")) {
+      this.jump()
+    }
   }
 }
 
-const input = new Input()
-const player = new Player(input)
+const player = new Player(new Body(), new Input())
 
 setInterval(() => {
-  if (input.isSpacebarPressed()) {
-    // apply force to launch player into the air
-    player.jump()
-  }
+  player.update()
 }, 16.66666)
 ```
 
 When the player presses the spacebar on their keyboard, `player.jump()` is called, and the physics body jumps! Easy enough.
 
-What if a player wants to spectate our game instead of controlling a character? In that scenario, it would be unnecessary for `Player` to extend `Body`, and we'd either need to modify the inheritance structure, or write defensive code to ensure that spectators shouldn't touch the physics simulation.
+What if a player wants to spectate our game instead of controlling a character? In that scenario, it would be unnecessary for `Player` to care about `Body`, and we'd need to write code that makes `Body` an optional dependency of `Player`, e.g.
 
-Data and behavior are separate concerns in an ECS. High-cohesion game objects are substituted with three distinct concerns: (1) **components** – game data, (2) **entities** – game objects (like a tree, chest, or spawn position), and (3) **systems** – game behavior. 
+```ts
+  body?: Body
+  ...
+  jump() {
+    this.body?.velocity[1] += 1
+  }
+```
 
+If there are many states/dependencies a player can have (e.g. spectating, driving a vehicle, etc.), our `Player` class might explode with complexity. Going even further, `Player` would need to define all it's possible dependencies in advance, making runtime composition difficult or even impossible.
+
+## Parts of an ECS
+
+Data and behavior are separate concerns in an ECS. High-cohesion game objects are substituted with three distinct concerns: (1) **components** – game data, (2) **entities** – game objects (like a tree, chest, or spawn position), and (3) **systems** – game behavior. As we'll see, this architecture enables runtime composition of behavior that would be tricky to implement in the example above.
 ### Components
 
 In an ECS, components are typically plain objects that contain data and no methods. Ideally all game state lives in components.
 
 ```
-Player { name: string }
 Body { velocity: [number, number] }
-Input { space: boolean }
+Player { name: string }
 ```
 
 ### Entities

@@ -41,7 +41,7 @@ The package.json `module` field points to the ESM build, which will be automatic
 ### CommonJS
 
 <aside>
-  <p><strong>Note</strong> — this build does not support tree shaking.</p>
+  <p><strong>Tip</strong> — this build does not support tree shaking.</p>
 </aside>
 
 **Path**: `dist/cjs/index.js`

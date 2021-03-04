@@ -1,15 +1,17 @@
 import {
   Component,
-  ComponentOf,
-  ComponentType,
-  ComponentState,
   ComponentBase,
+  ComponentOf,
+  ComponentState,
+  ComponentType,
   InternalComponent,
 } from "../component"
 import { createStackPool } from "../pool/stack_pool"
 import {
   initializeComponentFromSchema,
   resetComponentFromSchema,
+  SerializedSchema,
+  serializeSchema,
 } from "../schema/schema_utils"
 
 export function createComponentType<C extends ComponentType>(componentType: C) {
@@ -30,6 +32,22 @@ export function createComponentBase(
       },
     },
   )
+}
+
+export type SerializedComponentType<C extends ComponentType = ComponentType> = {
+  name: C["name"]
+  type: C["type"]
+  schema: SerializedSchema<C["schema"]>
+}
+
+export function serializeComponentType(
+  componentType: ComponentType,
+): SerializedComponentType {
+  return {
+    name: componentType.name,
+    type: componentType.type,
+    schema: serializeSchema(componentType.schema),
+  }
 }
 
 export function createComponentPool<C extends ComponentType>(

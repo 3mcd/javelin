@@ -5,8 +5,6 @@ export const createWorld = jest.fn(
   (): World => {
     let e = 0
     return {
-      id: 1,
-      storage: createStorage(),
       addSystem: jest.fn(),
       applyOps: jest.fn(),
       attach: jest.fn(),
@@ -16,19 +14,22 @@ export const createWorld = jest.fn(
       detach: jest.fn(),
       getComponent: jest.fn(),
       getObservedComponent: jest.fn(),
+      id: 1,
       isComponentChanged: jest.fn(),
       ops: [],
       patch: jest.fn(),
       removeSystem: jest.fn(),
+      reset: jest.fn(),
+      snapshot: jest.fn(),
       spawn: jest.fn(() => e++),
-      tick: jest.fn(),
-      tryGetComponent: jest.fn(),
       state: {
         currentTick: 0,
         currentTickData: null,
         currentSystem: 0,
       },
-      reset: jest.fn(),
+      storage: createStorage(),
+      tick: jest.fn(),
+      tryGetComponent: jest.fn(),
     }
   },
 )

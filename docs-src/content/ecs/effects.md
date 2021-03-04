@@ -43,7 +43,7 @@ const timer = createEffect(world => {
 
 <aside>
   <p>
-    <strong>Note</strong> — effects in Javelin have some similarities to React effects. They are executed each update (tick) and  read/modify closed-over variables. In a way, Javelin's effects are a combination of React's <code>useEffect</code> and <code>useRef</code>.
+    <strong>Tip</strong> — effects in Javelin have some similarities to React effects. They are executed each update (tick) and  read/modify closed-over variables. In a way, Javelin's effects are a combination of React's <code>useEffect</code> and <code>useRef</code>.
   </p>
 </aside>
 
@@ -99,7 +99,7 @@ const sys_fibonacci = () => {
 
 <aside>
   <p>
-    <strong>Note</strong> — using effects to store system state may bother the ECS purist, but it's undeniably convenient and practical, especially for simple cases where state wouldn't need to be serialized or shared with another system.
+    <strong>Tip</strong> — using effects to store system state may bother the ECS purist, but it's undeniably convenient and practical, especially for simple cases where state wouldn't need to be serialized or shared with another system.
   </p>
 </aside>
 
@@ -144,7 +144,7 @@ Some useful effects are included with the core ECS package. A few are outlined b
 
 <aside>
   <p>
-    <strong>Note</strong> — check the source code of this page to see a few effects in action.
+    <strong>Tip</strong> — check the source code of this page to see a few effects in action.
   </p>
 </aside>
 

@@ -52,8 +52,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
-                                        
-                                        Introduction
+                                        <span>1. </span>
+                                        <strong>Introduction</strong>
                                     </a>
                                     
                                 </li>
@@ -62,8 +62,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
-                                        
-                                        ECS
+                                        <span>2. </span>
+                                        <strong>ECS</strong>
                                     </a>
                                     
                                         <ul>
@@ -139,8 +139,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;networking&#x2F;">
-                                        
-                                        Networking
+                                        <span>3. </span>
+                                        <strong>Networking</strong>
                                     </a>
                                     
                                 </li>
@@ -149,8 +149,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;resources&#x2F;">
-                                        
-                                        Resources
+                                        <span>4. </span>
+                                        <strong>Resources</strong>
                                     </a>
                                     
                                 </li>
@@ -178,23 +178,26 @@
 <h1>World</h1>
 <aside>
   <p>
-    <strong>Note</strong> — the following chapters assume that you are familiar with basic ECS concepts discussed in the <a href="/ecs">opening section</a>.
+    <strong>Tip</strong> — the following chapters assume that you are familiar with basic ECS concepts discussed in the <a href="/ecs">opening section</a>.
   </p>
 </aside>
 <p><strong>Worlds</strong> are responsible for maintaining entities and executing systems. They expose methods for creating and removing entities, associating components with entities, and locating the components of entities.</p>
 <p>A world is created using the <code>createWorld</code> function defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts">world.ts</a>. <code>createWorld</code> accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.</p>
-<pre><code>import { createWorld } from &quot;@javelin/ecs&quot;
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createWorld } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
 
-const world = createWorld({
-  systems: [() =&gt; console.log(&quot;Tick!&quot;)],
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">world </span><span style="color:#388282;">= </span><span style="color:#555c64;">createWorld({
+  systems: [() </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;Tick!&quot;</span><span style="color:#555c64;">)],
 })
-</code></pre>
+</span></code></pre>
 <p>Systems can also be registered after a world is initialized using the <code>world.addSystem</code> method:</p>
-<pre><code>world.addSystem(() =&gt; console.log(&quot;Tock!&quot;))
-</code></pre>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">world.addSystem(() </span><span style="color:#388282;">=&gt; </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;Tock!&quot;</span><span style="color:#555c64;">))
+</span></code></pre>
 <p>Calling <code>world.tick()</code> will process operations (like adding, removing, updating entities) that occurred during the previous tick. Then, all systems will be executed in the order that they were registered.</p>
-<pre><code>setInterval(world.tick, 1000)
-</code></pre>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">setInterval(world.tick, </span><span style="color:#4179ad;">1000</span><span style="color:#555c64;">)
+</span></code></pre>
 <p>More on systems later in the <a href="/ecs/systems">Systems</a> section!</p>
 <h2 id="finding-components">Finding Components<a class="zola-anchor" href="#finding-components" aria-label="Anchor link for: finding-components"
   >#</a
@@ -202,15 +205,16 @@ const world = createWorld({
 </h2>
 <p>Components are generally accessed using iterable <a href="/ecs/systems/#querying-and-iteration">queries</a>. However, queries only locate entities who meet each of the selector's criteria. This makes it difficult to write conditional logic based on the presence of a component. For example, you may want to apply damage to all entities that match <code>(Health, Burn)</code>, but only if the entity doesn't have an <code>Invulnerable</code> component.</p>
 <p><code>world.tryGetComponent</code> attempts to locate a component of an entity by component type, returning <code>null</code> if not found:</p>
-<pre><code>if (world.tryGetComponent(entity, Invulnerable) === null) {
-  health.value -= burn.valuePerTick
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">if </span><span style="color:#555c64;">(world.tryGetComponent(entity, Invulnerable) </span><span style="color:#388282;">=== </span><span style="color:#a35d66;">null</span><span style="color:#555c64;">) {
+  health.value </span><span style="color:#388282;">-= </span><span style="color:#555c64;">burn.valuePerTick
 }
-</code></pre>
+</span></code></pre>
 <p><code>world.getComponent</code> will throw an error if the component is not found, which can be used to assert a relationship between an archetype and another component type.</p>
-<pre><code>// an entity of (Health, Burn) should always have a position
-world.getComponent(entity, Position)
-</code></pre>
-<h2 id="clearing-data">Clearing Data<a class="zola-anchor" href="#clearing-data" aria-label="Anchor link for: clearing-data"
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#8c95a0;">// an entity of (Health, Burn) should always have a position
+</span><span style="color:#555c64;">world.getComponent(entity, </span><span style="color:#88669e;">Position</span><span style="color:#555c64;">)
+</span></code></pre><h2 id="clearing-data">Clearing Data<a class="zola-anchor" href="#clearing-data" aria-label="Anchor link for: clearing-data"
   >#</a
 >
 </h2>

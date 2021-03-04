@@ -52,8 +52,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;introduction&#x2F;">
-                                        
-                                        Introduction
+                                        <span>1. </span>
+                                        <strong>Introduction</strong>
                                     </a>
                                     
                                 </li>
@@ -62,8 +62,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;">
-                                        
-                                        ECS
+                                        <span>2. </span>
+                                        <strong>ECS</strong>
                                     </a>
                                     
                                         <ul>
@@ -139,8 +139,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;networking&#x2F;">
-                                        
-                                        Networking
+                                        <span>3. </span>
+                                        <strong>Networking</strong>
                                     </a>
                                     
                                 </li>
@@ -149,8 +149,8 @@
                                 <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;resources&#x2F;">
-                                        
-                                        Resources
+                                        <span>4. </span>
+                                        <strong>Resources</strong>
                                     </a>
                                     
                                 </li>
@@ -189,37 +189,38 @@
 </h3>
 <p>Sometimes you don't need to know exactly which properties on a component changed, only that it <em>was</em> changed. In this case, you can use either the <code>changed</code> component filter in a query, or use the <code>world.isComponentChanged</code> method, which returns <code>true</code> if the component was changed last tick, and <code>false</code> if it wasn't.</p>
 <p>Using the <code>changed</code> filter:</p>
-<pre><code>const queries = {
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">queries </span><span style="color:#388282;">= </span><span style="color:#555c64;">{
   changed: query(changed(Health))
 }
 
-for (const [entity, health] of queries.changed) {
-  // `entity` is an entity who's health component changed last tick
-}
-</code></pre>
+</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, health] </span><span style="color:#388282;">of </span><span style="color:#555c64;">queries.changed) {
+  </span><span style="color:#8c95a0;">// `entity` is an entity who&#39;s health component changed last tick
+</span><span style="color:#555c64;">}
+</span></code></pre>
 <p>Using <code>world.isComponentChanged</code>:</p>
-<pre><code>for (const [entity, health] of healthy(world)) {
-  if (world.isComponentChanged(health)) {
-    // `health` changed last tick
-  }
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, health] </span><span style="color:#388282;">of </span><span style="color:#555c64;">healthy(world)) {
+  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(world.isComponentChanged(health)) {
+    </span><span style="color:#8c95a0;">// `health` changed last tick
+  </span><span style="color:#555c64;">}
 }
-</code></pre>
-<h3 id="observing">Observing<a class="zola-anchor" href="#observing" aria-label="Anchor link for: observing"
+</span></code></pre><h3 id="observing">Observing<a class="zola-anchor" href="#observing" aria-label="Anchor link for: observing"
   >#</a
 >
 </h3>
 <p>If you want to know exactly what changes were made to a component during the current tick, use <code>world.getComponentMutations</code>. This method returns a 1-dimensional array of changes made to a component. Take the following example:</p>
-<pre><code>for (const [entity, position, input] of queries.vehicles) {
-  const observedPosition = world.getObservedComponent(position)
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, position, input] </span><span style="color:#388282;">of </span><span style="color:#555c64;">queries.vehicles) {
+  </span><span style="color:#388282;">const </span><span style="color:#555c64;">observedPosition </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.getObservedComponent(position)
 
-  observedPosition.x = 2
-  observedPosition.y = 3
-  observedPosition.extra.asleep = true
+  observedPosition.x </span><span style="color:#388282;">= </span><span style="color:#4179ad;">2
+  </span><span style="color:#555c64;">observedPosition.y </span><span style="color:#388282;">= </span><span style="color:#4179ad;">3
+  </span><span style="color:#555c64;">observedPosition.extra.asleep </span><span style="color:#388282;">= </span><span style="color:#a35d66;">true
 
-  world.getComponentMutations(position) // -&gt; [&quot;x&quot;, 2, &quot;y&quot;, 3, &quot;extra.asleep&quot;, true]
-}
-</code></pre>
-<h2 id="networking">Networking<a class="zola-anchor" href="#networking" aria-label="Anchor link for: networking"
+  </span><span style="color:#555c64;">world.getComponentMutations(position) </span><span style="color:#8c95a0;">// -&gt; [&quot;x&quot;, 2, &quot;y&quot;, 3, &quot;extra.asleep&quot;, true]
+</span><span style="color:#555c64;">}
+</span></code></pre><h2 id="networking">Networking<a class="zola-anchor" href="#networking" aria-label="Anchor link for: networking"
   >#</a
 >
 </h2>

@@ -1,9 +1,18 @@
-import { Archetype, createArchetype } from "./archetype"
+import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
 import { applyMutation, createMutationCache } from "./mutation_cache"
-import { mutableEmpty } from "./util"
+import { mutableEmpty, packSparseArray } from "./util"
+
+export type StorageSnapshot = {
+  archetypes: ArchetypeSnapshot[]
+}
 
 export interface Storage {
+  /**
+   * The storage's underlying archetypes.
+   */
+  readonly archetypes: ReadonlyArray<Archetype>
+
   /**
    * Create a new entity.
    *
@@ -102,13 +111,14 @@ export interface Storage {
 
   clear(): void
 
-  /**
-   * Collection of Archetypes in the world.
-   */
-  readonly archetypes: ReadonlyArray<Archetype>
+  snapshot(): StorageSnapshot
 }
 
-export function createStorage(): Storage {
+export type StorageOptions = {
+  snapshot?: StorageSnapshot
+}
+
+export function createStorage(options: StorageOptions = {}): Storage {
   const mutationCache = createMutationCache({
     onChange(component: Component, target, path, value, mutArrayMethodType) {
       let changes = mutations.get(component)
@@ -126,7 +136,9 @@ export function createStorage(): Storage {
     },
   })
   const mutations = new Map<Component, unknown[]>()
-  const archetypes: Archetype[] = []
+  const archetypes: Archetype[] = options.snapshot
+    ? options.snapshot.archetypes.map(snapshot => createArchetype({ snapshot }))
+    : []
   // Array where the index corresponds to an entity and the value corresponds
   // to the index of the entity's archetype within the `archetypes` array. When
   // mutating or reading components, we always assume the location is valid
@@ -178,7 +190,7 @@ export function createStorage(): Storage {
     let archetype = findArchetype(components)
 
     if (!archetype) {
-      archetype = createArchetype(components.map(c => c._tid))
+      archetype = createArchetype({ layout: components.map(c => c._tid) })
       archetypes.push(archetype)
     }
 
@@ -397,6 +409,18 @@ export function createStorage(): Storage {
     mutableEmpty(archetypeIndicesByEntity)
   }
 
+  function snapshot() {
+    return {
+      archetypes: archetypes.map(archetype => ({
+        layout: archetype.layout.slice(),
+        table: archetype.table.map(column =>
+          column.map(component => ({ ...component })),
+        ),
+        indices: packSparseArray(archetype.indices),
+      })),
+    }
+  }
+
   return {
     archetypes,
     clear,
@@ -413,6 +437,7 @@ export function createStorage(): Storage {
     patch,
     remove,
     removeByTypeIds,
+    snapshot,
     upsert,
   }
 }

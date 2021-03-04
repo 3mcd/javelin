@@ -79,11 +79,12 @@
     }
 
     pre {
+      overflow: auto;
+      display: block;
+      white-space: pre;
+      max-width: calc(100vw - 4rem);
       padding: 1rem;
-
-      span {
-        white-space: pre-wrap;
-      }
+      border-radius: 0;
     }
 
     blockquote {
@@ -127,16 +128,15 @@
     }
 
     aside {
-      color: #8a6c3c;
-      background: #ffe8c2;
+      border: 1px solid #d6d8d8;
+      border-radius: 6px;
       font-size: 0.8rem;
       padding: 1rem;
       margin: 1.7rem 0;
 
       code {
-        color: #8a6c3c;
-        background: #fcddad;
-        border: 1px solid #d1b07a;
+        background: #e6e8e8;
+        border: 1px solid #d6d8d8;
       }
 
       p {

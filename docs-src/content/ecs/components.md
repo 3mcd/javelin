@@ -108,6 +108,6 @@ world.registerComponentType(Position, 10000)
 
 <aside>
   <p>
-    <strong>Note</strong> — the configured or default pool size will be used if a component type is encountered by <code>world.component()</code> prior to manual registration.
+    <strong>Tip</strong> — the configured or default pool size will be used if a component type is encountered by <code>world.component()</code> prior to manual registration.
   </p>
 </aside>

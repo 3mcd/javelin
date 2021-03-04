@@ -21,7 +21,7 @@ const entity = world.spawn(player, health)
 
 <aside>
   <p>
-    <strong>Note</strong> — although entities are simply auto-incrementing integers (starting at <code>0</code>), they should be treated as opaque values.
+    <strong>Tip</strong> — although entities are simply auto-incrementing integers (starting at <code>0</code>), they should be treated as opaque values.
   </p>
 </aside>
 
@@ -49,7 +49,7 @@ world.tick()
 
 <aside>
   <p>
-    <strong>Note</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.spawn(components)</code> because the components of the affected entity must be relocated in memory each time the entity's archetype changes.
+    <strong>Tip</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.spawn(components)</code> because the components of the affected entity must be relocated in memory each time the entity's archetype changes.
   </p>
 </aside>
 

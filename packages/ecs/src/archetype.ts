@@ -1,10 +1,36 @@
 import { Component } from "./component"
+import { PackedSparseArray, unpackSparseArray } from "./util"
+
+export interface ArchetypeData {
+  /**
+   * Two-dimensional array of component type->component[] where each index
+   * (column) of the component array corresponds to an entity.
+   *
+   *      (index)    0  1  2
+   *     (entity)    1  3  9
+   *   (Position) [[ p, p, p ]
+   *   (Velocity) [  v, v, v ]]
+   *
+   * The index of each entity is tracked in the `indices` array.
+   */
+  readonly table: ReadonlyArray<ReadonlyArray<Component>>
+
+  /**
+   * Array where each value is a component type and the index is the column of
+   * the type's collection in the archetype table.
+   */
+  readonly layout: ReadonlyArray<number>
+}
+
+export type ArchetypeSnapshot = ArchetypeData & {
+  indices: PackedSparseArray<number>
+}
 
 /**
  * An Archetype is a collection of entities that share components of the same
  * type.
  */
-export interface Archetype {
+export interface Archetype extends ArchetypeData {
   /**
    * Insert an entity into the Archetype.
    *
@@ -21,25 +47,6 @@ export interface Archetype {
    * @returns void
    */
   remove(entity: number): void
-
-  /**
-   * Two-dimensional array of component type->component[] where each index
-   * (column) of the component array corresponds to an entity.
-   *
-   *      (index)    0  1  2
-   *     (entity)    1  3  9
-   *   (Position) [[ p, p, p ]
-   *   (Velocity) [  v, v, v ]]
-   *
-   * The index of each entity is tracked in the `indices` array.
-   */
-  readonly table: ReadonlyArray<ReadonlyArray<Component | null>>
-
-  /**
-   * Array where each value is a component type and the index is the column of
-   * the type's collection in the archetype table.
-   */
-  readonly layout: ReadonlyArray<number>
 
   /**
    * Array where each index is a component type and the corresponding index is
@@ -65,26 +72,45 @@ export interface Archetype {
   readonly indices: ReadonlyArray<number>
 }
 
-/**
- * Create an Archetype.
- *
- * @param layout Array of component types that make up the archetype
- */
-export function createArchetype(layout: number[]): Archetype {
-  const len = layout.length
-  const table: (Component | null)[][] = []
-  const entities: number[] = []
-  const indices: number[] = []
+export type ArchetypeOptions =
+  | {
+      layout: number[]
+    }
+  | {
+      snapshot: ArchetypeSnapshot
+    }
+
+function createArchetypeState(options: ArchetypeOptions) {
+  const snapshot = "snapshot" in options ? options.snapshot : null
+  const entities = snapshot ? Object.keys(snapshot.indices).map(Number) : []
+  const indices = snapshot ? unpackSparseArray(snapshot.indices) : []
+  const layout =
+    "layout" in options ? options.layout : [...options.snapshot.layout]
+  const table = snapshot
+    ? snapshot.table.map(column => [...column])
+    : layout.map(() => [])
   const layoutInverse = layout.reduce((a, x, i) => {
     a[x] = i
     return a
   }, [] as number[])
 
-  // Initialize the table with an empty collection of components for each
-  // component type.
-  for (let i = 0; i < len; i++) {
-    table[i] = []
-  }
+  return { entities, indices, layout, layoutInverse, table }
+}
+
+/**
+ * Create an Archetype.
+ *
+ * @param layout Array of component types that make up the archetype
+ * @param table  Initial component data
+ */
+export function createArchetype(options: ArchetypeOptions): Archetype {
+  const {
+    layout,
+    layoutInverse,
+    entities,
+    indices,
+    table,
+  } = createArchetypeState(options)
 
   function insert(entity: number, components: Component[]) {
     for (let i = 0; i < components.length; i++) {
@@ -102,7 +128,7 @@ export function createArchetype(layout: number[]): Archetype {
     const index = indices[entity]
     const head = entities.pop()
 
-    indices[entity] = -1
+    delete indices[entity]
 
     if (index === length - 1) {
       for (const column of table) column.pop()
