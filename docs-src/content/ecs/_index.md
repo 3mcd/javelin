@@ -23,10 +23,13 @@ class Body {
 }
 
 class Player {
-  body: Body
-  input: Input
+  private body: Body
+  private input: Input
 
-  constructor(public body: Body, public input: Input) {}
+  constructor(body: Body, input: Input) {
+    this.body = body
+    this.input = input
+  }
 
   jump() {
     this.body.velocity[1] += 1
@@ -51,11 +54,13 @@ When the player presses the spacebar on their keyboard, `player.jump()` is calle
 What if a player wants to spectate our game instead of controlling a character? In that scenario, it would be unnecessary for `Player` to care about `Body`, and we'd need to write code that makes `Body` an optional dependency of `Player`, e.g.
 
 ```ts
-  body?: Body
+class Player {
+  private body?: Body
   ...
   jump() {
     this.body?.velocity[1] += 1
   }
+}
 ```
 
 If there are many states/dependencies a player can have (e.g. spectating, driving a vehicle, etc.), our `Player` class might explode with complexity. Going even further, `Player` would need to define all it's possible dependencies in advance, making runtime composition difficult or even impossible.
@@ -63,13 +68,15 @@ If there are many states/dependencies a player can have (e.g. spectating, drivin
 ## Parts of an ECS
 
 Data and behavior are separate concerns in an ECS. High-cohesion game objects are substituted with three distinct concerns: (1) **components** – game data, (2) **entities** – game objects (like a tree, chest, or spawn position), and (3) **systems** – game behavior. As we'll see, this architecture enables runtime composition of behavior that would be tricky to implement in the example above.
+
 ### Components
 
 In an ECS, components are typically plain objects that contain data and no methods. Ideally all game state lives in components.
 
 ```
-Body { velocity: [number, number] }
+Body   { velocity: [number, number] }
 Player { name: string }
+Input  { jump: boolean }
 ```
 
 ### Entities
@@ -90,7 +97,7 @@ This example shows a system which iterates all components that have a `Player`, 
 
 Spectators can now be represented with a `(Player, Input)` entity. Even though they aren't controlling a physics body yet, the `Input` component might allow them to move the game camera around. If the player chooses to enter the fray, we can insert a `Body` component into their entity, allowing them to control an actor in the scene.
 
-```
+```ts
 add(entity, Body)
 ```
 
