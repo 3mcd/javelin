@@ -1,4 +1,4 @@
-import { View } from "./views"
+import { uint16, View } from "./views"
 
 export type Field<T = unknown> = {
   __field: true
@@ -7,7 +7,7 @@ export type Field<T = unknown> = {
   length?: number
 }
 
-export type Schema = { [key: string]: Field | Schema }
+export type Schema = { [key: string]: Field | Schema } | Array<Field | Schema>
 
 export type SchemaInstance<S extends Schema> = {
   [K in keyof S]: S[K] extends Field<infer T> ? T : never
@@ -42,12 +42,46 @@ export function flatten<S extends Schema>(
       })
       offset += byteLength
     } else {
-      offset = flatten(
-        out,
-        field as Schema,
-        value as SchemaInstance<Schema>,
-        offset,
-      )
+      if (Array.isArray(field)) {
+        const f = field[0]
+
+        // console.log(prop, value, field)
+
+        out.push({
+          type: uint16,
+          value: (value as Array<unknown>).length,
+          byteLength: uint16.byteLength,
+        })
+
+        offset += uint16.byteLength
+
+        if ("byteLength" in f) {
+          const byteLength = f.type.byteLength * (f.length || 1)
+          // view (leaf)
+          for (let i = 0; i < (value as Array<unknown>).length; i++) {
+            const x = (value as Array<unknown>)[i]
+            out.push({
+              type: f.type,
+              value: typeof x === "string" ? x.slice(0, f.length) : x,
+              byteLength,
+            })
+            offset += byteLength
+          }
+        } else {
+          // schema
+          for (let i = 0; i < (value as Array<unknown>).length; i++) {
+            offset = flatten(out, f as Schema, (value as any)[i], offset)
+          }
+        }
+      } else {
+        // schema
+        offset = flatten(
+          out,
+          (field as any) as Schema,
+          value as SchemaInstance<Schema>,
+          offset,
+        )
+      }
     }
   }
 
@@ -92,9 +126,33 @@ export function deserialize<S extends Schema>(buffer: ArrayBuffer, schema: S) {
         ) as any
         offset += field.type.byteLength * (field.length || 1)
       } else {
-        const map = {} as any
-        out[prop] = map
-        inner(map, field as any)
+        if (Array.isArray(field)) {
+          const f = field[0]
+          const length = uint16.read(bufferView, offset, 0)
+          const arr = new Array(length) as any
+
+          out[prop] = arr
+          offset += uint16.byteLength
+
+          if ("byteLength" in f) {
+            // view (leaf)
+            for (let i = 0; i < length; i++) {
+              arr[i] = f.type.read(bufferView, offset, f.length || 0) as any
+              offset += f.type.byteLength * (f.length || 1)
+            }
+          } else {
+            // schema
+            for (let i = 0; i < length; i++) {
+              const map = {} as any
+              arr[i] = map
+              inner(map, f)
+            }
+          }
+        } else {
+          const map = {} as any
+          out[prop] = map
+          inner(map, field as any)
+        }
       }
     }
   }

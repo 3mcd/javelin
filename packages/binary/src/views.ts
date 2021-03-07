@@ -1,7 +1,7 @@
 export type View<T> = {
   name: string
   byteLength: number
-  read(view: DataView, offset: number, length: number): unknown
+  read(view: DataView, offset: number, length: number): T
   write(view: DataView, bytes: number, data: T): void
 }
 

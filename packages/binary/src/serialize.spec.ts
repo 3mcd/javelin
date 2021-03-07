@@ -1,5 +1,5 @@
 import { deserialize, serialize, Schema, flatten } from "."
-import { boolean, int8, string, uint16 } from "./views"
+import { boolean, int8, string, string8, uint16 } from "./views"
 
 describe("binary", () => {
   it("serializes and deserializes", () => {
@@ -32,12 +32,54 @@ describe("binary", () => {
       yeet: { t: 1, yolo: { swag: 999 } },
     }
 
-    console.log(deserialize(serialize(object as any, schema), schema))
-    expect(true).toBe(true)
-    // const result = deserialize(serialize(object as any, schema)[0], schema)
+    const result = deserialize(serialize(object as any, schema), schema)
 
-    // expect(result[0]).toEqual(object)
+    expect(result).toEqual(object)
   })
 
-  it("flatten", () => {})
+  it("arrays", () => {
+    const schema = {
+      items: [
+        {
+          name: {
+            __field: true as const,
+            type: string8,
+            defaultValue: "",
+            length: 25,
+          },
+          weight: {
+            __field: true as const,
+            type: uint16,
+            defaultValue: 0,
+          },
+          attributes: {
+            damage: {
+              __field: true as const,
+              type: uint16,
+              defaultValue: 0,
+            },
+          },
+        },
+      ],
+    }
+
+    console.log(
+      deserialize(
+        serialize(
+          {
+            items: [
+              // @ts-ignore
+              { name: "sword", weight: 5, attributes: { damage: 12 } },
+              // @ts-ignore
+              { name: "shield", weight: 10, attributes: { damage: 2 } },
+            ],
+          },
+          schema,
+        ),
+        schema,
+      ),
+    )
+
+    expect(true).toBe(true)
+  })
 })
