@@ -1,8 +1,8 @@
-import { deserialize, serialize, field } from "."
+import { decode, encode, field } from "."
 import { boolean, int8, string, string8, uint16, uint8 } from "./views"
 
 describe("pack", () => {
-  it("serializes and deserializes nested schema", () => {
+  it("encodes and decodes nested schema", () => {
     const schema = {
       x: field(int8),
       y: field(int8),
@@ -23,7 +23,7 @@ describe("pack", () => {
       a: { b: 1, c: { d: 999 } },
     }
 
-    const result = deserialize(serialize(object as any, schema), schema)
+    const result = decode(encode(object as any, schema), schema)
 
     expect(result).toEqual(object)
   })
@@ -49,7 +49,7 @@ describe("pack", () => {
       ],
     }
 
-    const result = deserialize(serialize(object as any, schema), schema)
+    const result = decode(encode(object as any, schema), schema)
 
     expect(object).toEqual(result)
   })

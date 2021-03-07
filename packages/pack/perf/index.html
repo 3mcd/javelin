@@ -16,10 +16,10 @@
         bar: ["a", "b", "c"],
       }
 
-      const serialized = JavelinPack.serialize(object, schema)
-      const deserialized = JavelinPack.deserialize(serialized, schema)
+      const encoded = JavelinPack.encode(object, schema)
+      const decoded = JavelinPack.decode(encoded, schema)
 
-      console.log(serialized.byteLength, deserialized)
+      console.log(encoded.byteLength, decoded)
     </script>
   </body>
 </html>

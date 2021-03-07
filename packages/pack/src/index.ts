@@ -34,67 +34,57 @@ type BufferField<T = unknown> = {
   byteLength: number
 }
 
-export function flatten<S extends Schema>(
+function pushBufferField<T>(out: BufferField[], field: Field<T>, value: T) {
+  const byteLength = field.type.byteLength * (field.length || 1)
+
+  out.push({
+    type: field.type,
+    value: typeof value === "string" ? value.slice(0, field.length) : value,
+    byteLength,
+  })
+
+  return byteLength
+}
+
+function pushArrayLengthField(out: BufferField[], length: number) {
+  out.push({
+    type: uint32,
+    value: length,
+    byteLength: uint32.byteLength,
+  })
+
+  return uint32.byteLength
+}
+
+export function serialize<S extends Schema>(
   out: BufferField[],
   schema: S,
   data: SchemaInstance<S>,
   offset = 0,
 ) {
   if (Array.isArray(schema)) {
-    const fieldOrSchema = schema[0]
+    const field = schema[0] as Field | Schema
 
-    out.push({
-      type: uint32,
-      value: ((data as unknown) as Array<unknown>).length,
-      byteLength: uint32.byteLength,
-    })
+    offset += pushArrayLengthField(out, (data as any).length)
 
-    offset += uint32.byteLength
-
-    if (isField(fieldOrSchema)) {
-      const byteLength =
-        fieldOrSchema.type.byteLength * (fieldOrSchema.length || 1)
-      for (let i = 0; i < ((data as unknown) as Array<unknown>).length; i++) {
-        const value = ((data as unknown) as Array<unknown>)[i]
-        out.push({
-          type: fieldOrSchema.type,
-          value:
-            typeof value === "string"
-              ? value.slice(0, fieldOrSchema.length)
-              : value,
-          byteLength,
-        })
-        offset += byteLength
+    if (isField(field)) {
+      for (let i = 0; i < data.length; i++) {
+        offset += pushBufferField(out, field, (data as any)[i])
       }
     } else {
-      for (let i = 0; i < ((data as unknown) as Array<unknown>).length; i++) {
-        offset = flatten(out, fieldOrSchema as Schema, (data as any)[i], offset)
+      for (let i = 0; i < data.length; i++) {
+        offset = serialize(out, field, (data as any)[i], offset)
       }
     }
   } else {
     for (const prop in schema) {
-      const fieldOrSchema = schema[prop]
+      const field = schema[prop]
       const value = data[prop]
 
-      if (isField(fieldOrSchema)) {
-        const byteLength =
-          fieldOrSchema.type.byteLength * (fieldOrSchema.length || 1)
-        out.push({
-          type: fieldOrSchema.type,
-          value:
-            typeof value === "string"
-              ? value.slice(0, fieldOrSchema.length)
-              : value,
-          byteLength,
-        })
-        offset += byteLength
+      if (isField(field)) {
+        offset += pushBufferField(out, field, value)
       } else {
-        offset = flatten(
-          out,
-          (fieldOrSchema as unknown) as Schema,
-          value as SchemaInstance<Schema>,
-          offset,
-        )
+        offset = serialize(out, field as any, value as any, offset)
       }
     }
   }
@@ -102,12 +92,12 @@ export function flatten<S extends Schema>(
   return offset
 }
 
-export function serialize<S extends Schema>(
+export function encode<S extends Schema>(
   object: SchemaInstance<S>,
   schema: S,
 ): ArrayBuffer {
   const bufferFields: BufferField[] = []
-  const bufferSize = flatten(bufferFields, schema, object)
+  const bufferSize = serialize(bufferFields, schema, object)
   const buffer = new ArrayBuffer(bufferSize)
   const bufferView = new DataView(buffer)
 
@@ -122,7 +112,18 @@ export function serialize<S extends Schema>(
   return buffer
 }
 
-export function deserialize<S extends Schema>(buffer: ArrayBuffer, schema: S) {
+export function decodeProperty(
+  out: any,
+  key: string | number,
+  field: Field,
+  bufferView: DataView,
+  offset: number,
+) {
+  out[key] = field.type.read(bufferView, offset, field.length || 0)
+  return field.type.byteLength * (field.length || 1)
+}
+
+export function decode<S extends Schema>(buffer: ArrayBuffer, schema: S) {
   const bufferView = new DataView(buffer)
 
   let offset = 0
@@ -131,42 +132,32 @@ export function deserialize<S extends Schema>(buffer: ArrayBuffer, schema: S) {
     let result: any
 
     if (Array.isArray(schema)) {
-      const fieldOrSchema = schema[0]
+      const field = schema[0]
       const length = uint32.read(bufferView, offset, 0)
 
       offset += uint32.byteLength
 
       result = []
 
-      if (isField(fieldOrSchema)) {
+      if (isField(field)) {
         for (let i = 0; i < length; i++) {
-          result[i] = fieldOrSchema.type.read(
-            bufferView,
-            offset,
-            fieldOrSchema.length || 0,
-          )
-          offset += fieldOrSchema.type.byteLength * (fieldOrSchema.length || 1)
+          offset += decodeProperty(result, i, field, bufferView, offset)
         }
       } else {
         for (let i = 0; i < length; i++) {
-          result[i] = build(fieldOrSchema)
+          result[i] = build(field)
         }
       }
     } else {
       result = {}
 
       for (const prop in schema) {
-        const fieldOrSchema = schema[prop]
+        const field = schema[prop]
 
-        if (isField(fieldOrSchema)) {
-          result[prop] = fieldOrSchema.type.read(
-            bufferView,
-            offset,
-            fieldOrSchema.length || 0,
-          )
-          offset += fieldOrSchema.type.byteLength * (fieldOrSchema.length || 1)
+        if (isField(field)) {
+          offset += decodeProperty(result, prop, field, bufferView, offset)
         } else {
-          result[prop] = build(fieldOrSchema)
+          result[prop] = build(field)
         }
       }
     }

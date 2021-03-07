@@ -1,5 +1,5 @@
-const { serialize, deserialize, uint8, string8, field } = require("../dist/cjs")
-const { encode, decode } = require("@msgpack/msgpack")
+const { encode, decode, uint8, string8, field } = require("../dist/cjs")
+const msgpack = require("@msgpack/msgpack")
 const { performance } = require("perf_hooks")
 const player = {
   name: "Geralt",
@@ -51,64 +51,70 @@ const COUNT = 1000000
 
 // @javelin/pack
 
-const javelinPackSerialized = serialize(player, schema)
+const javelinPackEncoded = encode(player, schema)
 
-const javelinPackSerializeStart = performance.now()
+const javelinPackEncodeStart = performance.now()
 for (let i = 0; i < COUNT; i++) {
-  serialize(player, schema)
+  encode(player, schema)
 }
-const javelinPackSerializeTime = performance.now() - javelinPackSerializeStart
+const javelinPackEncodeTime = performance.now() - javelinPackEncodeStart
 
 const javelinPackDeserializeStart = performance.now()
 for (let i = 0; i < COUNT; i++) {
-  deserialize(javelinPackSerialized, schema)
+  decode(javelinPackEncoded, schema)
 }
 const javelinPackDeserializeTime =
   performance.now() - javelinPackDeserializeStart
 
 // @msgpack/msgpack
 
-const msgpackSerialized = encode(player)
+const msgpackEncoded = msgpack.encode(player)
 
-const msgpackSerializeStart = performance.now()
+const msgpackEncodeStart = performance.now()
 for (let i = 0; i < COUNT; i++) {
-  encode(player)
+  msgpack.encode(player)
 }
-const msgpackSerializeTime = performance.now() - msgpackSerializeStart
+const msgpackEncodeTime = performance.now() - msgpackEncodeStart
 
 const msgpackDeserializeStart = performance.now()
 for (let i = 0; i < COUNT; i++) {
-  decode(msgpackSerialized)
+  msgpack.decode(msgpackEncoded)
 }
 const msgpackDeserializeTime = performance.now() - msgpackDeserializeStart
 
 // JSON
 
-const jsonSerialized = JSON.stringify(player)
+const jsonEncoded = JSON.stringify(player)
 
-const jsonSerializeStart = performance.now()
+const jsonEncodeStart = performance.now()
 for (let i = 0; i < COUNT; i++) {
   JSON.stringify(player)
 }
-const jsonSerializeTime = performance.now() - jsonSerializeStart
+const jsonEncodeTime = performance.now() - jsonEncodeStart
 
 const jsonDeserializeStart = performance.now()
 for (let i = 0; i < COUNT; i++) {
-  JSON.parse(jsonSerialized)
+  JSON.parse(jsonEncoded)
 }
 const jsonDeserializeTime = performance.now() - jsonDeserializeStart
 
-console.log("serialize @60hz (bigger is better)")
-console.log("pack   ", 1000 / 60 / (javelinPackSerializeTime / COUNT))
-console.log("msgpack", 1000 / 60 / (msgpackSerializeTime / COUNT))
-console.log("json   ", 1000 / 60 / (jsonSerializeTime / COUNT))
+const tick = 1000 / 60
 
-console.log("deserialize @60hz (bigger is better)")
-console.log("pack   ", 1000 / 60 / (javelinPackDeserializeTime / COUNT))
-console.log("msgpack", 1000 / 60 / (msgpackDeserializeTime / COUNT))
-console.log("json   ", 1000 / 60 / (jsonDeserializeTime / COUNT))
+console.log("encode @60hz (bigger is better)")
+console.log("pack   ", tick / (javelinPackEncodeTime / COUNT))
+console.log("msgpack", tick / (msgpackEncodeTime / COUNT))
+console.log("json   ", tick / (jsonEncodeTime / COUNT))
+
+console.log("")
+
+console.log("decode @60hz (bigger is better)")
+console.log("pack   ", tick / (javelinPackDeserializeTime / COUNT))
+console.log("msgpack", tick / (msgpackDeserializeTime / COUNT))
+console.log("json   ", tick / (jsonDeserializeTime / COUNT))
+
+console.log("")
 
 console.log("size (smaller is better)")
-console.log("pack   ", javelinPackSerialized.byteLength)
-console.log("msgpack", encode(player).byteLength)
-console.log("json   ", Buffer.byteLength(jsonSerialized, "utf8"))
+console.log("pack   ", javelinPackEncoded.byteLength)
+console.log("msgpack", msgpackEncoded.byteLength)
+console.log("json   ", Buffer.byteLength(jsonEncoded, "utf8"))

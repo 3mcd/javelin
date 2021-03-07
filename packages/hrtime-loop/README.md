@@ -27,3 +27,15 @@ loop.start()
 // Stop the loop
 loop.stop()
 ```
+
+## Performance
+
+`yarn perf` will run performance tests. Example `perf` output:
+
+```
+tick_interval | 16.666666666666668
+ticks         | 1000
+avg_tick      | 16.70963940498233
+accuracy      | 99.743%
+precision     | 100.000%
+```
