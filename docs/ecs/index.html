@@ -193,10 +193,13 @@
 }
 
 </span><span style="color:#388282;">class </span><span style="color:#555c64;">Player {
-  body</span><span style="color:#388282;">: </span><span style="color:#555c64;">Body
-  input</span><span style="color:#388282;">: </span><span style="color:#555c64;">Input
+  </span><span style="color:#388282;">private </span><span style="color:#555c64;">body</span><span style="color:#388282;">: </span><span style="color:#555c64;">Body
+  </span><span style="color:#388282;">private </span><span style="color:#555c64;">input</span><span style="color:#388282;">: </span><span style="color:#555c64;">Input
 
-  </span><span style="color:#388282;">constructor</span><span style="color:#555c64;">(</span><span style="color:#388282;">public </span><span style="color:#8a6c3c;">body</span><span style="color:#388282;">: </span><span style="color:#555c64;">Body, </span><span style="color:#388282;">public </span><span style="color:#8a6c3c;">input</span><span style="color:#388282;">: </span><span style="color:#555c64;">Input) {}
+  </span><span style="color:#388282;">constructor</span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">body</span><span style="color:#388282;">: </span><span style="color:#555c64;">Body, </span><span style="color:#8a6c3c;">input</span><span style="color:#388282;">: </span><span style="color:#555c64;">Input) {
+    this.body </span><span style="color:#388282;">= </span><span style="color:#555c64;">body
+    this.input </span><span style="color:#388282;">= </span><span style="color:#555c64;">input
+  }
 
   jump() {
     this.body.velocity[</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">] </span><span style="color:#388282;">+= </span><span style="color:#4179ad;">1
@@ -218,11 +221,13 @@ setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="col
 <p>When the player presses the spacebar on their keyboard, <code>player.jump()</code> is called, and the physics body jumps! Easy enough.</p>
 <p>What if a player wants to spectate our game instead of controlling a character? In that scenario, it would be unnecessary for <code>Player</code> to care about <code>Body</code>, and we'd need to write code that makes <code>Body</code> an optional dependency of <code>Player</code>, e.g.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">  body</span><span style="color:#388282;">?: </span><span style="color:#555c64;">Body
-  </span><span style="color:#388282;">...
-  </span><span style="color:#555c64;">jump() {
+<code><span style="color:#388282;">class </span><span style="color:#555c64;">Player {
+  </span><span style="color:#388282;">private </span><span style="color:#555c64;">body</span><span style="color:#388282;">?: </span><span style="color:#555c64;">Body
+  ...
+  jump() {
     this.body?.velocity[</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">] </span><span style="color:#388282;">+= </span><span style="color:#4179ad;">1
   </span><span style="color:#555c64;">}
+}
 </span></code></pre>
 <p>If there are many states/dependencies a player can have (e.g. spectating, driving a vehicle, etc.), our <code>Player</code> class might explode with complexity. Going even further, <code>Player</code> would need to define all it's possible dependencies in advance, making runtime composition difficult or even impossible.</p>
 <h2 id="parts-of-an-ecs">Parts of an ECS<a class="zola-anchor" href="#parts-of-an-ecs" aria-label="Anchor link for: parts-of-an-ecs"
@@ -236,8 +241,9 @@ setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="col
 </h3>
 <p>In an ECS, components are typically plain objects that contain data and no methods. Ideally all game state lives in components.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">Body { velocity: [number, number] }
+<code><span style="color:#555c64;">Body   { velocity: [number, number] }
 Player { name: string }
+Input  { jump: boolean }
 </span></code></pre><h3 id="entities">Entities<a class="zola-anchor" href="#entities" aria-label="Anchor link for: entities"
   >#</a
 >

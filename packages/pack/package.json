@@ -1,0 +1,29 @@
+{
+  "name": "@javelin/pack",
+  "version": "0.20.0",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "browser": "dist/javelin-pack.bundle.js",
+  "license": "MIT",
+  "scripts": {
+    "perf": "yarn build && node perf/index.js",
+    "build": "tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
+    "prepare": "yarn build"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "serialize",
+    "binary",
+    "udp",
+    "game",
+    "mog",
+    "multiplayer",
+    "networking"
+  ],
+  "gitHead": "3b33227c22aebf8c4880f6456de1b51c34e9c9b9",
+  "devDependencies": {
+    "@msgpack/msgpack": "^2.4.1"
+  }
+}
