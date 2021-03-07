@@ -1,7 +1,7 @@
 import { deserialize, serialize, field } from "."
 import { boolean, int8, string, string8, uint16, uint8 } from "./views"
 
-describe("binary", () => {
+describe("pack", () => {
   it("serializes and deserializes nested schema", () => {
     const schema = {
       x: field(int8),
