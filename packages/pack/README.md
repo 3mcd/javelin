@@ -1,4 +1,4 @@
-# `@javelin/binary`
+# `@javelin/pack`
 
 This algorithm has been written a million times. So why maintain our own?
 
