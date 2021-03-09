@@ -58,8 +58,8 @@ export const int32 = view(
 export const float32 = view(
   "float32",
   4,
-  (view, offset) => view.getFloat64(offset),
-  (view, offset, data: number) => view.setFloat64(offset, data),
+  (view, offset) => view.getFloat32(offset),
+  (view, offset, data: number) => view.setFloat32(offset, data),
 )
 export const float64 = view(
   "float64",
