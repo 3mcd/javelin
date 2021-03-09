@@ -1,142 +1,175 @@
-const { field, int8 } = require("@javelin/pack")
+const { field, int8, float32 } = require("@javelin/pack")
+const { encode, decode } = require("@msgpack/msgpack")
 const { performance } = require("perf_hooks")
 const { MessageBuilder, decodeMessage } = require("../dist/protocol_v2")
 
-const schemaComponentBase = { _tid: field(int8), _cst: field(int8) }
-const schemaA = { ...schemaComponentBase }
-const schemaB = { ...schemaComponentBase }
-const schemaC = { ...schemaComponentBase }
+const schemaComponentBase = {
+  _tid: field(int8),
+}
+const schemaPosition = {
+  ...schemaComponentBase,
+  x: field(float32),
+  y: field(float32),
+  z: field(float32),
+}
+const schemaVelocity = {
+  ...schemaComponentBase,
+  x: field(float32),
+  y: field(float32),
+  z: field(float32),
+  avx: field(float32),
+  avy: field(float32),
+  avz: field(float32),
+}
+const schemaQuaternion = {
+  ...schemaComponentBase,
+  x: field(float32),
+  y: field(float32),
+  z: field(float32),
+  w: field(float32),
+}
+const a = Math.pow(2, 53)
 
-const model = new Map([
-  [1, schemaA],
-  [2, schemaB],
-  [3, schemaC],
+const position = () => ({ _tid: 1, x: a, y: a, z: a })
+const velocity = () => ({ _tid: 2, x: a, y: a, z: a, avx: a, avy: a, avz: a })
+const quaternion = () => ({ _tid: 3, x: a, y: a, z: a, w: a })
+
+const schemas = new Map([
+  [1, schemaPosition],
+  [2, schemaVelocity],
+  [3, schemaQuaternion],
 ])
 
-function createMessage() {
-  const builder = new MessageBuilder(model)
-
-  builder.setTick(123)
+function createMessageBuilder() {
+  const messageBuilder = new MessageBuilder(schemas)
+  messageBuilder.setTick(123)
 
   // 100 spawned entities
   for (let i = 0; i < 100; i++) {
-    builder.spawn(i, [
-      { _tid: 1, _cst: 2 },
-      { _tid: 2, _cst: 2 },
-      { _tid: 3, _cst: 2 },
-    ])
+    messageBuilder.spawn(i, [position(), velocity(), quaternion()])
   }
 
   // 75 attached components
   for (let i = 0; i < 25; i++) {
-    builder.attach(i, [
-      { _tid: 1, _cst: 2 },
-      { _tid: 2, _cst: 2 },
-      { _tid: 3, _cst: 2 },
-    ])
+    messageBuilder.attach(i, [position(), velocity(), quaternion()])
+  }
+
+  // 300 changed entities
+  for (let i = 0; i < 100; i++) {
+    messageBuilder.update(i, [position(), velocity(), quaternion()])
   }
 
   // 75 detached components
   for (let i = 0; i < 25; i++) {
-    builder.detach(i, [1, 2, 3])
+    messageBuilder.detach(i, [1, 2, 3])
   }
 
   // 100 destroyed entities
   for (let i = 0; i < 100; i++) {
-    builder.destroy(i)
+    messageBuilder.destroy(i)
   }
 
-  return builder.encode()
+  return messageBuilder
 }
 
 function createMessageJson() {
-  const json = [1, [], [], [], []]
+  const json = [1, {}, [], [], [], [], []]
 
   for (let i = 0; i < 100; i++) {
-    json[1].push(
-      i,
-      { _tid: 1, _cst: 2 },
-      { _tid: 2, _cst: 2 },
-      { _tid: 3, _cst: 2 },
-    )
+    json[2].push(i, position(), velocity(), quaternion())
   }
 
-  for (let i = 0; i < 75; i++) {
-    json[2].push(
-      i,
-      { _tid: 1, _cst: 2 },
-      { _tid: 2, _cst: 2 },
-      { _tid: 3, _cst: 2 },
-    )
-  }
-
-  for (let i = 0; i < 75; i++) {
-    json[3].push(i, 1, 2, 3)
+  for (let i = 0; i < 25; i++) {
+    json[3].push(i, position(), velocity(), quaternion())
   }
 
   for (let i = 0; i < 100; i++) {
-    json[4].push(i)
+    json[4].push(i, position(), velocity(), quaternion())
+  }
+
+  for (let i = 0; i < 25; i++) {
+    json[5].push(i, 1, 2, 3)
+  }
+
+  for (let i = 0; i < 100; i++) {
+    json[6].push(i)
   }
 
   return json
 }
 
-const encodeStart = performance.now()
+const messageBuilder = createMessageBuilder()
+const messageJson = createMessageJson()
 
-for (let i = 0; i < 1000; i++) {
-  createMessage()
+const messageBuilderEncoded = createMessageBuilder().encode()
+const messageMsgpackEncoded = encode(messageJson)
+const messageJsonEncoded = JSON.stringify(messageJson)
+
+const run = (task, n = 1000) => {
+  const start = performance.now()
+  for (let i = 0; i < n; i++) {
+    task()
+  }
+  return performance.now() - start
 }
 
-const encodeTime = performance.now() - encodeStart
+/*
+ * @javelin/protocol
+ */
 
-const encoded = createMessage()
-
-const decodeStart = performance.now()
-
-for (let i = 0; i < 1000; i++) {
-  decodeMessage(
-    encoded,
-    model,
-    () => {},
-    () => {},
-    () => {},
-    () => {},
-    () => {},
-  )
+const encodeTime = run(() => {
+  messageBuilder.encode()
+})
+const handlers = {
+  onTick: () => {},
+  onModel: () => {},
+  onCreate: () => {},
+  onAttach: () => {},
+  onUpdate: () => {},
+  onDetach: () => {},
+  onDestroy: () => {},
 }
+const decodeTime = run(() => {
+  decodeMessage(messageBuilderEncoded, schemas, handlers)
+})
 
-const decodeTime = performance.now() - decodeStart
+/*
+ * @msgpack/msgpack
+ */
 
-const jsonEncodeStart = performance.now()
+const msgpackEncodeTime = run(() => {
+  encode(messageJson)
+})
+const msgpackDecodeTime = run(() => {
+  decode(messageMsgpackEncoded)
+})
 
-for (let i = 0; i < 1000; i++) {
-  JSON.stringify(createMessageJson())
-}
+/*
+ * JSON
+ */
 
-const jsonEncodeTime = performance.now() - jsonEncodeStart
-
-const jsonEncoded = JSON.stringify(createMessageJson())
-
-const jsonDecodeStart = performance.now()
-
-for (let i = 0; i < 1000; i++) {
-  JSON.parse(jsonEncoded)
-}
-
-const jsonDecodeTime = performance.now() - jsonDecodeStart
+const jsonEncodeTime = run(() => {
+  JSON.stringify(messageJson)
+})
+const jsonDecodeTime = run(() => {
+  JSON.parse(messageJsonEncoded)
+})
 
 console.log("S=100, A=75, D=75, X=100")
 
 console.log("encode (smaller is better)")
 console.log("protocol", encodeTime / 1000)
+console.log("msgpack", msgpackEncodeTime / 1000)
 console.log("json", jsonEncodeTime / 1000)
 console.log("")
 
 console.log("decode (smaller is better)")
 console.log("protocol", decodeTime / 1000)
+console.log("msgpack", msgpackDecodeTime / 1000)
 console.log("json", jsonDecodeTime / 1000)
 console.log("")
 
 console.log("size (smaller is better)")
-console.log("protocol", encoded.byteLength)
-console.log("json", Buffer.byteLength(jsonEncoded, "utf-8"))
+console.log("protocol", messageBuilderEncoded.byteLength)
+console.log("msgpack", messageMsgpackEncoded.byteLength)
+console.log("json", Buffer.byteLength(messageJsonEncoded, "utf-8"))

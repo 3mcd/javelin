@@ -1,9 +1,5 @@
-import {
-  attached,
-  Component,
-  ComponentType,
-  SerializedComponentType,
-} from "@javelin/ecs"
+import { Component, mutableEmpty, SerializedComponentType } from "@javelin/ecs"
+import { Entity } from "@javelin/ecs/dist/cjs/entity"
 import {
   decode,
   encode,
@@ -14,54 +10,45 @@ import {
   uint8,
   View,
 } from "@javelin/pack"
-import { Model } from "./protocol"
 
 export interface NetProtocol {
-  updateModel(model: SerializedComponentType[]): void
+  updateModel(model: Model): void
 }
 
+type Model = SerializedComponentType[]
 type ComponentTypeSchemaMap = { [componentTypeId: number]: Schema }
 
-// Javelin has three message types, each sent to clients by an authoritative server:
-//   Model
-//   State
-//   StateUnreliable
-
-// Model is the first message sent by a MessageProducer to a remote client.
-// This message informs the client of the server-side ComponentType schema so
-// the client is able to decode components in State and StateUnreliable
-// messages.
-
-// State is where the magic happens. This message contains all state changes
-// that each client should be informed of. Unless you implement acknowledgement
-// and retries yourself, State should be sent reliably since it contains newly
-// added/removed resources that will not be sent again.
-//
 // A single State message consists of several parts:
 //   (T) current server tick
+//   (M) model
 //   (S) spawned entities and their components
 //   (A) attached components
+//   (U) updated components
 //   (D) detached components
 //   (X) destroyed entities
 //
 // The message layout looks like:
-//   [T, S[], A[], D[], X[]]
-
-// StateUnreliable is a slimmed down version of State which does not include
-// added/removed resources, only component changes. Should be sent unreliably.
+//   [T, M, S[], A[], U[], D[], X[]]
 
 function buildComponentTypeSchemaMapFromModel(
-  model: SerializedComponentType[],
+  model: Model,
 ): ComponentTypeSchemaMap {
   return model.reduce((a, serializedComponentType) => {
     return a
   }, {} as ComponentTypeSchemaMap)
 }
 
-type Attach = (number | ArrayBuffer)[]
+type EntityComponentsPair = (number | ArrayBuffer)[]
 type Detach = number[]
 type Destroy = number[]
 
+/**
+ * MessagePart encodes a repeating part of a message. It exposes methods for
+ * inserting values and writing them to an ArrayBuffer at a specific offset.
+ * It accumulates the total byte length of the part as data is inserted, and
+ * prepends the final length as a 32-bit integer at the start of the message
+ * frame.
+ */
 export class MessagePart<
   P extends unknown[],
   V extends P extends Array<infer _> ? _ : never = P extends Array<infer _>
@@ -76,15 +63,14 @@ export class MessagePart<
     return this._byteLength
   }
 
-  insert(data: V | ArrayBuffer, view?: View<V>): void {
-    const index = this.data.push(data) - 1
+  insert(data: V, view: View<V>): void {
+    this.views[this.data.push(data) - 1] = view
+    this._byteLength += view.byteLength
+  }
 
-    if (view === undefined) {
-      this._byteLength += (data as ArrayBuffer).byteLength
-    } else {
-      this._byteLength += view.byteLength
-      this.views[index] = view
-    }
+  insertBuffer(data: ArrayBuffer) {
+    this.data.push(data)
+    this._byteLength += data.byteLength
   }
 
   write(buffer: ArrayBuffer, bufferView: DataView, offset: number) {
@@ -109,21 +95,29 @@ export class MessagePart<
 
     return offset
   }
+
+  reset() {
+    this._byteLength = uint32.byteLength
+    mutableEmpty(this.views)
+    mutableEmpty(this.data)
+  }
 }
 
 export class MessageBuilder {
   private tick = 0
   private parts = [
-    new MessagePart<Attach>(),
-    new MessagePart<Attach>(),
+    new MessagePart<Model>(),
+    new MessagePart<EntityComponentsPair>(), // spawn
+    new MessagePart<EntityComponentsPair>(), // attach
+    new MessagePart<EntityComponentsPair>(), // update
     new MessagePart<Detach>(),
     new MessagePart<Destroy>(),
   ] as const
 
-  constructor(private model: Map<number, Schema>) {}
+  constructor(private schemas: Map<number, Schema>) {}
 
   private encodeComponent(component: Component): ArrayBuffer {
-    const componentSchema = this.model.get(component._tid)
+    const componentSchema = this.schemas.get(component._tid)
 
     if (!componentSchema) {
       throw new Error("Failed to encode component: type not found in model")
@@ -132,21 +126,25 @@ export class MessageBuilder {
     return encode(component as any, componentSchema)
   }
 
-  private _attach(entity: number, components: Component[], create = false) {
-    const target = this.parts[create ? 0 : 1]
+  private _attach(
+    entity: Entity,
+    components: Component[],
+    target: MessagePart<EntityComponentsPair>,
+  ) {
     // entity
     target.insert(entity, uint32)
     // component length
     target.insert(components.length, uint8)
 
     for (let i = 0; i < components.length; i++) {
-      const componentEncoded = this.encodeComponent(components[i])
+      const component = components[i]
+      const componentEncoded = this.encodeComponent(component)
       // component type id
-      target.insert(components[i]._tid, uint8)
+      target.insert(component._tid, uint8)
       // encoded component length
       target.insert(componentEncoded.byteLength, uint16)
       // encoded component
-      target.insert(componentEncoded)
+      target.insertBuffer(componentEncoded)
     }
   }
 
@@ -154,16 +152,24 @@ export class MessageBuilder {
     this.tick = tick
   }
 
-  spawn(entity: number, components: Component[]) {
-    this._attach(entity, components, true)
+  model(model: Model) {
+    // this.parts[0].insert()
   }
 
-  attach(entity: number, components: Component[]) {
-    this._attach(entity, components)
+  spawn(entity: Entity, components: Component[]) {
+    this._attach(entity, components, this.parts[1])
   }
 
-  detach(entity: number, componentTypeIds: number[]) {
-    const [, , detach] = this.parts
+  attach(entity: Entity, components: Component[]) {
+    this._attach(entity, components, this.parts[2])
+  }
+
+  update(entity: Entity, components: Component[]) {
+    this._attach(entity, components, this.parts[3])
+  }
+
+  detach(entity: Entity, componentTypeIds: number[]) {
+    const detach = this.parts[4]
     detach.insert(entity, uint32)
     detach.insert(componentTypeIds.length, uint8)
     for (let i = 0; i < componentTypeIds.length; i++) {
@@ -171,8 +177,8 @@ export class MessageBuilder {
     }
   }
 
-  destroy(entity: number) {
-    const [, , , destroy] = this.parts
+  destroy(entity: Entity) {
+    const destroy = this.parts[5]
     destroy.insert(entity, uint32)
   }
 
@@ -195,6 +201,27 @@ export class MessageBuilder {
 
     return buffer
   }
+
+  reset() {
+    this.tick = 0
+    for (let i = 0; i < this.parts.length; i++) {
+      this.parts[i].reset()
+    }
+  }
+}
+
+function decodeModel(
+  buffer: ArrayBuffer,
+  bufferView: DataView,
+  offset: number,
+  onModel: (model: Model) => void,
+) {
+  const modelLength = uint32.read(bufferView, offset, 0)
+  const modelEnd = offset + modelLength
+
+  offset += uint32.byteLength
+
+  return offset
 }
 
 function decodeAttach(
@@ -202,7 +229,7 @@ function decodeAttach(
   bufferView: DataView,
   model: Map<number, Schema>,
   offset: number,
-  onAttach: (entity: number, components: Component[]) => void,
+  onAttach: (entity: Entity, components: Component[]) => void,
 ) {
   const attachLength = uint32.read(bufferView, offset, 0)
   const attachEnd = offset + attachLength
@@ -240,7 +267,7 @@ function decodeAttach(
 function decodeDetach(
   bufferView: DataView,
   offset: number,
-  onDetach: (entity: number, componentTypeIds: number[]) => void,
+  onDetach: (entity: Entity, componentTypeIds: number[]) => void,
 ) {
   const detachLength = uint32.read(bufferView, offset, 0)
   const detachEnd = offset + detachLength
@@ -269,7 +296,7 @@ function decodeDetach(
 function decodeDestroy(
   bufferView: DataView,
   offset: number,
-  onDestroy: (entity: number) => void,
+  onDestroy: (entity: Entity) => void,
 ) {
   const destroyLength = uint32.read(bufferView, offset, 0)
   const destroyEnd = offset + destroyLength
@@ -285,15 +312,30 @@ function decodeDestroy(
   return offset
 }
 
+type DecodeMessageHandlers = {
+  onTick: (tick: number) => void
+  onModel: (model: Model) => void
+  onCreate: (entity: Entity, components: Component[]) => void
+  onAttach: (entity: Entity, components: Component[]) => void
+  onUpdate: (entity: Entity, components: Component[]) => void
+  onDetach: (entity: Entity, componentTypeIds: number[]) => void
+  onDestroy: (entity: Entity) => void
+}
+
 export function decodeMessage(
   buffer: ArrayBuffer,
-  model: Map<number, Schema>,
-  onTick: (tick: number) => void,
-  onCreate: (entity: number, components: Component[]) => void,
-  onAttach: (entity: number, components: Component[]) => void,
-  onDetach: (entity: number, componentTypeIds: number[]) => void,
-  onDestroy: (entity: number) => void,
+  schemas: Map<number, Schema>,
+  handlers: DecodeMessageHandlers,
 ) {
+  const {
+    onTick,
+    onModel,
+    onCreate,
+    onAttach,
+    onUpdate,
+    onDetach,
+    onDestroy,
+  } = handlers
   const bufferView = new DataView(buffer)
   const tick = uint32.read(bufferView, 0, 0)
 
@@ -301,8 +343,10 @@ export function decodeMessage(
 
   onTick(tick)
 
-  offset = decodeAttach(buffer, bufferView, model, offset, onCreate)
-  offset = decodeAttach(buffer, bufferView, model, offset, onAttach)
+  offset = decodeModel(buffer, bufferView, offset, onModel)
+  offset = decodeAttach(buffer, bufferView, schemas, offset, onCreate)
+  offset = decodeAttach(buffer, bufferView, schemas, offset, onAttach)
+  offset = decodeAttach(buffer, bufferView, schemas, offset, onUpdate)
   offset = decodeDetach(bufferView, offset, onDetach)
   offset = decodeDestroy(bufferView, offset, onDestroy)
 }
@@ -310,7 +354,7 @@ export function decodeMessage(
 export function createNetProtocol(): NetProtocol {
   let schema: ComponentTypeSchemaMap = {}
 
-  function updateModel(model: SerializedComponentType[]) {
+  function updateModel(model: Model) {
     schema = buildComponentTypeSchemaMapFromModel(model)
   }
 
