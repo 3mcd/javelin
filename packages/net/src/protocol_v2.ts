@@ -48,13 +48,15 @@ type ComponentTypeSchemaMap = { [componentTypeId: number]: Schema }
 //   [T, S[], A[], D[], X[]]
 
 // StateUnreliable is a slimmed down version of State which does not include
-// added/removed resources, only component changes.
+// added/removed resources, only component changes. Should be sent unreliably.
 
-// function buildComponentTypeSchemaMapFromModel(
-//   model: SerializedComponentType[],
-// ): ComponentTypeSchemaMap {
-//   return model.reduce(() => {}, {})
-// }
+function buildComponentTypeSchemaMapFromModel(
+  model: SerializedComponentType[],
+): ComponentTypeSchemaMap {
+  return model.reduce((a, serializedComponentType) => {
+    return a
+  }, {} as ComponentTypeSchemaMap)
+}
 
 type Attach = (number | ArrayBuffer)[]
 type Detach = number[]
@@ -130,7 +132,7 @@ export class MessageBuilder {
     return encode(component as any, componentSchema)
   }
 
-  private attach(entity: number, components: Component[], create = false) {
+  private _attach(entity: number, components: Component[], create = false) {
     const target = this.parts[create ? 0 : 1]
     // entity
     target.insert(entity, uint32)
@@ -152,15 +154,15 @@ export class MessageBuilder {
     this.tick = tick
   }
 
-  insertCreated(entity: number, components: Component[]) {
-    this.attach(entity, components, true)
+  spawn(entity: number, components: Component[]) {
+    this._attach(entity, components, true)
   }
 
-  insertAttached(entity: number, components: Component[]) {
-    this.attach(entity, components)
+  attach(entity: number, components: Component[]) {
+    this._attach(entity, components)
   }
 
-  insertDetached(entity: number, componentTypeIds: number[]) {
+  detach(entity: number, componentTypeIds: number[]) {
     const [, , detach] = this.parts
     detach.insert(entity, uint32)
     detach.insert(componentTypeIds.length, uint8)
@@ -169,7 +171,7 @@ export class MessageBuilder {
     }
   }
 
-  insertDestroyed(entity: number) {
+  destroy(entity: number) {
     const [, , , destroy] = this.parts
     destroy.insert(entity, uint32)
   }
@@ -309,7 +311,7 @@ export function createNetProtocol(): NetProtocol {
   let schema: ComponentTypeSchemaMap = {}
 
   function updateModel(model: SerializedComponentType[]) {
-    // schema = buildComponentTypeSchemaMapFromModel(model)
+    schema = buildComponentTypeSchemaMapFromModel(model)
   }
 
   return {

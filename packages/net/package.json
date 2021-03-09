@@ -10,6 +10,7 @@
     "@javelin/ecs": ">=0.0.1"
   },
   "scripts": {
+    "perf": "yarn build && node perf/index.js",
     "build": "tsc",
     "prepare": "yarn build"
   },

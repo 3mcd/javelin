@@ -9,18 +9,18 @@ const schema = {
   },
 }
 
-describe("protocol_v2", () => {
+describe("protocol", () => {
   it("serializes", () => {
     const model = new Map([[1, schema.componentBase]])
     const messageBuilder = new MessageBuilder(model)
 
     messageBuilder.setTick(999)
-    messageBuilder.insertCreated(1, [{ _tid: 1, _cst: 2 }])
-    messageBuilder.insertCreated(2, [{ _tid: 1, _cst: 2 }])
-    messageBuilder.insertAttached(3, [{ _tid: 1, _cst: 2 }])
-    messageBuilder.insertDetached(4, [1, 2, 3])
-    messageBuilder.insertDestroyed(5)
-    messageBuilder.insertDestroyed(6)
+    messageBuilder.spawn(1, [{ _tid: 1, _cst: 2 }])
+    messageBuilder.spawn(2, [{ _tid: 1, _cst: 2 }])
+    messageBuilder.attach(3, [{ _tid: 1, _cst: 2 }])
+    messageBuilder.detach(4, [1, 2, 3])
+    messageBuilder.destroy(5)
+    messageBuilder.destroy(6)
 
     expect(() => messageBuilder.encode()).not.toThrow()
   })
@@ -46,15 +46,15 @@ describe("protocol_v2", () => {
     expect(tick).toBe(7)
   })
 
-  it("deserializes created", () => {
+  it("deserializes spawned", () => {
     const model = new Map([[1, schema.componentBase]])
     const messageBuilder = new MessageBuilder(model)
-    const inserts: [entity: number, components: Component[]][] = [
+    const spawns: [entity: number, components: Component[]][] = [
       [7, [{ _tid: 1, _cst: 2 }]],
     ]
 
-    for (let i = 0; i < inserts.length; i++) {
-      messageBuilder.insertCreated(...inserts[i])
+    for (let i = 0; i < spawns.length; i++) {
+      messageBuilder.spawn(...spawns[i])
     }
 
     const results: [entity: number, components: Component[]][] = []
@@ -69,7 +69,7 @@ describe("protocol_v2", () => {
       jest.fn(),
     )
 
-    expect(results).toEqual(inserts)
+    expect(results).toEqual(spawns)
   })
 
   it("deserializes attached", () => {
@@ -80,7 +80,7 @@ describe("protocol_v2", () => {
     ]
 
     for (let i = 0; i < attaches.length; i++) {
-      messageBuilder.insertAttached(...attaches[i])
+      messageBuilder.attach(...attaches[i])
     }
 
     const results: [entity: number, components: Component[]][] = []
@@ -106,7 +106,7 @@ describe("protocol_v2", () => {
     ]
 
     for (let i = 0; i < detaches.length; i++) {
-      messageBuilder.insertDetached(...detaches[i])
+      messageBuilder.detach(...detaches[i])
     }
 
     const results: [entity: number, componentTypeIds: number[]][] = []
@@ -130,7 +130,7 @@ describe("protocol_v2", () => {
     const destroys = [2, 7, 12, 100]
 
     for (let i = 0; i < destroys.length; i++) {
-      messageBuilder.insertDestroyed(destroys[i])
+      messageBuilder.destroy(destroys[i])
     }
 
     const results: number[] = []
@@ -148,116 +148,3 @@ describe("protocol_v2", () => {
     expect(results).toEqual(destroys)
   })
 })
-
-// import { Component } from "@javelin/ecs"
-// import {
-//   decode,
-//   encode,
-//   field,
-//   float64,
-//   Schema,
-//   string8,
-//   uint8,
-// } from "@javelin/pack"
-
-// const schema = {
-//   componentBase: {
-//     _tid: field(uint8),
-//     _cst: field(uint8),
-//   },
-// }
-
-// function getSchemaByComponentTypeId(componentTypeId: number): Schema {
-//   return componentTypeId === 0
-//     ? {
-//         ...schema.componentBase,
-//         x: field(float64),
-//         y: field(float64),
-//       }
-//     : {
-//         ...schema.componentBase,
-//         firstName: field(string8, 20),
-//         lastName: field(string8, 20),
-//         nested: {
-//           array: [field(uint8)],
-//         },
-//       }
-// }
-
-// describe("protocol", () => {
-//   it("does it", () => {
-//     const entityComponentsPairs: [entity: number, components: Component[]][] = [
-//       [
-//         0,
-//         [
-//           { _tid: 0, _cst: 2, x: 0, y: 0 },
-//           {
-//             _tid: 1,
-//             _cst: 2,
-//             firstName: "Daisy",
-//             lastName: "McDaniel",
-//             nested: { array: [0, 1, 2] },
-//           },
-//         ],
-//       ],
-//       [
-//         1,
-//         [
-//           { _tid: 0, _cst: 2, x: -1.1, y: 2.8 },
-//           {
-//             _tid: 1,
-//             _cst: 2,
-//             firstName: "Daisy",
-//             lastName: "McDaniel",
-//             nested: { array: [3, 4, 5, 6, 7, 8] },
-//           },
-//         ],
-//       ],
-//       [
-//         3,
-//         [
-//           { _tid: 0, _cst: 2, x: 773.31, y: -3913.4 },
-//           {
-//             _tid: 1,
-//             _cst: 2,
-//             firstName: "Daisy",
-//             lastName: "McDaniel",
-//             nested: { array: [9, 10, 11, 12] },
-//           },
-//         ],
-//       ],
-//     ]
-//     const buffer = created(entityComponentsPairs)
-//     const bufferView = new DataView(buffer)
-
-//     let entity = 0
-//     let offset = 0
-//     let componentLength = 0
-//     let componentTypeId = 0
-
-//     const decodedEntityComponentsPairs = []
-
-//     while (offset < buffer.byteLength) {
-//       entity = bufferView.getUint32(offset)
-//       offset += 4
-//       componentLength = bufferView.getUint8(offset)
-//       offset += 1
-//       const entityComponentsPair = [entity, [] as Component[]] as const
-//       decodedEntityComponentsPairs.push(entityComponentsPair)
-//       for (let i = 0; i < componentLength; i++) {
-//         componentTypeId = bufferView.getUint8(offset)
-//         offset += 1
-//         const encodedComponentLength = bufferView.getUint32(offset)
-//         offset += 4
-//         const component = decode(
-//           buffer.slice(offset, offset + encodedComponentLength),
-//           getSchemaByComponentTypeId(componentTypeId),
-//         )
-//         entityComponentsPair[1].push(component)
-//         offset += encodedComponentLength
-//       }
-//     }
-
-//     expect(decodedEntityComponentsPairs).toEqual(entityComponentsPairs)
-//   })
-// })
