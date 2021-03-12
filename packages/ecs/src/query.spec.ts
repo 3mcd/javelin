@@ -29,9 +29,9 @@ describe("query", () => {
 
     ;(world.storage.archetypes as Archetype[]) = [
       {
-        ...createArchetype({ layout: [0] }),
-        layout: [1, 0],
-        layoutInverse: [1, 0],
+        ...createArchetype({ signature: [0] }),
+        signature: [1, 0],
+        signatureInverse: [1, 0],
         entities: [1, 2, 0],
         indices: [2, 0, 1],
         table,
@@ -73,9 +73,9 @@ describe("query", () => {
 
     ;(world.storage.archetypes as Archetype[]) = [
       {
-        ...createArchetype({ layout: [0] }),
-        layout: [0],
-        layoutInverse: [0],
+        ...createArchetype({ signature: [0] }),
+        signature: [0],
+        signatureInverse: [0],
         entities: [0, 1, 2],
         indices: [0, 1, 2],
         table,

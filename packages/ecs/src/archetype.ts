@@ -19,7 +19,7 @@ export interface ArchetypeData {
    * Array where each value is a component type and the index is the column of
    * the type's collection in the archetype table.
    */
-  readonly layout: ReadonlyArray<number>
+  readonly signature: ReadonlyArray<number>
 }
 
 export type ArchetypeSnapshot = ArchetypeData & {
@@ -52,7 +52,7 @@ export interface Archetype extends ArchetypeData {
    * Array where each index is a component type and the corresponding index is
    * the component type's column index in the component table.
    */
-  readonly layoutInverse: ReadonlyArray<number>
+  readonly signatureInverse: ReadonlyArray<number>
 
   /**
    * Array of entities tracked by this archetype. Not used internally:
@@ -74,7 +74,7 @@ export interface Archetype extends ArchetypeData {
 
 export type ArchetypeOptions =
   | {
-      layout: number[]
+      signature: number[]
     }
   | {
       snapshot: ArchetypeSnapshot
@@ -84,29 +84,29 @@ function createArchetypeState(options: ArchetypeOptions) {
   const snapshot = "snapshot" in options ? options.snapshot : null
   const entities = snapshot ? Object.keys(snapshot.indices).map(Number) : []
   const indices = snapshot ? unpackSparseArray(snapshot.indices) : []
-  const layout =
-    "layout" in options ? options.layout : [...options.snapshot.layout]
+  const signature =
+    "signature" in options ? options.signature : [...options.snapshot.signature]
   const table = snapshot
     ? snapshot.table.map(column => [...column])
-    : layout.map(() => [])
-  const layoutInverse = layout.reduce((a, x, i) => {
+    : signature.map(() => [])
+  const signatureInverse = signature.reduce((a, x, i) => {
     a[x] = i
     return a
   }, [] as number[])
 
-  return { entities, indices, layout, layoutInverse, table }
+  return { entities, indices, signature, signatureInverse, table }
 }
 
 /**
  * Create an Archetype.
  *
- * @param layout Array of component types that make up the archetype
+ * @param signature Array of component types that make up the archetype
  * @param table  Initial component data
  */
 export function createArchetype(options: ArchetypeOptions): Archetype {
   const {
-    layout,
-    layoutInverse,
+    signature,
+    signatureInverse,
     entities,
     indices,
     table,
@@ -115,7 +115,7 @@ export function createArchetype(options: ArchetypeOptions): Archetype {
   function insert(entity: number, components: Component[]) {
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const componentTypeIndex = layoutInverse[component._tid]
+      const componentTypeIndex = signatureInverse[component._tid]
 
       table[componentTypeIndex].push(component)
     }
@@ -148,8 +148,8 @@ export function createArchetype(options: ArchetypeOptions): Archetype {
   }
 
   return {
-    layout,
-    layoutInverse,
+    signature,
+    signatureInverse,
     table,
     indices,
     entities,

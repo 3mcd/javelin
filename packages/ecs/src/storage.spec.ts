@@ -15,9 +15,9 @@ describe("createStorage", () => {
       { _tid: 1, _cst: ComponentState.Attached },
     ])
 
-    expect(createArchetype).toHaveBeenNthCalledWith(1, { layout: [0] })
-    expect(createArchetype).toHaveBeenNthCalledWith(2, { layout: [1] })
-    expect(createArchetype).toHaveBeenNthCalledWith(3, { layout: [0, 1] })
+    expect(createArchetype).toHaveBeenNthCalledWith(1, { signature: [0] })
+    expect(createArchetype).toHaveBeenNthCalledWith(2, { signature: [1] })
+    expect(createArchetype).toHaveBeenNthCalledWith(3, { signature: [0, 1] })
   })
   it("also removes entity from archetype when removed", () => {
     const storage = createStorage()
@@ -37,18 +37,18 @@ describe("createStorage", () => {
     ;(createArchetype as jest.Mock).mockImplementation(() => ({
       insert: jest.fn(),
       remove: jest.fn(),
-      layout: [0],
+      signature: [0],
       table: [[components[0]]],
       indices: [0],
     }))
     const entity = storage.create(0, components)
 
     expect(storage.archetypes.length).toBe(1)
-    expect(storage.archetypes[0].layout).toEqual([0])
+    expect(storage.archetypes[0].signature).toEqual([0])
     // The next archetype we create will encompass the second component.
     ;(createArchetype as jest.Mock).mockImplementation(() => ({
       insert: jest.fn(),
-      layout: [0, 1],
+      signature: [0, 1],
       table: [[components[0]], []],
       indices: [0, 1],
     }))
@@ -57,7 +57,7 @@ describe("createStorage", () => {
 
     expect(storage.archetypes[0].remove).toHaveBeenCalledWith(entity)
     expect(storage.archetypes.length).toBe(2)
-    expect(storage.archetypes[1].layout).toEqual([0, 1])
+    expect(storage.archetypes[1].signature).toEqual([0, 1])
   })
 
   afterEach(() => {

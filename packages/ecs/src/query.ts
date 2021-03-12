@@ -82,10 +82,10 @@ class QueryIterable<S extends Selector = Selector> {
         globals.__CURRENT_WORLD__
       ]!.storage.archetypes[++this.archetypeIndex])
     ) {
-      const { layoutInverse } = this.currentArchetype!
+      const { signatureInverse } = this.currentArchetype!
 
       for (let i = 0; i < queryLength; i++) {
-        const index = layoutInverse[queryLayout[i]]
+        const index = signatureInverse[queryLayout[i]]
 
         if (index === undefined) {
           continue outer

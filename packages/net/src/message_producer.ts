@@ -84,8 +84,11 @@ export function createMessageProducer(
     } = world
 
     for (let i = 0; i < archetypes.length; i++) {
-      const { layout, entities, table, indices } = archetypes[i]
-      const componentIndices = getRelevantIndices(layout, allComponentTypeIds)
+      const { signature, entities, table, indices } = archetypes[i]
+      const componentIndices = getRelevantIndices(
+        signature,
+        allComponentTypeIds,
+      )
 
       if (componentIndices.length === 0) {
         continue
@@ -176,7 +179,7 @@ export function createMessageProducer(
       for (let j = 0; j < options.components.length; j++) {
         const config = options.components[j]
         const { type } = config.type
-        const row = archetype.layout.indexOf(type)
+        const row = archetype.signature.indexOf(type)
 
         // Not a valid archetype match or unreliable
         if (row === -1 || typeof config.priority === "number") {
@@ -245,7 +248,7 @@ export function createMessageProducer(
           continue
         }
 
-        const row = archetype.layout.indexOf(type)
+        const row = archetype.signature.indexOf(type)
 
         // Not a valid archetype match
         if (row === -1) {

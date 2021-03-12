@@ -572,10 +572,10 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     for (let i = 0; i < storage.archetypes.length; i++) {
       const archetype = storage.archetypes[i]
 
-      for (let j = 0; j < archetype.layout.length; j++) {
+      for (let j = 0; j < archetype.signature.length; j++) {
         const column = archetype.table[j]
         const componentPool = componentPoolsByComponentTypeId.get(
-          archetype.layout[j],
+          archetype.signature[j],
         )
 
         for (let k = 0; k < column.length; k++) {

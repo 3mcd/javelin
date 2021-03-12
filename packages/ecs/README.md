@@ -6,25 +6,56 @@
 
 A TypeScript Entity-Component System (ECS) for Node and web browsers.
 
-## Primer
-
-ECS is a pattern commonly used in game development to associate **components** (state) with stateless **entities** (game objects). **Systems** then operate on collections of entities of shared composition.
-
-For example, a system could add a `Burn` component to entities with `Position` and `Health` components when their position intersects with a lava pit.
-
 ## Docs
 
-Visit https://javelin.games
+Vistit https://javelin.games for documentation, examples, and external resources.
 
 ## Features
 
-- **Small**
-  - ~8kb minified
-- **Performant**
-  - Entities are organized by component makeup into Archetypes for fast iteration
-  - Entities can be tagged with bit flags for quick filtering
-- **Ergonomic**
-  - Minimal API
-  - No classes or inheritance
-- **Unopinionated**
-  - Leaves many opinions up to you, meaning it can be integrated with other packages or pre-existing projects
+### Fast
+Entities are organized by their component makeup into Archetypes for quick lookups and iteration.
+
+### Intuitive
+
+Game data is stored in plain old JavaScript objects. Iterate over game state using basic for..of loops:
+
+```ts
+for (const [entity, velocity, position] of bodies) {
+  position.x += velocity.x
+  ...
+}
+```
+
+### Ergonomic
+
+Best practices are built-in with tools like [Topics](https://javelin.games/ecs/topics) for inter-system messaging:
+
+```ts
+const sys_movement = () => {
+  for (const [entity, input] of queries.input)
+    if (input.jump) {
+      topics.physics.push(impulse(entity, ...))
+    }
+}
+const sys_physics = () => {
+  for (const message of topics.physics)
+    ...
+}
+```
+
+
+and [Effects](https://javelin.games/ecs/effects) for handling async code and third-party dependencies
+
+```ts
+const sys_render = () => {
+  const scene = effects.scene()
+  const model = effects.gltf("llama.gltf")
+  for (const [entity, player, position] of queries.players) {
+    scene.insert(model, position)
+  }
+}
+```
+
+### Small
+`@javelin/ecs` is ~10kb minified and ships with tree-shakable ES modules.
+

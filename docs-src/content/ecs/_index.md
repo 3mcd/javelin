@@ -13,7 +13,7 @@ This section aims to serve as a quick primer on Entity Component Systems (ECS) a
   </p>
 </aside>
 
-## What's an ECS?
+## Building a Game
 
 A best practice in OOP game development is to favor composition over inheritance when designing game data and behavior. Take the following example, where a `Player` class accepts `Body` and `Input` objects to enhance players with physics properties and input control:
 
@@ -65,7 +65,7 @@ class Player {
 
 If there are many states/dependencies a player can have (e.g. spectating, driving a vehicle, etc.), our `Player` class might explode with complexity. Going even further, `Player` would need to define all it's possible dependencies in advance, making runtime composition difficult or even impossible.
 
-## Parts of an ECS
+## What's an ECS?
 
 Data and behavior are separate concerns in an ECS. High-cohesion game objects are substituted with three distinct concerns: (1) **components** – game data, (2) **entities** – game objects (like a tree, chest, or spawn position), and (3) **systems** – game behavior. As we'll see, this architecture enables runtime composition of behavior that would be tricky to implement in the example above.
 
@@ -81,7 +81,7 @@ Input  { jump: boolean }
 
 ### Entities
 
-In Javelin, an entity is an integer that references a vector (array) of components. An entity typically represents a game object (like a player, vehicle, or weapon) that could be made up of many components, but sometimes may only reference a single component with the purpose of holding global state. Entities do not store any data of their own, and are fully defined by their component makeup.
+In most ECS implementations (including Javelin) entities are integers that reference a unique array of components. An entity typically represents a game object (like a player, vehicle, or weapon) that could be made up of many components, but sometimes may only reference a single component with the purpose of holding global state. Entities do not store any data of their own, and are fully defined by their component makeup.
 
 ### Systems
 
