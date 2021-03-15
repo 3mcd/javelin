@@ -88,7 +88,7 @@ export function createEffect<S = unknown, A extends any[] = []>(
         throw new Error(
           `Failed to execute effect: encountered too ${
             previousSystemEffectData.cellCount > cellCount ? "few" : "many"
-          } hooks this tick`,
+          } effects this tick`,
         )
       }
 
