@@ -1,5 +1,9 @@
 import { Component } from "./component"
+import { Type } from "./type"
 import { PackedSparseArray, unpackSparseArray } from "./util"
+
+export type ArchetypeTableColumn = ReadonlyArray<Component>
+export type ArchetypeTable = ReadonlyArray<ArchetypeTableColumn>
 
 export interface ArchetypeData {
   /**
@@ -13,13 +17,13 @@ export interface ArchetypeData {
    *
    * The index of each entity is tracked in the `indices` array.
    */
-  readonly table: ReadonlyArray<ReadonlyArray<Component>>
+  readonly table: ArchetypeTable
 
   /**
    * Array where each value is a component type and the index is the column of
    * the type's collection in the archetype table.
    */
-  readonly signature: ReadonlyArray<number>
+  readonly signature: Type
 }
 
 export type ArchetypeSnapshot = ArchetypeData & {
@@ -85,9 +89,11 @@ function createArchetypeState(options: ArchetypeOptions) {
   const entities = snapshot ? Object.keys(snapshot.indices).map(Number) : []
   const indices = snapshot ? unpackSparseArray(snapshot.indices) : []
   const signature =
-    "signature" in options ? options.signature : [...options.snapshot.signature]
+    "signature" in options
+      ? options.signature
+      : options.snapshot.signature.slice()
   const table = snapshot
-    ? snapshot.table.map(column => [...column])
+    ? snapshot.table.map(column => column.slice())
     : signature.map(() => [])
   const signatureInverse = signature.reduce((a, x, i) => {
     a[x] = i

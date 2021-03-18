@@ -2,6 +2,7 @@ import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
 import { assert } from "./debug"
 import { applyMutation, createMutationCache } from "./mutation_cache"
+import { createSignal, Signal } from "./signal"
 import { mutableEmpty, packSparseArray } from "./util"
 
 export type StorageSnapshot = {
@@ -129,6 +130,11 @@ export interface Storage {
    * Take a serializable snapshot of the storage.
    */
   snapshot(): StorageSnapshot
+
+  /**
+   * Signal dispatched with newly created archetypes immediately after they are created.
+   */
+  archetypeCreated: Signal<Archetype>
 }
 
 export type StorageOptions = {
@@ -136,6 +142,7 @@ export type StorageOptions = {
 }
 
 export function createStorage(options: StorageOptions = {}): Storage {
+  const archetypeCreated = createSignal<Archetype>()
   const mutationCache = createMutationCache({
     onChange(component: Component, target, path, value, mutArrayMethodType) {
       let changes = mutations.get(component)
@@ -207,6 +214,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     if (!archetype) {
       archetype = createArchetype({ signature: components.map(c => c._tid) })
       archetypes.push(archetype)
+      archetypeCreated.dispatch(archetype)
     }
 
     return archetype
@@ -268,7 +276,6 @@ export function createStorage(options: StorageOptions = {}): Storage {
         )
       }
 
-      // UNSAFE: `!` is used because entity location is non-null.
       destinationComponents.push(source.table[i][entityIndex]!)
     }
 
@@ -383,7 +390,6 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
     const entityIndex = archetype.indices[entity]
 
-    // UNSAFE: `!` is used because entity location is non-null.
     return archetype.table[column][entityIndex]! as ComponentOf<T>
   }
 
@@ -442,6 +448,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
   return {
     archetypes,
+    archetypeCreated,
     clear,
     clearMutations,
     create,

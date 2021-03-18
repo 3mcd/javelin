@@ -1,5 +1,5 @@
 const { createWorld } = require("../dist/cjs/world")
-const { query } = require("../dist/cjs/query")
+const { queryCached } = require("../dist/cjs/query")
 const { arrayOf } = require("../dist/cjs/util/array")
 const { ComponentState } = require("../dist/cjs/component")
 
@@ -35,7 +35,7 @@ module.exports.run = function run() {
     [componentTypes[0], componentTypes[1]],
     [componentTypes[2]],
     [componentTypes[1], componentTypes[3]],
-  ].map(c => query(...c))
+  ].map(c => queryCached(world, ...c))
 
   console.time("create")
   const entities = components.map(c => world.spawn(...c))
@@ -43,25 +43,24 @@ module.exports.run = function run() {
 
   let i = n
   let c = 0
-  const start = Date.now()
 
   world.tick()
 
   world.addSystem(() => {
     for (let j = 0; j < queries.length; j++) {
-      for (const _ of queries[j]) {
+      queries[j].forEach(entity => {
         c++
-      }
+      })
     }
   })
 
-  console.time("run")
+  const runStart = Date.now()
+
   while (i--) {
     world.tick()
   }
-  console.timeEnd("run")
 
-  const end = Date.now()
+  const runEnd = Date.now()
 
   console.time("destroy")
   for (let i = 0; i < entities.length; i++) {
@@ -81,5 +80,5 @@ module.exports.run = function run() {
   console.log(`ticks         | ${n}`)
   console.log(`iter          | ${c}`)
   console.log(`iter_tick     | ${c / n}`)
-  console.log(`avg_tick      | ${(end - start) / n}ms`)
+  console.log(`avg_tick      | ${(runEnd - runStart) / n}ms`)
 }

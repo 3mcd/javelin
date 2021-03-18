@@ -28,7 +28,7 @@ export function createComponentBase(
       _cst: {
         value: ComponentState.Orphaned,
         writable: true,
-        enumerable: false,
+        enumerable: true,
       },
     },
   )

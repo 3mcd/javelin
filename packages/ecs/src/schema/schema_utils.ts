@@ -17,6 +17,8 @@ export function initializeComponentFromSchema<S extends Schema>(
   component: Component,
   schema: S,
 ): PropsOfSchema<S> {
+  ;(component as InternalComponent)._cst = ComponentState.Orphaned
+
   for (const prop in schema) {
     const value = schema[prop] as SchemaKey
 

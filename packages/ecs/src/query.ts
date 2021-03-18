@@ -1,8 +1,10 @@
-import { Archetype } from "./archetype"
+import { Archetype, ArchetypeTableColumn } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
 import { ComponentFilter, ComponentFilterPredicate } from "./filter"
 import { globals } from "./internal/globals"
 import { createStackPool } from "./pool"
+import { typeIsSuperset } from "./type"
+import { World } from "./world"
 
 export type Selector = (ComponentType | ComponentFilter)[]
 export type SelectorResult<S extends Selector> = {
@@ -38,6 +40,8 @@ class QueryIterable<S extends Selector = Selector> {
   readonly iterable: {
     next(): IteratorYieldResult<QueryResult<S>>
   }
+
+  world: World | null = null
 
   constructor(selector: S, onDone: (q: QueryIterable<S>) => void) {
     this.componentFilterPredicates = selector.map(s =>
@@ -77,11 +81,7 @@ class QueryIterable<S extends Selector = Selector> {
   visitNextArchetype() {
     const { queryLayout, queryLength, readIndices } = this
 
-    outer: while (
-      (this.currentArchetype = globals.__WORLDS__[
-        globals.__CURRENT_WORLD__
-      ]!.storage.archetypes[++this.archetypeIndex])
-    ) {
+    outer: while (this.world!.storage.archetypes[++this.archetypeIndex]) {
       const { signatureInverse } = this.currentArchetype!
 
       for (let i = 0; i < queryLength; i++) {
@@ -116,10 +116,7 @@ class QueryIterable<S extends Selector = Selector> {
         const component = table[readIndices[i]][this.entityIndex]!
 
         if (
-          componentFilterPredicates[i]?.(
-            component,
-            globals.__WORLDS__[globals.__CURRENT_WORLD__]!,
-          ) ??
+          componentFilterPredicates[i]?.(component, this.world!) ??
           component._cst === 2
         ) {
           ;(this.queryResult as SelectorResult<S>)[i + 1] = component
@@ -152,7 +149,73 @@ export function query<S extends Selector>(...selector: S): Query<S> {
 
   return {
     [Symbol.iterator]() {
-      return pool.retain().iterable
+      const iterable = pool.retain()
+      iterable.world = globals.__WORLDS__[globals.__CURRENT_WORLD__]
+      return iterable.iterable
+    },
+  }
+}
+
+export type QueryCachedCallback<S extends Selector> = (
+  entity: number,
+  selectorResult: SelectorResult<S>,
+) => void
+export type QueryCached<S extends Selector> = {
+  forEach(callback: QueryCachedCallback<S>): void
+}
+type QueryCachedArchetypeRecord = {
+  archetype: Archetype
+  columns: ArchetypeTableColumn[]
+}
+
+export function queryCached<S extends Selector>(
+  world: World,
+  ...selector: S
+): QueryCached<S> {
+  const queryLength = selector.length
+  const queryLayout = selector.map(s =>
+    "componentType" in s ? s.componentType.type : s.type,
+  )
+  const querySignature = queryLayout.sort()
+  const records: QueryCachedArchetypeRecord[] = []
+  const maybeAddArchetypeRecord = (archetype: Archetype) => {
+    if (typeIsSuperset(archetype.signature, querySignature)) {
+      const columns = queryLayout.map(
+        componentTypeId =>
+          archetype.table[archetype.signature.indexOf(componentTypeId)],
+      )
+      records.push({ archetype, columns })
+    }
+  }
+  const componentFilterPredicates = selector.map(s =>
+    "componentPredicate" in s ? s.componentPredicate : null,
+  )
+
+  world.storage.archetypes.forEach(maybeAddArchetypeRecord)
+  world.storage.archetypeCreated.subscribe(maybeAddArchetypeRecord)
+
+  return {
+    forEach(callback: QueryCachedCallback<S>) {
+      const components = ([] as unknown) as SelectorResult<S>
+      for (let i = 0; i < records.length; i++) {
+        const { archetype, columns } = records[i]
+        const { entities } = archetype
+        outer: for (let j = 0; j < entities.length; j++) {
+          for (let k = 0; k < queryLength; k++) {
+            const component = columns[k][j]
+            // components[k] = columns[k][j]
+            if (
+              componentFilterPredicates[k]?.(component, world) ??
+              component._cst === 2
+            ) {
+              components[k] = component
+            } else {
+              continue outer
+            }
+          }
+          callback(entities[j], components)
+        }
+      }
     },
   }
 }
