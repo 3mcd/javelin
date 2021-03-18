@@ -100,10 +100,10 @@ world.spawn(world.component(Player), world.component(Position))
 world.spawn(world.component(Position), world.component(Player))
 
 const sys_render = () => {
-  for (const [entity, position, player] of players) {
+  players.forEach((entity, [position, player]) => {
     // render each player with a name tag
     draw(sprites.player, position, player.name)
-  }
+  })
 }
 ```
 
@@ -130,23 +130,20 @@ world.tick(1000 / 60)
 The tuple of components yielded by queries is re-used each iteration. This means that you shouldn't store the results of a query for use later like this:
 
 ```typescript
-const results = []
-
-for (const result of shocked) {
-  results.push(result)
+const sys_status_effects = () => {
+  const results = []
+  shocked.forEach((e, components) => {
+    results.push(components)
+  })
+  ...
 }
 ```
 
-Every index of `results` corresponds to the same array, which is the tuple of components attached to the entity of the last iteration.
-
-The same applies to `Array.from()`, or any other method that expands an iterator into another container. If you _do_ need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
+Every index of `results` corresponds to the same array, which is the tuple of components attached to the entity of the last iteration. If you absolutely need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
 
 ```typescript
-const sys_status_effects = () => {
-  const results = []
-
-  for (const [, ...components] of shocked) {
-    results.push(components)
-  }
-}
+const results = []
+shocked.forEach((e, [a, b]) => {
+  results.push([a, b])
+})
 ```

@@ -212,7 +212,7 @@
 })
 </span></code></pre><aside>
   <p>
-    <strong>Tip</strong> — effects in Javelin have some similarities to React effects. They are executed each update (tick) and  read/modify closed-over variables. In a way, Javelin's effects are a combination of React's <code>useEffect</code> and <code>useRef</code>.
+    <strong>Tip</strong> — effects in Javelin have some similarities to React effects. They are executed each update (tick) and  read/modify closed-over variables.
   </p>
 </aside>
 <p>Effects have a single rule: they must be called in the same order order and at the same frequency every tick. This means that you shouldn't call effects conditionally (i.e. in a if/else statement or a loop).</p>
@@ -274,10 +274,10 @@
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">simulation </span><span style="color:#388282;">= </span><span style="color:#555c64;">createEffect(</span><span style="color:#8a6c3c;">world </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">sim </span><span style="color:#388282;">= new </span><span style="color:#555c64;">Library.Simulation()
   </span><span style="color:#388282;">return </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-    </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[e] </span><span style="color:#388282;">of </span><span style="color:#555c64;">queries.attached) </span><span style="color:#388282;">...   </span><span style="color:#8c95a0;">// add new bodies to simulation
-    </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[e] </span><span style="color:#388282;">of </span><span style="color:#555c64;">queries.detached) </span><span style="color:#388282;">...   </span><span style="color:#8c95a0;">// remove detached bodies from simulation
-    </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[e] </span><span style="color:#388282;">of </span><span style="color:#555c64;">queries.simulated) </span><span style="color:#388282;">...  </span><span style="color:#8c95a0;">// copy simulation state to components
-    </span><span style="color:#555c64;">sim.step(world.state.currentTickData)     </span><span style="color:#8c95a0;">// step simulation in sync with world
+    queries.attached.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">)  </span><span style="color:#8c95a0;">// add new bodies to simulation   
+    </span><span style="color:#555c64;">queries.detached.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">)  </span><span style="color:#8c95a0;">// remove detached bodies from simulation
+    </span><span style="color:#555c64;">queries.simulated.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">) </span><span style="color:#8c95a0;">// copy simulation state to components
+    </span><span style="color:#555c64;">sim.step(world.state.currentTickData) </span><span style="color:#8c95a0;">// step simulation in sync with world
     </span><span style="color:#388282;">return </span><span style="color:#555c64;">sim
   }
 }, {
@@ -286,10 +286,9 @@
 
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">sys_jump </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">simulation </span><span style="color:#388282;">= </span><span style="color:#555c64;">simulationEffect()
-
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[e, body, input] </span><span style="color:#388282;">of </span><span style="color:#555c64;">queries.jumping) {
+  queries.jumping.forEach((</span><span style="color:#8a6c3c;">e</span><span style="color:#555c64;">, [</span><span style="color:#8a6c3c;">body</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">input</span><span style="color:#555c64;">]) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
     simulation.applyImpulse(body.simulationId, </span><span style="color:#388282;">...</span><span style="color:#555c64;">)
-  }
+  })
 }
 
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">sys_move </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
@@ -316,11 +315,11 @@
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">biggest </span><span style="color:#388282;">= </span><span style="color:#555c64;">ref&lt;</span><span style="color:#88669e;">number </span><span style="color:#388282;">| </span><span style="color:#88669e;">null</span><span style="color:#555c64;">&gt;(</span><span style="color:#a35d66;">null</span><span style="color:#555c64;">)
 
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, circle] </span><span style="color:#388282;">of </span><span style="color:#555c64;">organisms) {
+organisms.forEach((</span><span style="color:#8a6c3c;">entity</span><span style="color:#555c64;">, [</span><span style="color:#8a6c3c;">circle</span><span style="color:#555c64;">]) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">if </span><span style="color:#555c64;">(circle.radius </span><span style="color:#388282;">&gt; </span><span style="color:#555c64;">biggest.value) {
     biggest.value </span><span style="color:#388282;">= </span><span style="color:#555c64;">circle.radius
   }
-}
+})
 </span></code></pre><h3 id="interval-duration-number-boolean"><code>interval(duration: number): boolean</code><a class="zola-anchor" href="#interval-duration-number-boolean" aria-label="Anchor link for: interval-duration-number-boolean"
   >#</a
 >

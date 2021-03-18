@@ -1,3 +1,4 @@
+import { createSignal } from "../signal"
 import { World } from "../world"
 import { createStorage } from "./storage"
 
@@ -30,6 +31,9 @@ export const createWorld = jest.fn(
       storage: createStorage(),
       tick: jest.fn(),
       tryGetComponent: jest.fn(),
+      attached: createSignal(),
+      detached: createSignal(),
+      destroyed: createSignal(),
     }
   },
 )

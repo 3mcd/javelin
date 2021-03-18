@@ -22,20 +22,19 @@ When you need to apply a impulse to an entity, you insert an `Impulse` component
 
 ```typescript
 const sys_input = () => {
-  for (const [entity] of queries.jumping) {
+  queries.jumping.forEach(entity => {
     world.attach(entity, world.component(Impulse))
-  }
-
-  for (const [entity, impulse] of queries.withImpulse) {
+  })
+  queries.withImpulse.forEach(entity => {
     world.detach(entity, impulse)
-  }
+  })
 }
 
 const sys_physics = () => {
-  for (const [entity, impulse] of queries.withImpulse) {
+  queries.withImpulse((entity, [impulse]) => {
     const body = getBodyByEntity(entity)
     physicsEngine.applyImpulseLocal(body, impulse)
-  }
+  })
 }
 ```
 

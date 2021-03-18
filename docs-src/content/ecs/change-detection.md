@@ -11,35 +11,9 @@ Change detection is very useful, but difficult to do performantly; therefore, **
 
 The `world.getObservedComponent` method returns a copy of a component that will notify the world when its data changes. It's important to remember to use this method when you want to use one of the change detection techniques outlined below. Bugs can arise in your game when you expect a component to be observed but you forgot to manipulate an observed copy.
 
-### Filtering
-
-Sometimes you don't need to know exactly which properties on a component changed, only that it _was_ changed. In this case, you can use either the `changed` component filter in a query, or use the `world.isComponentChanged` method, which returns `true` if the component was changed last tick, and `false` if it wasn't.
-
-Using the `changed` filter:
-
-```typescript
-const queries = {
-  changed: query(changed(Health))
-}
-
-for (const [entity, health] of queries.changed) {
-  // `entity` is an entity who's health component changed last tick
-}
-```
-
-Using `world.isComponentChanged`:
-
-```typescript
-for (const [entity, health] of healthy(world)) {
-  if (world.isComponentChanged(health)) {
-    // `health` changed last tick
-  }
-}
-```
-
 ### Observing
 
-If you want to know exactly what changes were made to a component during the current tick, use `world.getComponentMutations`. This method returns a 1-dimensional array of changes made to a component. Take the following example:
+If you want to know exactly what changes were made to a component during the current tick, use `world.getComponentMutations`. This method returns a flattened array of changes made to a component. Take the following example:
 
 ```typescript
 for (const [entity, position, input] of queries.vehicles) {

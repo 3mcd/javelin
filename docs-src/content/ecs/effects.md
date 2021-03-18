@@ -43,7 +43,7 @@ const timer = createEffect(world => {
 
 <aside>
   <p>
-    <strong>Tip</strong> — effects in Javelin have some similarities to React effects. They are executed each update (tick) and  read/modify closed-over variables. In a way, Javelin's effects are a combination of React's <code>useEffect</code> and <code>useRef</code>.
+    <strong>Tip</strong> — effects in Javelin have some similarities to React effects. They are executed each update (tick) and  read/modify closed-over variables.
   </p>
 </aside>
 
@@ -113,10 +113,10 @@ Below is an example of a global effect that instantiates a third party physics s
 const simulation = createEffect(world => {
   const sim = new Library.Simulation()
   return () => {
-    for (const [e] of queries.attached) ...   // add new bodies to simulation
-    for (const [e] of queries.detached) ...   // remove detached bodies from simulation
-    for (const [e] of queries.simulated) ...  // copy simulation state to components
-    sim.step(world.state.currentTickData)     // step simulation in sync with world
+    queries.attached.forEach(...)  // add new bodies to simulation   
+    queries.detached.forEach(...)  // remove detached bodies from simulation
+    queries.simulated.forEach(...) // copy simulation state to components
+    sim.step(world.state.currentTickData) // step simulation in sync with world
     return sim
   }
 }, {
@@ -125,10 +125,9 @@ const simulation = createEffect(world => {
 
 const sys_jump = () => {
   const simulation = simulationEffect()
-
-  for (const [e, body, input] of queries.jumping) {
+  queries.jumping.forEach((e, [body, input]) => {
     simulation.applyImpulse(body.simulationId, ...)
-  }
+  })
 }
 
 const sys_move = () => {
@@ -156,11 +155,11 @@ The following example demonstrates a ref which stores the radius of the largest 
 ```ts
 const biggest = ref<number | null>(null)
 
-for (const [entity, circle] of organisms) {
+organisms.forEach((entity, [circle]) => {
   if (circle.radius > biggest.value) {
     biggest.value = circle.radius
   }
-}
+})
 ```
 
 ### `interval(duration: number): boolean`

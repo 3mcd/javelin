@@ -3,13 +3,13 @@ title = "Performance"
 weight = 9
 +++
 
-Javelin aims to provide a pleasant developer experience without sacrificing much in the way of performance. It performs around middle of the pack when compared with other ECS libraries written in JavaScript.
+Javelin aims to provide a pleasant developer experience without sacrificing much in the way of speed. It performs around middle of the pack when compared with other ECS libraries written in JavaScript.
 
 Iteration performance and memory usage are two major concerns of an ECS. This section expands on Javelin's approach to each.
 
 ## Iteration
 
-Javelin stores components in objects called **archetypes**. An archetype contains components of entities that share the exact same composition. An array of archetypes acts as an index that allow us to skip entire swathes of entities that don't match a query's selector. For example, when querying for entities with components `(A, B)`, we can skip iteration of entities within all archetypes that aren't superset of `(A, B)`.
+Javelin stores components in objects called **archetypes**. An archetype contains components of entities that share the exact same composition. An array of archetypes acts as an index that lets a query skip entire swathes of entities that don't match its selector. For example, when querying for entities with components `(A, B)`, we can skip iteration of entities within all archetypes that aren't superset of `(A, B)`.
 
 Performance is highly dependent on your game's implementation. However, in [a simple benchmark](https://github.com/3mcd/javelin/blob/master/packages/ecs/perf/perf.js) of 10 component types, 10 archetypes, and 10 queries, Javelin achieves (at 60Hz):
 
@@ -29,21 +29,19 @@ You can see how archtypes and queries are implemented in [archetype.ts](https://
 
 ### Storage
 
-In C/C++ ECS implementations, components are typically represented as arrays of bytes. This lets CPUs optimize loops which iterate over components because their data is stored sequentially in packed arrays. We have less control over how memory is allocated in a high-level language like JavaScript, although there are examples of TypedArray-based ECS libraries that can achieve very good performance.
+In C/C++ ECS implementations, components are typically represented as arrays of bytes. This lets the CPU optimize loops which iterate over components because data is stored sequentially in packed arrays. We have less control over how memory is allocated in a high-level language like JavaScript, although there are examples of TypedArray-based ECS libraries that can achieve very good performance.
 
-In Javelin, components are plain old JavaScript objects. Using regular objects makes Javelin easier to understand for people unfamiliar with vectorization or binary data. It also makes it easier to support complex nested component structures, and makes it trivial to get data in/out of the ECS (e.g. for serialization).
+In Javelin, components are plain old JavaScript objects. Using regular objects makes Javelin easier to understand for people unfamiliar with vectorization or binary data. It also makes it easier to support complex nested component structures, and makes it trivial to get data in/out of the ECS (e.g. for serialization). Your game's bottlneck will likely never be Javelin's baseline performance.
 
 ### Garbage Collection
 
-Javelin aims to achieve a small memory / GC footprint. Below is a screenshot of an allocation timeline where 10k entities are iterated by 3 systems per tick at 60Hz. The memory growth (0.3mb) is consistent with standard `setInterval` or `requestAnimationFrame` performance and there is no "sawtooth" pattern of frequent, minor GC events.
+Below is a screenshot of an allocation timeline where 10k entities are iterated by 3 systems per tick at 60Hz. The memory growth (0.3mb) is consistent with standard `setInterval` or `requestAnimationFrame` performance and there is no "sawtooth" pattern of frequent, minor GC events.
 
 **Simple `requestAnimationFrame` loop**
 ![](/perf-raf.png)
 
 **Simple `requestAnimationFrame` loop @ 10k entities/tick**
 ![](/perf-raf-ecs.png)
-
-A custom iterator is implemented in [query.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/query.ts) which re-uses the same iterable instance for each query execution. Upgrading to a handwritten iterator from generator functions doubled the speed of iteration and eliminated ~5kb/s worth of garbage accumulation at 60Hz.
 
 ## Performance Tests
 

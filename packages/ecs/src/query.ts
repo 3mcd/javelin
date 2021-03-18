@@ -63,7 +63,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
   )
 
   return {
-    forEach(callback: QueryIteratee<S>) {
+    forEach(iteratee: QueryIteratee<S>) {
       const world = globals.__WORLDS__[globals.__CURRENT_WORLD__]
       const records = recordsByWorld.get(world) || registerWorld(world)
       const components = pool.retain()
@@ -75,7 +75,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
           for (let k = 0; k < queryLength; k++) {
             components[k] = columns[k][j]
           }
-          callback(entities[j], components)
+          iteratee(entities[j], components)
         }
       }
 

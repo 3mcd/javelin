@@ -17,12 +17,12 @@ Entities are organized by their component makeup into Archetypes for quick looku
 
 ### Intuitive
 
-Game data is stored in plain old JavaScript objects. Iterate over game state using basic for..of loops:
+Game data is stored in plain old JavaScript objects. Iterate over game state using iteratee methods:
 
 ```ts
-for (const [entity, velocity, position] of bodies)
-  position.x += velocity.x
-  ...
+bodies.forEach((entity, [v, p]) => {
+  p.x += v.x
+})
 ```
 
 ### Ergonomic
@@ -31,9 +31,10 @@ Best practices are built-in with tools like [Topics](https://javelin.games/ecs/t
 
 ```ts
 const sys_movement = () => {
-  for (const [entity, input] of queries.input)
+  queries.input.forEach((entity, [input]) => {
     if (input.jump)
       topics.physics.push(impulse(entity, ...))
+  })
 }
 const sys_physics = () => {
   for (const message of topics.physics)
@@ -41,15 +42,16 @@ const sys_physics = () => {
 }
 ```
 
-
 and [Effects](https://javelin.games/ecs/effects) for handling async code and third-party dependencies
 
 ```ts
 const sys_render = () => {
   const scene = effects.scene()
   const model = effects.gltf("llama.gltf")
-  for (const [entity, player, position] of queries.players)
+
+  queries.players.forEach((entity, [player, position]) => {
     scene.insert(model, position)
+  })
 }
 ```
 

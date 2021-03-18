@@ -258,10 +258,10 @@ setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="col
 world.spawn(world.component(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">), world.component(Player))
 
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">sys_render </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, position, player] </span><span style="color:#388282;">of </span><span style="color:#555c64;">players) {
+  players.forEach((</span><span style="color:#8a6c3c;">entity</span><span style="color:#555c64;">, [</span><span style="color:#8a6c3c;">position</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">player</span><span style="color:#555c64;">]) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
     </span><span style="color:#8c95a0;">// render each player with a name tag
     </span><span style="color:#555c64;">draw(sprites.player, position, player.name)
-  }
+  })
 }
 </span></code></pre><h3 id="modifying-state">Modifying State<a class="zola-anchor" href="#modifying-state" aria-label="Anchor link for: modifying-state"
   >#</a
@@ -285,22 +285,20 @@ world.tick(</span><span style="color:#4179ad;">1000 </span><span style="color:#3
 </h3>
 <p>The tuple of components yielded by queries is re-used each iteration. This means that you shouldn't store the results of a query for use later like this:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">results </span><span style="color:#388282;">= </span><span style="color:#555c64;">[]
-
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">result </span><span style="color:#388282;">of </span><span style="color:#555c64;">shocked) {
-  results.push(result)
-}
-</span></code></pre>
-<p>Every index of <code>results</code> corresponds to the same array, which is the tuple of components attached to the entity of the last iteration.</p>
-<p>The same applies to <code>Array.from()</code>, or any other method that expands an iterator into another container. If you <em>do</em> need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.</p>
-<pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">sys_status_effects </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">results </span><span style="color:#388282;">= </span><span style="color:#555c64;">[]
-
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[, </span><span style="color:#388282;">...</span><span style="color:#555c64;">components] </span><span style="color:#388282;">of </span><span style="color:#555c64;">shocked) {
+  shocked.forEach((</span><span style="color:#8a6c3c;">e</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">components</span><span style="color:#555c64;">) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
     results.push(components)
-  }
-}
+  })
+  </span><span style="color:#388282;">...
+</span><span style="color:#555c64;">}
+</span></code></pre>
+<p>Every index of <code>results</code> corresponds to the same array, which is the tuple of components attached to the entity of the last iteration. If you absolutely need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">results </span><span style="color:#388282;">= </span><span style="color:#555c64;">[]
+shocked.forEach((</span><span style="color:#8a6c3c;">e</span><span style="color:#555c64;">, [</span><span style="color:#8a6c3c;">a</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">b</span><span style="color:#555c64;">]) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  results.push([a, b])
+})
 </span></code></pre> 
                     </div>
                 </div>

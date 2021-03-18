@@ -1,3 +1,4 @@
+import { createSignal } from "../signal"
 import { Storage } from "../storage"
 
 export const createStorage = jest.fn(
@@ -21,6 +22,7 @@ export const createStorage = jest.fn(
       removeByTypeIds: jest.fn(),
       snapshot: jest.fn(),
       upsert: jest.fn(),
+      archetypeCreated: createSignal(),
     }
   },
 )
