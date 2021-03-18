@@ -103,14 +103,7 @@ export function createMessageProducer(
         for (let k = 0; k < componentIndices.length; k++) {
           const componentIndex = componentIndices[k]
           const component = table[componentIndex][entityIndex]!
-
-          if (
-            component._cst !== ComponentState.Orphaned &&
-            component._cst !== ComponentState.Detaching &&
-            component._cst !== ComponentState.Detached
-          ) {
-            components.push(table[componentIndex][entityIndex]!)
-          }
+          components.push(component)
         }
 
         ops.push(message)

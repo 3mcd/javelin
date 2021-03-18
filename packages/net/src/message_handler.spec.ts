@@ -41,18 +41,10 @@ describe("createMessageHandler", () => {
       6,
     ]
     const opsA = protocol.ops([
-      [
-        WorldOpType.Spawn as const,
-        0,
-        [{ _tid: 0, _cst: ComponentState.Attached, x: 0, y: 0, z: 0 }],
-      ],
+      [WorldOpType.Spawn as const, 0, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
     ])
     const opsB = protocol.ops([
-      [
-        WorldOpType.Spawn as const,
-        1,
-        [{ _tid: 0, _cst: ComponentState.Attached, x: 0, y: 0, z: 0 }],
-      ],
+      [WorldOpType.Spawn as const, 1, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
     ])
 
     spawn.mockReturnValue(0)
@@ -105,18 +97,10 @@ describe("createMessageHandler", () => {
       3,
     ]
     const opsA = protocol.ops([
-      [
-        WorldOpType.Spawn as const,
-        0,
-        [{ _tid: 0, _cst: ComponentState.Attached, x: 0, y: 0, z: 0 }],
-      ],
+      [WorldOpType.Spawn as const, 0, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
     ])
     const opsB = protocol.ops([
-      [
-        WorldOpType.Spawn as const,
-        1,
-        [{ _tid: 0, _cst: ComponentState.Attached, x: 0, y: 0, z: 0 }],
-      ],
+      [WorldOpType.Spawn as const, 1, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
     ])
 
     spawn.mockReturnValue(0)
@@ -155,24 +139,16 @@ describe("createMessageHandler", () => {
       null,
       // entity 0 (registered)
       0,
-      { _tid: 0, _cst: ComponentState.Attached, x: 1, y: 1 },
+      { _tid: 0, x: 1, y: 1 },
       // entity 1 (registered)
       1,
-      { _tid: 0, _cst: ComponentState.Attached, x: 2, y: 2 },
+      { _tid: 0, x: 2, y: 2 },
     ]
     const opsA = protocol.ops([
-      [
-        WorldOpType.Spawn as const,
-        0,
-        [{ _tid: 0, _cst: ComponentState.Attached, x: 0, y: 0 }],
-      ],
+      [WorldOpType.Spawn as const, 0, [{ _tid: 0, x: 0, y: 0 }]],
     ])
     const opsB = protocol.ops([
-      [
-        WorldOpType.Spawn as const,
-        1,
-        [{ _tid: 0, _cst: ComponentState.Attached, x: 0, y: 0 }],
-      ],
+      [WorldOpType.Spawn as const, 1, [{ _tid: 0, x: 0, y: 0 }]],
     ])
 
     spawn.mockReturnValue(0)
@@ -186,13 +162,7 @@ describe("createMessageHandler", () => {
     messageHandler.handleUnreliableUpdate(update, world)
 
     expect(upsert).toHaveBeenCalledTimes(2)
-    expect(upsertCallArgs[0]).toEqual([
-      0,
-      [{ _tid: 0, _cst: ComponentState.Attached, x: 1, y: 1 }],
-    ])
-    expect(upsertCallArgs[1]).toEqual([
-      1,
-      [{ _tid: 0, _cst: ComponentState.Attached, x: 2, y: 2 }],
-    ])
+    expect(upsertCallArgs[0]).toEqual([0, [{ _tid: 0, x: 1, y: 1 }]])
+    expect(upsertCallArgs[1]).toEqual([1, [{ _tid: 0, x: 2, y: 2 }]])
   })
 })

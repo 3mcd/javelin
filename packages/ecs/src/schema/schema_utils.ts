@@ -1,5 +1,4 @@
-import { factory } from "typescript"
-import { Component, ComponentState, InternalComponent } from "../component"
+import { Component } from "../component"
 import { $isDataType } from "../symbols"
 import { DataType, PropsOfSchema, Schema, SchemaKey } from "./schema_types"
 
@@ -17,8 +16,6 @@ export function initializeComponentFromSchema<S extends Schema>(
   component: Component,
   schema: S,
 ): PropsOfSchema<S> {
-  ;(component as InternalComponent)._cst = ComponentState.Orphaned
-
   for (const prop in schema) {
     const value = schema[prop] as SchemaKey
 
@@ -43,8 +40,6 @@ export function resetComponentFromSchema<S extends Schema>(
   component: Component,
   schema: S,
 ) {
-  ;(component as InternalComponent)._cst = ComponentState.Orphaned
-
   for (const prop in schema) {
     const value = schema[prop] as SchemaKey
 

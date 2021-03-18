@@ -34,11 +34,6 @@ export type ComponentType<
 
 export type ComponentBase = {
   readonly _tid: number
-  readonly _cst: ComponentState
-}
-
-export type InternalComponent = Pick<ComponentBase, "_tid"> & {
-  _cst: ComponentState
 }
 
 export type Component<

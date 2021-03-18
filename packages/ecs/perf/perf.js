@@ -1,7 +1,6 @@
 const { createWorld } = require("../dist/cjs/world")
-const { queryCached } = require("../dist/cjs/query")
+const { query } = require("../dist/cjs/query")
 const { arrayOf } = require("../dist/cjs/util/array")
-const { ComponentState } = require("../dist/cjs/component")
 
 module.exports.run = function run() {
   let n = 1000
@@ -11,31 +10,42 @@ module.exports.run = function run() {
     { schema: {}, type: 2 },
     { schema: {}, type: 3 },
     { schema: {}, type: 4 },
+    { schema: {}, type: 5 },
+    { schema: {}, type: 6 },
+    { schema: {}, type: 7 },
+    { schema: {}, type: 8 },
+    { schema: {}, type: 9 },
+    { schema: {}, type: 10 },
   ]
   const components = [
-    ...arrayOf(142500, () => [{ _tid: 1, _cst: ComponentState.Attached }]),
-    ...arrayOf(142500, () => [
-      { _tid: 1, _cst: ComponentState.Attached },
-      { _tid: 3, _cst: ComponentState.Attached },
+    ...arrayOf(175000, () => [{ _tid: 1 }]),
+    ...arrayOf(175000, () => [{ _tid: 1 }, { _tid: 3 }]),
+    ...arrayOf(175000, () => [{ _tid: 2 }]),
+    ...arrayOf(175000, () => [{ _tid: 1 }, { _tid: 2 }, { _tid: 3 }]),
+    ...arrayOf(175000, () => [{ _tid: 4 }]),
+    ...arrayOf(175000, () => [{ _tid: 2 }, { _tid: 4 }]),
+    ...arrayOf(175000, () => [{ _tid: 2 }, { _tid: 5 }, { _tid: 8 }]),
+    ...arrayOf(175000, () => [
+      { _tid: 5 },
+      { _tid: 6 },
+      { _tid: 7 },
+      { _tid: 9 },
     ]),
-    ...arrayOf(142500, () => [{ _tid: 2, _cst: ComponentState.Attached }]),
-    ...arrayOf(142500, () => [
-      { _tid: 1, _cst: ComponentState.Attached },
-      { _tid: 2, _cst: ComponentState.Attached },
-      { _tid: 3, _cst: ComponentState.Attached },
-    ]),
-    ...arrayOf(142500, () => [{ _tid: 4, _cst: ComponentState.Attached }]),
-    ...arrayOf(142500, () => [
-      { _tid: 2, _cst: ComponentState.Attached },
-      { _tid: 4, _cst: ComponentState.Attached },
-    ]),
+    ...arrayOf(175000, () => [{ _tid: 7 }]),
+    ...arrayOf(175000, () => [{ _tid: 7 }, { _tid: 9 }]),
   ]
   const queries = [
     [componentTypes[0]],
     [componentTypes[0], componentTypes[1]],
     [componentTypes[2]],
     [componentTypes[1], componentTypes[3]],
-  ].map(c => queryCached(world, ...c))
+    [componentTypes[1], componentTypes[3]],
+    [componentTypes[6], componentTypes[8]],
+    [componentTypes[4], componentTypes[5], componentTypes[6]],
+    [componentTypes[1], componentTypes[3]],
+    [componentTypes[7]],
+    [componentTypes[8], componentTypes[9]],
+  ].map(c => query(...c))
 
   console.time("create")
   const entities = components.map(c => world.spawn(...c))

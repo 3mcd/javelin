@@ -88,10 +88,10 @@ function createArchetypeState(options: ArchetypeOptions) {
   const snapshot = "snapshot" in options ? options.snapshot : null
   const entities = snapshot ? Object.keys(snapshot.indices).map(Number) : []
   const indices = snapshot ? unpackSparseArray(snapshot.indices) : []
-  const signature =
-    "signature" in options
-      ? options.signature
-      : options.snapshot.signature.slice()
+  const signature = ("signature" in options
+    ? options.signature
+    : options.snapshot.signature.slice()
+  ).sort()
   const table = snapshot
     ? snapshot.table.map(column => column.slice())
     : signature.map(() => [])

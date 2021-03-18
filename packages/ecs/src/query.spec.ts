@@ -1,5 +1,5 @@
 import { Archetype, createArchetype } from "./archetype"
-import { Component, ComponentType, ComponentState } from "./component"
+import { Component, ComponentType } from "./component"
 import { ComponentFilter } from "./filter"
 import { query } from "./query"
 import { createWorld } from "./world"
@@ -16,14 +16,14 @@ describe("query", () => {
     const world = createWorld()
     const table = [
       [
-        { _tid: 1, _cst: ComponentState.Attached, foo: 1 },
-        { _tid: 1, _cst: ComponentState.Attached, foo: 2 },
-        { _tid: 1, _cst: ComponentState.Attached, foo: 3 },
+        { _tid: 1, foo: 1 },
+        { _tid: 1, foo: 2 },
+        { _tid: 1, foo: 3 },
       ],
       [
-        { _tid: 0, _cst: ComponentState.Attached, foo: 4 },
-        { _tid: 0, _cst: ComponentState.Attached, foo: 5 },
-        { _tid: 0, _cst: ComponentState.Attached, foo: 6 },
+        { _tid: 0, foo: 4 },
+        { _tid: 0, foo: 5 },
+        { _tid: 0, foo: 6 },
       ],
     ]
 
@@ -61,9 +61,9 @@ describe("query", () => {
     const world = createWorld()
     const table = [
       [
-        { _tid: 0, _cst: ComponentState.Attached, foo: 5 },
-        { _tid: 0, _cst: ComponentState.Attached, foo: 1 },
-        { _tid: 0, _cst: ComponentState.Attached, foo: 4 },
+        { _tid: 0, foo: 5 },
+        { _tid: 0, foo: 1 },
+        { _tid: 0, foo: 4 },
       ],
     ]
     const filter = (componentType: ComponentType): ComponentFilter => ({

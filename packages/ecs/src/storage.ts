@@ -212,7 +212,9 @@ export function createStorage(options: StorageOptions = {}): Storage {
     let archetype = findArchetype(components)
 
     if (!archetype) {
-      archetype = createArchetype({ signature: components.map(c => c._tid) })
+      archetype = createArchetype({
+        signature: components.map(c => c._tid),
+      })
       archetypes.push(archetype)
       archetypeCreated.dispatch(archetype)
     }
