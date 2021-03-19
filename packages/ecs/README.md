@@ -8,16 +8,15 @@ A TypeScript Entity-Component System (ECS) for Node and web browsers.
 
 ## Docs
 
-Vistit https://javelin.games for documentation, examples, and external resources.
+Visit https://javelin.games for documentation, examples, and external resources.
 
 ## Features
 
 ### Fast
-Entities are organized by their component makeup into Archetypes for quick lookups and iteration.
+Entities are organized by their component makeup into Archetypes for quick lookups and iteration. In a small app (10 component types, 10 archetypes, 10 queries), Javelin can iterate ~2.5 million entities per 16ms on a 2GHz Intel i5 processor.
 
 ### Intuitive
-
-Game data is stored in plain old JavaScript objects. Iterate over game state using iteratee methods:
+Game data is stored in plain old JavaScript objects. Iterate over game state using familiar syntax:
 
 ```ts
 bodies.forEach((entity, [v, p]) => {
@@ -25,7 +24,7 @@ bodies.forEach((entity, [v, p]) => {
 })
 ```
 
-### Ergonomic
+### Powerful
 
 Best practices are built-in with tools like [Topics](https://javelin.games/ecs/topics) for inter-system messaging:
 
@@ -54,7 +53,3 @@ const sys_render = () => {
   })
 }
 ```
-
-### Small
-`@javelin/ecs` is ~10kb minified and ships with tree-shakable ES modules.
-

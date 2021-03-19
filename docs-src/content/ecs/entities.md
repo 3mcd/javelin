@@ -27,7 +27,7 @@ const entity = world.spawn(player, health)
 
 ### Modifying Entities
 
-The vector of components associated with an entity defines its **archetype**. The above example would create an entity of archetype `(Player, Health)`.
+The array of components associated with an entity defines its **archetype**. The above example would create an entity of archetype `(Player, Health)`.
 
 Components can be assigned to existing entities using `world.attach`, and removed from entities using `world.detach`. The following example modifies an entity of archetype `(Player, Health)` to `(Player, Health, Input)`, and then back to `(Player, Health)`:
 
@@ -35,16 +35,10 @@ Components can be assigned to existing entities using `world.attach`, and remove
 const input = { _tid: 3, space: true }
 
 world.attach(entity, input)
-world.tick()
-
---- archetype:
-(Player, Health) -> (Player, Health, Input)
+world.tick() // (Player, Health) -> (Player, Health, Input)
 
 world.detach(entity, input)
-world.tick()
-
---- archetype:
-(Player, Health, Input) -> (Player, Health)
+world.tick() // (Player, Health, Input) -> (Player, Health)
 ```
 
 <aside>
@@ -65,6 +59,6 @@ When an entity is destroyed, its components are automatically released back to t
 
 ## World Operations
 
-In the example above, `world.tick()` was called each time entity was modified. Operations like creating and destroying entities, as well as attaching and detaching components, are deferred until the next `world.tick()` call. This is done to improve the predictability of systems, so that systems never miss changes to entities, discussed in the [Filtering](/ecs/filtering) section. 
+In the example above, `world.tick()` was called each time entity was modified. Operations like creating and destroying entities, as well as attaching and detaching components, are deferred until the next `world.tick()` call. This is done to improve the predictability of systems, so that systems never miss changes to entities, discussed in the [Events](/ecs/events) section. 
 
 Each of these changes is represented by a `WorldOp` object. You can review the types of operations in [world_op.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world_op.ts). These objects are used in the Javelin network protocol to synchronize entities reliably between client and server.

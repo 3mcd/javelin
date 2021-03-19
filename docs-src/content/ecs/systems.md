@@ -64,8 +64,8 @@ setInterval(() => {
 
   previousTime = currentTime
 }, 1000 / 60)
-
---- output:
+```
+```
 > 16.66666666
 > 16.66666666
 > 16.66666666
@@ -91,9 +91,36 @@ import { query } from "@javelin/ecs"
 const players = query(Position, Player)
 ```
 
-A query is a function that is executed with a world. This function returns an iterator that yields tuples of `(entity, Component[])` for entities that meet the selector's criteria.
+A query is an iterable object that produces tuples of `(entity, Component[])` for entities that meet the selector's criteria.
 
-The order of the components in the results matches the order of components types in the selector. That is, `query(Position, Player)` will yield tuples of components `(Position, Player)`, regardless of how the components are stored in an archetype.
+There are two ways to iterate a query. The first (and fastest) way is to iterate the query directly with a `for..of` loop:
+
+```ts
+for (const [entities, [position, player]] of players) {
+  for (let i = 0; i < entities.length; i++) {
+    position[i] // position of entity at entities[i]
+    player[i]   // player of entity at entities[i]
+  }
+}
+```
+
+An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. This method of iteration leaks the implementation details of how components are stored in archetypes. If you find it difficult to follow and don't mind a 2-3x iteration performance hit, consider using `forEach`. This method executes a callback for each entity->component[] tuple that matches the query:
+
+```ts
+players.forEach((entity, [position, player]) => {
+  position // position of entity
+  player   // player of entity
+})
+```
+
+
+<aside>
+  <p>
+    <strong>Tip</strong> — most examples in the Javelin docs use `forEach` since it's a bit easier to follow, but complex games and benchmarks should use manual iteration for ideal performance.
+  </p>
+</aside>
+
+The order of component types in the query's selector will match the order of components in the query's results. That is, `query(Position, Player)` will always yield tuples of components `(Position, Player)`:
 
 ```typescript
 world.spawn(world.component(Player), world.component(Position))
@@ -109,9 +136,7 @@ const sys_render = () => {
 
 ### Modifying State
 
-In order to mutate game state you'll need access to the `World` that called the system.
-
-The world that is currently executing a tick is passed as the system's first argument:
+In order to mutate game state within a system, you'll need access to the world that is executing it it. The world that is currently executing a tick is passed as the system's first argument:
 
 ```ts
 function sys_munch_doritos(world: World<number>) {
@@ -120,8 +145,8 @@ function sys_munch_doritos(world: World<number>) {
 
 world.addSystem(sys_munch_doritos)
 world.tick(1000 / 60)
-
---- output:
+```
+```
 > 16.66666666
 ```
 

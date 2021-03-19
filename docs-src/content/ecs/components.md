@@ -3,7 +3,7 @@ title = "Components"
 weight = 3
 +++
 
-All data within a `World` is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `_tid` — short for type id, a unique integer that is shared between all components of the same kind.
+Most data within a game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `_tid` — short for type id, a unique integer that is shared between all components of the same kind.
 
 The `_tid` field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example.
 
@@ -21,7 +21,7 @@ const health = { _tid: 1, ... }
 
 ## Component Types
 
-It's recommended to use the `createComponentType` helper to define the component types your world will use. Component types make it easy to initialize components from a schema, and components created with a component type are automatically pooled.
+The `createComponentType` helper is used to define the types of components in your game. Component types make it easy to initialize components from a schema, and components created with a component type are automatically pooled.
 
 ```typescript
 import { createComponentType, number } from "@javelin/ecs"
@@ -61,7 +61,7 @@ schema: {
 
 ### Creating Components
 
-Components can be initialized from component types via `world.component`:
+A component is initialized from a component type using `world.component`:
 
 ```typescript
 const position = world.component(Position)
@@ -90,7 +90,7 @@ const position = world.component(
 
 ### Object Pooling
 
-Components created via a component type are automatically pooled. By default, the pool will initialize 10^3 components for usage, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singletons or components that are created/destroyed extremely often. You can modify the default pool size of all component types by setting the `componentPoolSize` option on the config object passed to `createWorld()`:
+Components created via a component type are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singleton or low-volume components. You can modify the default pool size of all component types by setting the `componentPoolSize` option on the config object passed to `createWorld()`:
 
 ```typescript
 const world = createWorld({

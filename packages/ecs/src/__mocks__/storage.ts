@@ -15,6 +15,7 @@ export const createStorage = jest.fn(
       getComponentMutations: jest.fn(),
       getEntityComponents: jest.fn(() => []),
       getObservedComponent: jest.fn((x: any) => x),
+      hasComponent: jest.fn(),
       insert: jest.fn(),
       isComponentChanged: jest.fn(() => true),
       patch: jest.fn(() => true),

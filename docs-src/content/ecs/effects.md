@@ -1,6 +1,6 @@
 +++
 title = "Effects"
-weight = 6
+weight = 5
 +++
 
 You'll often need to interact with some asynchronous code, third-party library, or API that wouldn't fit cleanly into Javelin's synchronous/serializable model. An **effect** is a container for one of these resources.
@@ -56,7 +56,8 @@ const sys_a = () => {
   if (timer(1000)) console.log("a")
   if (timer(2000)) console.log("b")
 }
-
+```
+```
 (1000ms)
 > "a"
 (1000ms)
@@ -74,7 +75,7 @@ Local effects are useful if you want to perform a one-off task, like perform an 
 ```ts
 const sys_quest_ui = () => {
   const context = effects.canvas()
-  const { done, quests } = fetchEffect("/quests?complete=false")
+  const { done, quests } = effects.fetch("/quests?complete=false")
 
   if (done) {
     // render quest log

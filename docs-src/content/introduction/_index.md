@@ -186,7 +186,7 @@ const sys_attract = (world) => {
         j.influenced = true;
 
         if (len < w.r / 10) {
-          const jw = world.tryGetComponent(je, Wormhole)
+          const jw = world.tryGet(je, Wormhole)
 
           if (jw) {
             jw.obliterated = true;

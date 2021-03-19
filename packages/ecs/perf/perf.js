@@ -1,21 +1,19 @@
-const { createWorld } = require("../dist/cjs/world")
-const { query } = require("../dist/cjs/query")
-const { arrayOf } = require("../dist/cjs/util/array")
+const { number, createWorld, query, arrayOf } = require("../dist/cjs")
 
 module.exports.run = function run() {
   let n = 1000
   const world = createWorld()
   const componentTypes = [
-    { schema: {}, type: 1 },
-    { schema: {}, type: 2 },
-    { schema: {}, type: 3 },
-    { schema: {}, type: 4 },
-    { schema: {}, type: 5 },
-    { schema: {}, type: 6 },
-    { schema: {}, type: 7 },
-    { schema: {}, type: 8 },
-    { schema: {}, type: 9 },
-    { schema: {}, type: 10 },
+    { schema: { value: number }, type: 1 },
+    { schema: { value: number }, type: 2 },
+    { schema: { value: number }, type: 3 },
+    { schema: { value: number }, type: 4 },
+    { schema: { value: number }, type: 5 },
+    { schema: { value: number }, type: 6 },
+    { schema: { value: number }, type: 7 },
+    { schema: { value: number }, type: 8 },
+    { schema: { value: number }, type: 9 },
+    { schema: { value: number }, type: 10 },
   ]
   const components = [
     ...arrayOf(175000, () => [{ _tid: 1 }]),
@@ -58,9 +56,31 @@ module.exports.run = function run() {
 
   world.addSystem(() => {
     for (let j = 0; j < queries.length; j++) {
-      queries[j].forEach(entity => {
-        c++
-      })
+      for (const [entities, [a]] of queries[j]) {
+        for (let i = 0; i < entities.length; i++) {
+          a[i].value
+          c++
+        }
+      }
+      // const records = queries[j].records
+      // for (let i = 0; i < records.length; i++) {
+      //   const {
+      //     entities,
+      //     columns: [first],
+      //   } = records[i]
+      //   for (let j = 0; j < entities.length; j++) {
+      //     first[j].value
+      //     c++
+      //   }
+      // }
+      // for (const [entity, first] of queries[j]) {
+      //   first.value
+      //   c++
+      // }
+      // queries[j].forEach((entity, [first]) => {
+      //   first.value
+      //   c++
+      // })
     }
   })
 
@@ -88,7 +108,7 @@ module.exports.run = function run() {
   console.log(`components    | ${componentTypes.length}`)
   console.log(`queries       | ${queries.length}`)
   console.log(`ticks         | ${n}`)
-  console.log(`iter          | ${c}`)
   console.log(`iter_tick     | ${c / n}`)
+  console.log(`iter_total    | ${c}`)
   console.log(`avg_tick      | ${(runEnd - runStart) / n}ms`)
 }

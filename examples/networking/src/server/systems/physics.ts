@@ -11,9 +11,9 @@ const queries = {
 }
 
 export function physics(world: World) {
-  for (const [, position, velocity] of queries.awake) {
-    const mutPosition = world.getObservedComponent(position)
-    const mutVelocity = world.getObservedComponent(velocity)
+  queries.awake.forEach((entity, [position, velocity]) => {
+    const mutPosition = world.getObserved(position)
+    const mutVelocity = world.getObserved(velocity)
 
     mutPosition.x += velocity.x
     mutPosition.y += velocity.y
@@ -32,7 +32,6 @@ export function physics(world: World) {
       // collision w/ wall and "restitution"
       mutVelocity.x = -(velocity.x * 0.5)
       mutPosition.x = Math.max(0, Math.min(position.x, 800))
-      continue
     }
-  }
+  })
 }

@@ -1,7 +1,7 @@
 import {
+  AttachOp,
   Component,
   ComponentType,
-  ComponentState,
   DetachOp,
   mutableEmpty,
   SpawnOp,
@@ -78,7 +78,7 @@ export function createMessageProducer(
 
   function getInitialMessages(world: World) {
     const messages = []
-    const ops: SpawnOp[] = []
+    const ops: (SpawnOp | AttachOp)[] = []
     const {
       storage: { archetypes },
     } = world
@@ -98,7 +98,8 @@ export function createMessageProducer(
         const entity = entities[j]
         const entityIndex = indices[entity]
         const components: Component[] = []
-        const message: SpawnOp = [WorldOpType.Spawn, entity, components]
+        const spawn: SpawnOp = [WorldOpType.Spawn, entity]
+        const attach: AttachOp = [WorldOpType.Attach, entity, components]
 
         for (let k = 0; k < componentIndices.length; k++) {
           const componentIndex = componentIndices[k]
@@ -106,7 +107,7 @@ export function createMessageProducer(
           components.push(component)
         }
 
-        ops.push(message)
+        ops.push(spawn, attach)
       }
     }
 
@@ -133,7 +134,6 @@ export function createMessageProducer(
         let op = world.ops[i]
 
         switch (op[0]) {
-          case WorldOpType.Spawn:
           case WorldOpType.Attach: {
             const components = op[2].filter(c =>
               allComponentTypeIds.includes(c._tid),
@@ -146,8 +146,8 @@ export function createMessageProducer(
             break
           }
           case WorldOpType.Detach: {
-            const componentTypeIds = op[2].filter(type =>
-              allComponentTypeIds.includes(type),
+            const componentTypeIds = op[2].filter(component =>
+              allComponentTypeIds.includes(component._tid),
             )
 
             if (componentTypeIds.length > 0) {

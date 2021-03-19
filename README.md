@@ -11,9 +11,11 @@
 
 Javelin is a suite of packages used to build multiplayer games for the web.
 
-The primary goals of Javelin are speed, minimalism, and ease-of-use. A secondary goal is to provide examples of client-side prediction, input reconciliation, and other algorithms commonly used in fast-paced online games.
+**Note** – each package is an active work in progress and each minor release will likely introduce breaking changes prior to a 1.0 release.
 
-This library is comprised of an Entity-Component System (ECS) and an associated networking package used to synchronize game data between a client and server (or other clients).
+The primary goals of Javelin are developer experience, performance, and a built-in networking protocol. A secondary goal is to provide examples of client-side prediction, input reconciliation, and other algorithms commonly used in fast-paced online games.
+
+Javelin is comprised of an Entity-Component System (ECS) and an associated networking package used to synchronize game data between a client and server (or other clients).
 
 ## Docs
 
@@ -40,13 +42,12 @@ Visit https://javelin.games
 | `yarn build`              | Build all packages and examples                  |
 | `yarn test`               | Run all unit and integration tests               |
 | `yarn perf`               | Run all performance tests                        |
-| `yarn example:basic`      | Preview basic ECS capabilities                   |
 | `yarn example:networking` | An example of synchronizing entities over WebRTC |
 
 ## Development
 
 ```sh
-yarn --ignore-engines
+yarn
 yarn build
 yarn example:networking
 ```

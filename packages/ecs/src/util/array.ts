@@ -29,7 +29,7 @@ export function mutableRemove<T>(arr: T[], element: T) {
   return true
 }
 
-export function mutableEmpty(arr: any[]) {
+export function mutableEmpty(arr: unknown[]) {
   while (arr.length > 0) arr.pop()
 }
 

@@ -44,7 +44,7 @@ export function createMessageHandler(
         let local: number
 
         if (op[0] === WorldOpType.Spawn) {
-          local = world.spawn(...op[2])
+          local = world.spawn()
           remoteToLocal.set(op[1], local)
           ops.splice(i, 1)
         } else {

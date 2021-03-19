@@ -68,6 +68,13 @@ export interface Storage {
   destroy(entity: number): void
 
   /**
+   * Determine if an entity has a component.
+   * @param entity
+   * @param componentType
+   */
+  hasComponent(entity: number, componentType: ComponentType): boolean
+
+  /**
    * Locate an entity's component by component type.
    * @param entity Entity to locate components of.
    * @param componentType ComponentType of component to retreive.
@@ -253,10 +260,6 @@ export function createStorage(options: StorageOptions = {}): Storage {
   ) {
     source.remove(entity)
 
-    if (components.length === 0) {
-      return
-    }
-
     const destination = findOrCreateArchetype(components)
 
     destination.insert(entity, components)
@@ -369,6 +372,11 @@ export function createStorage(options: StorageOptions = {}): Storage {
     }
   }
 
+  function hasComponent(entity: number, componentType: ComponentType) {
+    const archetype = getEntityArchetype(entity)
+    return archetype.signature.includes(componentType.type)
+  }
+
   function findComponent<T extends ComponentType>(
     entity: number,
     componentType: T,
@@ -449,8 +457,8 @@ export function createStorage(options: StorageOptions = {}): Storage {
   }
 
   return {
-    archetypes,
     archetypeCreated,
+    archetypes,
     clear,
     clearMutations,
     create,
@@ -460,6 +468,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     getComponentMutations,
     getEntityComponents,
     getObservedComponent,
+    hasComponent,
     insert,
     isComponentChanged,
     patch,

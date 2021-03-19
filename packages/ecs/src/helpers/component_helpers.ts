@@ -1,11 +1,12 @@
 import {
   Component,
   ComponentBase,
+  ComponentInitializer,
   ComponentOf,
-  ComponentState,
   ComponentType,
 } from "../component"
 import { createStackPool } from "../pool/stack_pool"
+import { Schema } from "../schema"
 import {
   initializeComponentFromSchema,
   resetComponentFromSchema,
@@ -13,8 +14,21 @@ import {
   serializeSchema,
 } from "../schema/schema_utils"
 
-export function createComponentType<C extends ComponentType>(componentType: C) {
-  return componentType
+type CreateComponentTypeOptions<
+  S extends Schema,
+  I extends ComponentInitializer<S>
+> = Pick<ComponentType<S, I>, "type" | "initialize"> & {
+  schema?: S
+}
+
+export function createComponentType<
+  S extends Schema = {},
+  I extends ComponentInitializer<S> = ComponentInitializer<S>
+>(options: CreateComponentTypeOptions<S, I>): ComponentType<S, I> {
+  return {
+    ...options,
+    schema: options.schema || ({} as S),
+  }
 }
 
 export function createComponentBase(

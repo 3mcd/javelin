@@ -1,3 +1,3 @@
 export * from "./core"
-export * from "./ops"
+export * from "./world"
 export * from "./web"
