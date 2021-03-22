@@ -12,19 +12,21 @@ The below example demonstrates a worker effect that might perform some expensive
  const sys_physics = () => {
    const { result, doExpensiveComputation } = effects.worker()
 
-   if (!result) {
-    doExpensiveComputation()
-   } else {
+   if (shouldRun && !result) {
+     doExpensiveComputation()
+   }
+
+   if (result) {
      // do something with result
    }
  }
  ```
 
- Javelin exports a function `createEffect` which accepts a callback as its first argument. This callback receives the active `World` as its first parameter, should define any state (variables) used by the effect, and return a function to be executed each tick.
+Effects are created using the aptly named `createEffect`. This function accepts a callback as its first argument. The provided callback receives the active `World` as its first parameter, should define any state (variables) used by the effect, and return a function to be executed each tick.
 
 Below is an effect that will return `false` until the provided duration passes:
 
-```ts
+```typescript
 import { createEffect } from "@javelin/ecs"
 
 const timer = createEffect(world => {
@@ -66,7 +68,7 @@ const sys_a = () => {
 
 ## Effect Modes
 
-Effects can exist in either **local mode** or **global mode**. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure and one callback function per local effect within a system. Global effects are executed a maximum of one time per tick. All calls to global effects refer to the same closure and callback. Local mode is enabled by default.
+Effects can exist in either **local mode** or **global mode**. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure per local effect within a system. Global effects are executed a maximum of one time per tick. All calls to global effects refer to the same closure. Local mode is enabled by default.
 
 ### Local Effects
 

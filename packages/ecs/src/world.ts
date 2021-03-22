@@ -408,9 +408,10 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   function spawn(...components: ReadonlyArray<Component>) {
     const entity = entityCounter++
 
-    worldOps.push(createWorldOp(WorldOpType.Spawn, entity))
-
-    attach(entity, ...components)
+    worldOps.push(
+      createWorldOp(WorldOpType.Spawn, entity),
+      createWorldOp(WorldOpType.Attach, entity, components),
+    )
 
     return entity
   }
@@ -440,8 +441,11 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     if (destroying.has(entity)) {
       return
     }
-    detach(entity, ...storage.getEntityComponents(entity))
-    worldOps.push(createWorldOp(WorldOpType.Destroy, entity))
+    const components = storage.getEntityComponents(entity)
+    worldOps.push(
+      createWorldOp(WorldOpType.Detach, entity, components),
+      createWorldOp(WorldOpType.Destroy, entity),
+    )
     destroying.add(entity)
   }
 

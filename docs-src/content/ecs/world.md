@@ -9,7 +9,7 @@ weight = 2
   </p>
 </aside>
 
-**Worlds** are responsible for maintaining entities and executing systems. They expose methods for creating and removing entities, associating components with entities, and locating the components of entities.
+**Worlds** are responsible for maintaining entities and executing systems. They expose a methodto step the world forward in time, methods for managing entities and their components, and events that trigger when the state of the ECS changes.
 
 A world is created using the `createWorld` function defined in [world.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts). `createWorld` accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.
 
@@ -39,21 +39,35 @@ More on systems later in the [Systems](/ecs/systems) section!
 
 Components are generally accessed using iterable [queries](/ecs/systems/#querying-and-iteration). However, queries only locate entities who meet each of the selector's criteria. This makes it difficult to write conditional logic based on the presence of a component. For example, you may want to apply damage to all entities that match `(Health, Burn)`, but only if the entity doesn't have an `Invulnerable` component.
 
-`world.tryGetComponent` attempts to locate a component of an entity by component type, returning `null` if not found:
+`world.tryGet` attempts to locate a component of an entity by component type, returning `null` if not found:
 
 ```typescript
-if (world.tryGetComponent(entity, Invulnerable) === null) {
+if (world.tryGet(entity, Invulnerable) === null) {
   health.value -= burn.valuePerTick
 }
 ```
 
-`world.getComponent` will throw an error if the component is not found, which can be used to assert a relationship between an archetype and another component type.
+`world.get` will throw an error if the component is not found, which can be used to assert a relationship between an archetype and another component type.
 
 ```typescript
 // an entity of (Health, Burn) should always have a position
-world.getComponent(entity, Position)
+world.get(entity, Position)
 ```
 
-## Clearing Data
+## Cleanup
 
-Use `world.reset()` to completely reset a world. This method will clear all entity and component data, attempting to release pooled components along the way.
+### Snapshots
+
+You can take a snapshot of a world using `world.snapshot()` and create a new world from it later:
+
+```typescript
+const world = createWorld({ snapshot: JSON.parse(localStorage.getItem("world")) })
+...
+const snapshot = world.snapshot()
+localStorage.setItem("world", JSON.stringify(world.snapshot))
+```
+
+### Reset
+
+Use `world.reset()` to completely reset a world. This method will clear all entity and component data, releasing pooled components along the way.
+

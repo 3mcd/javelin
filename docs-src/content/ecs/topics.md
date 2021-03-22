@@ -38,7 +38,7 @@ const sys_physics = () => {
 }
 ```
 
-This might work fine for a small game; however, there are a couple of problems with this approach:
+This will work fine for a small game; however, there are a couple of problems with this approach as you scale to more complex games:
 1. Adding and removing components in an archetypal ECS is slow
 2. Your physics system must wait until the next tick to detect the newly attached impluse component
 

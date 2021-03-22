@@ -20,28 +20,28 @@ Check out the code at the [GitHub repo](https://github.com/3mcd/javelin) or, mov
 </style>
 <script type="text/javascript">
 function relMouseCoords(canvas, event) {
-  let totalOffsetX = 0;
-  let totalOffsetY = 0;
-  let canvasX = 0;
-  let canvasY = 0;
+  let totalOffsetX = 0
+  let totalOffsetY = 0
+  let canvasX = 0
+  let canvasY = 0
 
   do {
-    totalOffsetX += canvas.offsetLeft - canvas.scrollLeft;
-    totalOffsetY += canvas.offsetTop - canvas.scrollTop;
-  } while ((canvas = canvas.offsetParent));
+    totalOffsetX += canvas.offsetLeft - canvas.scrollLeft
+    totalOffsetY += canvas.offsetTop - canvas.scrollTop
+  } while ((canvas = canvas.offsetParent))
 
-  canvasX = event.pageX - totalOffsetX;
-  canvasY = event.pageY - totalOffsetY;
+  canvasX = event.pageX - totalOffsetX
+  canvasY = event.pageY - totalOffsetY
 
-  return { x: canvasX, y: canvasY };
+  return { x: canvasX, y: canvasY }
 }
 
-const canvas = document.getElementById("game");
-const context = canvas.getContext("2d");
+const canvas = document.getElementById("game")
+const context = canvas.getContext("2d")
 
-context.imageSmoothingEnabled = false;
-canvas.width = 800;
-canvas.height = 300;
+context.imageSmoothingEnabled = false
+canvas.width = 800
+canvas.height = 300
 
 const Transform = Javelin.createComponentType({
   type: 1,
@@ -50,10 +50,10 @@ const Transform = Javelin.createComponentType({
     y: Javelin.number,
   },
   initialize: (t, x = 0, y = 0) => {
-    t.x = x;
-    t.y = y;
+    t.x = x
+    t.y = y
   },
-});
+})
 const Velocity = Javelin.createComponentType({
   type: 2,
   schema: {
@@ -61,16 +61,16 @@ const Velocity = Javelin.createComponentType({
     y: Javelin.number,
   },
   initialize: (v, x = 0, y = 0) => {
-    v.x = x;
-    v.y = y;
+    v.x = x
+    v.y = y
   },
-});
+})
 const Junk = Javelin.createComponentType({
   type: 3,
   schema: {
     influenced: Javelin.boolean,
   },
-});
+})
 const Wormhole = Javelin.createComponentType({
   type: 4,
   schema: {
@@ -78,61 +78,101 @@ const Wormhole = Javelin.createComponentType({
     obliterated: Javelin.boolean,
   },
   initialize: (w, r = 0.5) => {
-    w.r = r;
+    w.r = r
     w.obliterated = false
   },
-});
+})
+const Dragging = Javelin.createComponentType({
+  type: 5,
+})
 
-const effects = {
-  interval: Javelin.createEffect(() => {
-    let state = 0
-    return (t) => {
-      if (state === 1) {
-        return false
-      }
-      state = 1
-      setTimeout(() => (state = 0), t)
-      return true
-    }
-  }),
-  click: Javelin.createEffect(() => {
-    const state = { clicked: false, coords: null }
+const createMouseEventEffect = (name) =>
+  Javelin.createEffect(() => {
+    const state = { active: false, coords: null }
 
-    canvas.addEventListener("click", event => {
-      state.clicked = true
+    canvas.addEventListener(name, event => {
+      state.active = true
       state.coords = relMouseCoords(canvas, event)
     })
 
     return () => {
-      if (state.clicked) {
-        const result = {...state}
-        state.clicked = false
+      if (state.active) {
+        const result = { ...state }
+        state.active = false
         return result
       }
       return state
     }
-  }),
-  ref: Javelin.createEffect(() => {
-    let initial = true
-    const state = {}
-    return (initialValue) => {
-      if (initial) {
-        state.value = initialValue
-      }
-      initial = false
-      return state
-    }
   })
+
+const effects = {
+  mouseup: createMouseEventEffect("mouseup"),
+  mousedown: createMouseEventEffect("mousedown"),
+  mousemove: createMouseEventEffect("mousemove"),
 }
 
-const wormholes = Javelin.query(Transform, Wormhole, Velocity);
-const junk = Javelin.query(Transform, Velocity, Junk);
+const wormholes = Javelin.query(Transform, Wormhole, Velocity)
+const junk = Javelin.query(Transform, Velocity, Junk)
+const dragging = Javelin.query(Transform, Wormhole, Dragging)
+
+function inside(a, b, x, y, r) {
+  const dist = (a - x) * (a - x) + (b - y) * (b - y)
+  r *= r
+  return dist < r
+}
 
 const sys_spawn = world => {
-  const { clicked, coords } = effects.click()
-  const hasClickedOnce = effects.ref(false)
-  const shouldSpawnJunk = effects.ref(true)
-  const shouldSpawnWormhole = effects.interval(3500)
+  const mouseup = effects.mouseup()
+  const mousedown = effects.mousedown()
+  const mousemove = effects.mousemove()
+  const hasClickedOnce = Javelin.ref(false)
+  const shouldSpawnWormhole = Javelin.interval(3500)
+
+  if (mousedown.active) {
+    for (const [entities, [wt, w]] of wormholes) {
+      for (let i = 0; i < entities.length; i++) {
+        const { x, y } = wt[i]
+        const { r } = w[i]
+        if (inside(mousedown.coords.x, mousedown.coords.y, x, y, r / 10)) {
+          world.attach(entities[i], world.component(Dragging))
+        }
+      }
+    }
+  }
+
+  if (mouseup.active) {
+    let isDragging = false
+    for (const [entities] of dragging) {
+      if (entities.length > 0) {
+        world.detach(entities[0], Dragging)
+        isDragging = true
+        break
+      }
+    }
+    if (!isDragging) {
+      hasClickedOnce.value = true
+      spawnWormhole(mouseup.coords.x, mouseup.coords.y, 30)
+    }
+  }
+
+  if (mousemove.active) {
+    dragging.forEach((entity, [t, w]) => {
+      t.x = mousemove.coords.x
+      t.y = mousemove.coords.y
+    })
+  }
+
+  if (!hasClickedOnce.value && shouldSpawnWormhole) {
+    spawnWormhole(
+      Math.random() * canvas.width,
+      Math.random() * canvas.height,
+      Math.max(10, Math.random() * 60),
+    )
+  }
+}
+
+const sys_spawn_junk = () => {
+  const shouldSpawnJunk = Javelin.ref(true)
 
   if (shouldSpawnJunk.value) {
     for (let i = 0; i < 10000; i++) {
@@ -141,169 +181,152 @@ const sys_spawn = world => {
       world.spawn(
         world.component(Transform, x, y),
         world.component(Velocity),
-        world.component(Junk)
-      );
+        world.component(Junk),
+      )
     }
 
-    shouldSpawnJunk.value = false;
-  }
-
-  if (clicked) {
-    hasClickedOnce.value = true
-    spawnWormhole(
-      coords.x,
-      coords.y,
-      30,
-    )
-  }
-
-  if (!hasClickedOnce.value && shouldSpawnWormhole) {
-    spawnWormhole(
-      Math.random() * canvas.width,
-      Math.random() * canvas.height,
-      Math.max(10, Math.random() * 60)
-    )
+    shouldSpawnJunk.value = false
   }
 }
 
-const sys_attract = (world) => {
+const sys_attract = world => {
   wormholes.forEach((we, [wt, w, wv]) => {
     if (w.obliterated) {
       return
     }
-    wv.x *= 0.95;
-    wv.y *= 0.95;
+    wv.x *= 0.95
+    wv.y *= 0.95
     junk.forEach((je, [jt, jv, j]) => {
       if (we === je) {
-        return;
+        return
       }
 
-      const dx = wt.x - jt.x;
-      const dy = wt.y - jt.y;
-      const len = Math.sqrt(dx * dx + dy * dy);
+      const dx = wt.x - jt.x
+      const dy = wt.y - jt.y
+      const len = Math.sqrt(dx * dx + dy * dy)
 
       if (len <= w.r) {
-        j.influenced = true;
+        j.influenced = true
 
         if (len < w.r / 10) {
           const jw = world.tryGet(je, Wormhole)
 
           if (jw) {
-            jw.obliterated = true;
+            jw.obliterated = true
           }
 
-          w.r += jw?.r || 0.1;
+          w.r += jw?.r || 0.1
 
-          world.destroy(je);
+          world.destroy(je)
         } else {
-          const nx = dx / len;
-          const ny = dy / len;
-
-          jv.x += nx / 200;
-          jv.y += ny / 200;
+          jv.x += (dx / len) / 200
+          jv.y += (dy / len) / 200
         }
       }
     })
   })
-};
+}
 
-const colorInfluenced = "#fff";
-const colorUninfluenced = "#99c7c7";
-
-const sys_render = (world) => {
-  context.clearRect(0, 0, 800, 300);
+const sys_render = world => {
+  context.clearRect(0, 0, 800, 300)
 
   junk.forEach((e, [{ x, y }, t, { influenced }]) => {
-    context.fillStyle = influenced ? colorInfluenced : colorUninfluenced;
-    context.fillRect(Math.floor(x), Math.floor(y), 1, 1);
+    context.fillStyle = influenced ? "#fff" : "#99c7c7"
+    context.fillRect(Math.floor(x), Math.floor(y), 1, 1)
   })
 
-  wormholes.forEach((e, [{x, y}, {r}]) => {
-    let maxPos;
-    let maxLen = Infinity;
+  wormholes.forEach((e, [{ x, y }, { r }]) => {
+    let maxPos
+    let maxLen = Infinity
 
     wormholes.forEach((e2, [pos2]) => {
       if (e === e2) {
-        return;
+        return
       }
 
-      const {x: x2, y: y2} = pos2;
-      const dx = x - x2;
-      const dy = y - y2;
-      const len = Math.sqrt(dx * dx + dy * dy);
+      const { x: x2, y: y2 } = pos2
+      const dx = x - x2
+      const dy = y - y2
+      const len = Math.sqrt(dx * dx + dy * dy)
 
       if (len < maxLen) {
-        maxLen = len;
-        maxPos = pos2;
+        maxLen = len
+        maxPos = pos2
       }
-
     })
 
     if (maxPos) {
-      context.strokeStyle = "#99c7c7";
-      context.lineWidth = 0.5;
-      context.beginPath();
-      context.moveTo(x, y);
-      context.lineTo(maxPos.x, maxPos.y);
-      context.closePath();
-      context.stroke();
+      context.strokeStyle = "#99c7c7"
+      context.lineWidth = 0.5
+      context.beginPath()
+      context.moveTo(x, y)
+      context.lineTo(maxPos.x, maxPos.y)
+      context.closePath()
+      context.stroke()
     }
   })
 
   wormholes.forEach((e, [{ x, y }, { r }]) => {
-    context.fillStyle = colorInfluenced;
-    context.beginPath();
-    context.arc(Math.floor(x), Math.floor(y), r / 10, 0, 2 * Math.PI);
-    context.fill();
+    context.fillStyle = "#fff"
+    context.beginPath()
+    context.arc(Math.floor(x), Math.floor(y), r / 10, 0, 2 * Math.PI)
+    context.fill()
   })
-};
+}
 
-const sys_physics = (world) => {
+const sys_physics = world => {
   junk.forEach((_, [t, { x, y }]) => {
-    t.x += x;
-    t.y += y;
+    t.x += x
+    t.y += y
   })
-};
+}
 
-const sys_log = (world) => {
+const sys_log = world => {
   const shouldLog = Javelin.interval(1000)
   const countAttached = Javelin.ref(0)
   const countDetached = Javelin.ref(0)
-  const { length: lengthAttached } = Javelin.attached(Transform)
-  const { length: lengthDetached } = Javelin.detached(Transform)
+  const countSpawned = Javelin.ref(0)
+  const countDestroyed = Javelin.ref(0)
 
-  countAttached.value += lengthAttached
-  countDetached.value += lengthDetached
+  Javelin.attached(Transform).forEach(() => countAttached.value++)
+  Javelin.detached(Transform).forEach(() => countDetached.value++)
+  Javelin.spawned().forEach(() => countSpawned.value++)
+  Javelin.destroyed().forEach(() => countDestroyed.value++)
 
   if (shouldLog) {
-    console.log(`attached=${countAttached.value} detached=${countDetached.value}`)
+    console.log(
+      `att=${countAttached.value} det=${countDetached.value} spa=${countSpawned.value} des=${countDestroyed.value}`,
+    )
     countAttached.value = 0
     countDetached.value = 0
+    countSpawned.value = 0
+    countDestroyed.value = 0
   }
 }
 
 const world = Javelin.createWorld({
   systems: [
     sys_spawn,
+    sys_spawn_junk,
     sys_physics,
     sys_attract,
     sys_render,
     sys_log,
   ],
-});
+})
 
 function spawnWormhole(x, y, r) {
   world.spawn(
     world.component(Transform, x, y),
     world.component(Wormhole, r),
     world.component(Velocity),
-    world.component(Junk)
-  );
+    world.component(Junk),
+  )
 }
 
 function loop() {
-  world.tick();
-  requestAnimationFrame(loop);
+  world.tick()
+  requestAnimationFrame(loop)
 }
 
 loop()

@@ -2,6 +2,7 @@ import { Component, ComponentOf, ComponentType } from "../../component"
 import { createEffect } from "../../effect"
 import { createStackPool } from "../../pool"
 import { Signal } from "../../signal"
+import { mutableEmpty } from "../../util"
 import { World } from "../../world"
 
 type EntityComponentPair = [number, Component]
@@ -21,7 +22,7 @@ const pairPool = createStackPool(
   1000,
 )
 
-const createEntityFilterEffect = (
+const createComponentFilterEffect = (
   getSignal: (world: World) => World["attached"] | World["detached"],
 ) =>
   createEffect(world => {
@@ -75,7 +76,7 @@ const createEntityFilterEffect = (
  *   })
  * }
  */
-export const attached = createEntityFilterEffect(world => world.attached)
+export const attached = createComponentFilterEffect(world => world.attached)
 
 /**
  * Get components of a given type that were detached during the previous tick.
@@ -87,4 +88,43 @@ export const attached = createEntityFilterEffect(world => world.attached)
  *   })
  * }
  */
-export const detached = createEntityFilterEffect(world => world.detached)
+export const detached = createComponentFilterEffect(world => world.detached)
+
+const createEntityFilterEffect = (
+  getSignal: (world: World) => World["spawned"] | World["destroyed"],
+) =>
+  createEffect(world => {
+    const ready: number[] = []
+    const staged: number[] = []
+
+    getSignal(world).subscribe(entity => staged.push(entity))
+
+    return () => {
+      let s: number | undefined
+      mutableEmpty(ready)
+      while ((s = staged.pop())) {
+        ready.push(s)
+      }
+      return ready
+    }
+  })
+
+/**
+ * Get all entities spawned last tick.
+ *
+ * @example
+ * const sys_physics = world => {
+ *   spawned().forEach(entity => ...)
+ * }
+ */
+export const spawned = createEntityFilterEffect(world => world.spawned)
+
+/**
+ * Get all entities destroyed last tick.
+ *
+ * @example
+ * const sys_physics = world => {
+ *   destroyed().forEach(entity => ...)
+ * }
+ */
+export const destroyed = createEntityFilterEffect(world => world.destroyed)

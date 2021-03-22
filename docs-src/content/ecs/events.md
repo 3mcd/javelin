@@ -41,13 +41,13 @@ Subscribing to events within systems is tricky since a system is just a function
 
 ### Attached
 
-The `attached` effect returns an array of components which were attached during the previous tick.
+The `attached` effect returns a function that takes a component type. This function returns object that can be iterated with `forEach` to get all components attached last tick.
 
 ```typescript
 import { attached } from "@javelin/ecs"
 
 const sys_physics = () => {
-  attached(Body).forEach(body => {
+  attached(Body).forEach((entity, body) => {
     ...
   })
 }
@@ -61,7 +61,7 @@ const attached = createEffect(world => {
   world.attached.subscribe((entity, component) => {
     // filter components by type and push to components array
   })
-  return (...) => {
+  return () => {
     return components
   }
 })
@@ -76,17 +76,41 @@ const attached = createEffect(world => {
 
 ### Detached
 
-The `detached` effect returns an array of components which were attached during the previous tick.
+`detached` is similar to `attached` but it returns entity-component pairs whose matching component was detached last tick.
 
 ```typescript
 import { detached } from "@javelin/ecs"
 
 const sys_physics = (world: World) => {
-  detached(Body).forEach(body => {
-    ...
-  })
+  detached(Body).forEach((entity, body) => ...)
 }
 ```
+
+### Spawned
+
+The `spawned` effect returns an array of all entities that were created last tick.
+
+```typescript
+import { spawned } from "@javelin/ecs"
+
+const sys_physics = (world: World) => {
+  spawned().forEach(entity => ...)
+}
+```
+
+
+### Destroyed
+
+Again, `destroyed` is similar to `spawned`, except it returns entities that were destroyed last tick.
+
+```typescript
+import { destroyed } from "@javelin/ecs"
+
+const sys_physics = (world: World) => {
+  destroyed().forEach(entity => ...)
+}
+```
+
 
 ### Changed
 

@@ -88,7 +88,7 @@ Queries are created with the `query` function, which takes a **selector** of com
 ```typescript
 import { query } from "@javelin/ecs"
 
-const players = query(Position, Player)
+const players = query(Position, Velocity)
 ```
 
 A query is an iterable object that produces tuples of `(entity, Component[])` for entities that meet the selector's criteria.
@@ -96,23 +96,22 @@ A query is an iterable object that produces tuples of `(entity, Component[])` fo
 There are two ways to iterate a query. The first (and fastest) way is to iterate the query directly with a `for..of` loop:
 
 ```ts
-for (const [entities, [position, player]] of players) {
+for (const [entities, [position, velocity]] of players) {
   for (let i = 0; i < entities.length; i++) {
-    position[i] // position of entity at entities[i]
-    player[i]   // player of entity at entities[i]
+    position[i].x += velocity[i].x
+    position[i].y += velocity[i].y
   }
 }
 ```
 
-An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. This method of iteration leaks the implementation details of how components are stored in archetypes. If you find it difficult to follow and don't mind a 2-3x iteration performance hit, consider using `forEach`. This method executes a callback for each entity->component[] tuple that matches the query:
+An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. This method of iteration leaks the implementation details of how components are stored in archetypes. If you find the syntax unappealing and don't mind a 2-3x iteration performance hit, consider using `forEach`. This method executes a callback for each entity that matches the query:
 
 ```ts
-players.forEach((entity, [position, player]) => {
-  position // position of entity
-  player   // player of entity
+players.forEach((entity, [position, velocity]) => {
+  position.x += velocity.x
+  position.y += velocity.y
 })
 ```
-
 
 <aside>
   <p>

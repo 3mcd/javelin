@@ -9,7 +9,7 @@ Change detection is very useful, but difficult to do performantly; therefore, **
 
 ## Techniques
 
-The `world.getObservedComponent` method returns a copy of a component that will notify the world when its data changes. It's important to remember to use this method when you want to use one of the change detection techniques outlined below. Bugs can arise in your game when you expect a component to be observed but you forgot to manipulate an observed copy.
+The `world.getObserved` method returns a copy of a component that will notify the world when its data changes. It's important to remember to use this method when you want to use one of the change detection techniques outlined below. Bugs can arise in your game when you expect a component to be observed but you forgot to manipulate an observed copy.
 
 ### Observing
 
@@ -17,7 +17,7 @@ If you want to know exactly what changes were made to a component during the cur
 
 ```typescript
 for (const [entity, position, input] of queries.vehicles) {
-  const observedPosition = world.getObservedComponent(position)
+  const observedPosition = world.getObserved(position)
 
   observedPosition.x = 2
   observedPosition.y = 3
