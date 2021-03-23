@@ -62,17 +62,6 @@ module.exports.run = function run() {
           c++
         }
       }
-      // const records = queries[j].records
-      // for (let i = 0; i < records.length; i++) {
-      //   const {
-      //     entities,
-      //     columns: [first],
-      //   } = records[i]
-      //   for (let j = 0; j < entities.length; j++) {
-      //     first[j].value
-      //     c++
-      //   }
-      // }
       // for (const [entity, first] of queries[j]) {
       //   first.value
       //   c++

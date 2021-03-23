@@ -7,6 +7,7 @@ export const createWorld = jest.fn(
     let e = 0
     return {
       addSystem: jest.fn(),
+      addTopic: jest.fn(),
       applyOps: jest.fn(),
       attach: jest.fn(),
       component: jest.fn(),
@@ -21,6 +22,7 @@ export const createWorld = jest.fn(
       ops: [],
       patch: jest.fn(),
       removeSystem: jest.fn(),
+      removeTopic: jest.fn(),
       reset: jest.fn(),
       snapshot: jest.fn(),
       spawn: jest.fn(() => e++),

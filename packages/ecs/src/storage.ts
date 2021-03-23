@@ -1,8 +1,10 @@
 import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
 import { assert } from "./debug"
+import { Entity } from "./entity"
 import { applyMutation, createMutationCache } from "./mutation_cache"
 import { createSignal, Signal } from "./signal"
+import { typeHash } from "./type"
 import { mutableEmpty, packSparseArray } from "./util"
 
 export type StorageSnapshot = {
@@ -141,7 +143,7 @@ export interface Storage {
   /**
    * Signal dispatched with newly created archetypes immediately after they are created.
    */
-  archetypeCreated: Signal<Archetype>
+  readonly archetypeCreated: Signal<Archetype>
 }
 
 export type StorageOptions = {

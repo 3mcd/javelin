@@ -1,9 +1,7 @@
 import { Archetype, ArchetypeTableColumn } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
-import { createComponentType } from "./helpers"
 import { globals } from "./internal/globals"
 import { createStackPool } from "./pool"
-import { number } from "./schema"
 import { typeIsSuperset } from "./type"
 import { mutableEmpty } from "./util"
 
@@ -28,25 +26,47 @@ export type QueryRecord<S extends Selector> = [
       : never
   },
 ]
-export type Query<S extends Selector> = {
+export type Query<S extends Selector = Selector> = {
+  readonly layout: number[]
+  readonly length: number
+  readonly signature: number[]
+  readonly filters: {
+    not: ReadonlySet<number>
+  }
+
   /**
    * Iterate over the query's matching entities, executing the provided
-   * iteratee for each entity-component array pair.
+   * iteratee for each [entity, component-array] pair.
    * @param iteratee Function executed for each query result
+   * @example
+   * burning.forEach((entity, [player, burn]) => {
+   *   player.health -= burn.damage
+   * })
    */
   forEach(iteratee: QueryForEachIteratee<S>): void
 
   /**
-   * Underlying query records. Useful if you need to manually iterate a query.
+   * Exclude entities with components of provided component type(s) from the
+   * query results.
+   * @param selector
+   */
+  not(...selector: Selector): Query<S>
+
+  /**
+   * Manually iterate underlying query records. Faster than forEach.
    * @example
-   * for (const {} of burning) {
-   *
+   * for (const [entities, [player, burn]] of burning) {
+   *   for (let i = 0; i < entities.length; i++) {
+   *     player[i].health -= burn[i].damage
+   *   }
    * }
    */
-  readonly records: ReadonlyArray<QueryRecord<S>>
-
   [Symbol.iterator](): IterableIterator<QueryRecord<S>>
 }
+
+export const queryMatchesArchetype = (query: Query, archetype: Archetype) =>
+  typeIsSuperset(archetype.signature, query.signature) &&
+  archetype.signature.every(c => !query.filters.not.has(c))
 
 /**
  * Create a query that can be used to iterate over entities that match a
@@ -61,16 +81,19 @@ export type Query<S extends Selector> = {
  * })
  */
 export function query<S extends Selector>(...selector: S): Query<S> {
-  const queryLength = selector.length
-  const queryLayout = selector.map(s => s.type)
-  const querySignature = queryLayout.slice().sort()
+  const length = selector.length
+  const layout = selector.map(s => s.type)
+  const filters = {
+    not: new Set<number>(),
+  }
+  const signature = layout.slice().sort()
   const recordsByWorldId = [] as QueryRecord<S>[][]
-  const maybeAddArchetypeRecord = (
+  const maybeRegisterArchetype = (
     archetype: Archetype,
     records: QueryRecord<S>[],
   ) => {
-    if (typeIsSuperset(archetype.signature, querySignature)) {
-      const columns = queryLayout.map(
+    if (queryMatchesArchetype(query, archetype)) {
+      const columns = layout.map(
         componentTypeId =>
           archetype.table[archetype.signature.indexOf(componentTypeId)],
       )
@@ -82,10 +105,10 @@ export function query<S extends Selector>(...selector: S): Query<S> {
     const records: QueryRecord<S>[] = []
     recordsByWorldId[worldId] = records
     world.storage.archetypes.forEach(archetype =>
-      maybeAddArchetypeRecord(archetype, records),
+      maybeRegisterArchetype(archetype, records),
     )
     world.storage.archetypeCreated.subscribe(archetype =>
-      maybeAddArchetypeRecord(archetype, records),
+      maybeRegisterArchetype(archetype, records),
     )
     return records
   }
@@ -98,7 +121,17 @@ export function query<S extends Selector>(...selector: S): Query<S> {
     1000,
   )
 
-  return {
+  const query = {
+    layout,
+    length,
+    signature,
+    filters,
+    not(...selector: Selector) {
+      for (let i = 0; i < selector.length; i++) {
+        filters.not.add(selector[i].type)
+      }
+      return query
+    },
     forEach(iteratee: QueryForEachIteratee<S>) {
       const records =
         recordsByWorldId[globals.__CURRENT_WORLD__] ||
@@ -108,7 +141,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
       for (let i = 0; i < records.length; i++) {
         const [entities, columns] = records[i]
         for (let j = 0; j < entities.length; j++) {
-          for (let k = 0; k < queryLength; k++) {
+          for (let k = 0; k < length; k++) {
             components[k] = columns[k][j]
           }
           iteratee(entities[j], components)
@@ -117,15 +150,11 @@ export function query<S extends Selector>(...selector: S): Query<S> {
 
       pool.release(components)
     },
-    get records() {
-      return (
-        recordsByWorldId[globals.__CURRENT_WORLD__] ||
-        registerWorld(globals.__CURRENT_WORLD__)
-      )
-    },
     [Symbol.iterator]() {
       return (recordsByWorldId[globals.__CURRENT_WORLD__] ||
         registerWorld(globals.__CURRENT_WORLD__))[Symbol.iterator]()
     },
   }
+
+  return query
 }

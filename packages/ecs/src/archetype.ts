@@ -1,4 +1,5 @@
 import { Component, ComponentOf, ComponentType } from "./component"
+import { createSignal, Signal } from "./signal"
 import { Type } from "./type"
 import { PackedSparseArray, unpackSparseArray } from "./util"
 
@@ -81,6 +82,9 @@ export interface Archetype<T extends ComponentType[] = ComponentType[]>
    *
    */
   readonly indices: ReadonlyArray<number>
+
+  readonly inserted: Signal<number>
+  readonly removed: Signal<number>
 }
 
 export type ArchetypeOptions<T extends ComponentType[]> =
@@ -128,6 +132,8 @@ export function createArchetype<T extends ComponentType[]>(
     indices,
     table,
   } = createArchetypeState<T>(options)
+  const inserted = createSignal<number>()
+  const removed = createSignal<number>()
 
   function insert(entity: number, components: Component[]) {
     for (let i = 0; i < components.length; i++) {
@@ -138,6 +144,8 @@ export function createArchetype<T extends ComponentType[]>(
     }
 
     indices[entity] = entities.push(entity) - 1
+
+    inserted.dispatch(entity)
   }
 
   function remove(entity: number) {
@@ -149,28 +157,31 @@ export function createArchetype<T extends ComponentType[]>(
 
     if (index === length - 1) {
       for (const column of table) column.pop()
-      return
+    } else {
+      // Move leading entity's components to removed index position
+      for (const column of table) {
+        column[index] = column.pop()!
+      }
+
+      // Move leading entity to removed index position
+      entities[index] = head!
+
+      // Update previously leading entity's index
+      indices[head!] = index
     }
 
-    // Move leading entity's components to removed index position
-    for (const column of table) {
-      column[index] = column.pop()!
-    }
-
-    // Move leading entity to removed index position
-    entities[index] = head!
-
-    // Update previously leading entity's index
-    indices[head!] = index
+    removed.dispatch(entity)
   }
 
   return {
+    entities,
+    indices,
+    insert,
+    inserted,
+    remove,
+    removed,
     signature,
     signatureInverse,
     table,
-    indices,
-    entities,
-    insert,
-    remove,
   }
 }

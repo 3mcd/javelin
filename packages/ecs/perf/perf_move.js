@@ -1,8 +1,8 @@
 const { performance } = require("perf_hooks")
 const {
   createWorld,
-  attached,
-  detached,
+  onAttach,
+  onDetach,
   query,
   createComponentType,
 } = require("../dist/cjs")
@@ -22,7 +22,7 @@ module.exports.run = () => {
   const qa = query(A)
 
   const sys_attach = world => {
-    for (const { entities, records } of qa.records) {
+    for (const [entities] of qa) {
       for (let i = 0; i < entities.length; i++) {
         const entity = entities[i]
         if (!world.has(entity, B)) {
@@ -30,13 +30,13 @@ module.exports.run = () => {
         }
       }
     }
-    detached(A).forEach(entity => {
+    onDetach(A).forEach(entity => {
       world.detach(entity, B)
       i++
     })
   }
   const sys_detach = world => {
-    attached(B).forEach(entity => {
+    onAttach(B).forEach(entity => {
       world.detach(entity, B)
       i++
     })

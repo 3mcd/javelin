@@ -4,6 +4,7 @@ import {
   ComponentOf,
   ComponentType,
 } from "./component"
+import { Entity } from "./entity"
 import {
   createComponentPool,
   serializeComponentType,
@@ -14,6 +15,7 @@ import { createStackPool, StackPool } from "./pool"
 import { schemaEqualsSerializedSchema } from "./schema"
 import { createSignal, Signal } from "./signal"
 import { createStorage, Storage, StorageSnapshot } from "./storage"
+import { Topic } from "./topic"
 import { mutableEmpty } from "./util"
 import {
   AttachOp,
@@ -51,6 +53,20 @@ export interface World<T = any> {
    * @param system
    */
   removeSystem(system: System<T>): void
+
+  /**
+   * Register a topic to be flushed each tick.
+   *
+   * @param topic
+   */
+  addTopic(topic: Topic): void
+
+  /**
+   * Remove a topic.
+   *
+   * @param topic
+   */
+  removeTopic(topic: Topic): void
 
   /**
    * Create an entity with a provided component makeup.
@@ -225,6 +241,7 @@ export type WorldOptions<T> = {
   componentPoolSize?: number
   snapshot?: WorldSnapshot
   systems?: System<T>[]
+  topics?: Topic[]
 }
 
 export type WorldState<T = unknown> = {
@@ -242,7 +259,7 @@ function getInitialWorldState<T>() {
 }
 
 export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
-  const { componentPoolSize = 1000 } = options
+  const { componentPoolSize = 1000, topics = [] } = options
   const systems: System<T>[] = []
   const worldOps: WorldOp[] = []
   const worldOpsPrevious: WorldOp[] = []
@@ -256,7 +273,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   )
   const componentTypes: ComponentType[] = []
   const componentTypePools = new Map<number, StackPool<Component>>()
-  const release: Component[] = []
   const attached = createSignal<number, ReadonlyArray<Component>>()
   const detached = createSignal<number, ReadonlyArray<Component>>()
   const spawned = createSignal<number>()
@@ -265,8 +281,8 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   const storage = createStorage({ snapshot: options.snapshot?.storage })
 
   let state: WorldState<T> = getInitialWorldState()
-  let entityCounter = 0
-  let systemCounter = 0
+  let nextEntity = 0
+  let nextSystem = 0
 
   options.systems?.forEach(addSystem)
 
@@ -351,6 +367,10 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
     mutableEmpty(worldOps)
 
+    for (let i = 0; i < topics.length; i++) {
+      topics[i].flush()
+    }
+
     // Execute systems
     for (let i = 0; i < systems.length; i++) {
       const system = systems[i]
@@ -360,16 +380,12 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
     destroying.clear()
 
-    for (let i = 0; i < release.length; i++) {
-      maybeReleaseComponent(release[i])
-    }
-
     state.currentTick++
   }
 
   function addSystem(system: System<T>) {
     systems.push(system)
-    system.__JAVELIN_SYSTEM_ID__ = systemCounter
+    system.__JAVELIN_SYSTEM_ID__ = nextSystem
   }
 
   function removeSystem(system: System<T>) {
@@ -377,6 +393,18 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
     if (index > -1) {
       systems.splice(index, 1)
+    }
+  }
+
+  function addTopic(topic: Topic) {
+    topics.push(topic)
+  }
+
+  function removeTopic(topic: Topic) {
+    const index = topics.indexOf(topic)
+
+    if (index > -1) {
+      topics.splice(index, 1)
     }
   }
 
@@ -406,7 +434,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function spawn(...components: ReadonlyArray<Component>) {
-    const entity = entityCounter++
+    const entity = nextEntity++
 
     worldOps.push(
       createWorldOp(WorldOpType.Spawn, entity),
@@ -523,14 +551,13 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     mutableEmpty(worldOpsPrevious)
     mutableEmpty(componentTypes)
     mutableEmpty(systems)
-    mutableEmpty(release)
 
     componentTypePools.clear()
     destroying.clear()
 
     state = getInitialWorldState()
 
-    entityCounter = 0
+    nextEntity = 0
 
     while (worldOps.length > 0) {
       worldOpPool.release(worldOps.pop()!)
@@ -569,6 +596,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
   const world = {
     addSystem,
+    addTopic,
     applyOps,
     attach,
     component,
@@ -583,6 +611,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     ops: worldOpsPrevious,
     patch,
     removeSystem,
+    removeTopic,
     reset,
     snapshot,
     spawn,
