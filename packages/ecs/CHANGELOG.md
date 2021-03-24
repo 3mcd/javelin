@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.21.1](https://github.com/3mcd/javelin/compare/v0.21.0...v0.21.1) (2021-03-24)
+
+
+### Bug Fixes
+
+* ensure type signature has ascending order ([dbfa6d4](https://github.com/3mcd/javelin/commit/dbfa6d478de9e585f97de6bc23351a2bb25f1e63))
+
+
+
+
+
 # [0.21.0](https://github.com/3mcd/javelin/compare/v0.20.0...v0.21.0) (2021-03-24)
 
 
