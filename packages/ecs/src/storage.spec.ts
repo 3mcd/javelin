@@ -1,6 +1,5 @@
-import { createStorage } from "./storage"
 import { createArchetype } from "./archetype"
-import { ComponentState } from "./component"
+import { createStorage } from "./storage"
 
 jest.mock("./archetype")
 

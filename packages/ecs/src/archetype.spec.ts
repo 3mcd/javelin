@@ -1,6 +1,4 @@
 import { ArchetypeSnapshot, createArchetype } from "./archetype"
-import { ComponentState } from "./component"
-import { unpackSparseArray } from "./util"
 
 describe("createArchetype", () => {
   const flags = {

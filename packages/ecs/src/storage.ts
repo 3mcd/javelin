@@ -4,7 +4,6 @@ import { assert } from "./debug"
 import { Entity } from "./entity"
 import { applyMutation, createMutationCache } from "./mutation_cache"
 import { createSignal, Signal } from "./signal"
-import { typeHash } from "./type"
 import { mutableEmpty, packSparseArray } from "./util"
 
 export type StorageSnapshot = {
@@ -144,6 +143,8 @@ export interface Storage {
    * Signal dispatched with newly created archetypes immediately after they are created.
    */
   readonly archetypeCreated: Signal<Archetype>
+
+  readonly entityRelocated: Signal<Entity, Archetype, Archetype>
 }
 
 export type StorageOptions = {
@@ -152,6 +153,7 @@ export type StorageOptions = {
 
 export function createStorage(options: StorageOptions = {}): Storage {
   const archetypeCreated = createSignal<Archetype>()
+  const entityRelocated = createSignal<Entity, Archetype, Archetype>()
   const mutationCache = createMutationCache({
     onChange(component: Component, target, path, value, mutArrayMethodType) {
       let changes = mutations.get(component)
@@ -266,6 +268,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
     destination.insert(entity, components)
     archetypeIndicesByEntity[entity] = archetypes.indexOf(destination)
+    entityRelocated.dispatch(entity, source, destination)
   }
 
   function insert(entity: number, components: Component[]) {
@@ -465,6 +468,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     clearMutations,
     create,
     destroy,
+    entityRelocated,
     findComponent,
     findComponentByComponentTypeId,
     getComponentMutations,

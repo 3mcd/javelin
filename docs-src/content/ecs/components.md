@@ -7,14 +7,14 @@ Most data within a game is stored in components. Components are just plain objec
 
 The `_tid` field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example.
 
-```typescript
+```ts
 const position = { _tid: 0, x: 2, y: 2 }
 const health = { _tid: 0, value: 100 }
 ```
 
 Using the same `_tid` for components with a different shape could result in catastrophic behavior! Just make the types unique:
 
-```typescript
+```ts
 const position = { _tid: 0, ... }
 const health = { _tid: 1, ... }
 ```
@@ -23,7 +23,7 @@ const health = { _tid: 1, ... }
 
 The `createComponentType` helper is used to define the types of components in your game. Component types make it easy to initialize components from a schema, and components created with a component type are automatically pooled.
 
-```typescript
+```ts
 import { createComponentType, number } from "@javelin/ecs"
 
 const Position = createComponentType({
@@ -53,7 +53,7 @@ array   (default = [])
 
 A default value for a data type can be specified in the schema by wrapping the data type in an object:
 
-```typescript
+```ts
 schema: {
   x: { type: number, defaultValue: -1 }
 }
@@ -63,7 +63,7 @@ schema: {
 
 A component is initialized from a component type using `world.component`:
 
-```typescript
+```ts
 const position = world.component(Position)
 
 position.x // 0
@@ -72,7 +72,7 @@ position.y // 0
 
 You may also specify an initializer function for a component type to make component creation easier.
 
-```typescript
+```ts
 const Position = createComponentType({
   ...
   initialize(position, x = 0, y = 0) {
@@ -92,7 +92,7 @@ const position = world.component(
 
 Components created via a component type are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singleton or low-volume components. You can modify the default pool size of all component types by setting the `componentPoolSize` option on the config object passed to `createWorld()`:
 
-```typescript
+```ts
 const world = createWorld({
   componentPoolSize: 100,
 })
@@ -100,7 +100,7 @@ const world = createWorld({
 
 Or, you can specify the pool size for a single component type when registering the it with `world.registerComponentType`:
 
-```typescript
+```ts
 world.registerComponentType(Position, 10000)
 ```
 

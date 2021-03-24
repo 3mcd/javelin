@@ -26,7 +26,7 @@ Effects are created using the aptly named `createEffect`. This function accepts 
 
 Below is an effect that will return `false` until the provided duration passes:
 
-```typescript
+```ts
 import { createEffect } from "@javelin/ecs"
 
 const timer = createEffect(world => {
@@ -108,7 +108,7 @@ const sys_fibonacci = () => {
 
 ### Global Effects
 
-The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS.
+The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS. Global effects are a good candidate for encapsulating this type of dependency. They are only executed once per tick and share the same state between systems.
 
 Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.
 
@@ -140,7 +140,7 @@ const sys_move = () => {
 }
 ```
 
-## Built-ins
+## Built-in Effects
 
 Some useful effects are included with the core ECS package. A few are outlined below.
 

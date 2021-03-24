@@ -9,7 +9,7 @@
 
 # javelin
 
-Javelin is a suite of packages used to build multiplayer games for the web.
+Javelin is a collection of packages used to build multiplayer games for the web.
 
 **Note** – each package is an active work in progress and each minor release will likely introduce breaking changes prior to a 1.0 release.
 

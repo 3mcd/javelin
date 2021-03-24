@@ -35,7 +35,7 @@ const sys_ai_enemy = (world: World) => {}
 
 Systems are registered with the world via the options passed to `createWorld`, or the `world.addSystem` method.
 
-```typescript
+```ts
 const sys_physics = () => ...
 const sys_render = () => ...
 const world = createWorld({ systems: [sys_physics] })
@@ -49,7 +49,7 @@ Systems have a signature of `(world: World<T>) => void`, where the first argumen
 
 The following is a world that will log the time elapsed since the last tick at around 60Hz:
 
-```typescript
+```ts
 const world = createWorld<number>({
   systems: [world => console.log(world.state.currentTickData)],
 })
@@ -85,7 +85,7 @@ Depending on its archetype, an entity may be eligible for iteration by a system 
 
 Queries are created with the `query` function, which takes a **selector** of component types.
 
-```typescript
+```ts
 import { query } from "@javelin/ecs"
 
 const players = query(Position, Velocity)
@@ -121,7 +121,7 @@ players.forEach((entity, [position, velocity]) => {
 
 The order of component types in the query's selector will match the order of components in the query's results. That is, `query(Position, Player)` will always yield tuples of components `(Position, Player)`:
 
-```typescript
+```ts
 world.spawn(world.component(Player), world.component(Position))
 world.spawn(world.component(Position), world.component(Player))
 
@@ -153,7 +153,7 @@ world.tick(1000 / 60)
 
 The tuple of components yielded by queries is re-used each iteration. This means that you shouldn't store the results of a query for use later like this:
 
-```typescript
+```ts
 const sys_status_effects = () => {
   const results = []
   shocked.forEach((e, components) => {
@@ -165,7 +165,7 @@ const sys_status_effects = () => {
 
 Every index of `results` corresponds to the same array, which is the tuple of components attached to the entity of the last iteration. If you absolutely need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
 
-```typescript
+```ts
 const results = []
 shocked.forEach((e, [a, b]) => {
   results.push([a, b])

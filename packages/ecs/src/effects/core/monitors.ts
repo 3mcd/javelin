@@ -2,21 +2,24 @@ import { Archetype } from "../../archetype"
 import { createEffect } from "../../effect"
 import { Entity } from "../../entity"
 import { Query, queryMatchesArchetype, Selector } from "../../query"
-import { Signal } from "../../signal"
 import { mutableEmpty } from "../../util"
 
 type MonitorIteratee = (entity: Entity) => void
+type MonitorPredicate = (
+  query: Query,
+  prev: Archetype,
+  next: Archetype,
+) => boolean
 
-const createMonitor = (
-  signalSelector: (archetype: Archetype) => Signal<number>,
-) =>
+const createMonitor = (predicate: MonitorPredicate) =>
   createEffect(world => {
-    const { storage } = world
-    const unsubscribers: (() => void)[] = []
-
-    let q: Query<any> | null = null
-    let ready: number[] = []
+    const {
+      storage: { entityRelocated },
+    } = world
+    let active: Query<any> | null = null
     let staged: number[] = []
+    let ready: number[] = []
+
     const forEach = (iteratee: MonitorIteratee) => {
       for (let i = 0; i < ready.length; i++) {
         iteratee(ready[i])
@@ -24,36 +27,25 @@ const createMonitor = (
     }
     const api = {
       forEach,
-      [Symbol.iterator]: ready[Symbol.iterator],
+      [Symbol.iterator]: () => ready[Symbol.iterator](),
     }
 
     const reset = (query: Query<any>) => {
-      let unsubscribe: (() => void) | undefined
-      while ((unsubscribe = unsubscribers.pop())) {
-        unsubscribe()
-      }
-      q = query
+      active = query
       mutableEmpty(staged)
       mutableEmpty(ready)
-      storage.archetypes.forEach(maybeRegisterArchetype)
     }
 
-    const maybeRegisterArchetype = (archetype: Archetype) => {
-      if (q === null) {
+    entityRelocated.subscribe((entity, prev, next) => {
+      if (active === null || predicate(active, prev, next) === false) {
         return
       }
-      if (queryMatchesArchetype(q, archetype)) {
-        const signal = signalSelector(archetype)
-        const unsubscribe = signal.subscribe(entity => staged.push(entity))
-        unsubscribers.push(unsubscribe)
-      }
-    }
-
-    storage.archetypeCreated.subscribe(maybeRegisterArchetype)
+      staged.push(entity)
+    })
 
     return function monitor<S extends Selector>(query: Query<S>) {
       let entity: number | undefined
-      if (q !== query) {
+      if (active !== query) {
         reset(query)
       }
       mutableEmpty(ready)
@@ -65,8 +57,8 @@ const createMonitor = (
   })
 
 /**
- * Get matching entities of a query that didn't match during the previous
- * execution.
+ * Get matching entities of a query that didn't match during the effect's
+ * last execution.
  * @param query
  * @example <caption>Iterate with `forEach`</caption>
  * onInsert(bodies).forEach(entity => {
@@ -77,11 +69,15 @@ const createMonitor = (
  *   // entity now matches the bodies query
  * }
  */
-export const onInsert = createMonitor(archetype => archetype.inserted)
+export const onInsert = createMonitor((query, prev, next) => {
+  const matchPrev = queryMatchesArchetype(query, prev)
+  const matchNext = queryMatchesArchetype(query, next)
+  return !matchPrev && matchNext
+})
 
 /**
- * Get non-matching entities of a query that matched during the previous
- * execution.
+ * Get non-matching entities of a query that matched during the effect's
+ * last execution.
  * @param query
  * @example <caption>Iterate with `forEach`</caption>
  * onRemove(bodies).forEach(entity => {
@@ -92,4 +88,8 @@ export const onInsert = createMonitor(archetype => archetype.inserted)
  *   // entity no longer matches the bodies query
  * }
  */
-export const onRemove = createMonitor(archetype => archetype.removed)
+export const onRemove = createMonitor((query, prev, next) => {
+  const matchPrev = queryMatchesArchetype(query, prev)
+  const matchNext = queryMatchesArchetype(query, next)
+  return matchPrev && !matchNext
+})

@@ -33,7 +33,7 @@ const createTrigger = (
     }
     const api = {
       forEach,
-      [Symbol.iterator]: ready[Symbol.iterator],
+      [Symbol.iterator]: () => ready[Symbol.iterator](),
     }
     const signal = worldSignalSelector(world)
 
@@ -72,8 +72,8 @@ const createTrigger = (
   })
 
 /**
- * Get components of a given type that were attached during the previous
- * execution.
+ * Get components of a given type that were attached during the effect's
+ * last execution.
  *
  * @example <caption>Iterate using `forEach`</caption>
  * onAttach(Body).forEach((entity, body) => {
@@ -87,9 +87,9 @@ const createTrigger = (
 export const onAttach = createTrigger(world => world.attached)
 
 /**
- * Get components of a given type that were detached during the previous
- * execution. Note – the component is reset and re-pooled, but is provided
- * in the instance a referential comparison should be made.
+ * Get components of a given type that were detached during the effect's
+ * last execution. Note – the component is reset and re-pooled, but is
+ * provided if a referential comparison should be made.
  *
  * @example <caption>Iterate using `forEach`</caption>
  * onDetach(Body).forEach((entity, body) => {

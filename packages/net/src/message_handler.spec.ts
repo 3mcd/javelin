@@ -1,4 +1,4 @@
-import { ComponentState, World, WorldOpType } from "@javelin/ecs"
+import { World, WorldOpType } from "@javelin/ecs"
 import { createMessageHandler } from "./message_handler"
 import {
   JavelinMessageType,
@@ -41,10 +41,12 @@ describe("createMessageHandler", () => {
       6,
     ]
     const opsA = protocol.ops([
-      [WorldOpType.Spawn as const, 0, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
+      [WorldOpType.Spawn as const, 0],
+      [WorldOpType.Attach, 0, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
     ])
     const opsB = protocol.ops([
-      [WorldOpType.Spawn as const, 1, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
+      [WorldOpType.Spawn as const, 1],
+      [WorldOpType.Attach, 1, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
     ])
 
     spawn.mockReturnValue(0)
@@ -97,10 +99,12 @@ describe("createMessageHandler", () => {
       3,
     ]
     const opsA = protocol.ops([
-      [WorldOpType.Spawn as const, 0, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
+      [WorldOpType.Spawn as const, 0],
+      [WorldOpType.Attach, 0, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
     ])
     const opsB = protocol.ops([
-      [WorldOpType.Spawn as const, 1, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
+      [WorldOpType.Spawn as const, 1],
+      [WorldOpType.Attach, 1, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
     ])
 
     spawn.mockReturnValue(0)
@@ -145,10 +149,12 @@ describe("createMessageHandler", () => {
       { _tid: 0, x: 2, y: 2 },
     ]
     const opsA = protocol.ops([
-      [WorldOpType.Spawn as const, 0, [{ _tid: 0, x: 0, y: 0 }]],
+      [WorldOpType.Spawn as const, 0],
+      [WorldOpType.Attach, 0, [{ _tid: 0, x: 0, y: 0 }]],
     ])
     const opsB = protocol.ops([
-      [WorldOpType.Spawn as const, 1, [{ _tid: 0, x: 0, y: 0 }]],
+      [WorldOpType.Spawn as const, 1],
+      [WorldOpType.Attach, 1, [{ _tid: 0, x: 0, y: 0 }]],
     ])
 
     spawn.mockReturnValue(0)

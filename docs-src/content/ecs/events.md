@@ -3,15 +3,15 @@ title = "Events"
 weight = 6
 +++
 
-You may need to detect when components are added, removed, or modified. For example, you may want to know when a component is attached to, or detached from, an entity in order to trigger a change or notify a third-party library. You can use some of Javelin's built-in effects and methods to react to these kinds of events.
+You'll eventually need to detect when components are added, removed, or modified. For example, you may want to know when a component is attached to, or detached from, an entity in order to trigger a change in the ECS or notify a third-party library. You can use some of Javelin's built-in effects and methods to react to these kinds of events.
 
 ## Signals
 
-A world dispatches several events that can be used to react to changes in the ECS.
+A world dispatches several events, called [signals](https://millermedeiros.github.io/js-signals/), that can be used to react to changes in the ECS.
 
-`world.attached` and `world.detached` are dispatched when components are attached to and deatched from an entity, respectively:
+The `world.attached` and `world.detached` signals are dispatched when components are attached to and deatched from an entity, respectively:
 
-```typescript
+```ts
 world.attached.subscribe((entity, component) => {
   // component was attached last tick
 })
@@ -20,103 +20,117 @@ world.detached.subscribe((entity, component) => {
 })
 ```
 
+`world.spawned` is dispatched when an entity is created:
+
+```ts
+world.spawned.subscribe(entity => {
+  // entity was created last tick
+})
+```
+
 `world.destroyed` is dispatched when an entity is destroyed:
 
-```typescript
+```ts
 world.destroyed.subscribe(entity => {
   // entity was destroyed last tick
 })
 ```
 
+
+
 A function is returned from `signal.subscribe()` that can be used to remove the subscriber.
 
-```typescript
+```ts
 const unsubscribe = world.attached.subscribe(...)
 unsubscribe()
 ```
 
-## Effects
+## Triggers
 
-Subscribing to events within systems is tricky since a system is just a function that runs each tick. You could write an effect to ensure a callback is registered only once, or you can use the following built-in effects:
+Subscribing to events within systems is tricky since a system is just a function that runs each tick. Javelin has a couple of built-in effects called **triggers** that register event handlers behind the scenes, exposing changed entitites with an iterable API.
 
-### Attached
+### `onAttach`
 
-The `attached` effect returns a function that takes a component type. This function returns object that can be iterated with `forEach` to get all components attached last tick.
+The `onAttach` trigger accepts a component type and returns an object that can be iterated with `for..of` or `forEach` to get entity-component pairs where the component of the specified type was detached last tick.
 
-```typescript
-import { attached } from "@javelin/ecs"
+```ts
+import { onAttach } from "@javelin/ecs"
 
 const sys_physics = () => {
-  attached(Body).forEach((entity, body) => {
+  onAttach(Body).forEach((entity, body) => {
     ...
   })
 }
 ```
 
-`attached`'s implementation looks something like:
+### `onDetach`
 
-```typescript
-const attached = createEffect(world => {
-  const components = []
-  world.attached.subscribe((entity, component) => {
-    // filter components by type and push to components array
-  })
-  return () => {
-    return components
-  }
-})
-```
+`onDetach` is similar to `onAttach`, but it returns entity-component pairs whose matching component was detached last tick.
 
-<aside>
-  <p>
-    <strong>Tip</strong> — If you need to react immediately to attached/detached events, consider implementing a custom effect and using the `world.attached` and `world.detached` signals.
-  </p>
-</aside>
-
-
-### Detached
-
-`detached` is similar to `attached` but it returns entity-component pairs whose matching component was detached last tick.
-
-```typescript
-import { detached } from "@javelin/ecs"
+```ts
+import { onDetach } from "@javelin/ecs"
 
 const sys_physics = (world: World) => {
-  detached(Body).forEach((entity, body) => ...)
+  onDetach(Body).forEach((entity, body) => ...)
 }
 ```
 
-### Spawned
+## Monitors
 
-The `spawned` effect returns an array of all entities that were created last tick.
+Sometimes you need to go a bit further and detect when an entity matches or no longer matches a complex query. A **monitor** is an effect that accepts a query and yields entities that meet one of these conditions. Like triggers, monitors can be iterated with `forEach` or `for..of`.
 
-```typescript
-import { spawned } from "@javelin/ecs"
+An entity is only included in a monitor's results **once** while it continues to match the query. An entity is eligible again only if it is excluded (i.e. due to a change in its type) and re-included.
 
-const sys_physics = (world: World) => {
-  spawned().forEach(entity => ...)
-}
+### `onInsert`
+
+The `onInsert` monitor yields entities who will match a specific query for the first time this tick.
+
+```ts
+const spooky = query(Enemy, Ghost)
+onInsert(spooky).forEach(entity => ...)
 ```
 
+`forEach` executes the provided callback for entities whose component changes last tick caused it to match the query's criteria. In the above example, the `entity` variable would correspond to an entity who made one of the following type transitions last tick:
 
-### Destroyed
-
-Again, `destroyed` is similar to `spawned`, except it returns entities that were destroyed last tick.
-
-```typescript
-import { destroyed } from "@javelin/ecs"
-
-const sys_physics = (world: World) => {
-  destroyed().forEach(entity => ...)
-}
+```
+from    | to
+--------|----------------
+()      | (Enemy, Ghost)
+(Enemy) | (Enemy, Ghost)
+(Ghost) | (Enemy, Ghost)
 ```
 
+ Below is an example of an entity transitioning between multiple types, and whether or not that transition would result in the entity being included in `onInsert`'s results:
 
-### Changed
+```
+(Enemy)                  -> excluded
+(Enemy, Ghost)           -> included
+(Enemy, Ghost, Confused) -> excluded
+(Ghost, Confused)        -> excluded
+(Enemy, Ghost)           -> included
+```
+
+### `onRemove`
+
+`onRemove` is simply the inverse of `onInsert`. It will yield entities whose type no longer matches the query's criteria.
+
+```ts
+onRemove(spooky).forEach(entity => ...)
+```
+
+```
+(Enemy)                  -> excluded
+(Enemy, Ghost)           -> excluded
+(Enemy, Ghost, Confused) -> excluded
+(Ghost, Confused)        -> included
+(Enemy, Ghost)           -> excluded
+```
+
+## Changes
 
 A world tracks changes made to all its components. The `isComponentChanged` method accepts a component and will return true if the component was changed last tick, otherwise it returns false.
 
-```typescript
+```ts
 if (world.isComponentChanged(body)) {
   simulation.sync(body)
 }

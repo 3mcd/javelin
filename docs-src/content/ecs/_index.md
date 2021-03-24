@@ -17,7 +17,7 @@ This section aims to serve as a quick primer on Entity Component Systems (ECS) a
 
 A best practice in OOP game development is to favor composition over inheritance when designing game data and behavior. Take the following example, where a `Player` class accepts `Body` and `Input` objects to enhance players with physics properties and input control:
 
-```typescript
+```ts
 class Body {
   readonly velocity = { x: 0, y: 0 }
 }

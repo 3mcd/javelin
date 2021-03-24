@@ -13,7 +13,7 @@ weight = 2
 
 A world is created using the `createWorld` function defined in [world.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world.ts). `createWorld` accepts a config object that, at minimum, defines an array of systems that the world should execute each tick.
 
-```typescript
+```ts
 import { createWorld } from "@javelin/ecs"
 
 const world = createWorld({
@@ -23,13 +23,13 @@ const world = createWorld({
 
 Systems can also be registered after a world is initialized using the `world.addSystem` method:
 
-```typescript
+```ts
 world.addSystem(() => console.log("Tock!"))
 ```
 
 Calling `world.tick()` will process operations (like adding, removing, updating entities) that occurred during the previous tick. Then, all systems will be executed in the order that they were registered.
 
-```typescript
+```ts
 setInterval(world.tick, 1000)
 ```
 
@@ -41,7 +41,7 @@ Components are generally accessed using iterable [queries](/ecs/systems/#queryin
 
 `world.tryGet` attempts to locate a component of an entity by component type, returning `null` if not found:
 
-```typescript
+```ts
 if (world.tryGet(entity, Invulnerable) === null) {
   health.value -= burn.valuePerTick
 }
@@ -49,7 +49,7 @@ if (world.tryGet(entity, Invulnerable) === null) {
 
 `world.get` will throw an error if the component is not found, which can be used to assert a relationship between an archetype and another component type.
 
-```typescript
+```ts
 // an entity of (Health, Burn) should always have a position
 world.get(entity, Position)
 ```
@@ -60,7 +60,7 @@ world.get(entity, Position)
 
 You can take a snapshot of a world using `world.snapshot()` and create a new world from it later:
 
-```typescript
+```ts
 const world = createWorld({ snapshot: JSON.parse(localStorage.getItem("world")) })
 ...
 const snapshot = world.snapshot()

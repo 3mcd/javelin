@@ -48,6 +48,6 @@ The package.json `module` field points to the ESM build, which will be automatic
 
 The package.json `main` field points to the CommonJS build, which will be included automatically when loaded with Node's `require()`:
 
-```typescript
+```ts
 const Javelin = require("@javelin/ecs")
 ```

@@ -10,8 +10,8 @@ jest.mock("./world")
 
 describe("query", () => {
   it("queries collections of components", () => {
-    const A = createComponentType({ name: "A", type: 0, schema: {} })
-    const B = createComponentType({ name: "B", type: 1, schema: {} })
+    const A = createComponentType({ type: 0, schema: {} })
+    const B = createComponentType({ type: 1, schema: {} })
     const world = createWorld()
     const table = [
       [

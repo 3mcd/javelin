@@ -23,6 +23,7 @@ export const createStorage = jest.fn(
       removeByTypeIds: jest.fn(),
       snapshot: jest.fn(),
       upsert: jest.fn(),
+      entityRelocated: createSignal(),
       archetypeCreated: createSignal(),
     }
   },

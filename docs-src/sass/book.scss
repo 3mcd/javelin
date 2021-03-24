@@ -34,11 +34,11 @@ html {
   color: #32363b;
 
   @include min-screen($breakpoint--laptop) {
-    font-size: 16px;
+    font-size: 17px;
   }
 
   @include min-screen($breakpoint--desktop) {
-    font-size: 18px;
+    font-size: 19px;
   }
 }
 

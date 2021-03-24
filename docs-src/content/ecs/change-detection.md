@@ -15,7 +15,7 @@ The `world.getObserved` method returns a copy of a component that will notify th
 
 If you want to know exactly what changes were made to a component during the current tick, use `world.getComponentMutations`. This method returns a flattened array of changes made to a component. Take the following example:
 
-```typescript
+```ts
 for (const [entity, position, input] of queries.vehicles) {
   const observedPosition = world.getObserved(position)
 

@@ -1,4 +1,5 @@
 import { Archetype } from "../archetype"
+import { createSignal } from "../signal"
 
 export const createArchetype = jest.fn(
   ({ signature }): Archetype => {
@@ -10,6 +11,8 @@ export const createArchetype = jest.fn(
       entities: [0],
       insert: jest.fn(),
       remove: jest.fn(),
+      inserted: createSignal(),
+      removed: createSignal(),
     }
   },
 )

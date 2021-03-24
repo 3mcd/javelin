@@ -11,7 +11,7 @@ Systems are typically **pure**, as they only read/modify the components of queri
 
 Let's say you want to apply an impulse to a physics body when a player jumps so it gains some momentum in a direction. One way of doing this is to model the operation as a component.
 
-```typescript
+```ts
 type Impulse = {
   x: number
   y: number
@@ -20,7 +20,7 @@ type Impulse = {
 
 When you need to apply a impulse to an entity, you insert an `Impulse` component on the current tick, and remove it on the following tick.
 
-```typescript
+```ts
 const sys_input = () => {
   queries.jumping.forEach(entity => {
     world.attach(entity, world.component(Impulse))
@@ -48,7 +48,7 @@ Topics are simple FIFO buffers that hold on to messages between ticks that can b
 
 Topics are created using the `createTopic<T>()` function, where `T` is the type (e.g. a union type) of message managed by the topic. The `createTopic` function is defined in [topic.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/topic.ts).
 
-```typescript
+```ts
 import { createTopic } from "@javelin/ecs"
 
 type ImpulseCommand = [
@@ -62,14 +62,14 @@ const physicsTopic = createTopic<ImpulseCommand>()
 
 Messages are enqueued using the `topic.push()` method.
 
-```typescript
+```ts
 const message: ImpulseCommand = ["impulse", 23, [0, 2]]
 topic.push(message)
 ```
 
 Messages are unavailable until the `topic.flush()` method is called. It's recommended to flush the topics in your main game loop, after calling `world.tick`.
 
-```typescript
+```ts
 const tick = () => {
   world.tick()
   physicsTopic.flush()
@@ -78,7 +78,7 @@ const tick = () => {
 
 Messages can then be read using a for..of loop.
 
-```typescript
+```ts
 import { physicsTopic } from "./physics_topic"
 
 const sys_physics = () => {
@@ -101,6 +101,6 @@ Sometimes messages should be handled as quickly as possible, like when processin
   </p>
 </aside>
 
-```typescript
+```ts
 topic.pushImmediate(["impulse", 24, [0, 2]])
 ```
