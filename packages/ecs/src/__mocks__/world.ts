@@ -23,6 +23,7 @@ export const createWorld = jest.fn(
       patch: jest.fn(),
       removeSystem: jest.fn(),
       removeTopic: jest.fn(),
+      reserve: jest.fn(() => e++),
       reset: jest.fn(),
       snapshot: jest.fn(),
       spawn: jest.fn(() => e++),

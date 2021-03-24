@@ -10,12 +10,12 @@ import {
 describe("createMessageHandler", () => {
   it("applies reliable component updates", () => {
     const patch = jest.fn()
-    const spawn = jest.fn()
+    const reserve = jest.fn()
     const messageHandler = createMessageHandler()
     const world = ({
       patch,
       applyOps: jest.fn(),
-      spawn,
+      reserve,
     } as any) as World
     const update: Update = [
       JavelinMessageType.Update,
@@ -49,11 +49,11 @@ describe("createMessageHandler", () => {
       [WorldOpType.Attach, 1, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
     ])
 
-    spawn.mockReturnValue(0)
+    reserve.mockReturnValue(0)
     messageHandler.push(opsA)
     messageHandler.system(world)
 
-    spawn.mockReturnValue(1)
+    reserve.mockReturnValue(1)
     messageHandler.push(opsB)
     messageHandler.system(world)
 
@@ -71,12 +71,12 @@ describe("createMessageHandler", () => {
 
   it("skips unregistered entities when applying reliable updates", () => {
     const patch = jest.fn()
-    const spawn = jest.fn()
+    const reserve = jest.fn()
     const messageHandler = createMessageHandler()
     const world = ({
       patch,
       applyOps: jest.fn(),
-      spawn,
+      reserve,
     } as any) as World
     const update: Update = [
       JavelinMessageType.Update,
@@ -107,11 +107,11 @@ describe("createMessageHandler", () => {
       [WorldOpType.Attach, 1, [{ _tid: 0, x: 0, y: 0, z: 0 }]],
     ])
 
-    spawn.mockReturnValue(0)
+    reserve.mockReturnValue(0)
     messageHandler.push(opsA)
     messageHandler.system(world)
 
-    spawn.mockReturnValue(1)
+    reserve.mockReturnValue(1)
     messageHandler.push(opsB)
     messageHandler.system(world)
 
@@ -128,14 +128,14 @@ describe("createMessageHandler", () => {
     const upsert = jest.fn((...args: any[]) => {
       upsertCallArgs.push(JSON.parse(JSON.stringify(args)))
     })
-    const spawn = jest.fn()
+    const reserve = jest.fn()
     const messageHandler = createMessageHandler()
     const world = ({
       storage: {
         upsert,
       },
-      spawn,
       applyOps: jest.fn(),
+      reserve,
     } as any) as World
     const update: UpdateUnreliable = [
       JavelinMessageType.UpdateUnreliable,
@@ -157,11 +157,11 @@ describe("createMessageHandler", () => {
       [WorldOpType.Attach, 1, [{ _tid: 0, x: 0, y: 0 }]],
     ])
 
-    spawn.mockReturnValue(0)
+    reserve.mockReturnValue(0)
     messageHandler.push(opsA)
     messageHandler.system(world)
 
-    spawn.mockReturnValue(1)
+    reserve.mockReturnValue(1)
     messageHandler.push(opsB)
     messageHandler.system(world)
 
