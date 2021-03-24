@@ -22,7 +22,7 @@
     "multiplayer",
     "networking"
   ],
-  "gitHead": "3b33227c22aebf8c4880f6456de1b51c34e9c9b9",
+  "gitHead": "084d65218a12efbb32ea2b22e0f8e1812acb7d7e",
   "devDependencies": {
     "@msgpack/msgpack": "^2.4.1"
   }

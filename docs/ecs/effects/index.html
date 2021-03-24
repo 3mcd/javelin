@@ -273,14 +273,14 @@
 <p>The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS. Global effects are a good candidate for encapsulating this type of dependency. They are only executed once per tick and share the same state between systems.</p>
 <p>Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">simulation </span><span style="color:#388282;">= </span><span style="color:#555c64;">createEffect(</span><span style="color:#8a6c3c;">world </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">const </span><span style="color:#555c64;">sim </span><span style="color:#388282;">= new </span><span style="color:#555c64;">Library.Simulation()
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">simulationEffect </span><span style="color:#388282;">= </span><span style="color:#555c64;">createEffect(</span><span style="color:#8a6c3c;">world </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">const </span><span style="color:#555c64;">simulation </span><span style="color:#388282;">= new </span><span style="color:#555c64;">Library.Simulation()
   </span><span style="color:#388282;">return </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
     queries.attached.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">)  </span><span style="color:#8c95a0;">// add new bodies to simulation   
     </span><span style="color:#555c64;">queries.detached.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">)  </span><span style="color:#8c95a0;">// remove detached bodies from simulation
     </span><span style="color:#555c64;">queries.simulated.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">) </span><span style="color:#8c95a0;">// copy simulation state to components
-    </span><span style="color:#555c64;">sim.step(world.state.currentTickData) </span><span style="color:#8c95a0;">// step simulation in sync with world
-    </span><span style="color:#388282;">return </span><span style="color:#555c64;">sim
+    </span><span style="color:#555c64;">simulation.step(world.state.currentTickData) </span><span style="color:#8c95a0;">// step simulation in sync with world
+    </span><span style="color:#388282;">return </span><span style="color:#555c64;">simulation
   }
 }, {
   global: </span><span style="color:#a35d66;">true

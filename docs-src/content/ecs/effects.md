@@ -113,14 +113,14 @@ The most common use-case for effects is probably interacting with a third party,
 Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.
 
 ```ts
-const simulation = createEffect(world => {
-  const sim = new Library.Simulation()
+const simulationEffect = createEffect(world => {
+  const simulation = new Library.Simulation()
   return () => {
     queries.attached.forEach(...)  // add new bodies to simulation   
     queries.detached.forEach(...)  // remove detached bodies from simulation
     queries.simulated.forEach(...) // copy simulation state to components
-    sim.step(world.state.currentTickData) // step simulation in sync with world
-    return sim
+    simulation.step(world.state.currentTickData) // step simulation in sync with world
+    return simulation
   }
 }, {
   global: true
