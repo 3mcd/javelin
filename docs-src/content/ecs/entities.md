@@ -43,7 +43,7 @@ world.tick() // (Player, Health, Input) -> (Player, Health)
 
 <aside>
   <p>
-    <strong>Tip</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.spawn(components)</code> because the components of the affected entity must be relocated in memory each time the entity's archetype changes.
+    <strong>Tip</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.spawn(...components)</code> because the components of the affected entity must be relocated each time the entity's archetype changes.
   </p>
 </aside>
 

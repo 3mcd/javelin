@@ -64,16 +64,16 @@ Messages are enqueued using the `topic.push()` method.
 
 ```ts
 const message: ImpulseCommand = ["impulse", 23, [0, 2]]
-topic.push(message)
+physicsTopic.push(message)
 ```
 
-Messages are unavailable until the `topic.flush()` method is called. It's recommended to flush the topics in your main game loop, after calling `world.tick`.
+Messages are unavailable until the `topic.flush()` method is called. You can call `flush()` manually, or you can configure your world to do it automatically with the `topics` option:
 
 ```ts
-const tick = () => {
-  world.tick()
-  physicsTopic.flush()
-}
+createWorld({
+  topics: [physicsTopic],
+  ...
+})
 ```
 
 Messages can then be read using a for..of loop.
@@ -102,5 +102,5 @@ Sometimes messages should be handled as quickly as possible, like when processin
 </aside>
 
 ```ts
-topic.pushImmediate(["impulse", 24, [0, 2]])
+physicsTopic.pushImmediate(["impulse", 24, [0, 2]])
 ```

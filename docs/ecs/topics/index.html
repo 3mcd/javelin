@@ -232,14 +232,14 @@
 <p>Messages are enqueued using the <code>topic.push()</code> method.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">message</span><span style="color:#388282;">: </span><span style="color:#555c64;">ImpulseCommand </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">23</span><span style="color:#555c64;">, [</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">]]
-topic.push(message)
+physicsTopic.push(message)
 </span></code></pre>
-<p>Messages are unavailable until the <code>topic.flush()</code> method is called. It's recommended to flush the topics in your main game loop, after calling <code>world.tick</code>.</p>
+<p>Messages are unavailable until the <code>topic.flush()</code> method is called. You can call <code>flush()</code> manually, or you can configure your world to do it automatically with the <code>topics</code> option:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">tick </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  world.tick()
-  physicsTopic.flush()
-}
+<code><span style="color:#555c64;">createWorld({
+  topics: [physicsTopic],
+  </span><span style="color:#388282;">...
+</span><span style="color:#555c64;">})
 </span></code></pre>
 <p>Messages can then be read using a for..of loop.</p>
 <pre style="background-color:#f6f8f8;">
@@ -264,7 +264,7 @@ topic.push(message)
   </p>
 </aside>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">topic.pushImmediate([</span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">24</span><span style="color:#555c64;">, [</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">]])
+<code><span style="color:#555c64;">physicsTopic.pushImmediate([</span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">24</span><span style="color:#555c64;">, [</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">]])
 </span></code></pre> 
                     </div>
                 </div>

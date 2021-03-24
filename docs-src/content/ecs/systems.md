@@ -104,7 +104,7 @@ for (const [entities, [position, velocity]] of players) {
 }
 ```
 
-An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. This method of iteration leaks the implementation details of how components are stored in archetypes. If you find the syntax unappealing and don't mind a 2-3x iteration performance hit, consider using `forEach`. This method executes a callback for each entity that matches the query:
+This method of iteration leaks the implementation details of how components are stored in archetypes. An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. If your game doesn't reach high entity counts (10^5) and you don't mind a 2-3x iteration performance hit, consider using `forEach`. This method executes a callback for each entity that matches the query:
 
 ```ts
 players.forEach((entity, [position, velocity]) => {
@@ -115,7 +115,7 @@ players.forEach((entity, [position, velocity]) => {
 
 <aside>
   <p>
-    <strong>Tip</strong> — most examples in the Javelin docs use `forEach` since it's a bit easier to follow, but complex games and benchmarks should use manual iteration for ideal performance.
+    <strong>Tip</strong> — most examples in the Javelin docs use <code>forEach</code> since it's a bit easier to read, but stick to the <code>for..of</code> approach if your game has many entities.
   </p>
 </aside>
 
@@ -131,22 +131,6 @@ const sys_render = () => {
     draw(sprites.player, position, player.name)
   })
 }
-```
-
-### Modifying State
-
-In order to mutate game state within a system, you'll need access to the world that is executing it it. The world that is currently executing a tick is passed as the system's first argument:
-
-```ts
-function sys_munch_doritos(world: World<number>) {
-  console.log(world.state.currentTickData) // logs 0.1666666667
-}
-
-world.addSystem(sys_munch_doritos)
-world.tick(1000 / 60)
-```
-```
-> 16.66666666
 ```
 
 ### Query Caveats

@@ -260,7 +260,7 @@ setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="col
   }
 }
 </span></code></pre>
-<p>An outer <code>for..of</code> loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. This method of iteration leaks the implementation details of how components are stored in archetypes. If you find the syntax unappealing and don't mind a 2-3x iteration performance hit, consider using <code>forEach</code>. This method executes a callback for each entity that matches the query:</p>
+<p>This method of iteration leaks the implementation details of how components are stored in archetypes. An outer <code>for..of</code> loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. If your game doesn't reach high entity counts (10^5) and you don't mind a 2-3x iteration performance hit, consider using <code>forEach</code>. This method executes a callback for each entity that matches the query:</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#555c64;">players.forEach((</span><span style="color:#8a6c3c;">entity</span><span style="color:#555c64;">, [</span><span style="color:#8a6c3c;">position</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">velocity</span><span style="color:#555c64;">]) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   position.x </span><span style="color:#388282;">+= </span><span style="color:#555c64;">velocity.x
@@ -268,7 +268,7 @@ setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="col
 })
 </span></code></pre><aside>
   <p>
-    <strong>Tip</strong> — most examples in the Javelin docs use `forEach` since it's a bit easier to follow, but complex games and benchmarks should use manual iteration for ideal performance.
+    <strong>Tip</strong> — most examples in the Javelin docs use <code>forEach</code> since it's a bit easier to read, but stick to the <code>for..of</code> approach if your game has many entities.
   </p>
 </aside>
 <p>The order of component types in the query's selector will match the order of components in the query's results. That is, <code>query(Position, Player)</code> will always yield tuples of components <code>(Position, Player)</code>:</p>
@@ -282,20 +282,6 @@ world.spawn(world.component(</span><span style="color:#88669e;">Position</span><
     </span><span style="color:#555c64;">draw(sprites.player, position, player.name)
   })
 }
-</span></code></pre><h3 id="modifying-state">Modifying State<a class="zola-anchor" href="#modifying-state" aria-label="Anchor link for: modifying-state"
-  >#</a
->
-</h3>
-<p>In order to mutate game state within a system, you'll need access to the world that is executing it it. The world that is currently executing a tick is passed as the system's first argument:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">function </span><span style="color:#555c64;">sys_munch_doritos(</span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World&lt;</span><span style="color:#88669e;">number</span><span style="color:#555c64;">&gt;) {
-  </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(world.state.currentTickData) </span><span style="color:#8c95a0;">// logs 0.1666666667
-</span><span style="color:#555c64;">}
-
-world.addSystem(sys_munch_doritos)
-world.tick(</span><span style="color:#4179ad;">1000 </span><span style="color:#388282;">/ </span><span style="color:#4179ad;">60</span><span style="color:#555c64;">)
-</span></code></pre><pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">&gt; 16.66666666
 </span></code></pre><h3 id="query-caveats">Query Caveats<a class="zola-anchor" href="#query-caveats" aria-label="Anchor link for: query-caveats"
   >#</a
 >
