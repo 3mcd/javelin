@@ -86,7 +86,7 @@ export function query<S extends Selector>(...selector: S): Query<S> {
   const filters = {
     not: new Set<number>(),
   }
-  const signature = layout.slice().sort()
+  const signature = layout.slice().sort((a, b) => a - b)
   const recordsByWorldId = [] as QueryRecord<S>[][]
   const maybeRegisterArchetype = (
     archetype: Archetype,

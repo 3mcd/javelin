@@ -103,8 +103,10 @@ function createArchetypeState<T extends ComponentType[]>(
   const indices = snapshot ? unpackSparseArray(snapshot.indices) : []
   const signature = ("signature" in options
     ? options.signature
-    : options.snapshot.signature.slice()
-  ).sort()
+    : options.snapshot.signature
+  )
+    .slice()
+    .sort((a, b) => a - b)
   const table = ((snapshot
     ? snapshot.table.map(column => column.slice())
     : signature.map(() => [])) as unknown) as ArchetypeTable<T>

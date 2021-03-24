@@ -9,9 +9,15 @@ jest.mock("./archetype")
 jest.mock("./world")
 
 describe("query", () => {
+  const A = createComponentType({ type: 0, schema: {} })
+  const B = createComponentType({ type: 1, schema: {} })
+
+  it("initializes with sorted signature", () => {
+    const q = query(B, A)
+
+    expect(q.signature).toEqual([0, 1])
+  })
   it("queries collections of components", () => {
-    const A = createComponentType({ type: 0, schema: {} })
-    const B = createComponentType({ type: 1, schema: {} })
     const world = createWorld()
     const table = [
       [

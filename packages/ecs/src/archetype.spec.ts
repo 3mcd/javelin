@@ -14,6 +14,11 @@ describe("createArchetype", () => {
     expect(archetype.table[1]).toBeInstanceOf(Array)
     expect(archetype.table[2]).toBeInstanceOf(Array)
   })
+  it("initializes with sorted type signature", () => {
+    const archetype = createArchetype({ signature: [1, 18, 2, 10] })
+
+    expect(archetype.signature).toEqual([1, 2, 10, 18])
+  })
   it("adds entity to entities array when inserted", () => {
     const entity = 0
     const archetype = createArchetype({ signature: [1] })
