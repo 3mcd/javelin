@@ -18,5 +18,5 @@ highlight_theme = "snow-light"
 # Put all your custom variables here
 theme = "book"
 book_numbered_chapters = true
-library_version = "0.19.4"
+library_version = "0.21.0"
 repo_url = "https://github.com/3mcd/javelin"

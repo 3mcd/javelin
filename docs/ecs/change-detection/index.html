@@ -30,7 +30,7 @@
           <section>
             <nav>
               <a class="fat" href="/introduction"><h1>Javelin</h1></a>
-              <a class="version" href="https:&#x2F;&#x2F;github.com&#x2F;3mcd&#x2F;javelin/releases/tag/v0.19.4">v0.19.4</a>
+              <a class="version" href="https:&#x2F;&#x2F;github.com&#x2F;3mcd&#x2F;javelin/releases/tag/v0.21.0">v0.21.0</a>
             </nav>
             <nav>
               <a class="fat disabled" href="#">API Docs</a>
@@ -97,16 +97,16 @@
                                                 </li>
                                             
                                                 <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;filtering&#x2F;">
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
                                                         
-                                                        Filtering
+                                                        Effects
                                                     </a>
                                                 </li>
                                             
                                                 <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;events&#x2F;">
                                                         
-                                                        Effects
+                                                        Events
                                                     </a>
                                                 </li>
                                             
@@ -182,37 +182,15 @@
   >#</a
 >
 </h2>
-<p>The <code>world.getObservedComponent</code> method returns a copy of a component that will notify the world when its data changes. It's important to remember to use this method when you want to use one of the change detection techniques outlined below. Bugs can arise in your game when you expect a component to be observed but you forgot to manipulate an observed copy.</p>
-<h3 id="filtering">Filtering<a class="zola-anchor" href="#filtering" aria-label="Anchor link for: filtering"
+<p>The <code>world.getObserved</code> method returns a copy of a component that will notify the world when its data changes. It's important to remember to use this method when you want to use one of the change detection techniques outlined below. Bugs can arise in your game when you expect a component to be observed but you forgot to manipulate an observed copy.</p>
+<h3 id="observing">Observing<a class="zola-anchor" href="#observing" aria-label="Anchor link for: observing"
   >#</a
 >
 </h3>
-<p>Sometimes you don't need to know exactly which properties on a component changed, only that it <em>was</em> changed. In this case, you can use either the <code>changed</code> component filter in a query, or use the <code>world.isComponentChanged</code> method, which returns <code>true</code> if the component was changed last tick, and <code>false</code> if it wasn't.</p>
-<p>Using the <code>changed</code> filter:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">queries </span><span style="color:#388282;">= </span><span style="color:#555c64;">{
-  changed: query(changed(Health))
-}
-
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, health] </span><span style="color:#388282;">of </span><span style="color:#555c64;">queries.changed) {
-  </span><span style="color:#8c95a0;">// `entity` is an entity who&#39;s health component changed last tick
-</span><span style="color:#555c64;">}
-</span></code></pre>
-<p>Using <code>world.isComponentChanged</code>:</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, health] </span><span style="color:#388282;">of </span><span style="color:#555c64;">healthy(world)) {
-  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(world.isComponentChanged(health)) {
-    </span><span style="color:#8c95a0;">// `health` changed last tick
-  </span><span style="color:#555c64;">}
-}
-</span></code></pre><h3 id="observing">Observing<a class="zola-anchor" href="#observing" aria-label="Anchor link for: observing"
-  >#</a
->
-</h3>
-<p>If you want to know exactly what changes were made to a component during the current tick, use <code>world.getComponentMutations</code>. This method returns a 1-dimensional array of changes made to a component. Take the following example:</p>
+<p>If you want to know exactly what changes were made to a component during the current tick, use <code>world.getComponentMutations</code>. This method returns a flattened array of changes made to a component. Take the following example:</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, position, input] </span><span style="color:#388282;">of </span><span style="color:#555c64;">queries.vehicles) {
-  </span><span style="color:#388282;">const </span><span style="color:#555c64;">observedPosition </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.getObservedComponent(position)
+  </span><span style="color:#388282;">const </span><span style="color:#555c64;">observedPosition </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.getObserved(position)
 
   observedPosition.x </span><span style="color:#388282;">= </span><span style="color:#4179ad;">2
   </span><span style="color:#555c64;">observedPosition.y </span><span style="color:#388282;">= </span><span style="color:#4179ad;">3

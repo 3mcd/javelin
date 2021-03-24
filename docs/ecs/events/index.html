@@ -103,14 +103,14 @@
                                                     </a>
                                                 </li>
                                             
-                                                <li >
+                                                <li class="active">
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;events&#x2F;">
                                                         
                                                         Events
                                                     </a>
                                                 </li>
                                             
-                                                <li class="active">
+                                                <li >
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;topics&#x2F;">
                                                         
                                                         Topics
@@ -175,96 +175,119 @@
                     
                     <div class="book-content">
                         
-<h1>Topics</h1>
-<p>Systems are typically <strong>pure</strong>, as they only read/modify the components of queried entities. However, as your game grows, you may want a system to trigger behavior in a different system. For example, you may write a physics system that wraps a third-party library whose methods you'd like to expose to other physics-interested systems.</p>
-<p><strong>Topics</strong> facilitate a way to do this without resorting to global state, unlike global <a href="/ecs/effects">effects</a>.</p>
-<h2 id="inter-system-communication">Inter-System Communication<a class="zola-anchor" href="#inter-system-communication" aria-label="Anchor link for: inter-system-communication"
+<h1>Events</h1>
+<p>You'll eventually need to detect when components are added, removed, or modified. For example, you may want to know when a component is attached to, or detached from, an entity in order to trigger a change in the ECS or notify a third-party library. You can use some of Javelin's built-in effects and methods to react to these kinds of events.</p>
+<h2 id="signals">Signals<a class="zola-anchor" href="#signals" aria-label="Anchor link for: signals"
   >#</a
 >
 </h2>
-<p>Let's say you want to apply an impulse to a physics body when a player jumps so it gains some momentum in a direction. One way of doing this is to model the operation as a component.</p>
+<p>A world dispatches several events, called <a href="https://millermedeiros.github.io/js-signals/">signals</a>, that can be used to react to changes in the ECS.</p>
+<p>The <code>world.attached</code> and <code>world.detached</code> signals are dispatched when components are attached to and deatched from an entity, respectively:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">type </span><span style="color:#555c64;">Impulse </span><span style="color:#388282;">= </span><span style="color:#555c64;">{
-  x</span><span style="color:#388282;">: </span><span style="color:#88669e;">number
-  </span><span style="color:#555c64;">y</span><span style="color:#388282;">: </span><span style="color:#88669e;">number
-</span><span style="color:#555c64;">}
+<code><span style="color:#555c64;">world.attached.subscribe((</span><span style="color:#8a6c3c;">entity</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">component</span><span style="color:#555c64;">) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#8c95a0;">// component was attached last tick
+</span><span style="color:#555c64;">})
+world.detached.subscribe((</span><span style="color:#8a6c3c;">entity</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">component</span><span style="color:#555c64;">) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#8c95a0;">// component was detached last tick
+</span><span style="color:#555c64;">})
 </span></code></pre>
-<p>When you need to apply a impulse to an entity, you insert an <code>Impulse</code> component on the current tick, and remove it on the following tick.</p>
+<p><code>world.spawned</code> is dispatched when an entity is created:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">sys_input </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  queries.jumping.forEach(</span><span style="color:#8a6c3c;">entity </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-    world.attach(entity, world.component(Impulse))
-  })
-  queries.withImpulse.forEach(</span><span style="color:#8a6c3c;">entity </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-    world.detach(entity, impulse)
-  })
-}
-
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">sys_physics </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  queries.withImpulse((</span><span style="color:#8a6c3c;">entity</span><span style="color:#555c64;">, [</span><span style="color:#8a6c3c;">impulse</span><span style="color:#555c64;">]) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-    </span><span style="color:#388282;">const </span><span style="color:#555c64;">body </span><span style="color:#388282;">= </span><span style="color:#555c64;">getBodyByEntity(entity)
-    physicsEngine.applyImpulseLocal(body, impulse)
-  })
-}
+<code><span style="color:#555c64;">world.spawned.subscribe(</span><span style="color:#8a6c3c;">entity </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#8c95a0;">// entity was created last tick
+</span><span style="color:#555c64;">})
 </span></code></pre>
-<p>This will work fine for a small game; however, there are a couple of problems with this approach as you scale to more complex games:</p>
-<ol>
-<li>Adding and removing components in an archetypal ECS is slow</li>
-<li>Your physics system must wait until the next tick to detect the newly attached impluse component</li>
-</ol>
-<h3 id="topics">Topics<a class="zola-anchor" href="#topics" aria-label="Anchor link for: topics"
+<p><code>world.destroyed</code> is dispatched when an entity is destroyed:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">world.destroyed.subscribe(</span><span style="color:#8a6c3c;">entity </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#8c95a0;">// entity was destroyed last tick
+</span><span style="color:#555c64;">})
+</span></code></pre>
+<p>A function is returned from <code>signal.subscribe()</code> that can be used to remove the subscriber.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">unsubscribe </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.attached.subscribe(</span><span style="color:#388282;">...</span><span style="color:#555c64;">)
+unsubscribe()
+</span></code></pre><h2 id="triggers">Triggers<a class="zola-anchor" href="#triggers" aria-label="Anchor link for: triggers"
+  >#</a
+>
+</h2>
+<p>Subscribing to events within systems is tricky since a system is just a function that runs each tick. Javelin has a couple of built-in effects called <strong>triggers</strong> that register event handlers behind the scenes, exposing changed entitites with an iterable API.</p>
+<h3 id="onattach"><code>onAttach</code><a class="zola-anchor" href="#onattach" aria-label="Anchor link for: onattach"
   >#</a
 >
 </h3>
-<p>Topics are simple FIFO buffers that hold on to messages between ticks that can be used to signal events or expose an RPC-like API to a system.</p>
-<p>Topics are created using the <code>createTopic&lt;T&gt;()</code> function, where <code>T</code> is the type (e.g. a union type) of message managed by the topic. The <code>createTopic</code> function is defined in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/topic.ts">topic.ts</a>.</p>
+<p>The <code>onAttach</code> trigger accepts a component type and returns an object that can be iterated with <code>for..of</code> or <code>forEach</code> to get entity-component pairs where the component of the specified type was detached last tick.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createTopic } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
-
-</span><span style="color:#388282;">type </span><span style="color:#555c64;">ImpulseCommand </span><span style="color:#388282;">= </span><span style="color:#555c64;">[
-  type</span><span style="color:#388282;">: </span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">,
-  entity</span><span style="color:#388282;">: </span><span style="color:#88669e;">number</span><span style="color:#555c64;">,
-  force</span><span style="color:#388282;">: </span><span style="color:#555c64;">[</span><span style="color:#88669e;">number</span><span style="color:#555c64;">, </span><span style="color:#88669e;">number</span><span style="color:#555c64;">],
-]
-
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsTopic </span><span style="color:#388282;">= </span><span style="color:#555c64;">createTopic&lt;ImpulseCommand&gt;()
-</span></code></pre>
-<p>Messages are enqueued using the <code>topic.push()</code> method.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">message</span><span style="color:#388282;">: </span><span style="color:#555c64;">ImpulseCommand </span><span style="color:#388282;">= </span><span style="color:#555c64;">[</span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">23</span><span style="color:#555c64;">, [</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">]]
-topic.push(message)
-</span></code></pre>
-<p>Messages are unavailable until the <code>topic.flush()</code> method is called. It's recommended to flush the topics in your main game loop, after calling <code>world.tick</code>.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">tick </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  world.tick()
-  physicsTopic.flush()
-}
-</span></code></pre>
-<p>Messages can then be read using a for..of loop.</p>
-<pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ physicsTopic } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;./physics_topic&quot;
+<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ onAttach } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
 
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">sys_physics </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">command </span><span style="color:#388282;">of </span><span style="color:#555c64;">physicsTopic) {
-    </span><span style="color:#388282;">if </span><span style="color:#555c64;">(command[</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">] </span><span style="color:#388282;">=== </span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">) {
-      </span><span style="color:#388282;">const </span><span style="color:#555c64;">body </span><span style="color:#388282;">= </span><span style="color:#555c64;">getBodyByEntity(command[</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">])
-      physicsEngine.applyImpulseLocal(body, command[</span><span style="color:#4179ad;">2</span><span style="color:#555c64;">])
-    }
-  }
+  onAttach(Body).forEach((</span><span style="color:#8a6c3c;">entity</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">body</span><span style="color:#555c64;">) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+    </span><span style="color:#388282;">...
+  </span><span style="color:#555c64;">})
 }
-</span></code></pre><h3 id="immediate-processing">Immediate Processing<a class="zola-anchor" href="#immediate-processing" aria-label="Anchor link for: immediate-processing"
+</span></code></pre><h3 id="ondetach"><code>onDetach</code><a class="zola-anchor" href="#ondetach" aria-label="Anchor link for: ondetach"
   >#</a
 >
 </h3>
-<p>Sometimes messages should be handled as quickly as possible, like when processing user input. <code>topic.pushImmediate</code> will push a message into the topic for immediate processing.</p>
-<aside>
-  <p>
-    <strong>Tip</strong> — System registration order matters when using <code>pushImmediate</code>. Since the messages will be thrown away at the end of the tick, any systems upstream from the one that used <code>pushImmediate</code> will never have the opportunity to read the message.
-  </p>
-</aside>
+<p><code>onDetach</code> is similar to <code>onAttach</code>, but it returns entity-component pairs whose matching component was detached last tick.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">topic.pushImmediate([</span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">24</span><span style="color:#555c64;">, [</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">, </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">]])
+<code><span style="color:#388282;">import </span><span style="color:#555c64;">{ onDetach } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
+
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">sys_physics </span><span style="color:#388282;">= </span><span style="color:#555c64;">(</span><span style="color:#8a6c3c;">world</span><span style="color:#388282;">: </span><span style="color:#555c64;">World) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  onDetach(Body).forEach((</span><span style="color:#8a6c3c;">entity</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">body</span><span style="color:#555c64;">) </span><span style="color:#388282;">=&gt; ...</span><span style="color:#555c64;">)
+}
+</span></code></pre><h2 id="monitors">Monitors<a class="zola-anchor" href="#monitors" aria-label="Anchor link for: monitors"
+  >#</a
+>
+</h2>
+<p>Sometimes you need to go a bit further and detect when an entity matches or no longer matches a complex query. A <strong>monitor</strong> is an effect that accepts a query and yields entities that meet one of these conditions. Like triggers, monitors can be iterated with <code>forEach</code> or <code>for..of</code>.</p>
+<p>An entity is only included in a monitor's results <strong>once</strong> while it continues to match the query. An entity is eligible again only if it is excluded (i.e. due to a change in its type) and re-included.</p>
+<h3 id="oninsert"><code>onInsert</code><a class="zola-anchor" href="#oninsert" aria-label="Anchor link for: oninsert"
+  >#</a
+>
+</h3>
+<p>The <code>onInsert</code> monitor yields entities who will match a specific query for the first time this tick.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">spooky </span><span style="color:#388282;">= </span><span style="color:#555c64;">query(Enemy, Ghost)
+onInsert(spooky).forEach(</span><span style="color:#8a6c3c;">entity </span><span style="color:#388282;">=&gt; ...</span><span style="color:#555c64;">)
+</span></code></pre>
+<p><code>forEach</code> executes the provided callback for entities whose component changes last tick caused it to match the query's criteria. In the above example, the <code>entity</code> variable would correspond to an entity who made one of the following type transitions last tick:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">from    | to
+--------|----------------
+()      | (Enemy, Ghost)
+(Enemy) | (Enemy, Ghost)
+(Ghost) | (Enemy, Ghost)
+</span></code></pre>
+<p>Below is an example of an entity transitioning between multiple types, and whether or not that transition would result in the entity being included in <code>onInsert</code>'s results:</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">(Enemy)                  -&gt; excluded
+(Enemy, Ghost)           -&gt; included
+(Enemy, Ghost, Confused) -&gt; excluded
+(Ghost, Confused)        -&gt; excluded
+(Enemy, Ghost)           -&gt; included
+</span></code></pre><h3 id="onremove"><code>onRemove</code><a class="zola-anchor" href="#onremove" aria-label="Anchor link for: onremove"
+  >#</a
+>
+</h3>
+<p><code>onRemove</code> is simply the inverse of <code>onInsert</code>. It will yield entities whose type no longer matches the query's criteria.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">onRemove(spooky).forEach(</span><span style="color:#8a6c3c;">entity </span><span style="color:#388282;">=&gt; ...</span><span style="color:#555c64;">)
+</span></code></pre><pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">(Enemy)                  -&gt; excluded
+(Enemy, Ghost)           -&gt; excluded
+(Enemy, Ghost, Confused) -&gt; excluded
+(Ghost, Confused)        -&gt; included
+(Enemy, Ghost)           -&gt; excluded
+</span></code></pre><h2 id="changes">Changes<a class="zola-anchor" href="#changes" aria-label="Anchor link for: changes"
+  >#</a
+>
+</h2>
+<p>A world tracks changes made to all its components. The <code>isComponentChanged</code> method accepts a component and will return true if the component was changed last tick, otherwise it returns false.</p>
+<pre style="background-color:#f6f8f8;">
+<code><span style="color:#388282;">if </span><span style="color:#555c64;">(world.isComponentChanged(body)) {
+  simulation.sync(body)
+}
 </span></code></pre> 
                     </div>
                 </div>

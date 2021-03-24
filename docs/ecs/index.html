@@ -30,7 +30,7 @@
           <section>
             <nav>
               <a class="fat" href="/introduction"><h1>Javelin</h1></a>
-              <a class="version" href="https:&#x2F;&#x2F;github.com&#x2F;3mcd&#x2F;javelin/releases/tag/v0.19.4">v0.19.4</a>
+              <a class="version" href="https:&#x2F;&#x2F;github.com&#x2F;3mcd&#x2F;javelin/releases/tag/v0.21.0">v0.21.0</a>
             </nav>
             <nav>
               <a class="fat disabled" href="#">API Docs</a>
@@ -97,16 +97,16 @@
                                                 </li>
                                             
                                                 <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;filtering&#x2F;">
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
                                                         
-                                                        Filtering
+                                                        Effects
                                                     </a>
                                                 </li>
                                             
                                                 <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;events&#x2F;">
                                                         
-                                                        Effects
+                                                        Events
                                                     </a>
                                                 </li>
                                             
@@ -234,16 +234,16 @@ setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="col
   >#</a
 >
 </h2>
-<p>Data and behavior are separate concerns in an ECS. High-cohesion game objects are substituted with three distinct concerns: (1) <strong>components</strong> – game data, (2) <strong>entities</strong> – game objects (like a tree, chest, or spawn position), and (3) <strong>systems</strong> – game behavior. As we'll see, this architecture enables runtime composition of behavior that would be tricky to implement in the example above.</p>
+<p>Data and behavior are separate concerns in an ECS. There are three main parts to an ECS: <strong>components</strong> – game data, <strong>entities</strong> – game objects (like a tree, chest, or spawn position), and <strong>systems</strong> – game behavior. As we'll see, this architecture enables runtime composition of behavior that would be tricky to implement in the example above.</p>
 <h3 id="components">Components<a class="zola-anchor" href="#components" aria-label="Anchor link for: components"
   >#</a
 >
 </h3>
 <p>In an ECS, components are typically plain objects that contain data and no methods. Ideally all game state lives in components.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#555c64;">Body   { velocity: [number, number] }
-Player { name: string }
-Input  { jump: boolean }
+<code><span style="color:#555c64;">player = { name: string }
+input  = { jump: boolean }
+body   = { velocity: [number, number] }
 </span></code></pre><h3 id="entities">Entities<a class="zola-anchor" href="#entities" aria-label="Anchor link for: entities"
   >#</a
 >

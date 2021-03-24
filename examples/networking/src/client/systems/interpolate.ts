@@ -1,4 +1,4 @@
-import { attached, query, World } from "@javelin/ecs"
+import { onAttach, query, World } from "@javelin/ecs"
 import { Position } from "../../common/components"
 import { RenderTransform } from "../components/position_buffer"
 
@@ -13,7 +13,7 @@ export function interpolate(world: World) {
   const time = Date.now()
   const renderTime = time - 1000 / SEND_RATE
 
-  attached(Position).forEach(entity => {
+  onAttach(Position).forEach(entity => {
     world.attach(entity, world.component(RenderTransform))
   })
 
