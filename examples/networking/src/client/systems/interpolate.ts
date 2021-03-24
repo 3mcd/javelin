@@ -22,7 +22,6 @@ export function interpolate(world: World) {
       return
     }
     const buffer = world.tryGet(entity, RenderTransform)
-
     if (buffer) {
       const update = [time, position.x, position.y]
       buffer.updates.push(update)

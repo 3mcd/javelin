@@ -7,31 +7,28 @@ const floorSize = 10
 const floorOffset = 600 - size - floorSize
 
 const queries = {
-  awake: query(Position, Velocity),
+  bodies: query(Position, Velocity),
 }
 
 export function physics(world: World) {
-  queries.awake.forEach((entity, [position, velocity]) => {
-    const mutPosition = world.getObserved(position)
-    const mutVelocity = world.getObserved(velocity)
-
-    mutPosition.x += velocity.x
-    mutPosition.y += velocity.y
+  queries.bodies.forEach((entity, [position, velocity]) => {
+    position.x += velocity.x
+    position.y += velocity.y
 
     if (position.y >= floorOffset) {
       // collision w/ floor and "restitution"
-      mutVelocity.y = -(velocity.y * 0.5)
-      mutVelocity.x *= 0.5
-      mutPosition.y = floorOffset
+      velocity.y = -(velocity.y * 0.5)
+      velocity.x *= 0.5
+      position.y = floorOffset
     } else {
       // gravity
-      mutVelocity.y += 0.1
+      velocity.y += 0.1
     }
 
     if (position.x >= 800 || position.x <= 0) {
       // collision w/ wall and "restitution"
-      mutVelocity.x = -(velocity.x * 0.5)
-      mutPosition.x = Math.max(0, Math.min(position.x, 800))
+      velocity.x = -(velocity.x * 0.5)
+      position.x = Math.max(0, Math.min(position.x, 800))
     }
   })
 }

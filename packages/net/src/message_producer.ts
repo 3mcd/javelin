@@ -252,8 +252,7 @@ export function createMessageProducer(
 
         for (let k = 0; k < archetype.entities.length; k++) {
           const entity = archetype.entities[k]
-          const component = components[archetype.indices[entity]]!
-
+          const component = components[archetype.indices[entity]]
           tmpComponentEntities.set(component, entity)
           tmpSortedByPriority.push(component)
         }

@@ -79,7 +79,6 @@ async function main() {
 
   connectionReliable.messages.subscribe(data => {
     const message = decode(data) as JavelinMessage
-    console.log(message)
     messageHandler.push(message)
     logDataTransferRate(data)
   })

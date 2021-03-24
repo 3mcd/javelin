@@ -177,6 +177,11 @@ export interface World<T = any> {
   ): void
 
   /**
+   * Reserve an entity identifier.
+   */
+  reserve(): number
+
+  /**
    * Reset the world to its initial state, removing all entities, components,
    * systems, world ops, and internal state.
    */
@@ -281,7 +286,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   const storage = createStorage({ snapshot: options.snapshot?.storage })
 
   let state: WorldState<T> = getInitialWorldState()
-  let nextEntity = 0
+  let prevEntity = 0
   let nextSystem = 0
 
   options.systems?.forEach(addSystem)
@@ -434,7 +439,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function spawn(...components: ReadonlyArray<Component>) {
-    const entity = nextEntity++
+    const entity = prevEntity++
 
     worldOps.push(
       createWorldOp(WorldOpType.Spawn, entity),
@@ -546,6 +551,10 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     )
   }
 
+  function reserve() {
+    return ++prevEntity
+  }
+
   function reset() {
     mutableEmpty(worldOps)
     mutableEmpty(worldOpsPrevious)
@@ -557,7 +566,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
     state = getInitialWorldState()
 
-    nextEntity = 0
+    prevEntity = 0
 
     while (worldOps.length > 0) {
       worldOpPool.release(worldOps.pop()!)
@@ -612,6 +621,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     patch,
     removeSystem,
     removeTopic,
+    reserve,
     reset,
     snapshot,
     spawn,
