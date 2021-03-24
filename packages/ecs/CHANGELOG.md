@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.21.0](https://github.com/3mcd/javelin/compare/v0.20.0...v0.21.0) (2021-03-24)
+
+
+### Bug Fixes
+
+* fix tests ([debfc16](https://github.com/3mcd/javelin/commit/debfc16a283260d318c4a21bc101065e4c90c5f6))
+* use WeakMap for system ids ([8982d44](https://github.com/3mcd/javelin/commit/8982d44850ce9f1374b977ba04beccf9aa5bd1bb))
+* **world:** assign systems auto-incrementing unique ids ([#144](https://github.com/3mcd/javelin/issues/144)) ([861afcb](https://github.com/3mcd/javelin/commit/861afcb61e459c1dcbfd81bfee939939a264b270))
+
+
+### Features
+
+* query improvements, monitors, triggers and not filters ([#149](https://github.com/3mcd/javelin/issues/149)) ([9f7e45a](https://github.com/3mcd/javelin/commit/9f7e45a9d6ee42b46f0f537e8f798c7c70b34388))
+* **pack:** add pack lib ([#146](https://github.com/3mcd/javelin/issues/146)) ([d8ffb52](https://github.com/3mcd/javelin/commit/d8ffb527a097b431e0a0e7303539c3fece284213))
+* world.snapshot ([#145](https://github.com/3mcd/javelin/issues/145)) ([32b7b53](https://github.com/3mcd/javelin/commit/32b7b533e061a62343d6532281949bd8db5ea602))
+
+
+
+
+
 # [0.20.0](https://github.com/3mcd/javelin/compare/v0.19.4...v0.20.0) (2021-03-04)
 
 
