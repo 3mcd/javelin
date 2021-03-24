@@ -1,6 +1,4 @@
 import { ArchetypeSnapshot, createArchetype } from "./archetype"
-import { ComponentState } from "./component"
-import { unpackSparseArray } from "./util"
 
 describe("createArchetype", () => {
   const flags = {
@@ -20,7 +18,7 @@ describe("createArchetype", () => {
     const entity = 0
     const archetype = createArchetype({ signature: [1] })
 
-    archetype.insert(entity, [{ _tid: 1, _cst: ComponentState.Attached }])
+    archetype.insert(entity, [{ _tid: 1 }])
 
     expect(archetype.entities.indexOf(entity)).toBe(0)
   })
@@ -29,14 +27,8 @@ describe("createArchetype", () => {
     const entity2 = 1
     const archetype = createArchetype({ signature: [1, 4] })
 
-    archetype.insert(entity1, [
-      { _tid: 1, _cst: ComponentState.Attached },
-      { _tid: 4, _cst: ComponentState.Attached },
-    ])
-    archetype.insert(entity2, [
-      { _tid: 1, _cst: ComponentState.Attached },
-      { _tid: 4, _cst: ComponentState.Attached },
-    ])
+    archetype.insert(entity1, [{ _tid: 1 }, { _tid: 4 }])
+    archetype.insert(entity2, [{ _tid: 1 }, { _tid: 4 }])
 
     expect(archetype.indices[entity1]).toBe(0)
     expect(archetype.indices[entity2]).toBe(1)
@@ -44,10 +36,7 @@ describe("createArchetype", () => {
   it("updates the component table with inserted components", () => {
     const entity = 0
     const archetype = createArchetype({ signature: [1, 4] })
-    const components = [
-      { _tid: 1, _cst: ComponentState.Attached },
-      { _tid: 4, _cst: ComponentState.Attached },
-    ]
+    const components = [{ _tid: 1 }, { _tid: 4 }]
 
     archetype.insert(entity, components)
 
@@ -60,7 +49,7 @@ describe("createArchetype", () => {
     const entity = 0
     const archetype = createArchetype({ signature: [1] })
 
-    archetype.insert(entity, [{ _tid: 1, _cst: ComponentState.Attached }])
+    archetype.insert(entity, [{ _tid: 1 }])
     archetype.remove(entity)
 
     expect(archetype.entities.indexOf(entity)).toBe(-1)
@@ -70,14 +59,8 @@ describe("createArchetype", () => {
     const entity2 = 1
     const archetype = createArchetype({ signature: [1, 4] })
 
-    archetype.insert(entity1, [
-      { _tid: 1, _cst: ComponentState.Attached },
-      { _tid: 4, _cst: ComponentState.Attached },
-    ])
-    archetype.insert(entity2, [
-      { _tid: 1, _cst: ComponentState.Attached },
-      { _tid: 4, _cst: ComponentState.Attached },
-    ])
+    archetype.insert(entity1, [{ _tid: 1 }, { _tid: 4 }])
+    archetype.insert(entity2, [{ _tid: 1 }, { _tid: 4 }])
 
     const index = archetype.indices[entity1]
     archetype.remove(entity1)
@@ -89,15 +72,9 @@ describe("createArchetype", () => {
     const entity1 = 0
     const entity2 = 1
     const archetype = createArchetype({ signature: [1, 4] })
-    const components = [
-      { _tid: 1, _cst: ComponentState.Attached },
-      { _tid: 4, _cst: ComponentState.Attached },
-    ]
+    const components = [{ _tid: 1 }, { _tid: 4 }]
 
-    archetype.insert(entity1, [
-      { _tid: 1, _cst: ComponentState.Attached },
-      { _tid: 4, _cst: ComponentState.Attached },
-    ])
+    archetype.insert(entity1, [{ _tid: 1 }, { _tid: 4 }])
     archetype.insert(entity2, components)
 
     const index = archetype.indices[entity1]
@@ -111,21 +88,9 @@ describe("createArchetype", () => {
     const snapshot: ArchetypeSnapshot = {
       signature: [1, 2, 3],
       table: [
-        [
-          { _tid: 1, _cst: 2 },
-          { _tid: 1, _cst: 2 },
-          { _tid: 1, _cst: 2 },
-        ],
-        [
-          { _tid: 2, _cst: 2 },
-          { _tid: 2, _cst: 2 },
-          { _tid: 2, _cst: 2 },
-        ],
-        [
-          { _tid: 3, _cst: 2 },
-          { _tid: 3, _cst: 2 },
-          { _tid: 3, _cst: 2 },
-        ],
+        [{ _tid: 1 }, { _tid: 1 }, { _tid: 1 }],
+        [{ _tid: 2 }, { _tid: 2 }, { _tid: 2 }],
+        [{ _tid: 3 }, { _tid: 3 }, { _tid: 3 }],
       ],
       indices: {
         3: 0,

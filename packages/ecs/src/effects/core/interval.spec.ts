@@ -1,4 +1,6 @@
 import { interval } from "./interval"
+import { timer } from "./timer"
+import { ref } from "./ref"
 
 jest.mock("../../effect")
 
@@ -6,6 +8,8 @@ describe("interval", () => {
   beforeEach(() => {
     jest.useFakeTimers()
     ;(interval as any).reset()
+    ;(timer as any).reset()
+    ;(ref as any).reset()
   })
 
   afterEach(() => {

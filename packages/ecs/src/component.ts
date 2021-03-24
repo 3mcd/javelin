@@ -1,13 +1,6 @@
-import { AnySchema, PropsOfSchema, Schema } from "./schema/schema_types"
+import { PropsOfSchema, Schema } from "./schema/schema_types"
 
 export type ComponentProps = Record<string, unknown>
-export enum ComponentState {
-  Orphaned = 0,
-  Attaching = 1,
-  Attached = 2,
-  Detaching = 3,
-  Detached = 4,
-}
 
 export type ComponentInitializer<S extends Schema> = (
   component: Component<PropsOfSchema<S>>,
@@ -23,8 +16,8 @@ export type ComponentInitializerArgs<
   : never
 
 export type ComponentType<
-  S extends Schema = AnySchema,
-  I extends ComponentInitializer<S> = ComponentInitializer<S>
+  S extends Schema = Schema,
+  I extends ComponentInitializer<S> = any
 > = {
   name?: string
   type: number
@@ -34,11 +27,6 @@ export type ComponentType<
 
 export type ComponentBase = {
   readonly _tid: number
-  readonly _cst: ComponentState
-}
-
-export type InternalComponent = Pick<ComponentBase, "_tid"> & {
-  _cst: ComponentState
 }
 
 export type Component<

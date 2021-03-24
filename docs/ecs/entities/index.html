@@ -30,7 +30,7 @@
           <section>
             <nav>
               <a class="fat" href="/introduction"><h1>Javelin</h1></a>
-              <a class="version" href="https:&#x2F;&#x2F;github.com&#x2F;3mcd&#x2F;javelin/releases/tag/v0.19.4">v0.19.4</a>
+              <a class="version" href="https:&#x2F;&#x2F;github.com&#x2F;3mcd&#x2F;javelin/releases/tag/v0.21.0">v0.21.0</a>
             </nav>
             <nav>
               <a class="fat disabled" href="#">API Docs</a>
@@ -97,16 +97,16 @@
                                                 </li>
                                             
                                                 <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;filtering&#x2F;">
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
                                                         
-                                                        Filtering
+                                                        Effects
                                                     </a>
                                                 </li>
                                             
                                                 <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;events&#x2F;">
                                                         
-                                                        Effects
+                                                        Events
                                                     </a>
                                                 </li>
                                             
@@ -200,22 +200,16 @@
   >#</a
 >
 </h3>
-<p>The vector of components associated with an entity defines its <strong>archetype</strong>. The above example would create an entity of archetype <code>(Player, Health)</code>.</p>
+<p>The array of components associated with an entity defines its <strong>archetype</strong>. The above example would create an entity of archetype <code>(Player, Health)</code>.</p>
 <p>Components can be assigned to existing entities using <code>world.attach</code>, and removed from entities using <code>world.detach</code>. The following example modifies an entity of archetype <code>(Player, Health)</code> to <code>(Player, Health, Input)</code>, and then back to <code>(Player, Health)</code>:</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">input </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ _tid: </span><span style="color:#4179ad;">3</span><span style="color:#555c64;">, space: </span><span style="color:#a35d66;">true </span><span style="color:#555c64;">}
 
 world.attach(entity, input)
-world.tick()
+world.tick() </span><span style="color:#8c95a0;">// (Player, Health) -&gt; (Player, Health, Input)
 
-</span><span style="color:#388282;">--- </span><span style="color:#555c64;">archetype:
-(Player, Health) </span><span style="color:#388282;">-&gt; </span><span style="color:#555c64;">(Player, Health, Input)
-
-world.detach(entity, input)
-world.tick()
-
-</span><span style="color:#388282;">--- </span><span style="color:#555c64;">archetype:
-(Player, Health, Input) </span><span style="color:#388282;">-&gt; </span><span style="color:#555c64;">(Player, Health)
+</span><span style="color:#555c64;">world.detach(entity, input)
+world.tick() </span><span style="color:#8c95a0;">// (Player, Health, Input) -&gt; (Player, Health)
 </span></code></pre><aside>
   <p>
     <strong>Tip</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.spawn(components)</code> because the components of the affected entity must be relocated in memory each time the entity's archetype changes.
@@ -234,7 +228,7 @@ world.tick()
   >#</a
 >
 </h2>
-<p>In the example above, <code>world.tick()</code> was called each time entity was modified. Operations like creating and destroying entities, as well as attaching and detaching components, are deferred until the next <code>world.tick()</code> call. This is done to improve the predictability of systems, so that systems never miss changes to entities, discussed in the <a href="/ecs/filtering">Filtering</a> section. </p>
+<p>In the example above, <code>world.tick()</code> was called each time entity was modified. Operations like creating and destroying entities, as well as attaching and detaching components, are deferred until the next <code>world.tick()</code> call. This is done to improve the predictability of systems, so that systems never miss changes to entities, discussed in the <a href="/ecs/events">Events</a> section. </p>
 <p>Each of these changes is represented by a <code>WorldOp</code> object. You can review the types of operations in <a href="https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world_op.ts">world_op.ts</a>. These objects are used in the Javelin network protocol to synchronize entities reliably between client and server.</p>
  
                     </div>

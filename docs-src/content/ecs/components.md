@@ -3,29 +3,27 @@ title = "Components"
 weight = 3
 +++
 
-All data within a `World` is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `_tid` — short for type id, a unique integer that is shared between all components of the same kind.
+Most data within a game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `_tid` — short for type id, a unique integer that is shared between all components of the same kind.
 
 The `_tid` field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example.
 
-```typescript
+```ts
 const position = { _tid: 0, x: 2, y: 2 }
 const health = { _tid: 0, value: 100 }
 ```
 
-Using the same `_tid` for components with a different shape could result in catastrophic behavior of your application. Wherever you might be working with an entity's position component, there's a chance you could have a health object instead!
+Using the same `_tid` for components with a different shape could result in catastrophic behavior! Just make the types unique:
 
-Just make the types unique:
-
-```typescript
+```ts
 const position = { _tid: 0, ... }
 const health = { _tid: 1, ... }
 ```
 
 ## Component Types
 
-It's recommended to use the `createComponentType` helper to define the component types your world will use. Component types make it easy to initialize components from a schema, and components created with a component type are automatically pooled.
+The `createComponentType` helper is used to define the types of components in your game. Component types make it easy to initialize components from a schema, and components created with a component type are automatically pooled.
 
-```typescript
+```ts
 import { createComponentType, number } from "@javelin/ecs"
 
 const Position = createComponentType({
@@ -37,7 +35,7 @@ const Position = createComponentType({
 })
 ```
 
-A component type has, at minimum, a type (discussed above) and **schema**.
+A component type has, at minimum, a type and **schema**, which is discussed below.
 
 ### Schema
 
@@ -55,7 +53,7 @@ array   (default = [])
 
 A default value for a data type can be specified in the schema by wrapping the data type in an object:
 
-```typescript
+```ts
 schema: {
   x: { type: number, defaultValue: -1 }
 }
@@ -63,18 +61,18 @@ schema: {
 
 ### Creating Components
 
-Components can be initialized from component types via `world.component`:
+A component is initialized from a component type using `world.component`:
 
-```typescript
+```ts
 const position = world.component(Position)
 
-position.x (0)
-position.y (0)
+position.x // 0
+position.y // 0
 ```
 
 You may also specify an initializer function for a component type to make component creation easier.
 
-```typescript
+```ts
 const Position = createComponentType({
   ...
   initialize(position, x = 0, y = 0) {
@@ -85,24 +83,24 @@ const Position = createComponentType({
 
 const position = world.component(
   Position,
-  10, (x)
-  20, (y)
+  10, // x
+  20, // y
 )
 ```
 
 ### Object Pooling
 
-Components created via a component type are automatically pooled. By default, the pool will initialize 10^3 components for usage, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singletons or components that are created/destroyed extremely often. You can modify the default pool size of all component types by setting the `componentPoolSize` option on the config object passed to `createWorld()`
+Components created via a component type are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singleton or low-volume components. You can modify the default pool size of all component types by setting the `componentPoolSize` option on the config object passed to `createWorld()`:
 
-```typescript
+```ts
 const world = createWorld({
   componentPoolSize: 100,
 })
 ```
 
-or you can specify the pool size for a single component type when registering the it with `world.registerComponentType`
+Or, you can specify the pool size for a single component type when registering the it with `world.registerComponentType`:
 
-```typescript
+```ts
 world.registerComponentType(Position, 10000)
 ```
 

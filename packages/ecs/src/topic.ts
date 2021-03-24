@@ -28,6 +28,11 @@ export type Topic<D = unknown> = {
    * consumed.)
    */
   flush(): void
+
+  /**
+   * Clear all messages from the queue (both staged and ready).
+   */
+  clear(): void
 }
 
 /**
@@ -46,6 +51,10 @@ export const createTopic = <E = unknown>(): Topic<E> => {
       ready[i] = staged.pop()!
     }
   }
+  const clear = () => {
+    mutableEmpty(staged)
+    mutableEmpty(ready)
+  }
 
   return {
     *[Symbol.iterator]() {
@@ -56,5 +65,6 @@ export const createTopic = <E = unknown>(): Topic<E> => {
     push,
     pushImmediate,
     flush,
+    clear,
   }
 }

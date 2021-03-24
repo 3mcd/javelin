@@ -1,12 +1,12 @@
 import {
   Component,
   ComponentBase,
+  ComponentInitializer,
   ComponentOf,
-  ComponentState,
   ComponentType,
-  InternalComponent,
 } from "../component"
 import { createStackPool } from "../pool/stack_pool"
+import { Schema } from "../schema"
 import {
   initializeComponentFromSchema,
   resetComponentFromSchema,
@@ -14,8 +14,21 @@ import {
   serializeSchema,
 } from "../schema/schema_utils"
 
-export function createComponentType<C extends ComponentType>(componentType: C) {
-  return componentType
+type CreateComponentTypeOptions<
+  S extends Schema,
+  I extends ComponentInitializer<S>
+> = Pick<ComponentType<S, I>, "type" | "initialize"> & {
+  schema?: S
+}
+
+export function createComponentType<
+  S extends Schema = {},
+  I extends ComponentInitializer<S> = ComponentInitializer<S>
+>(options: CreateComponentTypeOptions<S, I>): ComponentType<S, I> {
+  return {
+    ...options,
+    schema: options.schema || ({} as S),
+  }
 }
 
 export function createComponentBase(
@@ -25,11 +38,6 @@ export function createComponentBase(
     {},
     {
       _tid: { value: componentType.type, writable: false, enumerable: true },
-      _cst: {
-        value: ComponentState.Orphaned,
-        writable: true,
-        enumerable: false,
-      },
     },
   )
 }
@@ -72,17 +80,4 @@ export function isComponentOf<T extends ComponentType>(
   componentTypeId: T,
 ): component is ComponentOf<T> {
   return component._tid === componentTypeId.type
-}
-
-export function flagComponent(component: Component, state: ComponentState) {
-  ;(component as InternalComponent)._cst = state
-}
-
-export function flagComponents(
-  components: readonly Component[],
-  state: ComponentState,
-) {
-  for (let i = 0; i < components.length; i++) {
-    flagComponent(components[i], state)
-  }
 }

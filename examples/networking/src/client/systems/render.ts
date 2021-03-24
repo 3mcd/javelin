@@ -1,24 +1,22 @@
-import { createComponentFilter, query, World } from "@javelin/ecs"
+import { query, World } from "@javelin/ecs"
 import { Color } from "../../common/components"
 import { RenderTransform } from "../components/position_buffer"
 import { graphics } from "../graphics"
 
-const visible = createComponentFilter<typeof RenderTransform>(() => component =>
-  component.x >= 0 && component.x <= 800 && component.y >= 0,
-)
-
 const queries = {
-  offscreen: query(visible(RenderTransform)),
+  offscreen: query(RenderTransform),
 }
 
 export function render(world: World) {
   graphics.clear()
 
-  for (const [entity, position] of queries.offscreen) {
-    const color = world.tryGetComponent(entity, Color)
+  queries.offscreen.forEach((entity, [{ x, y }]) => {
+    if (x >= 0 && x <= 800 && y >= 0) {
+      const color = world.tryGet(entity, Color)
 
-    graphics.beginFill(color?.value || 0x00ff00)
-    graphics.drawRect(position.x, position.y, 2, 2)
-    graphics.endFill()
-  }
+      graphics.beginFill(color?.value || 0x00ff00)
+      graphics.drawRect(x, y, 2, 2)
+      graphics.endFill()
+    }
+  })
 }

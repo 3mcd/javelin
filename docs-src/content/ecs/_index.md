@@ -17,7 +17,7 @@ This section aims to serve as a quick primer on Entity Component Systems (ECS) a
 
 A best practice in OOP game development is to favor composition over inheritance when designing game data and behavior. Take the following example, where a `Player` class accepts `Body` and `Input` objects to enhance players with physics properties and input control:
 
-```typescript
+```ts
 class Body {
   readonly velocity = { x: 0, y: 0 }
 }
@@ -67,16 +67,16 @@ If there are many states/dependencies a player can have (e.g. spectating, drivin
 
 ## What's an ECS?
 
-Data and behavior are separate concerns in an ECS. High-cohesion game objects are substituted with three distinct concerns: (1) **components** – game data, (2) **entities** – game objects (like a tree, chest, or spawn position), and (3) **systems** – game behavior. As we'll see, this architecture enables runtime composition of behavior that would be tricky to implement in the example above.
+Data and behavior are separate concerns in an ECS. There are three main parts to an ECS: **components** – game data, **entities** – game objects (like a tree, chest, or spawn position), and **systems** – game behavior. As we'll see, this architecture enables runtime composition of behavior that would be tricky to implement in the example above.
 
 ### Components
 
 In an ECS, components are typically plain objects that contain data and no methods. Ideally all game state lives in components.
 
 ```
-Body   { velocity: [number, number] }
-Player { name: string }
-Input  { jump: boolean }
+player = { name: string }
+input  = { jump: boolean }
+body   = { velocity: [number, number] }
 ```
 
 ### Entities

@@ -8,32 +8,32 @@ A TypeScript Entity-Component System (ECS) for Node and web browsers.
 
 ## Docs
 
-Vistit https://javelin.games for documentation, examples, and external resources.
+Visit https://javelin.games for documentation, examples, and external resources.
 
 ## Features
 
 ### Fast
-Entities are organized by their component makeup into Archetypes for quick lookups and iteration.
+Entities are organized by their component makeup into Archetypes for quick lookups and iteration. In a small app (10 component types, 10 archetypes, 10 queries), Javelin can iterate ~2.5 million entities per 16ms on a 2GHz Intel i5 processor.
 
 ### Intuitive
-
-Game data is stored in plain old JavaScript objects. Iterate over game state using basic for..of loops:
+Game data is stored in plain old JavaScript objects. Iterate over game state using familiar syntax:
 
 ```ts
-for (const [entity, velocity, position] of bodies)
-  position.x += velocity.x
-  ...
+bodies.forEach((entity, [v, p]) => {
+  p.x += v.x
+})
 ```
 
-### Ergonomic
+### Powerful
 
 Best practices are built-in with tools like [Topics](https://javelin.games/ecs/topics) for inter-system messaging:
 
 ```ts
 const sys_movement = () => {
-  for (const [entity, input] of queries.input)
+  queries.input.forEach((entity, [input]) => {
     if (input.jump)
       topics.physics.push(impulse(entity, ...))
+  })
 }
 const sys_physics = () => {
   for (const message of topics.physics)
@@ -41,18 +41,15 @@ const sys_physics = () => {
 }
 ```
 
-
 and [Effects](https://javelin.games/ecs/effects) for handling async code and third-party dependencies
 
 ```ts
 const sys_render = () => {
   const scene = effects.scene()
   const model = effects.gltf("llama.gltf")
-  for (const [entity, player, position] of queries.players)
+
+  queries.players.forEach((entity, [player, position]) => {
     scene.insert(model, position)
+  })
 }
 ```
-
-### Small
-`@javelin/ecs` is ~10kb minified and ships with tree-shakable ES modules.
-

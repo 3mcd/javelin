@@ -1,7 +1,6 @@
 import { createComponentType, number } from "@javelin/ecs"
 
 export const Color = createComponentType({
-  name: "color",
   type: 99,
   schema: {
     value: number,

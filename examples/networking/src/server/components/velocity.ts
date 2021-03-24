@@ -1,7 +1,6 @@
 import { createComponentType, number } from "@javelin/ecs"
 
 export const Velocity = createComponentType({
-  name: "velocity",
   type: 2,
   schema: {
     x: number,

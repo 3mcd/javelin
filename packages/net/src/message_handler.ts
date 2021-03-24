@@ -44,9 +44,8 @@ export function createMessageHandler(
         let local: number
 
         if (op[0] === WorldOpType.Spawn) {
-          local = world.spawn(...op[2])
+          local = world.reserve()
           remoteToLocal.set(op[1], local)
-          ops.splice(i, 1)
         } else {
           const remote = op[1]
           local = getLocalEntity(remote)
@@ -54,9 +53,9 @@ export function createMessageHandler(
           if (op[0] === WorldOpType.Destroy) {
             toStopTracking.add(remote)
           }
-
-          i++
         }
+
+        i++
 
         op[1] = local
       }

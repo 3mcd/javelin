@@ -30,7 +30,7 @@
           <section>
             <nav>
               <a class="fat" href="/introduction"><h1>Javelin</h1></a>
-              <a class="version" href="https:&#x2F;&#x2F;github.com&#x2F;3mcd&#x2F;javelin/releases/tag/v0.19.4">v0.19.4</a>
+              <a class="version" href="https:&#x2F;&#x2F;github.com&#x2F;3mcd&#x2F;javelin/releases/tag/v0.21.0">v0.21.0</a>
             </nav>
             <nav>
               <a class="fat disabled" href="#">API Docs</a>
@@ -96,17 +96,17 @@
                                                     </a>
                                                 </li>
                                             
-                                                <li >
-                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;filtering&#x2F;">
-                                                        
-                                                        Filtering
-                                                    </a>
-                                                </li>
-                                            
                                                 <li class="active">
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;effects&#x2F;">
                                                         
                                                         Effects
+                                                    </a>
+                                                </li>
+                                            
+                                                <li >
+                                                    <a href="https:&#x2F;&#x2F;javelin.games&#x2F;ecs&#x2F;events&#x2F;">
+                                                        
+                                                        Events
                                                     </a>
                                                 </li>
                                             
@@ -186,14 +186,16 @@
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">sys_physics </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
 </span><span style="color:#555c64;">  </span><span style="color:#388282;">const </span><span style="color:#555c64;">{ result, doExpensiveComputation } </span><span style="color:#388282;">= </span><span style="color:#555c64;">effects.worker()
 
-</span><span style="color:#555c64;">  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(</span><span style="color:#388282;">!</span><span style="color:#555c64;">result) {
-</span><span style="color:#555c64;">   doExpensiveComputation()
-</span><span style="color:#555c64;">  } </span><span style="color:#388282;">else </span><span style="color:#555c64;">{
+</span><span style="color:#555c64;">  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(shouldRun </span><span style="color:#388282;">&amp;&amp; !</span><span style="color:#555c64;">result) {
+</span><span style="color:#555c64;">    doExpensiveComputation()
+</span><span style="color:#555c64;">  }
+
+</span><span style="color:#555c64;">  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(result) {
 </span><span style="color:#555c64;">    </span><span style="color:#8c95a0;">// do something with result
 </span><span style="color:#555c64;">  }
 </span><span style="color:#555c64;">}
 </span></code></pre>
-<p>Javelin exports a function <code>createEffect</code> which accepts a callback as its first argument. This callback receives the active <code>World</code> as its first parameter, should define any state (variables) used by the effect, and return a function to be executed each tick.</p>
+<p>Effects are created using the aptly named <code>createEffect</code>. This function accepts a callback as its first argument. The provided callback receives the active <code>World</code> as its first parameter, should define any state (variables) used by the effect, and return a function to be executed each tick.</p>
 <p>Below is an effect that will return <code>false</code> until the provided duration passes:</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createEffect } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
@@ -212,7 +214,7 @@
 })
 </span></code></pre><aside>
   <p>
-    <strong>Tip</strong> — effects in Javelin have some similarities to React effects. They are executed each update (tick) and  read/modify closed-over variables. In a way, Javelin's effects are a combination of React's <code>useEffect</code> and <code>useRef</code>.
+    <strong>Tip</strong> — effects in Javelin have some similarities to React effects. They are executed each update (tick) and  read/modify closed-over variables.
   </p>
 </aside>
 <p>Effects have a single rule: they must be called in the same order order and at the same frequency every tick. This means that you shouldn't call effects conditionally (i.e. in a if/else statement or a loop).</p>
@@ -222,16 +224,16 @@
   </span><span style="color:#388282;">if </span><span style="color:#555c64;">(timer(</span><span style="color:#4179ad;">1000</span><span style="color:#555c64;">)) </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;a&quot;</span><span style="color:#555c64;">)
   </span><span style="color:#388282;">if </span><span style="color:#555c64;">(timer(</span><span style="color:#4179ad;">2000</span><span style="color:#555c64;">)) </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;b&quot;</span><span style="color:#555c64;">)
 }
-
+</span></code></pre><pre style="background-color:#f6f8f8;">
+<code><span style="color:#555c64;">(1000ms)
+&gt; &quot;a&quot;
 (1000ms)
-</span><span style="color:#388282;">&gt; </span><span style="color:#4179ad;">&quot;a&quot;
-</span><span style="color:#555c64;">(1000ms)
-</span><span style="color:#388282;">&gt; </span><span style="color:#4179ad;">&quot;b&quot;
+&gt; &quot;b&quot;
 </span></code></pre><h2 id="effect-modes">Effect Modes<a class="zola-anchor" href="#effect-modes" aria-label="Anchor link for: effect-modes"
   >#</a
 >
 </h2>
-<p>Effects can exist in either <strong>local mode</strong> or <strong>global mode</strong>. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure and one callback function per local effect within a system. Global effects are executed a maximum of one time per tick. All calls to global effects refer to the same closure and callback. Local mode is enabled by default.</p>
+<p>Effects can exist in either <strong>local mode</strong> or <strong>global mode</strong>. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure per local effect within a system. Global effects are executed a maximum of one time per tick. All calls to global effects refer to the same closure. Local mode is enabled by default.</p>
 <h3 id="local-effects">Local Effects<a class="zola-anchor" href="#local-effects" aria-label="Anchor link for: local-effects"
   >#</a
 >
@@ -240,7 +242,7 @@
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">sys_quest_ui </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">context </span><span style="color:#388282;">= </span><span style="color:#555c64;">effects.canvas()
-  </span><span style="color:#388282;">const </span><span style="color:#555c64;">{ done, quests } </span><span style="color:#388282;">= </span><span style="color:#555c64;">fetchEffect(</span><span style="color:#4179ad;">&quot;/quests?complete=false&quot;</span><span style="color:#555c64;">)
+  </span><span style="color:#388282;">const </span><span style="color:#555c64;">{ done, quests } </span><span style="color:#388282;">= </span><span style="color:#555c64;">effects.fetch(</span><span style="color:#4179ad;">&quot;/quests?complete=false&quot;</span><span style="color:#555c64;">)
 
   </span><span style="color:#388282;">if </span><span style="color:#555c64;">(done) {
     </span><span style="color:#8c95a0;">// render quest log
@@ -268,16 +270,16 @@
   >#</a
 >
 </h3>
-<p>The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS.</p>
+<p>The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS. Global effects are a good candidate for encapsulating this type of dependency. They are only executed once per tick and share the same state between systems.</p>
 <p>Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">simulation </span><span style="color:#388282;">= </span><span style="color:#555c64;">createEffect(</span><span style="color:#8a6c3c;">world </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">sim </span><span style="color:#388282;">= new </span><span style="color:#555c64;">Library.Simulation()
   </span><span style="color:#388282;">return </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-    </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[e] </span><span style="color:#388282;">of </span><span style="color:#555c64;">queries.attached) </span><span style="color:#388282;">...   </span><span style="color:#8c95a0;">// add new bodies to simulation
-    </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[e] </span><span style="color:#388282;">of </span><span style="color:#555c64;">queries.detached) </span><span style="color:#388282;">...   </span><span style="color:#8c95a0;">// remove detached bodies from simulation
-    </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[e] </span><span style="color:#388282;">of </span><span style="color:#555c64;">queries.simulated) </span><span style="color:#388282;">...  </span><span style="color:#8c95a0;">// copy simulation state to components
-    </span><span style="color:#555c64;">sim.step(world.state.currentTickData)     </span><span style="color:#8c95a0;">// step simulation in sync with world
+    queries.attached.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">)  </span><span style="color:#8c95a0;">// add new bodies to simulation   
+    </span><span style="color:#555c64;">queries.detached.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">)  </span><span style="color:#8c95a0;">// remove detached bodies from simulation
+    </span><span style="color:#555c64;">queries.simulated.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">) </span><span style="color:#8c95a0;">// copy simulation state to components
+    </span><span style="color:#555c64;">sim.step(world.state.currentTickData) </span><span style="color:#8c95a0;">// step simulation in sync with world
     </span><span style="color:#388282;">return </span><span style="color:#555c64;">sim
   }
 }, {
@@ -286,10 +288,9 @@
 
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">sys_jump </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">simulation </span><span style="color:#388282;">= </span><span style="color:#555c64;">simulationEffect()
-
-  </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[e, body, input] </span><span style="color:#388282;">of </span><span style="color:#555c64;">queries.jumping) {
+  queries.jumping.forEach((</span><span style="color:#8a6c3c;">e</span><span style="color:#555c64;">, [</span><span style="color:#8a6c3c;">body</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">input</span><span style="color:#555c64;">]) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
     simulation.applyImpulse(body.simulationId, </span><span style="color:#388282;">...</span><span style="color:#555c64;">)
-  }
+  })
 }
 
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">sys_move </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
@@ -297,7 +298,7 @@
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">simulation </span><span style="color:#388282;">= </span><span style="color:#555c64;">simulationEffect()
   </span><span style="color:#388282;">...
 </span><span style="color:#555c64;">}
-</span></code></pre><h2 id="built-ins">Built-ins<a class="zola-anchor" href="#built-ins" aria-label="Anchor link for: built-ins"
+</span></code></pre><h2 id="built-in-effects">Built-in Effects<a class="zola-anchor" href="#built-in-effects" aria-label="Anchor link for: built-in-effects"
   >#</a
 >
 </h2>
@@ -316,11 +317,11 @@
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">biggest </span><span style="color:#388282;">= </span><span style="color:#555c64;">ref&lt;</span><span style="color:#88669e;">number </span><span style="color:#388282;">| </span><span style="color:#88669e;">null</span><span style="color:#555c64;">&gt;(</span><span style="color:#a35d66;">null</span><span style="color:#555c64;">)
 
-</span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">[entity, circle] </span><span style="color:#388282;">of </span><span style="color:#555c64;">organisms) {
+organisms.forEach((</span><span style="color:#8a6c3c;">entity</span><span style="color:#555c64;">, [</span><span style="color:#8a6c3c;">circle</span><span style="color:#555c64;">]) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">if </span><span style="color:#555c64;">(circle.radius </span><span style="color:#388282;">&gt; </span><span style="color:#555c64;">biggest.value) {
     biggest.value </span><span style="color:#388282;">= </span><span style="color:#555c64;">circle.radius
   }
-}
+})
 </span></code></pre><h3 id="interval-duration-number-boolean"><code>interval(duration: number): boolean</code><a class="zola-anchor" href="#interval-duration-number-boolean" aria-label="Anchor link for: interval-duration-number-boolean"
   >#</a
 >

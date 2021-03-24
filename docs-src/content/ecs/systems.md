@@ -35,7 +35,7 @@ const sys_ai_enemy = (world: World) => {}
 
 Systems are registered with the world via the options passed to `createWorld`, or the `world.addSystem` method.
 
-```typescript
+```ts
 const sys_physics = () => ...
 const sys_render = () => ...
 const world = createWorld({ systems: [sys_physics] })
@@ -49,7 +49,7 @@ Systems have a signature of `(world: World<T>) => void`, where the first argumen
 
 The following is a world that will log the time elapsed since the last tick at around 60Hz:
 
-```typescript
+```ts
 const world = createWorld<number>({
   systems: [world => console.log(world.state.currentTickData)],
 })
@@ -64,8 +64,8 @@ setInterval(() => {
 
   previousTime = currentTime
 }, 1000 / 60)
-
---- output:
+```
+```
 > 16.66666666
 > 16.66666666
 > 16.66666666
@@ -85,33 +85,57 @@ Depending on its archetype, an entity may be eligible for iteration by a system 
 
 Queries are created with the `query` function, which takes a **selector** of component types.
 
-```typescript
+```ts
 import { query } from "@javelin/ecs"
 
-const players = query(Position, Player)
+const players = query(Position, Velocity)
 ```
 
-A query is a function that is executed with a world. This function returns an iterator that yields tuples of `(entity, Component[])` for entities that meet the selector's criteria.
+A query is an iterable object that produces tuples of `(entity, Component[])` for entities that meet the selector's criteria.
 
-The order of the components in the results matches the order of components types in the selector. That is, `query(Position, Player)` will yield tuples of components `(Position, Player)`, regardless of how the components are stored in an archetype.
+There are two ways to iterate a query. The first (and fastest) way is to iterate the query directly with a `for..of` loop:
 
-```typescript
+```ts
+for (const [entities, [position, velocity]] of players) {
+  for (let i = 0; i < entities.length; i++) {
+    position[i].x += velocity[i].x
+    position[i].y += velocity[i].y
+  }
+}
+```
+
+An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. This method of iteration leaks the implementation details of how components are stored in archetypes. If you find the syntax unappealing and don't mind a 2-3x iteration performance hit, consider using `forEach`. This method executes a callback for each entity that matches the query:
+
+```ts
+players.forEach((entity, [position, velocity]) => {
+  position.x += velocity.x
+  position.y += velocity.y
+})
+```
+
+<aside>
+  <p>
+    <strong>Tip</strong> — most examples in the Javelin docs use `forEach` since it's a bit easier to follow, but complex games and benchmarks should use manual iteration for ideal performance.
+  </p>
+</aside>
+
+The order of component types in the query's selector will match the order of components in the query's results. That is, `query(Position, Player)` will always yield tuples of components `(Position, Player)`:
+
+```ts
 world.spawn(world.component(Player), world.component(Position))
 world.spawn(world.component(Position), world.component(Player))
 
 const sys_render = () => {
-  for (const [entity, position, player] of players) {
+  players.forEach((entity, [position, player]) => {
     // render each player with a name tag
     draw(sprites.player, position, player.name)
-  }
+  })
 }
 ```
 
 ### Modifying State
 
-In order to mutate game state you'll need access to the `World` that called the system.
-
-The world that is currently executing a tick is passed as the system's first argument:
+In order to mutate game state within a system, you'll need access to the world that is executing it it. The world that is currently executing a tick is passed as the system's first argument:
 
 ```ts
 function sys_munch_doritos(world: World<number>) {
@@ -120,8 +144,8 @@ function sys_munch_doritos(world: World<number>) {
 
 world.addSystem(sys_munch_doritos)
 world.tick(1000 / 60)
-
---- output:
+```
+```
 > 16.66666666
 ```
 
@@ -129,24 +153,21 @@ world.tick(1000 / 60)
 
 The tuple of components yielded by queries is re-used each iteration. This means that you shouldn't store the results of a query for use later like this:
 
-```typescript
-const results = []
-
-for (const result of shocked) {
-  results.push(result)
+```ts
+const sys_status_effects = () => {
+  const results = []
+  shocked.forEach((e, components) => {
+    results.push(components)
+  })
+  ...
 }
 ```
 
-Every index of `results` corresponds to the same array, which is the tuple of components attached to the entity of the last iteration.
+Every index of `results` corresponds to the same array, which is the tuple of components attached to the entity of the last iteration. If you absolutely need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
 
-The same applies to `Array.from()`, or any other method that expands an iterator into another container. If you _do_ need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
-
-```typescript
-const sys_status_effects = () => {
-  const results = []
-
-  for (const [, ...components] of shocked) {
-    results.push(components)
-  }
-}
+```ts
+const results = []
+shocked.forEach((e, [a, b]) => {
+  results.push([a, b])
+})
 ```

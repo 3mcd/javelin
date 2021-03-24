@@ -1,6 +1,6 @@
 +++
 title = "Effects"
-weight = 6
+weight = 5
 +++
 
 You'll often need to interact with some asynchronous code, third-party library, or API that wouldn't fit cleanly into Javelin's synchronous/serializable model. An **effect** is a container for one of these resources.
@@ -12,15 +12,17 @@ The below example demonstrates a worker effect that might perform some expensive
  const sys_physics = () => {
    const { result, doExpensiveComputation } = effects.worker()
 
-   if (!result) {
-    doExpensiveComputation()
-   } else {
+   if (shouldRun && !result) {
+     doExpensiveComputation()
+   }
+
+   if (result) {
      // do something with result
    }
  }
  ```
 
- Javelin exports a function `createEffect` which accepts a callback as its first argument. This callback receives the active `World` as its first parameter, should define any state (variables) used by the effect, and return a function to be executed each tick.
+Effects are created using the aptly named `createEffect`. This function accepts a callback as its first argument. The provided callback receives the active `World` as its first parameter, should define any state (variables) used by the effect, and return a function to be executed each tick.
 
 Below is an effect that will return `false` until the provided duration passes:
 
@@ -43,7 +45,7 @@ const timer = createEffect(world => {
 
 <aside>
   <p>
-    <strong>Tip</strong> — effects in Javelin have some similarities to React effects. They are executed each update (tick) and  read/modify closed-over variables. In a way, Javelin's effects are a combination of React's <code>useEffect</code> and <code>useRef</code>.
+    <strong>Tip</strong> — effects in Javelin have some similarities to React effects. They are executed each update (tick) and  read/modify closed-over variables.
   </p>
 </aside>
 
@@ -56,7 +58,8 @@ const sys_a = () => {
   if (timer(1000)) console.log("a")
   if (timer(2000)) console.log("b")
 }
-
+```
+```
 (1000ms)
 > "a"
 (1000ms)
@@ -65,7 +68,7 @@ const sys_a = () => {
 
 ## Effect Modes
 
-Effects can exist in either **local mode** or **global mode**. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure and one callback function per local effect within a system. Global effects are executed a maximum of one time per tick. All calls to global effects refer to the same closure and callback. Local mode is enabled by default.
+Effects can exist in either **local mode** or **global mode**. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure per local effect within a system. Global effects are executed a maximum of one time per tick. All calls to global effects refer to the same closure. Local mode is enabled by default.
 
 ### Local Effects
 
@@ -74,7 +77,7 @@ Local effects are useful if you want to perform a one-off task, like perform an 
 ```ts
 const sys_quest_ui = () => {
   const context = effects.canvas()
-  const { done, quests } = fetchEffect("/quests?complete=false")
+  const { done, quests } = effects.fetch("/quests?complete=false")
 
   if (done) {
     // render quest log
@@ -105,7 +108,7 @@ const sys_fibonacci = () => {
 
 ### Global Effects
 
-The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS.
+The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS. Global effects are a good candidate for encapsulating this type of dependency. They are only executed once per tick and share the same state between systems.
 
 Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.
 
@@ -113,10 +116,10 @@ Below is an example of a global effect that instantiates a third party physics s
 const simulation = createEffect(world => {
   const sim = new Library.Simulation()
   return () => {
-    for (const [e] of queries.attached) ...   // add new bodies to simulation
-    for (const [e] of queries.detached) ...   // remove detached bodies from simulation
-    for (const [e] of queries.simulated) ...  // copy simulation state to components
-    sim.step(world.state.currentTickData)     // step simulation in sync with world
+    queries.attached.forEach(...)  // add new bodies to simulation   
+    queries.detached.forEach(...)  // remove detached bodies from simulation
+    queries.simulated.forEach(...) // copy simulation state to components
+    sim.step(world.state.currentTickData) // step simulation in sync with world
     return sim
   }
 }, {
@@ -125,10 +128,9 @@ const simulation = createEffect(world => {
 
 const sys_jump = () => {
   const simulation = simulationEffect()
-
-  for (const [e, body, input] of queries.jumping) {
+  queries.jumping.forEach((e, [body, input]) => {
     simulation.applyImpulse(body.simulationId, ...)
-  }
+  })
 }
 
 const sys_move = () => {
@@ -138,7 +140,7 @@ const sys_move = () => {
 }
 ```
 
-## Built-ins
+## Built-in Effects
 
 Some useful effects are included with the core ECS package. A few are outlined below.
 
@@ -156,11 +158,11 @@ The following example demonstrates a ref which stores the radius of the largest 
 ```ts
 const biggest = ref<number | null>(null)
 
-for (const [entity, circle] of organisms) {
+organisms.forEach((entity, [circle]) => {
   if (circle.radius > biggest.value) {
     biggest.value = circle.radius
   }
-}
+})
 ```
 
 ### `interval(duration: number): boolean`

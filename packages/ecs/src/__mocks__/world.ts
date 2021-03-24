@@ -1,3 +1,4 @@
+import { createSignal } from "../signal"
 import { World } from "../world"
 import { createStorage } from "./storage"
 
@@ -6,19 +7,22 @@ export const createWorld = jest.fn(
     let e = 0
     return {
       addSystem: jest.fn(),
+      addTopic: jest.fn(),
       applyOps: jest.fn(),
       attach: jest.fn(),
       component: jest.fn(),
       componentTypes: [],
       destroy: jest.fn(),
       detach: jest.fn(),
-      getComponent: jest.fn(),
-      getObservedComponent: jest.fn(),
+      get: jest.fn(),
+      getObserved: jest.fn(),
+      has: jest.fn(),
       id: 1,
       isComponentChanged: jest.fn(),
       ops: [],
       patch: jest.fn(),
       removeSystem: jest.fn(),
+      removeTopic: jest.fn(),
       reset: jest.fn(),
       snapshot: jest.fn(),
       spawn: jest.fn(() => e++),
@@ -29,7 +33,11 @@ export const createWorld = jest.fn(
       },
       storage: createStorage(),
       tick: jest.fn(),
-      tryGetComponent: jest.fn(),
+      tryGet: jest.fn(),
+      attached: createSignal(),
+      detached: createSignal(),
+      spawned: createSignal(),
+      destroyed: createSignal(),
     }
   },
 )

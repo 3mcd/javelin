@@ -1,7 +1,9 @@
 import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
 import { assert } from "./debug"
+import { Entity } from "./entity"
 import { applyMutation, createMutationCache } from "./mutation_cache"
+import { createSignal, Signal } from "./signal"
 import { mutableEmpty, packSparseArray } from "./util"
 
 export type StorageSnapshot = {
@@ -67,6 +69,13 @@ export interface Storage {
   destroy(entity: number): void
 
   /**
+   * Determine if an entity has a component.
+   * @param entity
+   * @param componentType
+   */
+  hasComponent(entity: number, componentType: ComponentType): boolean
+
+  /**
    * Locate an entity's component by component type.
    * @param entity Entity to locate components of.
    * @param componentType ComponentType of component to retreive.
@@ -129,6 +138,13 @@ export interface Storage {
    * Take a serializable snapshot of the storage.
    */
   snapshot(): StorageSnapshot
+
+  /**
+   * Signal dispatched with newly created archetypes immediately after they are created.
+   */
+  readonly archetypeCreated: Signal<Archetype>
+
+  readonly entityRelocated: Signal<Entity, Archetype, Archetype>
 }
 
 export type StorageOptions = {
@@ -136,6 +152,8 @@ export type StorageOptions = {
 }
 
 export function createStorage(options: StorageOptions = {}): Storage {
+  const archetypeCreated = createSignal<Archetype>()
+  const entityRelocated = createSignal<Entity, Archetype, Archetype>()
   const mutationCache = createMutationCache({
     onChange(component: Component, target, path, value, mutArrayMethodType) {
       let changes = mutations.get(component)
@@ -205,8 +223,11 @@ export function createStorage(options: StorageOptions = {}): Storage {
     let archetype = findArchetype(components)
 
     if (!archetype) {
-      archetype = createArchetype({ signature: components.map(c => c._tid) })
+      archetype = createArchetype({
+        signature: components.map(c => c._tid),
+      })
       archetypes.push(archetype)
+      archetypeCreated.dispatch(archetype)
     }
 
     return archetype
@@ -243,14 +264,11 @@ export function createStorage(options: StorageOptions = {}): Storage {
   ) {
     source.remove(entity)
 
-    if (components.length === 0) {
-      return
-    }
-
     const destination = findOrCreateArchetype(components)
 
     destination.insert(entity, components)
     archetypeIndicesByEntity[entity] = archetypes.indexOf(destination)
+    entityRelocated.dispatch(entity, source, destination)
   }
 
   function insert(entity: number, components: Component[]) {
@@ -268,7 +286,6 @@ export function createStorage(options: StorageOptions = {}): Storage {
         )
       }
 
-      // UNSAFE: `!` is used because entity location is non-null.
       destinationComponents.push(source.table[i][entityIndex]!)
     }
 
@@ -360,6 +377,11 @@ export function createStorage(options: StorageOptions = {}): Storage {
     }
   }
 
+  function hasComponent(entity: number, componentType: ComponentType) {
+    const archetype = getEntityArchetype(entity)
+    return archetype.signature.includes(componentType.type)
+  }
+
   function findComponent<T extends ComponentType>(
     entity: number,
     componentType: T,
@@ -383,7 +405,6 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
     const entityIndex = archetype.indices[entity]
 
-    // UNSAFE: `!` is used because entity location is non-null.
     return archetype.table[column][entityIndex]! as ComponentOf<T>
   }
 
@@ -441,16 +462,19 @@ export function createStorage(options: StorageOptions = {}): Storage {
   }
 
   return {
+    archetypeCreated,
     archetypes,
     clear,
     clearMutations,
     create,
     destroy,
+    entityRelocated,
     findComponent,
     findComponentByComponentTypeId,
     getComponentMutations,
     getEntityComponents,
     getObservedComponent,
+    hasComponent,
     insert,
     isComponentChanged,
     patch,
