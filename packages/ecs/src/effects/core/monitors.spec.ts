@@ -1,5 +1,7 @@
-import { createArchetype } from "../../archetype"
+import { Archetype, createArchetype } from "../../archetype"
+import { Entity } from "../../entity"
 import { createComponentType } from "../../helpers"
+import { globals } from "../../internal/globals"
 import { query } from "../../query"
 import { createWorld, World } from "../../world"
 import { onInsert, onRemove } from "./monitors"
@@ -10,11 +12,13 @@ jest.mock("../../world")
 
 const A = createComponentType({ type: 1 })
 const B = createComponentType({ type: 2 })
-const C = createComponentType({ type: 2 })
+const C = createComponentType({ type: 3 })
 
 const a = query(A)
 const ab = query(A, B)
 const c = query(C)
+
+const entitySortComparator = (a: Entity, b: Entity) => a - b
 
 function runIncludeTest(
   monitor: typeof onInsert | typeof onRemove,
@@ -23,8 +27,8 @@ function runIncludeTest(
   useForEach = true,
 ) {
   const results: number[] = []
-  const prev = createArchetype({ signature: [1] })
-  const next = createArchetype({ signature: [1, 2] })
+  const prev = createArchetype({ signature: [A.type] })
+  const next = createArchetype({ signature: [A.type, B.type] })
   const left = insert ? prev : next
   const right = insert ? next : prev
 
@@ -42,7 +46,7 @@ function runIncludeTest(
     }
   }
 
-  expect(results.sort()).toEqual([1, 2, 3])
+  expect(results.sort(entitySortComparator)).toEqual([1, 2, 3])
 }
 
 function runExcludeTest(
@@ -52,8 +56,8 @@ function runExcludeTest(
 ) {
   const results: number[] = []
   const root = createArchetype({ signature: [] })
-  const prev = createArchetype({ signature: [1] })
-  const next = createArchetype({ signature: [1, 2] })
+  const prev = createArchetype({ signature: [A.type] })
+  const next = createArchetype({ signature: [A.type, B.type] })
   const left = insert ? prev : next
   const right = insert ? next : prev
 
@@ -86,9 +90,9 @@ function runSwapTest(
   insert = true,
 ) {
   const results: number[] = []
-  const prev = createArchetype({ signature: [1] })
-  const next = createArchetype({ signature: [1, 2] })
-  const changed = createArchetype({ signature: [3, 4] })
+  const prev = createArchetype({ signature: [A.type] })
+  const next = createArchetype({ signature: [A.type, B.type] })
+  const changed = createArchetype({ signature: [C.type] })
   const left = insert ? prev : next
   const right = insert ? next : prev
 
@@ -108,7 +112,7 @@ function runSwapTest(
 
   monitor(c).forEach(entity => results.push(entity))
 
-  expect(results.sort()).toEqual([1, 2, 4])
+  expect(results.sort(entitySortComparator)).toEqual([4])
 }
 
 describe("onInsert", () => {
@@ -116,7 +120,27 @@ describe("onInsert", () => {
 
   beforeEach(() => {
     world = createWorld()
+    globals.__CURRENT_WORLD__ = 1
+    globals.__WORLDS__ = [, world] as World[]
     ;(onInsert as any).reset(world)
+  })
+
+  afterEach(() => {
+    globals.__CURRENT_WORLD__ = -1
+    globals.__WORLDS__ = []
+  })
+
+  it("yields entities that were added prior to the first execution", () => {
+    const results: number[] = []
+    const archetype = {
+      ...createArchetype({ signature: [A.type, B.type] }),
+      entities: [2, 4, 6],
+    }
+    ;(world.storage.archetypes as Archetype[]).push(archetype)
+
+    onInsert(ab).forEach(entity => results.push(entity))
+
+    expect(results.sort(entitySortComparator)).toEqual([2, 4, 6])
   })
 
   it("yields entities that were relocated last tick and now match query", () => {
@@ -131,8 +155,8 @@ describe("onInsert", () => {
     runExcludeTest(onInsert, world)
   })
 
-  it("supports switching queries", () => {
-    runExcludeTest(onInsert, world)
+  it("clears buffer and subscribes to new component type when swapped", () => {
+    runSwapTest(onInsert, world)
   })
 })
 
@@ -156,7 +180,7 @@ describe("onRemove", () => {
     runExcludeTest(onRemove, world, false)
   })
 
-  it("supports switching queries", () => {
-    runExcludeTest(onRemove, world, false)
+  it("clears buffer and subscribes to new component type when swapped", () => {
+    runSwapTest(onRemove, world, false)
   })
 })

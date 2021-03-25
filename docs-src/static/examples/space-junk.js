@@ -164,11 +164,7 @@ const spawn = world => {
   }
 
   if (!hasClickedOnce.value && shouldSpawnWormhole) {
-    spawnWormhole(
-      Math.random() * canvas.width,
-      Math.random() * canvas.height,
-      Math.max(10, Math.random() * 60),
-    )
+    spawnWormhole()
   }
 }
 
@@ -352,7 +348,11 @@ const world = createWorld({
   topics: [topics.log],
 })
 
-function spawnWormhole(x, y, r) {
+function spawnWormhole(
+  x = Math.random() * canvas.width,
+  y = Math.random() * canvas.height,
+  r = Math.max(10, Math.random() * 60),
+) {
   world.spawn(
     world.component(Transform, x, y),
     world.component(Wormhole, r),
@@ -360,6 +360,8 @@ function spawnWormhole(x, y, r) {
     world.component(Junk),
   )
 }
+
+spawnWormhole()
 
 function loop() {
   world.tick()
