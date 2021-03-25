@@ -1,7 +1,7 @@
 {
   "name": "@javelin/example-networking",
   "private": true,
-  "version": "0.21.1",
+  "version": "0.21.2",
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
@@ -13,9 +13,9 @@
     "webpack-dev-server": "^3.10.3"
   },
   "dependencies": {
-    "@javelin/ecs": "0.21.1",
+    "@javelin/ecs": "0.21.2",
     "@javelin/hrtime-loop": "0.21.1",
-    "@javelin/net": "0.21.1",
+    "@javelin/net": "0.21.2",
     "@msgpack/msgpack": "^1.12.1",
     "@web-udp/client": "^4.2.1",
     "@web-udp/server": "^4.2.1",

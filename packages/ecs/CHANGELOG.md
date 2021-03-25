@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.21.2](https://github.com/3mcd/javelin/compare/v0.21.1...v0.21.2) (2021-03-25)
+
+
+### Bug Fixes
+
+* trigger types and include existing entities/components ([#155](https://github.com/3mcd/javelin/issues/155)) ([5c3ba3d](https://github.com/3mcd/javelin/commit/5c3ba3d8253c42b2431942f461d7d8742a8bec27))
+
+
+
+
+
 ## [0.21.1](https://github.com/3mcd/javelin/compare/v0.21.0...v0.21.1) (2021-03-24)
 
 
