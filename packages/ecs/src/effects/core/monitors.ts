@@ -10,8 +10,12 @@ type MonitorPredicate = (
   prev: Archetype,
   next: Archetype,
 ) => boolean
+type MonitorApi = {
+  forEach(iteratee: MonitorIteratee): void
+  [Symbol.iterator](): IterableIterator<number>
+}
 
-const createMonitor = (predicate: MonitorPredicate) =>
+const createMonitor = (predicate: MonitorPredicate, emitExisting = false) =>
   createEffect(world => {
     const {
       storage: { entityRelocated },
@@ -25,15 +29,24 @@ const createMonitor = (predicate: MonitorPredicate) =>
         iteratee(ready[i])
       }
     }
-    const api = {
+    const api: MonitorApi = {
       forEach,
       [Symbol.iterator]: () => ready[Symbol.iterator](),
     }
 
     const reset = (query: Query<any>) => {
-      active = query
       mutableEmpty(staged)
       mutableEmpty(ready)
+
+      if (active === null && emitExisting) {
+        for (const [entities] of query) {
+          for (let i = 0; i < entities.length; i++) {
+            staged.push(entities[i])
+          }
+        }
+      }
+
+      active = query
     }
 
     entityRelocated.subscribe((entity, prev, next) => {
@@ -73,7 +86,7 @@ export const onInsert = createMonitor((query, prev, next) => {
   const matchPrev = queryMatchesArchetype(query, prev)
   const matchNext = queryMatchesArchetype(query, next)
   return !matchPrev && matchNext
-})
+}, true)
 
 /**
  * Get non-matching entities of a query that matched during the effect's

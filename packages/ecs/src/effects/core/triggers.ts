@@ -1,14 +1,22 @@
 import { Component, ComponentOf, ComponentType } from "../../component"
 import { createEffect } from "../../effect"
+import { Entity } from "../../entity"
 import { createStackPool } from "../../pool"
 import { World } from "../../world"
 
-type EntityComponentPair = [number, Component]
+type EntityComponentPair<T extends ComponentType = ComponentType> = [
+  number,
+  ComponentOf<T>,
+]
 
-type TriggerIteratee = <T extends ComponentType>(
+export type TriggerIteratee<T extends ComponentType = ComponentType> = (
   entity: number,
   component: ComponentOf<T>,
 ) => void
+export type TriggerApi<T extends ComponentType = ComponentType> = {
+  forEach(iteratee: TriggerIteratee<T>): void
+  [Symbol.iterator](): IterableIterator<EntityComponentPair<T>>
+}
 
 const pairPool = createStackPool(
   () => ([-1, null] as unknown) as EntityComponentPair,
@@ -22,8 +30,12 @@ const pairPool = createStackPool(
 
 const createTrigger = (
   worldSignalSelector: (world: World) => World["attached"] | World["detached"],
+  emitExisting = false,
 ) =>
   createEffect(world => {
+    const {
+      storage: { archetypes },
+    } = world
     const ready: EntityComponentPair[] = []
     const staged: EntityComponentPair[] = []
     const forEach = (iteratee: TriggerIteratee) => {
@@ -31,11 +43,34 @@ const createTrigger = (
         iteratee(ready[i][0], ready[i][1])
       }
     }
-    const api = {
+    const api: TriggerApi = {
       forEach,
       [Symbol.iterator]: () => ready[Symbol.iterator](),
     }
     const signal = worldSignalSelector(world)
+    const push = (entity: Entity, component: Component) => {
+      const pair = pairPool.retain()
+      pair[0] = entity
+      pair[1] = component
+      staged.push(pair)
+    }
+    const initialize = (componentType: ComponentType) => {
+      if (!emitExisting) {
+        return
+      }
+      for (let i = 0; i < archetypes.length; i++) {
+        const { table, entities, signatureInverse } = archetypes[i]
+        const index = signatureInverse[componentType.type]
+
+        if (index !== undefined) {
+          const column = table[index]
+
+          for (let i = 0; i < entities.length; i++) {
+            push(entities[i], column[i])
+          }
+        }
+      }
+    }
 
     let type: number | null = null
 
@@ -46,15 +81,16 @@ const createTrigger = (
       for (let i = 0; i < components.length; i++) {
         const component = components[i]
         if (component._tid === type) {
-          const event = pairPool.retain()
-          event[0] = entity
-          event[1] = component
-          staged.push(event)
+          push(entity, component)
         }
       }
     })
 
-    return <T extends ComponentType>(componentType: T) => {
+    return <T extends ComponentType>(componentType: T): TriggerApi<T> => {
+      if (type === null) {
+        initialize(componentType)
+      }
+
       type = componentType.type
 
       let r: EntityComponentPair | undefined
@@ -84,7 +120,7 @@ const createTrigger = (
  *   // body was attached to entity last tick
  * }
  */
-export const onAttach = createTrigger(world => world.attached)
+export const onAttach = createTrigger(world => world.attached, true)
 
 /**
  * Get components of a given type that were detached during the effect's

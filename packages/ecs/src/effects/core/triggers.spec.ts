@@ -1,3 +1,4 @@
+import { Archetype, createArchetype } from "../../archetype"
 import { Component } from "../../component"
 import { Entity } from "../../entity"
 import { createComponentType } from "../../helpers"
@@ -14,6 +15,11 @@ type ComponentsSignal = Signal<Entity, ReadonlyArray<Component>>
 const A = createComponentType({ type: 1 })
 const B = createComponentType({ type: 2 })
 
+const getComponentFromResults = (
+  results: [Entity, Component][],
+  entity: Entity,
+) => results.find(([e]) => e === entity)![1]
+
 function runIncludeTest(
   trigger: Trigger,
   signal: ComponentsSignal,
@@ -26,8 +32,6 @@ function runIncludeTest(
   ]
   const [[e1, [c1]], [e2, [c2]], [e3, [c3]]] = inserts
   const results: [number, Component][] = []
-  const getComponent = (entity: number) =>
-    results.find(([e]) => e === entity)![1]
 
   trigger(A)
 
@@ -44,9 +48,9 @@ function runIncludeTest(
   }
 
   expect(results.length).toBe(3)
-  expect(getComponent(e1)).toBe(c1)
-  expect(getComponent(e2)).toBe(c2)
-  expect(getComponent(e3)).toBe(c3)
+  expect(getComponentFromResults(results, e1)).toBe(c1)
+  expect(getComponentFromResults(results, e2)).toBe(c2)
+  expect(getComponentFromResults(results, e3)).toBe(c3)
 }
 
 function runExcludeTest(trigger: Trigger, signal: ComponentsSignal) {
@@ -103,6 +107,27 @@ describe("onAttach", () => {
   beforeEach(() => {
     world = createWorld()
     ;(onAttach as any).reset(world)
+  })
+  it("yields components that were added prior to the first execution", () => {
+    const results: [Entity, Component][] = []
+    const archetype = {
+      ...createArchetype({ signature: [A.type] }),
+      entities: [2, 4, 6],
+      table: [[{ _tid: A.type }, { _tid: A.type }, { _tid: A.type }]],
+    }
+    const getComponent = (entity: number) =>
+      results.find(([e]) => e === entity)![1]
+    const {
+      entities: [e1, e2, e3],
+      table: [[c1, c2, c3]],
+    } = archetype
+    ;(world.storage.archetypes as Archetype[]).push(archetype)
+
+    onAttach(A).forEach((entity, a) => results.push([entity, a]))
+
+    expect(getComponentFromResults(results, e1)).toBe(c1)
+    expect(getComponentFromResults(results, e2)).toBe(c2)
+    expect(getComponentFromResults(results, e3)).toBe(c3)
   })
   it("yields components that were attached t-1", () => {
     runIncludeTest(onAttach, world.attached)
