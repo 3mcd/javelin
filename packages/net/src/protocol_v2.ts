@@ -1,10 +1,24 @@
-import { Component, mutableEmpty, SerializedComponentType } from "@javelin/ecs"
-import { Entity } from "@javelin/ecs/dist/cjs/entity"
+import {
+  Component,
+  mutableEmpty,
+  SerializedComponentType,
+  assert,
+  ErrorType,
+} from "@javelin/ecs"
 import {
   decode,
   encode,
+  field,
+  Field,
+  float32,
+  float64,
+  int16,
   int32,
+  int8,
+  isField,
   Schema,
+  string16,
+  string8,
   uint16,
   uint32,
   uint8,
@@ -15,7 +29,7 @@ export interface NetProtocol {
   updateModel(model: Model): void
 }
 
-type Model = SerializedComponentType[]
+type Model = Map<number, Schema>
 type ComponentTypeSchemaMap = { [componentTypeId: number]: Schema }
 
 // A single State message consists of several parts:
@@ -29,14 +43,6 @@ type ComponentTypeSchemaMap = { [componentTypeId: number]: Schema }
 //
 // The message layout looks like:
 //   [T, M, S[], A[], U[], D[], X[]]
-
-function buildComponentTypeSchemaMapFromModel(
-  model: Model,
-): ComponentTypeSchemaMap {
-  return model.reduce((a, serializedComponentType) => {
-    return a
-  }, {} as ComponentTypeSchemaMap)
-}
 
 type EntityComponentsPair = (number | ArrayBuffer)[]
 type Detach = number[]
@@ -106,7 +112,7 @@ export class MessagePart<
 export class MessageBuilder {
   private tick = 0
   private parts = [
-    new MessagePart<Model>(),
+    new MessagePart<Model[]>(),
     new MessagePart<EntityComponentsPair>(), // spawn
     new MessagePart<EntityComponentsPair>(), // attach
     new MessagePart<EntityComponentsPair>(), // update
@@ -127,7 +133,7 @@ export class MessageBuilder {
   }
 
   private _attach(
-    entity: Entity,
+    entity: number,
     components: Component[],
     target: MessagePart<EntityComponentsPair>,
   ) {
@@ -153,22 +159,23 @@ export class MessageBuilder {
   }
 
   model(model: Model) {
-    // this.parts[0].insert()
+    this.parts[0].reset()
+    this.parts[0].insertBuffer(encodeModel(model))
   }
 
-  spawn(entity: Entity, components: Component[]) {
+  spawn(entity: number, components: Component[]) {
     this._attach(entity, components, this.parts[1])
   }
 
-  attach(entity: Entity, components: Component[]) {
+  attach(entity: number, components: Component[]) {
     this._attach(entity, components, this.parts[2])
   }
 
-  update(entity: Entity, components: Component[]) {
+  update(entity: number, components: Component[]) {
     this._attach(entity, components, this.parts[3])
   }
 
-  detach(entity: Entity, componentTypeIds: number[]) {
+  detach(entity: number, componentTypeIds: number[]) {
     const detach = this.parts[4]
     detach.insert(entity, uint32)
     detach.insert(componentTypeIds.length, uint8)
@@ -177,7 +184,7 @@ export class MessageBuilder {
     }
   }
 
-  destroy(entity: Entity) {
+  destroy(entity: number) {
     const destroy = this.parts[5]
     destroy.insert(entity, uint32)
   }
@@ -210,18 +217,37 @@ export class MessageBuilder {
   }
 }
 
-function decodeModel(
+export function decodeModel(
   buffer: ArrayBuffer,
   bufferView: DataView,
   offset: number,
   onModel: (model: Model) => void,
 ) {
   const modelLength = uint32.read(bufferView, offset, 0)
-  const modelEnd = offset + modelLength
 
   offset += uint32.byteLength
 
-  return offset
+  const length = modelLength - uint32.byteLength
+
+  if (length === 0) {
+    return offset
+  }
+
+  const model = new Map<number, Schema>()
+  const encoded = new Uint8Array(buffer, offset, length)
+
+  let o = 0
+
+  while (o < length) {
+    const schema = {}
+    const componentTypeId = encoded[o++]
+    o = decodeSchema(encoded, o, schema)
+    model.set(componentTypeId, schema)
+  }
+
+  onModel(model)
+
+  return offset + length
 }
 
 function decodeAttach(
@@ -229,7 +255,7 @@ function decodeAttach(
   bufferView: DataView,
   model: Map<number, Schema>,
   offset: number,
-  onAttach: (entity: Entity, components: Component[]) => void,
+  onAttach: (entity: number, components: Component[]) => void,
 ) {
   const attachLength = uint32.read(bufferView, offset, 0)
   const attachEnd = offset + attachLength
@@ -267,7 +293,7 @@ function decodeAttach(
 function decodeDetach(
   bufferView: DataView,
   offset: number,
-  onDetach: (entity: Entity, componentTypeIds: number[]) => void,
+  onDetach: (entity: number, componentTypeIds: number[]) => void,
 ) {
   const detachLength = uint32.read(bufferView, offset, 0)
   const detachEnd = offset + detachLength
@@ -296,7 +322,7 @@ function decodeDetach(
 function decodeDestroy(
   bufferView: DataView,
   offset: number,
-  onDestroy: (entity: Entity) => void,
+  onDestroy: (entity: number) => void,
 ) {
   const destroyLength = uint32.read(bufferView, offset, 0)
   const destroyEnd = offset + destroyLength
@@ -315,17 +341,17 @@ function decodeDestroy(
 type DecodeMessageHandlers = {
   onTick: (tick: number) => void
   onModel: (model: Model) => void
-  onCreate: (entity: Entity, components: Component[]) => void
-  onAttach: (entity: Entity, components: Component[]) => void
-  onUpdate: (entity: Entity, components: Component[]) => void
-  onDetach: (entity: Entity, componentTypeIds: number[]) => void
-  onDestroy: (entity: Entity) => void
+  onCreate: (entity: number, components: Component[]) => void
+  onAttach: (entity: number, components: Component[]) => void
+  onUpdate: (entity: number, components: Component[]) => void
+  onDetach: (entity: number, componentTypeIds: number[]) => void
+  onDestroy: (entity: number) => void
 }
 
 export function decodeMessage(
   buffer: ArrayBuffer,
-  schemas: Map<number, Schema>,
   handlers: DecodeMessageHandlers,
+  model?: Model,
 ) {
   const {
     onTick,
@@ -336,6 +362,10 @@ export function decodeMessage(
     onDetach,
     onDestroy,
   } = handlers
+  const _onModel = (m: Model) => {
+    model = m
+    onModel(m)
+  }
   const bufferView = new DataView(buffer)
   const tick = uint32.read(bufferView, 0, 0)
 
@@ -343,22 +373,161 @@ export function decodeMessage(
 
   onTick(tick)
 
-  offset = decodeModel(buffer, bufferView, offset, onModel)
-  offset = decodeAttach(buffer, bufferView, schemas, offset, onCreate)
-  offset = decodeAttach(buffer, bufferView, schemas, offset, onAttach)
-  offset = decodeAttach(buffer, bufferView, schemas, offset, onUpdate)
+  offset = decodeModel(buffer, bufferView, offset, _onModel)
+  assert(
+    model !== undefined,
+    "Failed to decode network message: unable to resolve component model",
+  )
+  offset = decodeAttach(buffer, bufferView, model!, offset, onCreate)
+  offset = decodeAttach(buffer, bufferView, model!, offset, onAttach)
+  offset = decodeAttach(buffer, bufferView, model!, offset, onUpdate)
   offset = decodeDetach(bufferView, offset, onDetach)
   offset = decodeDestroy(bufferView, offset, onDestroy)
 }
 
-export function createNetProtocol(): NetProtocol {
-  let schema: ComponentTypeSchemaMap = {}
+type Views =
+  | typeof uint8
+  | typeof uint16
+  | typeof uint32
+  | typeof int8
+  | typeof int16
+  | typeof int32
+  | typeof float32
+  | typeof float64
+  | typeof string8
+  | typeof string16
 
-  function updateModel(model: Model) {
-    schema = buildComponentTypeSchemaMapFromModel(model)
+const dataTypeIds = new Map<string, number>([
+  ["uint8", 0],
+  ["uint16", 1],
+  ["uint32", 2],
+  ["int8", 3],
+  ["int16", 4],
+  ["int32", 5],
+  ["float32", 6],
+  ["float64", 7],
+  ["string8", 8],
+  ["string16", 9],
+])
+
+const dataTypeIdsLookup = new Map<number, Views>([
+  [0, uint8],
+  [1, uint16],
+  [2, uint32],
+  [3, int8],
+  [4, int16],
+  [5, int32],
+  [6, float32],
+  [7, float64],
+  [8, string8],
+  [9, string16],
+])
+
+const SCHEMA_MASK = 1 << 7
+const ARRAY = 10
+
+function getFieldId(field: Field) {
+  const id = dataTypeIds.get(field.type.name)
+  assert(id !== undefined, "", ErrorType.Internal)
+  return id
+}
+
+function encodeSchema(schema: Schema, out: number[]) {
+  let offset = 0
+
+  if (Array.isArray(schema)) {
+    const element = schema[0]
+    out.push(ARRAY)
+    offset++
+    if (isField(element)) {
+      out.push(getFieldId(element))
+      offset++
+    } else {
+      offset += encodeSchema(element, out)
+    }
+  } else if (isField(schema)) {
+    out.push(getFieldId(schema))
+    offset++
+  } else {
+    const keys = Object.keys(schema)
+    const length = keys.length
+    out.push(length | SCHEMA_MASK)
+    offset++
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i]
+      const value = schema[keys[i]]
+      out.push(key.length)
+      offset++
+      for (let i = 0; i < key.length; i++) {
+        out.push(key.charCodeAt(i))
+        offset++
+      }
+      if (isField(value)) {
+        out.push(getFieldId(value))
+        offset++
+      } else {
+        offset += encodeSchema(value, out)
+      }
+    }
   }
 
-  return {
-    updateModel,
+  return offset
+}
+
+export function encodeModel(model: Map<number, Schema>) {
+  const flat: number[] = []
+
+  let size = 0
+
+  model.forEach((schema, id) => {
+    flat.push(id)
+    size += encodeSchema(schema, flat) + 1
+  })
+  const buffer = new ArrayBuffer(size)
+  const encoded = new Uint8Array(buffer)
+
+  for (let i = 0; i < flat.length; i++) {
+    encoded[i] = flat[i]
   }
+
+  return buffer
+}
+
+export function decodeSchema(
+  encoded: Uint8Array,
+  offset: number,
+  schema: Schema,
+) {
+  let length = encoded[offset++] & ~SCHEMA_MASK
+
+  while (length-- > 0) {
+    let keySize = encoded[offset++]
+    let key = ""
+    while (keySize-- > 0) {
+      key += String.fromCharCode(encoded[offset++])
+    }
+    const dataType = encoded[offset++]
+    if (dataType === ARRAY) {
+      const wrapper: (Field | Schema)[] = []
+      const elementType = encoded[offset++]
+      if ((elementType & SCHEMA_MASK) !== 0) {
+        const elementSchema = {}
+        offset = decodeSchema(encoded, offset - 1, elementSchema)
+        wrapper[0] = elementSchema
+      } else {
+        wrapper[0] = field(dataTypeIdsLookup.get(elementType) as View<any>)
+      }
+      ;(schema as any)[key] = wrapper
+    } else if ((dataType & SCHEMA_MASK) !== 0) {
+      const child: Schema = {}
+      offset = decodeSchema(encoded, offset - 1, child)
+      ;(schema as any)[key] = child
+    } else {
+      ;(schema as any)[key] = field(
+        dataTypeIdsLookup.get(dataType) as View<any>,
+      )
+    }
+  }
+
+  return offset
 }

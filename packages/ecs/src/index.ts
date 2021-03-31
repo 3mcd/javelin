@@ -1,5 +1,6 @@
 export * from "./archetype"
 export * from "./component"
+export * from "./debug"
 export * from "./effect"
 export * from "./effects"
 export * from "./helpers"

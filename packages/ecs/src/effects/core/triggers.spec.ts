@@ -115,8 +115,6 @@ describe("onAttach", () => {
       entities: [2, 4, 6],
       table: [[{ _tid: A.type }, { _tid: A.type }, { _tid: A.type }]],
     }
-    const getComponent = (entity: number) =>
-      results.find(([e]) => e === entity)![1]
     const {
       entities: [e1, e2, e3],
       table: [[c1, c2, c3]],

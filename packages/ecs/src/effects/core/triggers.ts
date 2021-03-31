@@ -2,6 +2,7 @@ import { Component, ComponentOf, ComponentType } from "../../component"
 import { createEffect } from "../../effect"
 import { Entity } from "../../entity"
 import { createStackPool } from "../../pool"
+import { mutableRemoveUnordered } from "../../util"
 import { World } from "../../world"
 
 type EntityComponentPair<T extends ComponentType = ComponentType> = [
@@ -36,6 +37,7 @@ const createTrigger = (
     const {
       storage: { archetypes },
     } = world
+    const entities = new Set<Entity>()
     const ready: EntityComponentPair[] = []
     const staged: EntityComponentPair[] = []
     const forEach = (iteratee: TriggerIteratee) => {
@@ -53,6 +55,7 @@ const createTrigger = (
       pair[0] = entity
       pair[1] = component
       staged.push(pair)
+      entities.add(entity)
     }
     const initialize = (componentType: ComponentType) => {
       if (!emitExisting) {
@@ -86,6 +89,22 @@ const createTrigger = (
       }
     })
 
+    world.destroyed.subscribe(entity => {
+      if (entities.has(entity)) {
+        let i = 0
+        while (i < staged.length) {
+          if (staged[i][0] === entity) {
+            const head = staged.pop()
+            if (head !== undefined) {
+              staged[i] = head
+            }
+          } else {
+            i++
+          }
+        }
+      }
+    })
+
     return <T extends ComponentType>(componentType: T): TriggerApi<T> => {
       if (type === null) {
         initialize(componentType)
@@ -102,6 +121,8 @@ const createTrigger = (
       while ((s = staged.pop())) {
         ready.push(s)
       }
+
+      entities.clear()
 
       return api
     }

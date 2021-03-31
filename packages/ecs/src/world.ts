@@ -233,6 +233,13 @@ export interface World<T = any> {
   readonly destroyed: Signal<number>
 }
 
+export type WorldInternal<T> = World<T> & {
+  internalSpawn(entity: Entity): void
+  internalAttach(entity: Entity, components: Component[]): void
+  internalDetach(entity: Entity, components: Component[]): void
+  internalDestroy(entity: Entity): void
+}
+
 export type WorldSnapshot = {
   componentTypes: SerializedComponentType[]
   storage: StorageSnapshot
@@ -305,28 +312,44 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     return worldOp
   }
 
+  function internalSpawn(entity: Entity) {
+    storage.create(entity, [])
+    spawned.dispatch(entity)
+  }
+
+  function internalAttach(entity: Entity, components: Component[]) {
+    storage.insert(entity, components)
+    attached.dispatch(entity, components)
+  }
+
+  function internalDetach(entity: Entity, components: Component[]) {
+    storage.remove(entity, components)
+    detached.dispatch(entity, components)
+  }
+
+  function internalDestroy(entity: Entity) {
+    storage.destroy(entity)
+    destroyed.dispatch(entity)
+  }
+
   function applySpawnOp(op: SpawnOp) {
     const [, entity] = op
-    spawned.dispatch(entity)
-    storage.create(entity, [])
+    internalSpawn(entity)
   }
 
   function applyAttachOp(op: AttachOp) {
     const [, entity, components] = op
-    attached.dispatch(entity, components)
-    storage.insert(entity, components as Component[])
+    internalAttach(entity, components as Component[])
   }
 
   function applyDetachOp(op: DetachOp) {
     const [, entity, components] = op
-    detached.dispatch(entity, components)
-    storage.remove(entity, components as Component[])
+    internalDetach(entity, components as Component[])
   }
 
   function applyDestroyOp(op: DestroyOp) {
     const [, entity] = op
-    destroyed.dispatch(entity)
-    storage.destroy(entity)
+    internalDestroy(entity)
   }
 
   function applyWorldOp(worldOp: WorldOp, record = true) {
@@ -634,6 +657,11 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     detached,
     spawned,
     destroyed,
+    // internal
+    internalSpawn,
+    internalAttach,
+    internalDetach,
+    internalDestroy,
   }
 
   let id = (world.id = globals.__WORLDS__.push(world) - 1)
