@@ -1,14 +1,14 @@
 export type View<T> = {
   name: string
   byteLength: number
-  read(view: DataView, offset: number, length: number): T
+  read(view: DataView, offset: number, length?: number): T
   write(view: DataView, bytes: number, data: T): void
 }
 
 function view<T>(
   name: string,
   byteLength: number,
-  read: (view: DataView, offset: number, length: number) => T,
+  read: (view: DataView, offset: number, length?: number) => T,
   write: (view: DataView, offset: number, data: T) => void,
 ): View<T> {
   return {
@@ -70,7 +70,7 @@ export const float64 = view(
 export const string8 = view(
   "string8",
   1,
-  (view, offset, length: number) => {
+  (view, offset, length = 0) => {
     let value = ""
 
     for (let i = 0; i < length; i++) {
@@ -96,7 +96,7 @@ export const string8 = view(
 export const string16 = view(
   "string16",
   1,
-  (view, offset, length: number) => {
+  (view, offset, length = 0) => {
     let value = ""
 
     for (let i = 0; i < length; i++) {

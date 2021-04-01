@@ -1,9 +1,10 @@
 import {
-  Component,
-  mutableEmpty,
-  SerializedComponentType,
   assert,
+  Component,
   ErrorType,
+  mutableEmpty,
+  number,
+  World,
 } from "@javelin/ecs"
 import {
   decode,
@@ -25,12 +26,7 @@ import {
   View,
 } from "@javelin/pack"
 
-export interface NetProtocol {
-  updateModel(model: Model): void
-}
-
-type Model = Map<number, Schema>
-type ComponentTypeSchemaMap = { [componentTypeId: number]: Schema }
+export type Model = Map<number, Schema>
 
 // A single State message consists of several parts:
 //   (T) current server tick
@@ -44,9 +40,58 @@ type ComponentTypeSchemaMap = { [componentTypeId: number]: Schema }
 // The message layout looks like:
 //   [T, M, S[], A[], U[], D[], X[]]
 
-type EntityComponentsPair = (number | ArrayBuffer)[]
+type Insert = (number | ArrayBuffer)[]
 type Detach = number[]
 type Destroy = number[]
+type Patch = (number | ArrayBuffer)[]
+
+type Patches = Map<number, Map<number, number | ArrayBuffer>>
+
+function getFieldPath(schema: Schema, keyIndex: number) {
+  let visiting: Schema | Field = schema
+  let indices = 0
+
+  outer: while (keyIndex > 0) {
+    if (Array.isArray(schema)) {
+      visiting = schema[0]
+      keyIndex--
+    } else {
+      for (const prop in schema) {
+        visiting = schema[prop]
+        keyIndex--
+        if (!isField(schema[prop])) {
+          continue outer
+        }
+      }
+    }
+
+    if (isField(visiting) && keyIndex > 0) {
+      throw new Error("Failed to find field in schema")
+    }
+  }
+
+  return [field, indices]
+}
+
+function decodePatches(
+  world: World,
+  model: Model,
+  view: DataView,
+  length: number,
+  offset: number,
+) {
+  while (length > 0) {
+    const e = uint32.read(view, offset)
+    const c = uint8.read(view, offset)
+    const f = uint8.read(view, offset)
+    // const [field, indices] = getFieldPath(model.get(c)!, f)
+    const component = world.storage.findComponentByComponentTypeId(e, c)
+  }
+}
+
+interface MessageWriter {
+  write(buffer: ArrayBuffer, bufferView: DataView, offset: number): number
+}
 
 /**
  * MessagePart encodes a repeating part of a message. It exposes methods for
@@ -60,7 +105,7 @@ export class MessagePart<
   V extends P extends Array<infer _> ? _ : never = P extends Array<infer _>
     ? _
     : never
-> {
+> implements MessageWriter {
   protected data = ([] as unknown) as P
   protected views: View<V>[] = []
   protected _byteLength = uint32.byteLength
@@ -109,15 +154,104 @@ export class MessagePart<
   }
 }
 
+// function getFieldAtSchemaKeyIndex(schema: Schema, keyIndex: number) {
+//   let visiting: Schema | Field = schema
+
+//   outer: while (keyIndex > 0) {
+//     if (Array.isArray(schema)) {
+//       visiting = schema[0]
+//       keyIndex--
+//     } else {
+//       for (const prop in schema) {
+//         visiting = schema[prop]
+//         keyIndex--
+//         if (!isField(schema[prop])) {
+//           continue outer
+//         }
+//       }
+//     }
+
+//     if (isField(visiting) && keyIndex > 0) {
+//       throw new Error("Failed to find field in schema")
+//     }
+//   }
+
+//   return visiting
+// }
+
+// class PatchPart implements MessageWriter {
+//   private entities = new Map<number, Map<number, (number | ArrayBuffer)[]>>()
+
+//   insert(
+//     model: Model,
+//     entity: number,
+//     componentTypeId: number,
+//     keyIndex: number,
+//     value: number | ArrayBuffer,
+//     arrayIndex?: number,
+//   ) {
+//     const patch = this.entities.get(entity)
+//     assert(patch !== undefined, "")
+//     const componentPatch = patch.get(componentTypeId)
+//     assert(componentPatch !== undefined, "")
+//     componentPatch.push(keyIndex)
+//     if (arrayIndex !== undefined) {
+//       componentPatch.push(arrayIndex)
+//     }
+//     componentPatch.push(value)
+//   }
+
+//   write(model: Model, buffer: ArrayBuffer, bufferView: DataView, offset: number) {
+//     for (const [entity, entityPatches] of this.entities) {
+//       bufferView.setUint32(offset, entity)
+//       offset += uint32.byteLength
+//       for (const [componentTypeId, componentPatches] of entityPatches) {
+//         const schema = model.get(componentTypeId)
+//         assert(schema !== undefined, "")
+//         bufferView.setUint8(offset, componentTypeId)
+//         offset += uint8.byteLength
+//         let i = 0
+//         while (i < componentPatches.length) {
+//           const keyIndex = componentPatches[i++] as number
+//           bufferView.setUint8(offset, keyIndex)
+//           offset += uint8.byteLength
+//           const field = getFieldAtSchemaKeyIndex(schema, keyIndex)
+
+//           if (isField(field)) {
+//             // field
+//           } else if (Array.isArray(field)) {
+//             const arrayIndex = componentPatches[i++]
+
+//             // array op
+//             field
+//           } else {
+//             const data = componentPatches[i++] as ArrayBuffer
+//             assert(data instanceof ArrayBuffer, "")
+//             // schema – copy buffer
+//           }
+
+//           field.type.write(bufferView, offset, )
+
+//           const index = componentPatches[i++]
+
+//           if ()
+//         }
+//       }
+//     }
+//     return offset
+//   }
+// }
+
 export class MessageBuilder {
   private tick = 0
   private parts = [
     new MessagePart<Model[]>(),
-    new MessagePart<EntityComponentsPair>(), // spawn
-    new MessagePart<EntityComponentsPair>(), // attach
-    new MessagePart<EntityComponentsPair>(), // update
+    new MessagePart<Insert>(), // spawn
+    new MessagePart<Insert>(), // attach
+    new MessagePart<Insert>(), // update
     new MessagePart<Detach>(),
     new MessagePart<Destroy>(),
+    new MessagePart<Patch>(),
   ] as const
 
   constructor(private schemas: Map<number, Schema>) {}
@@ -132,10 +266,10 @@ export class MessageBuilder {
     return encode(component as any, componentSchema)
   }
 
-  private _attach(
+  private insert(
     entity: number,
     components: Component[],
-    target: MessagePart<EntityComponentsPair>,
+    target: MessagePart<Insert>,
   ) {
     // entity
     target.insert(entity, uint32)
@@ -164,15 +298,31 @@ export class MessageBuilder {
   }
 
   spawn(entity: number, components: Component[]) {
-    this._attach(entity, components, this.parts[1])
+    this.insert(entity, components, this.parts[1])
   }
 
   attach(entity: number, components: Component[]) {
-    this._attach(entity, components, this.parts[2])
+    this.insert(entity, components, this.parts[2])
   }
 
   update(entity: number, components: Component[]) {
-    this._attach(entity, components, this.parts[3])
+    this.insert(entity, components, this.parts[3])
+  }
+
+  patch(
+    entity: number,
+    key: number,
+    value: number | ArrayBuffer,
+    view: View<number>,
+    index?: number,
+  ) {
+    const patch = this.parts[6]
+    patch.insert(entity, uint32)
+    patch.insert(key, uint8)
+    if (index !== undefined) {
+      patch.insert(index, uint16)
+    }
+    patch.insert(value, view)
   }
 
   detach(entity: number, componentTypeIds: number[]) {
@@ -224,10 +374,9 @@ export function decodeModel(
   onModel: (model: Model) => void,
 ) {
   const modelLength = uint32.read(bufferView, offset, 0)
+  const length = modelLength - uint32.byteLength
 
   offset += uint32.byteLength
-
-  const length = modelLength - uint32.byteLength
 
   if (length === 0) {
     return offset
@@ -236,12 +385,12 @@ export function decodeModel(
   const model = new Map<number, Schema>()
   const encoded = new Uint8Array(buffer, offset, length)
 
-  let o = 0
+  let i = 0
 
-  while (o < length) {
+  while (i < length) {
     const schema = {}
-    const componentTypeId = encoded[o++]
-    o = decodeSchema(encoded, o, schema)
+    const componentTypeId = encoded[i++]
+    i = decodeSchema(encoded, i, schema)
     model.set(componentTypeId, schema)
   }
 
@@ -250,12 +399,12 @@ export function decodeModel(
   return offset + length
 }
 
-function decodeAttach(
+function decodeInsert(
   buffer: ArrayBuffer,
   bufferView: DataView,
   model: Map<number, Schema>,
   offset: number,
-  onAttach: (entity: number, components: Component[]) => void,
+  onInsert: (entity: number, components: Component[]) => void,
 ) {
   const attachLength = uint32.read(bufferView, offset, 0)
   const attachEnd = offset + attachLength
@@ -284,7 +433,7 @@ function decodeAttach(
       components.push(component)
     }
 
-    onAttach(entity, components)
+    onInsert(entity, components)
   }
 
   return offset
@@ -338,14 +487,21 @@ function decodeDestroy(
   return offset
 }
 
-type DecodeMessageHandlers = {
-  onTick: (tick: number) => void
-  onModel: (model: Model) => void
-  onCreate: (entity: number, components: Component[]) => void
-  onAttach: (entity: number, components: Component[]) => void
-  onUpdate: (entity: number, components: Component[]) => void
-  onDetach: (entity: number, componentTypeIds: number[]) => void
-  onDestroy: (entity: number) => void
+function decodePatch(
+  buffer: ArrayBuffer,
+  bufferView: DataView,
+  model: Map<number, Schema>,
+  offset: number,
+) {}
+
+export type DecodeMessageHandlers = {
+  onTick(tick: number): void
+  onModel(model: Model): void
+  onCreate(entity: number, components: Component[]): void
+  onAttach(entity: number, components: Component[]): void
+  onUpdate(entity: number, components: Component[]): void
+  onDetach(entity: number, componentTypeIds: number[]): void
+  onDestroy(entity: number): void
 }
 
 export function decodeMessage(
@@ -378,11 +534,12 @@ export function decodeMessage(
     model !== undefined,
     "Failed to decode network message: unable to resolve component model",
   )
-  offset = decodeAttach(buffer, bufferView, model!, offset, onCreate)
-  offset = decodeAttach(buffer, bufferView, model!, offset, onAttach)
-  offset = decodeAttach(buffer, bufferView, model!, offset, onUpdate)
+  offset = decodeInsert(buffer, bufferView, model!, offset, onCreate)
+  offset = decodeInsert(buffer, bufferView, model!, offset, onAttach)
+  offset = decodeInsert(buffer, bufferView, model!, offset, onUpdate)
   offset = decodeDetach(bufferView, offset, onDetach)
   offset = decodeDestroy(bufferView, offset, onDestroy)
+  // offset = decodePatch(buffer, bufferView, model!, offset, () => {})
 }
 
 type Views =
