@@ -11,7 +11,7 @@ const getHrTimeMs = () => {
 
 export function createHrtimeLoop(
   tickRate: number,
-  callback: (clock: { dt: number }) => void,
+  callback: (clock: Clock) => void,
 ) {
   const clock: Clock = { dt: 0, now: 0, tick: 0 }
 
