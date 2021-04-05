@@ -53,5 +53,9 @@ export function createHrtimeLoop(
     running = false
   }
 
-  return { start, stop }
+  function isRunning() {
+    return running;
+  }
+
+  return { start, stop, isRunning }
 }
