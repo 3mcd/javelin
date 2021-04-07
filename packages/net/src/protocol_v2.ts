@@ -606,7 +606,7 @@ function encodeSchema(schema: Schema, out: number[]) {
     out.push(getFieldId(schema))
     offset++
   } else {
-    const keys = Object.keys(schema)
+    const keys = Object.keys(schema).sort((a, b) => a.localeCompare(b))
     const length = keys.length
     out.push(length | SCHEMA_MASK)
     offset++
@@ -626,6 +626,74 @@ function encodeSchema(schema: Schema, out: number[]) {
         offset += encodeSchema(value, out)
       }
     }
+  }
+
+  return offset
+}
+
+export type SchemaRecordBase = {
+  id: number
+  cid: number
+  key?: string
+  parent: SchemaRecordBase | null
+}
+
+export type SchemaArrayRecord = SchemaRecordBase & {
+  type: SchemaRecord
+  array: true
+}
+
+export type SchemaStructRecord = SchemaRecordBase & {
+  type: { [key: string]: SchemaRecord | Field }
+}
+
+export type SchemaRecord = SchemaArrayRecord | SchemaStructRecord
+
+export function flattenSchema(
+  schema: Schema,
+  parent: SchemaStructRecord,
+  offset = 0,
+) {
+  const keys = Object.keys(schema).sort((a, b) => a.localeCompare(b))
+
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i]
+    const child = (schema as any)[key]
+    const record: SchemaRecordBase = {
+      id: ++offset,
+      cid: parent.cid,
+      key,
+      parent,
+    }
+
+    if (Array.isArray(child)) {
+      ;(record as SchemaArrayRecord).array = true
+      const entry = child[0]
+      if (isField(entry)) {
+        ;(record as SchemaArrayRecord).type = {
+          id: ++offset,
+          cid: parent.cid,
+          type: entry as any,
+          parent,
+        }
+      } else {
+        const element = {
+          id: ++offset,
+          cid: parent.cid,
+          type: {},
+          parent,
+        }
+        ;(record as any).type = element
+        offset = flattenSchema(entry, element, offset)
+      }
+    } else if (!isField(child)) {
+      ;(record as SchemaStructRecord).type = {}
+      offset = flattenSchema(child, record as SchemaStructRecord, offset)
+    } else {
+      ;(record as any).type = child
+    }
+
+    parent.type[key] = record as SchemaRecord
   }
 
   return offset

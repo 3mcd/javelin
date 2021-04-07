@@ -36,7 +36,7 @@ export type UpdateUnreliable = [
   ...UpdateUnreliablePayload
 ]
 export type Spawn = [JavelinMessageType.Spawn, Component[]]
-export type Model = [JavelinMessageType.Model, SerializedComponentType[]]
+export type ModelOld = [JavelinMessageType.Model, SerializedComponentType[]]
 
 export function setUpdateMetadata(
   update: UpdateUnreliable,
@@ -80,7 +80,7 @@ export const protocol = {
     JavelinMessageType.Spawn,
     components,
   ],
-  model: (world: World): Model => [
+  model: (world: World): ModelOld => [
     JavelinMessageType.Model,
     world.componentTypes.map(serializeComponentType),
   ],

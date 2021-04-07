@@ -6,6 +6,7 @@ import {
   MessageBuilder,
   encodeModel,
   decodeModel,
+  flattenSchema,
 } from "./protocol_v2"
 
 const schema = {
@@ -204,7 +205,7 @@ describe("protocol", () => {
       [
         1,
         {
-          __tid: field(uint8),
+          _tid: field(uint8),
         },
       ],
     ])
@@ -227,4 +228,59 @@ describe("protocol", () => {
       ...model.entries(),
     ])
   })
+
+  it.only("swag", () => {
+    const model = new Map([
+      [
+        0,
+        {
+          _tid: field(uint8),
+          x: field(float64),
+          nested: { a: field(uint32) },
+          arr_simple: [field(uint8)],
+          arr_schema: [
+            {
+              y: field(float64),
+            },
+          ],
+        } as any,
+      ],
+      [
+        1,
+        {
+          _tid: field(uint8),
+        },
+      ],
+    ])
+    const cache = observerCache(model)
+    const o = cache.observe({
+      _tid: 0,
+      x: 1,
+      nested: { a: 2 },
+      arr_simple: [2, 3, 4],
+      arr_schema: [{ y: 3 }],
+    })
+
+    let i = 0
+
+    console.time("d")
+    while (i++ < 1000) {
+      o.x = i
+      o.x = i + 1
+      o.x = i + 2
+      o.x = i + 3
+      o.x = i + 4
+      // o.nested.a = i
+      // o.arr_simple[1] = i
+      // o.arr_schema[0].y = i
+    }
+    console.timeEnd("d")
+
+    // const root = { id: 0, parent: null, type: {}, array: false as const }
+
+    // console.log(flattenSchema(model.get(0)!, root))
+    // console.log(util.inspect(root, { showHidden: false, depth: 5 }))
+  })
 })
+
+import { observerCache } from "./observer"
