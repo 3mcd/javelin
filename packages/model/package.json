@@ -1,0 +1,26 @@
+{
+  "name": "@javelin/model",
+  "version": "0.21.2",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "browser": "dist/javelin-model.bundle.js",
+  "license": "MIT",
+  "scripts": {
+    "perf": "yarn build && node perf/index.js",
+    "build": "tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
+    "prepare": "yarn build"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "serialize",
+    "binary",
+    "udp",
+    "game",
+    "mog",
+    "multiplayer",
+    "networking"
+  ],
+  "dependencies": {}
+}
