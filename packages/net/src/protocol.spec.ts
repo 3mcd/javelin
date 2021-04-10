@@ -264,15 +264,11 @@ describe("protocol", () => {
     let i = 0
 
     console.time("d")
-    while (i++ < 1000) {
+    while (i++ < 100000) {
       o.x = i
-      o.x = i + 1
-      o.x = i + 2
-      o.x = i + 3
-      o.x = i + 4
-      // o.nested.a = i
-      // o.arr_simple[1] = i
-      // o.arr_schema[0].y = i
+      o.nested.a = i
+      o.arr_simple[1] = i
+      o.arr_schema[0].y = i
     }
     console.timeEnd("d")
 

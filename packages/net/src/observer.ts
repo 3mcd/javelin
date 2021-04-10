@@ -1,10 +1,16 @@
 import { Component, mutableEmpty } from "@javelin/ecs"
-import { flattenSchema, Model, SchemaStructRecord } from "./protocol_v2"
+import { isField } from "@javelin/pack"
+import {
+  flattenSchema,
+  Model,
+  SchemaStructRecord,
+  SchemaRecord,
+} from "./protocol_v2"
 
 function flattenModel(model: Model) {
-  const normalized: any = {}
+  const normalized: { [componentTypeId: number]: SchemaStructRecord } = {}
   model.forEach((schema, id) => {
-    const root = { id: 0, cid: id, type: {}, parent: null }
+    const root = { id: 0, cid: id, type: {}, parent: null, in_array: false }
     flattenSchema(schema, root)
     normalized[id] = root
   })
@@ -17,64 +23,105 @@ type Test<T = unknown> = T & {
   _record: SchemaStructRecord
 }
 
-export function observerCache(model: Model) {
-  const tmp_indices: number[] = []
+const tmp_indices: number[] = []
+const recordIsArray = (record: SchemaRecord) =>
+  "array" in record && record.array === true
+const recordIsChildOfArray = (record: SchemaRecord) =>
+  "in_array" in record && record.in_array === true
+
+export function createObserver(model: Model) {
   const flat = flattenModel(model)
-  const handler = {
-    get(t: any, k: any) {
-      const {
-        [k]: v,
-        _record: { array },
-      } = t
+  const cache = new WeakMap()
+  const createHandler = (record: SchemaRecord) => {
+    const { type } = record
 
-      if (typeof v === "object" && v !== null) {
-        if (array) {
-          ;(v as Test)._index = k
-        }
+    let get
+    let set
 
-        ;(v as Test)._parent = t
-        return observe(v, t, k)
+    if (isField(type)) {
+      get = (target: any, key: any) => target[key]
+    } else if (recordIsArray(record) && recordIsChildOfArray(record)) {
+      get = (target: any, key: any) => {
+        const value = target[key]
+        value._index = key
+        value._parent = target
+        return observe(value, target, record, key)
       }
-
-      return v
-    },
-    set(t: any, k: any, v: any) {
-      mutableEmpty(tmp_indices)
-      if (t._record.array) {
-        tmp_indices.push(k)
+    } else if (recordIsArray(record)) {
+      get = (target: any, key: any) => {
+        const value = target[key]
+        value._index = key
+        return observe(value, target, record, key)
       }
-      let p = t
-      while (p !== undefined) {
-        const { _parent, _index } = p
-        if (_parent && _parent._record.array) {
-          if (k !== undefined) {
-            tmp_indices.unshift(_index)
-          }
-        }
-
-        p = _parent
+    } else if (recordIsChildOfArray(record)) {
+      get = (target: any, key: any) => {
+        const value = target[key]
+        value._parent = target
+        return observe(value, target, record, key)
       }
-
-      // const { cid, type } = t._record
-      // console.log(cid, t._record.array ? type.id : type[k].id, v, idc)
-
-      t[k] = v
-
-      return true
-    },
-  }
-  const observe = (o: object, p?: Test, k?: string) => {
-    if ((o as any).proxy === undefined) {
-      ;(o as Test)._record =
-        p === undefined
-          ? flat[(o as Component)._tid]
-          : Array.isArray(p)
-          ? p._record.type
-          : (p._record.type[k as string] as any)
-      ;(o as any).proxy = new Proxy(o, handler)
+    } else {
+      get = (target: any, key: any) => observe(target[key], target, record, key)
     }
 
-    return (o as any).proxy
+    if (recordIsArray(record) && recordIsChildOfArray(record)) {
+      set = (target: any, key: any, value: any) => {
+        mutableEmpty(tmp_indices)
+        tmp_indices.push(key)
+        let parent = target
+        while (parent !== undefined) {
+          const { _parent, _index } = parent
+          if (_index !== undefined) {
+            tmp_indices.push(_index)
+          }
+          parent = _parent
+        }
+
+        target[key] = value
+        return true
+      }
+    } else if (recordIsChildOfArray(record)) {
+      set = (target: any, key: any, value: any) => {
+        mutableEmpty(tmp_indices)
+        let parent = target
+        while (parent !== undefined) {
+          const { _parent, _index } = parent
+          if (_index !== undefined) {
+            tmp_indices.push(_index)
+          }
+          parent = _parent
+        }
+
+        target[key] = value
+        return true
+      }
+    } else {
+      set = (target: any, key: any, value: any) => {
+        target[key] = value
+        return true
+      }
+    }
+
+    return { get, set }
+  }
+  const observe = (
+    object: any,
+    parent?: Test,
+    parentRecord?: any,
+    key?: string,
+  ) => {
+    let proxy = cache.get(object)
+    if (proxy === undefined) {
+      const record =
+        parent === undefined
+          ? flat[(object as Component)._tid]
+          : Array.isArray(parent)
+          ? parentRecord.type
+          : (parentRecord.type[key as string] as any)
+      proxy = new Proxy(object, createHandler(record))
+      cache.set(object, proxy)
+    }
+
+    return proxy
   }
   return {
     observe,

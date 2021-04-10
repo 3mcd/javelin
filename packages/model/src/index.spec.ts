@@ -2,18 +2,17 @@ import { AssertionError } from "assert"
 import {
   arrayOf,
   collate,
+  DataTypeArray,
+  DataTypeNumber,
   isDataType,
   Model,
+  ModelCollatedField,
+  ModelCollatedNodeKind,
+  ModelCollatedStruct,
   number,
+  patch,
   Schema,
   string,
-  DataType,
-  DataTypeArray,
-  ModelCollatedStruct,
-  ModelCollatedField,
-  patch,
-  DataTypeNumber,
-  ModelCollatedNodeKind,
 } from "./index"
 
 function assertIsModelCollatedStruct(
@@ -101,3 +100,5 @@ describe("model", () => {
     expect(instance.inventory[1].stats.speed).toBe(6)
   })
 })
+
+import { Patch } from "./patch"

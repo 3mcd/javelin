@@ -636,6 +636,7 @@ export type SchemaRecordBase = {
   cid: number
   key?: string
   parent: SchemaRecordBase | null
+  in_array: boolean
 }
 
 export type SchemaArrayRecord = SchemaRecordBase & {
@@ -664,6 +665,7 @@ export function flattenSchema(
       cid: parent.cid,
       key,
       parent,
+      in_array: parent.in_array || false,
     }
 
     if (Array.isArray(child)) {
@@ -675,6 +677,7 @@ export function flattenSchema(
           cid: parent.cid,
           type: entry as any,
           parent,
+          in_array: true,
         }
       } else {
         const element = {
@@ -682,6 +685,7 @@ export function flattenSchema(
           cid: parent.cid,
           type: {},
           parent,
+          in_array: parent.in_array || false,
         }
         ;(record as any).type = element
         offset = flattenSchema(entry, element, offset)

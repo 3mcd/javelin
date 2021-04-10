@@ -207,17 +207,16 @@ export const patch = (
   const root = model[typeId] as ModelCollatedStruct
 
   let t = 0
-  let current: any = instance
-  let record: ModelCollatedStruct = root
-
   let i = 0
+  let parent: any = instance
+  let record: ModelCollatedStruct = root
   let node: ModelCollatedNode
 
   while ((node = record.edges[i])) {
     const { id, key, lo, hi, kind } = node
 
     if (fieldId === id) {
-      callback(current, key)
+      callback(parent, key)
       return
     }
 
@@ -226,9 +225,9 @@ export const patch = (
         kind === ModelCollatedNodeKind.Array ||
         kind === ModelCollatedNodeKind.Map
       ) {
-        current = current[key][traverse[t++]]
+        parent = parent[key][traverse[t++]]
       } else {
-        current = current[key]
+        parent = parent[key]
       }
       record = node as ModelCollatedStruct
       i = 0
