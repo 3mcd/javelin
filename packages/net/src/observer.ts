@@ -29,7 +29,7 @@ const recordIsArray = (record: SchemaRecord) =>
 const recordIsChildOfArray = (record: SchemaRecord) =>
   "in_array" in record && record.in_array === true
 
-export function createObserver(model: Model) {
+export function createObserver(model: Model, onChange: (object: object) => {}) {
   const flat = flattenModel(model)
   const cache = new WeakMap()
   const createHandler = (record: SchemaRecord) => {
@@ -76,6 +76,8 @@ export function createObserver(model: Model) {
           parent = _parent
         }
 
+        onChange(record)
+
         target[key] = value
         return true
       }
@@ -91,12 +93,15 @@ export function createObserver(model: Model) {
           parent = _parent
         }
 
+        onChange(record)
+
         target[key] = value
         return true
       }
     } else {
       set = (target: any, key: any, value: any) => {
         target[key] = value
+        onChange(record)
         return true
       }
     }

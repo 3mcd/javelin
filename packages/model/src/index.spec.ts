@@ -1,30 +1,29 @@
-import { AssertionError } from "assert"
 import {
   arrayOf,
-  collate,
+  createModel,
   DataTypeArray,
   DataTypeNumber,
   isDataType,
-  Model,
-  ModelCollatedField,
-  ModelCollatedNodeKind,
-  ModelCollatedStruct,
+  ModelNodeField,
+  ModelNodeStruct,
+  ModelConfig,
+  ModelNodeKind,
   number,
   patch,
   Schema,
   string,
-} from "./index"
+} from "./model"
 
-function assertIsModelCollatedStruct(
+function assertIsModelNodeStruct(
   object: any,
-): asserts object is ModelCollatedStruct {
+): asserts object is ModelNodeStruct {
   if (isDataType(object)) {
-    throw new AssertionError({ message: "Object is not ModelCollatedStruct" })
+    throw new Error("Object is not ModelNodeStruct")
   }
 }
 
 describe("model", () => {
-  let model: Model
+  let model: ModelConfig
   beforeEach(() => {
     model = new Map<number, Schema>([
       [
@@ -50,40 +49,40 @@ describe("model", () => {
     ])
   })
   it("collates", () => {
-    const collated = collate(model)
+    const collated = createModel(model)
     const { [0]: a, [1]: b } = collated
 
-    assertIsModelCollatedStruct(a)
+    assertIsModelNodeStruct(a)
     expect(a.id).toBe(0)
     const [buffer, x, y] = a.edges
     expect(buffer.id).toBe(1)
     expect(
-      (buffer as ModelCollatedField).type as DataTypeArray<typeof number>,
+      (buffer as ModelNodeField).type as DataTypeArray<typeof number>,
     ).toBe(number)
     expect(x.id).toBe(2)
-    expect((x as ModelCollatedField).type as DataTypeNumber).toBe(number)
+    expect((x as ModelNodeField).type as DataTypeNumber).toBe(number)
     expect(y.id).toBe(3)
-    expect((y as ModelCollatedField).type as DataTypeNumber).toBe(number)
+    expect((y as ModelNodeField).type as DataTypeNumber).toBe(number)
 
-    assertIsModelCollatedStruct(b)
+    assertIsModelNodeStruct(b)
     expect(b.id).toBe(0)
     const [inventory] = b.edges
-    assertIsModelCollatedStruct(inventory)
+    assertIsModelNodeStruct(inventory)
     expect(inventory.id).toBe(1)
-    expect(inventory.kind).toBe(ModelCollatedNodeKind.Array)
+    expect(inventory.kind).toBe(ModelNodeKind.Array)
     const [name, stats] = inventory.edges
     expect(name.id).toBe(2)
-    expect((name as ModelCollatedField).type).toBe(string)
+    expect((name as ModelNodeField).type).toBe(string)
     expect(stats.id).toBe(3)
-    assertIsModelCollatedStruct(stats)
+    assertIsModelNodeStruct(stats)
     const [damage, speed] = stats.edges
     expect(damage.id).toBe(4)
-    expect((damage as ModelCollatedField).type).toBe(number)
+    expect((damage as ModelNodeField).type).toBe(number)
     expect(speed.id).toBe(5)
-    expect((speed as ModelCollatedField).type).toBe(number)
+    expect((speed as ModelNodeField).type).toBe(number)
   })
   it("patches", () => {
-    const collated = collate(model)
+    const collated = createModel(model)
     const instance = {
       inventory: [
         { name: "straw", stats: { damage: 1, speed: 1 } },
@@ -100,5 +99,3 @@ describe("model", () => {
     expect(instance.inventory[1].stats.speed).toBe(6)
   })
 })
-
-import { Patch } from "./patch"

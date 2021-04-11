@@ -1,3 +1,4 @@
+const { performance } = require("perf_hooks")
 const { createObserver } = require("../dist/cjs/observer")
 const { field, uint8, uint32, float64 } = require("@javelin/pack")
 
@@ -24,15 +25,10 @@ const model = new Map([
     },
   ],
 ])
-const observer = createObserver(model)
-const object = {
-  _tid: 0,
-  x: 1,
-  y: 2,
-  nested: { a: 2 },
-  arr_simple: [2, 3, 4],
-  arr_schema: [{ y: 3 }],
-}
+let j = 0
+const observer = createObserver(model, () => {
+  j++
+})
 const observed = observer.observe({
   _tid: 0,
   x: 1,
@@ -43,7 +39,7 @@ const observed = observer.observe({
 })
 
 let i = 0
-let n = 1000
+let n = 1000000
 
 // console.time("fast")
 // while (i++ < n) {
@@ -57,12 +53,13 @@ let n = 1000
 
 i = 0
 
-console.time("slow")
+const start = performance.now()
 while (i++ < n) {
-  // observed.x = i
+  observed.x = 10
   // observed.y = i + 1
   // observed.nested.a = i
-  // observed.arr_simple[1] = i
+  observed.arr_simple[2] = i
   // observed.arr_schema[0].y = i
 }
-console.timeEnd("slow")
+console.log(performance.now() - start)
+console.log(j)
