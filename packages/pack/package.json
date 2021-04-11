@@ -25,5 +25,8 @@
   "gitHead": "084d65218a12efbb32ea2b22e0f8e1812acb7d7e",
   "devDependencies": {
     "@msgpack/msgpack": "^2.4.1"
+  },
+  "dependencies": {
+    "@javelin/model": "^0.21.2"
   }
 }

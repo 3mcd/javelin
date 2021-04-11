@@ -1,4 +1,11 @@
 import {
+  initialize,
+  reset,
+  Schema,
+  SerializedSchema,
+  serializeSchema,
+} from "@javelin/model"
+import {
   Component,
   ComponentBase,
   ComponentInitializer,
@@ -6,13 +13,6 @@ import {
   ComponentType,
 } from "../component"
 import { createStackPool } from "../pool/stack_pool"
-import { Schema } from "../schema"
-import {
-  initializeComponentFromSchema,
-  resetComponentFromSchema,
-  SerializedSchema,
-  serializeSchema,
-} from "../schema/schema_utils"
 
 type CreateComponentTypeOptions<
   S extends Schema,
@@ -64,11 +64,11 @@ export function createComponentPool<C extends ComponentType>(
 ) {
   const componentPool = createStackPool<ComponentOf<C>>(
     () =>
-      initializeComponentFromSchema(
+      initialize(
         createComponentBase(componentType),
         componentType.schema,
       ) as ComponentOf<C>,
-    c => resetComponentFromSchema(c, componentType.schema) as ComponentOf<C>,
+    c => reset(c, componentType.schema) as ComponentOf<C>,
     poolSize,
   )
 

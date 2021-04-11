@@ -1,12 +1,12 @@
+import { Schema as JavelinSchema, DataType } from "@javelin/model"
 import { uint32, View } from "./views"
 
-export type Field<T = unknown> = {
-  __field: true
-  type: View<T>
+export type Field<T = unknown> = DataType<string, T> & {
+  view: View<T>
   length?: number
 }
 
-export type Schema = { [key: string]: Field | Schema } | Array<Field | Schema>
+export type Schema = JavelinSchema
 
 export type SchemaInstance<S extends Schema> = {
   [K in keyof S]: S[K] extends Field<infer T> ? T : never
@@ -17,7 +17,7 @@ export function field<T>(
   length?: number,
 ): Field<T> {
   return "byteLength" in options
-    ? { __field: true, type: options, length }
+    ? { __field: true, view: options, length }
     : {
         __field: true,
         ...options,
@@ -35,10 +35,10 @@ type BufferField<T = unknown> = {
 }
 
 function pushBufferField<T>(out: BufferField[], field: Field<T>, value: T) {
-  const byteLength = field.type.byteLength * (field.length || 1)
+  const byteLength = field.view.byteLength * (field.length || 1)
 
   out.push({
-    type: field.type,
+    type: field.view,
     value: typeof value === "string" ? value.slice(0, field.length) : value,
     byteLength,
   })
@@ -119,8 +119,8 @@ export function decodeProperty(
   bufferView: DataView,
   offset: number,
 ) {
-  out[key] = field.type.read(bufferView, offset, field.length || 0)
-  return field.type.byteLength * (field.length || 1)
+  out[key] = field.view.read(bufferView, offset, field.length || 0)
+  return field.view.byteLength * (field.length || 1)
 }
 
 export function decode<S extends Schema>(buffer: ArrayBuffer, schema: S) {

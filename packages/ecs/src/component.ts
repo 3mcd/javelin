@@ -1,9 +1,9 @@
-import { PropsOfSchema, Schema } from "./schema/schema_types"
+import { Schema, InstanceOfSchema } from "@javelin/model"
 
-export type ComponentProps = Record<string, unknown>
+export type ComponentProps = InstanceOfSchema<Schema>
 
 export type ComponentInitializer<S extends Schema> = (
-  component: Component<PropsOfSchema<S>>,
+  component: Component<InstanceOfSchema<S>>,
   ...args: any[]
 ) => void
 
@@ -36,7 +36,7 @@ export type Component<
 export type ComponentOf<C extends ComponentType> = C extends ComponentType<
   infer S
 >
-  ? Component<PropsOfSchema<S>>
+  ? Component<InstanceOfSchema<S>>
   : never
 
 export type ComponentsOf<C extends ComponentType[]> = {

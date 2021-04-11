@@ -1,4 +1,10 @@
-const { number, arrayOf, string, createObserver } = require("../dist/cjs")
+const {
+  createModel,
+  number,
+  arrayOf,
+  string,
+  createObserver,
+} = require("../dist/cjs")
 const { performance } = require("perf_hooks")
 
 const model = new Map([
@@ -7,6 +13,11 @@ const model = new Map([
     {
       x: number,
       y: number,
+      z: number,
+      qx: number,
+      qy: number,
+      qz: number,
+      qw: number,
       buffer: arrayOf(number),
     },
   ],
@@ -27,22 +38,30 @@ const instance = {
   _tid: 0,
   x: 1,
   y: 2,
+  z: 3,
+  qx: 1,
+  qy: 2,
+  qz: 3,
+  qw: 4,
   buffer: [1, 2, 3],
 }
 
-let n = 1000000
+let n = 100000
 let i = 0
 let j = 0
 
 const observer = createObserver(model, () => j++)
-const start = performance.now()
+const observed = observer.observe(instance)
+const start_proxy = performance.now()
 
 while (i++ < n) {
-  const observed = observer.observe(instance)
   observed.x = i
   observed.y = i
-  // observed.buffer[2] = i
+  observed.z = i
+  observed.qx = i
+  observed.qy = i
+  // observed.qz = i
+  // observed.qw = i
 }
 
-console.log(n / (performance.now() - start), "ops/ms")
-console.log(instance)
+console.log(performance.now() - start_proxy)

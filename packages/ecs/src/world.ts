@@ -1,3 +1,4 @@
+import { schemaEqualsSerializedSchema } from "@javelin/model"
 import {
   Component,
   ComponentInitializerArgs,
@@ -12,7 +13,6 @@ import {
 } from "./helpers"
 import { globals } from "./internal/globals"
 import { createStackPool, StackPool } from "./pool"
-import { schemaEqualsSerializedSchema } from "./schema"
 import { createSignal, Signal } from "./signal"
 import { createStorage, Storage, StorageSnapshot } from "./storage"
 import { Topic } from "./topic"

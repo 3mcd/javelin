@@ -1,51 +1,69 @@
+import { mutableEmpty } from "@javelin/ecs"
+
 export enum DataTypeId {
-  Number,
-  Boolean,
-  String,
-  Array,
-  Map,
+  Number = "number",
+  Boolean = "boolean",
+  String = "string",
+  Array = "array",
+  Map = "map",
 }
 
-export type DataType<I extends DataTypeId = DataTypeId> = { __data_type__: I }
-export type DataTypeNumber = DataType<DataTypeId.Number> & {
-  defaultValue: number
+export type DataType<I extends string, T = any> = {
+  __data_type__: I
+  create(): T
+  reset(object: any, key: string, value: T): void
 }
-export type DataTypeString = DataType<DataTypeId.String> & {
-  defaultValue: string
-}
-export type DataTypeBoolean = DataType<DataTypeId.Boolean> & {
-  defaultValue: boolean
-}
+export type DataTypeNumber = DataType<DataTypeId.Number, number>
+export type DataTypeString = DataType<DataTypeId.String, string>
+export type DataTypeBoolean = DataType<DataTypeId.Boolean, boolean>
 export type DataTypePrimitive =
   | DataTypeNumber
   | DataTypeString
   | DataTypeBoolean
-export type DataTypeArray<E extends SchemaKey> = DataType<DataTypeId.Array> & {
+export type DataTypeArray<E extends SchemaKey> = DataType<
+  DataTypeId.Array,
+  ExtractSchemaKeyType<E>[]
+> & {
   element: E
 }
-export type DataTypeMap<E extends SchemaKey> = DataType<DataTypeId.Map> & {
+export type DataTypeMap<E extends SchemaKey> = DataType<
+  DataTypeId.Map,
+  { [key: string]: ExtractSchemaKeyType<E> }
+> & {
   element: E
 }
 
 export const number: DataTypeNumber = {
   __data_type__: DataTypeId.Number,
-  defaultValue: 0,
+  create: () => 0,
+  reset: (object, key) => (object[key] = 0),
 }
 export const string: DataTypeString = {
   __data_type__: DataTypeId.String,
-  defaultValue: "",
+  create: () => "",
+  reset: (object, key) => (object[key] = 0),
 }
 export const boolean: DataTypeBoolean = {
   __data_type__: DataTypeId.Boolean,
-  defaultValue: false,
+  create: () => false,
+  reset: (object, key) => (object[key] = 0),
 }
 export const arrayOf = <E extends SchemaKey>(element: E): DataTypeArray<E> => ({
   __data_type__: DataTypeId.Array,
   element,
+  create: () => [],
+  reset: (object, key) => mutableEmpty(object[key]),
 })
 export const mapOf = <E extends SchemaKey>(element: E): DataTypeMap<E> => ({
   __data_type__: DataTypeId.Map,
   element,
+  create: () => ({}),
+  reset: (object, key) => {
+    const map = object[key]
+    for (const prop in map) {
+      delete map[prop]
+    }
+  },
 })
 
 export type AnyDataType =
@@ -66,11 +84,11 @@ export type InstanceOfSchema<S extends Schema> = {
     : ExtractSchemaKeyType<S[K]> // everything else
 }
 export type ExtractSchemaKeyType<
-  W extends SchemaKey
-> = W extends DataTypePrimitive
-  ? W["defaultValue"]
-  : W extends Schema
-  ? InstanceOfSchema<W>
+  K extends SchemaKey
+> = K extends DataTypePrimitive
+  ? ReturnType<K["create"]>
+  : K extends Schema
+  ? InstanceOfSchema<K>
   : never
 
 export const isDataType = (object: object): object is DataType =>

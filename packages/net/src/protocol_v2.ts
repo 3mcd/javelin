@@ -1,11 +1,5 @@
-import {
-  assert,
-  Component,
-  ErrorType,
-  mutableEmpty,
-  number,
-  World,
-} from "@javelin/ecs"
+import { assert, Component, ErrorType, mutableEmpty, World } from "@javelin/ecs"
+import { ModelConfig } from "@javelin/model"
 import {
   decode,
   encode,
@@ -25,8 +19,6 @@ import {
   uint8,
   View,
 } from "@javelin/pack"
-
-export type Model = Map<number, Schema>
 
 // A single State message consists of several parts:
 //   (T) current server tick
@@ -75,7 +67,7 @@ function getFieldPath(schema: Schema, keyIndex: number) {
 
 function decodePatches(
   world: World,
-  model: Model,
+  model: ModelConfig,
   view: DataView,
   length: number,
   offset: number,
@@ -183,7 +175,7 @@ export class MessagePart<
 //   private entities = new Map<number, Map<number, (number | ArrayBuffer)[]>>()
 
 //   insert(
-//     model: Model,
+//     model: ModelConfig,
 //     entity: number,
 //     componentTypeId: number,
 //     keyIndex: number,
@@ -201,7 +193,7 @@ export class MessagePart<
 //     componentPatch.push(value)
 //   }
 
-//   write(model: Model, buffer: ArrayBuffer, bufferView: DataView, offset: number) {
+//   write(model: ModelConfig, buffer: ArrayBuffer, bufferView: DataView, offset: number) {
 //     for (const [entity, entityPatches] of this.entities) {
 //       bufferView.setUint32(offset, entity)
 //       offset += uint32.byteLength
@@ -245,7 +237,7 @@ export class MessagePart<
 export class MessageBuilder {
   private tick = 0
   private parts = [
-    new MessagePart<Model[]>(),
+    new MessagePart<ModelConfig[]>(),
     new MessagePart<Insert>(), // spawn
     new MessagePart<Insert>(), // attach
     new MessagePart<Insert>(), // update
@@ -254,7 +246,7 @@ export class MessageBuilder {
     new MessagePart<Patch>(),
   ] as const
 
-  constructor(private schemas: Map<number, Schema>) {}
+  constructor(private schemas: ModelConfig) {}
 
   private encodeComponent(component: Component): ArrayBuffer {
     const componentSchema = this.schemas.get(component._tid)
@@ -292,7 +284,7 @@ export class MessageBuilder {
     this.tick = tick
   }
 
-  model(model: Model) {
+  model(model: ModelConfig) {
     this.parts[0].reset()
     this.parts[0].insertBuffer(encodeModel(model))
   }
@@ -371,7 +363,7 @@ export function decodeModel(
   buffer: ArrayBuffer,
   bufferView: DataView,
   offset: number,
-  onModel: (model: Model) => void,
+  onModel: (model: ModelConfig) => void,
 ) {
   const modelLength = uint32.read(bufferView, offset, 0)
   const length = modelLength - uint32.byteLength
@@ -382,7 +374,7 @@ export function decodeModel(
     return offset
   }
 
-  const model = new Map<number, Schema>()
+  const model = new ModelConfig()
   const encoded = new Uint8Array(buffer, offset, length)
 
   let i = 0
@@ -402,7 +394,7 @@ export function decodeModel(
 function decodeInsert(
   buffer: ArrayBuffer,
   bufferView: DataView,
-  model: Map<number, Schema>,
+  model: ModelConfig,
   offset: number,
   onInsert: (entity: number, components: Component[]) => void,
 ) {
@@ -490,13 +482,13 @@ function decodeDestroy(
 function decodePatch(
   buffer: ArrayBuffer,
   bufferView: DataView,
-  model: Map<number, Schema>,
+  model: ModelConfig,
   offset: number,
 ) {}
 
 export type DecodeMessageHandlers = {
   onTick(tick: number): void
-  onModel(model: Model): void
+  onModel(model: ModelConfig): void
   onCreate(entity: number, components: Component[]): void
   onAttach(entity: number, components: Component[]): void
   onUpdate(entity: number, components: Component[]): void
@@ -507,7 +499,7 @@ export type DecodeMessageHandlers = {
 export function decodeMessage(
   buffer: ArrayBuffer,
   handlers: DecodeMessageHandlers,
-  model?: Model,
+  model?: ModelConfig,
 ) {
   const {
     onTick,
@@ -518,7 +510,7 @@ export function decodeMessage(
     onDetach,
     onDestroy,
   } = handlers
-  const _onModel = (m: Model) => {
+  const _onModel = (m: ModelConfig) => {
     model = m
     onModel(m)
   }
@@ -703,7 +695,7 @@ export function flattenSchema(
   return offset
 }
 
-export function encodeModel(model: Map<number, Schema>) {
+export function encodeModel(model: ModelConfig) {
   const flat: number[] = []
 
   let size = 0
