@@ -1,4 +1,6 @@
-import { mutableEmpty } from "@javelin/ecs"
+function mutableEmpty(arr: unknown[]) {
+  while (arr.length > 0) arr.pop()
+}
 
 export enum DataTypeId {
   Number = "number",
@@ -8,7 +10,7 @@ export enum DataTypeId {
   Map = "map",
 }
 
-export type DataType<I extends string, T = any> = {
+export type DataType<I extends string = string, T = any> = {
   __data_type__: I
   create(): T
   reset(object: any, key: string, value: T): void

@@ -1,54 +1,38 @@
-import { Schema as JavelinSchema, DataType } from "@javelin/model"
+import { Schema, InstanceOfSchema, isDataType } from "@javelin/model"
 import { uint32, View } from "./views"
 
-export type Field<T = unknown> = DataType<string, T> & {
-  view: View<T>
-  length?: number
-}
+type Field = View | { view: View; length: number }
 
-export type Schema = JavelinSchema
-
-export type SchemaInstance<S extends Schema> = {
-  [K in keyof S]: S[K] extends Field<infer T> ? T : never
-}
-
-export function field<T>(
-  options: Omit<Field<T>, "__field"> | View<T>,
-  length?: number,
-): Field<T> {
-  return "byteLength" in options
-    ? { __field: true, view: options, length }
-    : {
-        __field: true,
-        ...options,
-      }
-}
-
-export function isField(object: Record<string, any>): object is Field {
-  return object.__field === true
-}
-
-type BufferField<T = unknown> = {
-  type: View<T>
-  value: T
+type BufferField = {
+  view: View
+  value: unknown
   byteLength: number
 }
 
-function pushBufferField<T>(out: BufferField[], field: Field<T>, value: T) {
-  const byteLength = field.view.byteLength * (field.length || 1)
-
-  out.push({
-    type: field.view,
-    value: typeof value === "string" ? value.slice(0, field.length) : value,
-    byteLength,
-  })
-
+function pushBufferField<T>(out: BufferField[], field: Field, value: T) {
+  let byteLength = 0
+  if ("length" in field) {
+    const { view, length } = field
+    byteLength = view.byteLength * length
+    out.push({
+      view,
+      value: typeof value === "string" ? value.slice(0, length) : value,
+      byteLength,
+    })
+  } else {
+    byteLength = field.byteLength
+    out.push({
+      view: field,
+      value,
+      byteLength,
+    })
+  }
   return byteLength
 }
 
 function pushArrayLengthField(out: BufferField[], length: number) {
   out.push({
-    type: uint32,
+    view: uint32,
     value: length,
     byteLength: uint32.byteLength,
   })
@@ -59,29 +43,29 @@ function pushArrayLengthField(out: BufferField[], length: number) {
 export function serialize<S extends Schema>(
   out: BufferField[],
   schema: S,
-  data: SchemaInstance<S>,
+  instance: InstanceOfSchema<S>,
   offset = 0,
 ) {
   if (Array.isArray(schema)) {
     const field = schema[0] as Field | Schema
 
-    offset += pushArrayLengthField(out, (data as any).length)
+    offset += pushArrayLengthField(out, (instance as any).length)
 
-    if (isField(field)) {
-      for (let i = 0; i < data.length; i++) {
-        offset += pushBufferField(out, field, (data as any)[i])
+    if (isDataType(field)) {
+      for (let i = 0; i < instance.length; i++) {
+        offset += pushBufferField(out, field, (instance as any)[i])
       }
     } else {
-      for (let i = 0; i < data.length; i++) {
-        offset = serialize(out, field, (data as any)[i], offset)
+      for (let i = 0; i < instance.length; i++) {
+        offset = serialize(out, field, (instance as any)[i], offset)
       }
     }
   } else {
     for (const prop in schema) {
       const field = schema[prop]
-      const value = data[prop]
+      const value = instance[prop]
 
-      if (isField(field)) {
+      if (isDataType(field)) {
         offset += pushBufferField(out, field, value)
       } else {
         offset = serialize(out, field as any, value as any, offset)
@@ -93,7 +77,7 @@ export function serialize<S extends Schema>(
 }
 
 export function encode<S extends Schema>(
-  object: SchemaInstance<S>,
+  object: InstanceOfSchema<S>,
   schema: S,
 ): ArrayBuffer {
   const bufferFields: BufferField[] = []
@@ -105,7 +89,7 @@ export function encode<S extends Schema>(
 
   for (let i = 0; i < bufferFields.length; i++) {
     const bufferField = bufferFields[i]
-    bufferField.type.write(bufferView, offset, bufferField.value)
+    bufferField.view.write(bufferView, offset, bufferField.value)
     offset += bufferField.byteLength
   }
 
@@ -139,7 +123,7 @@ export function decode<S extends Schema>(buffer: ArrayBuffer, schema: S) {
 
       result = []
 
-      if (isField(field)) {
+      if (isDataType(field)) {
         for (let i = 0; i < length; i++) {
           offset += decodeProperty(result, i, field, bufferView, offset)
         }
@@ -154,7 +138,7 @@ export function decode<S extends Schema>(buffer: ArrayBuffer, schema: S) {
       for (const prop in schema) {
         const field = schema[prop]
 
-        if (isField(field)) {
+        if (isDataType(field)) {
           offset += decodeProperty(result, prop, field, bufferView, offset)
         } else {
           result[prop] = build(field)
