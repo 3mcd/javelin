@@ -155,6 +155,9 @@ export function createMessageProducer(
             }
             break
           }
+          case WorldOpType.Spawn:
+            filteredOps.push(op)
+            break
           case WorldOpType.Destroy:
             filteredOps.push(op)
             break
