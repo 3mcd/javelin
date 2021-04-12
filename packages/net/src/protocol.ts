@@ -11,6 +11,10 @@ import {
   SchemaKey,
   Model,
   createModel,
+  ModelNode,
+  ModelNodeStruct,
+  ModelNodeKind,
+  ModelNodeField,
 } from "@javelin/model"
 import {
   decode,
@@ -471,16 +475,15 @@ function getDataTypeId(field: DataType) {
   return id
 }
 
-function encodeSchema(schema: Schema, out: number[]) {
-  const keys = Object.keys(schema).sort((a, b) => a.localeCompare(b))
-  const length = keys.length
+function encodeModelStruct(node: ModelNodeStruct, out: number[]) {
+  const length = node.edges.length
   out.push(length | SCHEMA_MASK)
 
   let offset = 1
 
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i]
-    const schemaValue = schema[key]
+  for (let i = 0; i < node.edges.length; i++) {
+    const child = node.edges[i]
+    const key = child.key
 
     out.push(key.length)
     offset++
@@ -489,27 +492,27 @@ function encodeSchema(schema: Schema, out: number[]) {
       offset++
     }
 
-    if (isDataType(schemaValue)) {
-      switch (schemaValue.__data_type__) {
-        case DataTypeId.Array: {
-          const { element } = schemaValue as DataTypeArray<any>
-          out.push(ARRAY)
+    switch (child.kind) {
+      case ModelNodeKind.Array: {
+        out.push(ARRAY)
+        offset++
+
+        if ("type" in child) {
+          out.push(getDataTypeId(child.type))
           offset++
-          if (isDataType(element)) {
-            out.push(getDataTypeId(element))
-            offset++
-          } else {
-            offset += encodeSchema(element, out)
-          }
-          break
+        } else {
+          offset += encodeModelStruct(child, out)
         }
-        default:
-          out.push(getDataTypeId(schemaValue))
-          offset++
-          break
+        break
       }
-    } else {
-      offset += encodeSchema(schemaValue, out)
+      case ModelNodeKind.Map:
+        break
+      case ModelNodeKind.Struct:
+        offset += encodeModelStruct(child as ModelNodeStruct, out)
+        break
+      case ModelNodeKind.Primitive:
+        out.push(getDataTypeId((child as ModelNodeField).type))
+        offset++
     }
   }
 
@@ -524,13 +527,9 @@ export function encodeModel(model: Model) {
 
   for (const prop in model) {
     flat.push(+prop)
-    size += encodeSchema(model[prop], flat) + 1
+    size += encodeModelStruct(model[prop], flat) + 1
   }
 
-  model.forEach((schema, id) => {
-    flat.push(id)
-    size += encodeSchema(schema, flat) + 1
-  })
   const buffer = new ArrayBuffer(size)
   const encoded = new Uint8Array(buffer)
 
