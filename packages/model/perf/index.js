@@ -7,7 +7,7 @@ const {
 } = require("../dist/cjs")
 const { performance } = require("perf_hooks")
 
-const model = new Map([
+const config = new Map([
   [
     0,
     {
@@ -34,6 +34,8 @@ const model = new Map([
     },
   ],
 ])
+const model = createModel(config)
+const observer = createObserver(() => j++)
 const instance = {
   _tid: 0,
   x: 1,
@@ -50,16 +52,15 @@ let n = 100000
 let i = 0
 let j = 0
 
-const observer = createObserver(model, () => j++)
-const observed = observer.observe(instance)
+const observed = observer.observe(instance, model[0])
 const start_proxy = performance.now()
 
 while (i++ < n) {
   observed.x = i
-  observed.y = i
-  observed.z = i
-  observed.qx = i
-  observed.qy = i
+  // observed.y = i
+  // observed.z = i
+  // observed.qx = i
+  // observed.qy = i
   // observed.qz = i
   // observed.qw = i
 }

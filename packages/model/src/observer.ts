@@ -1,39 +1,57 @@
-import { Component, mutableEmpty } from "@javelin/ecs"
-import { createModel, ModelConfig, ModelNode, ModelNodeKind } from "./model"
+import { mutableEmpty } from "@javelin/ecs"
+import {
+  ModelNode,
+  ModelNodeBase,
+  ModelNodeCollection,
+  ModelNodeKind,
+  ModelNodeStruct,
+} from "./model"
 
-type ObservedProps<T = any> = T & {
+type ObservedProps = {
   __index__: number
   __parent__: any
-  __record__: ModelNode
+  __type__: ModelNode
 }
 
-const recordIsCollection = (record: ModelNode) =>
+type ObservedInstance<T = any> = T & ObservedProps
+
+const recordIsCollection = (
+  record: ModelNodeBase,
+): record is ModelNodeCollection =>
   record.kind === ModelNodeKind.Array || record.kind === ModelNodeKind.Map
 const recordIsCollectionDescendant = (record: ModelNode) =>
   record.inCollection === true
 
 const tmpCollectionTraverse: string[] = []
+const getKeyId = (target: ObservedProps, key: string | symbol) => {
+  const { __type__: type } = target
+  let node: ModelNode
+  if (recordIsCollection(type)) {
+    node = type.edge
+  } else {
+    node = (type as ModelNodeStruct).keys[key as string]
+  }
+  return node.id
+}
 
 export function createObserver(
-  config: ModelConfig,
-  onChange: (object: object) => {},
+  onChange: (object: object, id: number, value: unknown) => void,
 ) {
-  const model = createModel(config)
   const proxies = new WeakMap()
-  const set = (target: ObservedProps, key: string | symbol, value: any) => {
+  const set = (target: ObservedInstance, key: string | symbol, value: any) => {
     target[key] = value
-    onChange(target)
+    onChange(target, getKeyId(target, key), value)
     return true
   }
 
   const handlerForNestedCollection = {
-    get(target: ObservedProps, key: string | symbol) {
+    get(target: ObservedInstance, key: string | symbol) {
       const value = target[key]
       value.__index__ = key
       value.__parent__ = target
-      return observe(value, target, key)
+      return observeInner(value, target, key)
     },
-    set(target: ObservedProps, key: string | symbol, value: any) {
+    set(target: ObservedInstance, key: string | symbol, value: any) {
       mutableEmpty(tmpCollectionTraverse)
       tmpCollectionTraverse.push(key as string)
       let parent = target
@@ -46,18 +64,18 @@ export function createObserver(
       }
 
       target[key] = value
-      onChange(target)
+      onChange(target, getKeyId(target, key), value)
       return true
     },
   }
 
   const handlerForCollectionDescendant = {
-    get(target: ObservedProps, key: string | symbol) {
+    get(target: ObservedInstance, key: string | symbol) {
       const value = target[key]
       value.__parent__ = target
-      return observe(value, target, key)
+      return observeInner(value, target, key)
     },
-    set(target: ObservedProps, key: string | symbol, value: any) {
+    set(target: ObservedInstance, key: string | symbol, value: any) {
       mutableEmpty(tmpCollectionTraverse)
       let parent = target
       while (parent !== undefined) {
@@ -69,36 +87,36 @@ export function createObserver(
       }
 
       target[key] = value
-      onChange(target)
+      onChange(target, getKeyId(target, key), value)
       return true
     },
   }
 
   const handlerForCollection = {
-    get(target: ObservedProps, key: string | symbol) {
+    get(target: ObservedInstance, key: string | symbol) {
       const value = target[key]
       value.__index__ = key
-      return observe(value, target, key)
+      return observeInner(value, target, key)
     },
     set,
   }
 
   const handlerForStruct = {
-    get(target: ObservedProps, key: string | symbol) {
-      return observe(target[key], target, key)
+    get(target: ObservedInstance, key: string | symbol) {
+      return observeInner(target[key], target, key)
     },
     set,
   }
 
   const handlerForPrimitive = {
-    get(target: ObservedProps, key: string | symbol) {
+    get(target: ObservedInstance, key: string | symbol) {
       return target[key]
     },
     set,
   }
 
   const getHandler = (record: ModelNode) => {
-    if ("type" in record) {
+    if (record.kind === ModelNodeKind.Primitive) {
       return handlerForPrimitive
     } else if (
       recordIsCollection(record) &&
@@ -114,26 +132,36 @@ export function createObserver(
     }
   }
 
-  const observe = (
-    object: any,
-    parent?: ObservedProps,
+  const observeInner = (
+    object: ObservedInstance,
+    parent: ObservedProps,
     key?: string | symbol,
   ) => {
     let proxy = proxies.get(object)
     if (proxy === undefined) {
       const record =
-        parent === undefined
-          ? model[(object as Component)._tid]
-          : "keys" in parent.__record__!
-          ? parent.__record__.keys[key as string]
-          : parent.__record__!
-      object.__record__ = record
+        "keys" in parent.__type__!
+          ? parent.__type__.keys[key as string]
+          : // parent will never be primitive
+            (parent.__type__ as ModelNodeCollection).edge
+      object.__type__ = record
       proxy = new Proxy(object, getHandler(record))
       proxies.set(object, proxy)
     }
 
     return proxy
   }
+
+  const observe = <T extends object>(object: T, record: ModelNode): T => {
+    let proxy = proxies.get(object)
+    if (proxy === undefined) {
+      proxy = new Proxy(object, getHandler(record))
+      ;(object as ObservedInstance).__type__ = record
+      proxies.set(object, proxy)
+    }
+    return proxy
+  }
+
   return {
     observe,
   }

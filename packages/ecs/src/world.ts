@@ -141,40 +141,11 @@ export interface World<T = any> {
   has(entity: number, componentType: ComponentType): boolean
 
   /**
-   * Determine if a component was changed last tick.
-   *
-   * @param component Component
-   */
-  isComponentChanged(component: Component): boolean
-
-  /**
-   * Get a mutable reference to a component.
-   *
-   * @param component Subject component
-   */
-  getObserved<C extends Component>(component: C): C
-
-  /**
    * Apply world ops to this world.
    *
    * @param ops WorldOps to apply
    */
   applyOps(ops: WorldOp[]): void
-
-  /**
-   * Apply a component patch to the component of an entity.
-   *
-   * @param entity Entity
-   * @param componentType Component type
-   * @param path Path to property
-   * @param value New value
-   */
-  patch(
-    entity: number,
-    componentType: number,
-    path: string,
-    value: unknown,
-  ): void
 
   /**
    * Reserve an entity identifier.
@@ -380,9 +351,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   function tick(data: T) {
     globals.__CURRENT_WORLD__ = id
     state.currentTickData = data
-
-    // Clear change cache
-    storage.clearMutations()
 
     // Clear world op history
     while (worldOpsPrevious.length > 0) {
@@ -624,8 +592,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     }
   }
 
-  const { getObservedComponent, isComponentChanged, patch } = storage
-
   const world = {
     addSystem,
     addTopic,
@@ -636,12 +602,9 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     destroy,
     detach,
     get,
-    getObserved: getObservedComponent,
     has,
     id: -1,
-    isComponentChanged,
     ops: worldOpsPrevious,
-    patch,
     removeSystem,
     removeTopic,
     reserve,

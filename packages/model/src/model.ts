@@ -103,16 +103,18 @@ export type ModelNodeBase = {
   kind: ModelNodeKind
   inCollection: boolean
 }
-export type ModelNodeArray = ModelNodeBase & {
+export type ModelNodeCollection = ModelNodeBase & {
   edge: ModelNode
+}
+export type ModelNodeArray = ModelNodeCollection & {
   kind: ModelNodeKind.Array
 }
-export type ModelNodeMap = ModelNodeBase & {
-  edge: ModelNode
+export type ModelNodeMap = ModelNodeCollection & {
   kind: ModelNodeKind.Map
 }
 export type ModelNodeStruct = ModelNodeBase & {
   edges: ModelNode[]
+  keys: { [key: string]: ModelNode }
   kind: ModelNodeKind.Struct
 }
 export type ModelNodePrimitive = ModelNodeBase & {
@@ -175,14 +177,15 @@ export const insertNode = (
     record = { ...base, kind: ModelNodeKind.Map } as ModelNodeMap
     ids = insertNode(record, type.__type__, ids)
   } else {
-    record = { ...base, kind: ModelNodeKind.Struct, edges: [] }
-    ids = collateSchema(type as Schema, record, ids)
+    record = { ...base, kind: ModelNodeKind.Struct, edges: [], keys: {} }
+    ids = collate(type as Schema, record, ids)
   }
 
   record.hi = ids
 
   if (key) {
     ;(target as ModelNodeStruct).edges.push(record)
+    ;(target as ModelNodeStruct).keys[key] = record
   } else {
     ;(target as ModelNodeArray | ModelNodeMap).edge = record
   }
@@ -190,12 +193,7 @@ export const insertNode = (
   return ids
 }
 
-export const collateSchema = (
-  schema: Schema,
-  target: ModelNodeStruct,
-  ids = 0,
-) => {
-  // alphabetically sort keys since we can't guarantee order
+export const collate = (schema: Schema, target: ModelNodeStruct, ids = 0) => {
   const keys = Object.keys(schema).sort(localeCompare)
 
   for (let i = 0; i < keys.length; i++) {
@@ -210,13 +208,14 @@ export const collateSchema = (
 }
 
 const getModelRoot = (): ModelNodeStruct => ({
-  key: "",
   edges: [],
-  id: 0,
-  lo: 1,
   hi: Infinity,
-  kind: ModelNodeKind.Struct,
+  lo: 1,
+  id: 0,
   inCollection: false,
+  key: "",
+  keys: {},
+  kind: ModelNodeKind.Struct,
 })
 
 /**
@@ -230,7 +229,7 @@ export const createModel = (config: ModelConfig): Model => {
   const model: Model = {}
   config.forEach((schema, typeId) => {
     const root = getModelRoot()
-    collateSchema(schema, root)
+    collate(schema, root)
     model[typeId] = root
   })
   return model

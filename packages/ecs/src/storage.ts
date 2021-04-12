@@ -31,17 +31,6 @@ export interface Storage {
   insert(entity: number, components: Component[]): void
 
   /**
-   * Update the value at a given path for a component.
-   * @param component Latest copy of the component
-   */
-  patch(
-    entity: number,
-    componentType: number,
-    path: string,
-    value: unknown,
-  ): void
-
-  /**
    * Insert or update a component (e.g. from a remote source).
    * @param entity Entity to insert components into.
    * @param components Components to either insert or update.
@@ -103,33 +92,6 @@ export interface Storage {
   getEntityComponents(entity: number): Component[]
 
   /**
-   * Clear all component mutations.
-   */
-  clearMutations(): void
-
-  /**
-   * Retreive an observed copy of a component. Changes made to this component
-   * can be retreived using getComponentMutations() and are cleared when
-   * clearMutations() is called.
-   * @param component Component
-   */
-  getObservedComponent<C extends Component>(component: C): C
-
-  /**
-   * Get the mutations made to a component. Mutations are currently stored in
-   * a one-dimensional array with alternating key/value pairs.
-   * @param component Component
-   */
-  getComponentMutations(component: Component): unknown[]
-
-  /**
-   * Determine a component has been changed since the last clearMutations()
-   * call.
-   * @param component Component to determine has been changed.
-   */
-  isComponentChanged(component: Component): boolean
-
-  /**
    * Clear all storage data, including archetype data and component mutations.
    */
   clear(): void
@@ -144,6 +106,9 @@ export interface Storage {
    */
   readonly archetypeCreated: Signal<Archetype>
 
+  /**
+   * Signal dispatched when an entity transitions between archetypes.
+   */
   readonly entityRelocated: Signal<Entity, Archetype, Archetype>
 }
 
@@ -154,23 +119,6 @@ export type StorageOptions = {
 export function createStorage(options: StorageOptions = {}): Storage {
   const archetypeCreated = createSignal<Archetype>()
   const entityRelocated = createSignal<Entity, Archetype, Archetype>()
-  const mutationCache = createMutationCache({
-    onChange(component: Component, target, path, value, mutArrayMethodType) {
-      let changes = mutations.get(component)
-
-      if (!changes) {
-        changes = []
-        mutations.set(component, changes)
-      }
-
-      if (mutArrayMethodType) {
-        changes.push(path, value, mutArrayMethodType)
-      } else {
-        changes.push(path, value)
-      }
-    },
-  })
-  const mutations = new Map<Component, unknown[]>()
   const archetypes: Archetype[] = options.snapshot
     ? options.snapshot.archetypes.map(snapshot => createArchetype({ snapshot }))
     : []
@@ -310,9 +258,6 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
       if (!componentTypeIds.includes(type)) {
         destinationComponents.push(component)
-      } else {
-        mutationCache.revoke(component)
-        mutations.delete(component)
       }
     }
 
@@ -322,29 +267,6 @@ export function createStorage(options: StorageOptions = {}): Storage {
   function destroy(entity: number) {
     remove(entity, getEntityComponents(entity))
     archetypeIndicesByEntity[entity] = null
-  }
-
-  function patch(
-    entity: number,
-    componentTypeId: number,
-    path: string,
-    value: unknown,
-  ) {
-    const archetype = getEntityArchetype(entity)
-    const entityIndex = archetype.indices[entity]
-    const column = archetype.signatureInverse[componentTypeId]
-
-    if (column === undefined) {
-      return
-    }
-
-    const component = archetype.table[column][entityIndex]
-    assert(
-      component !== undefined,
-      "Failed to patch component: entity does not exist in archetype",
-    )
-
-    applyMutation(getObservedComponent(component), path, value)
   }
 
   const tmpComponentsToInsert: Component[] = []
@@ -364,11 +286,8 @@ export function createStorage(options: StorageOptions = {}): Storage {
         // component.
         tmpComponentsToInsert.push(component)
       } else {
-        const target = getObservedComponent(
-          archetype.table[column][entityIndex]!,
-        )
         // Apply patch to component.
-        Object.assign(target, component)
+        Object.assign(archetype.table[column][entityIndex]!, component)
       }
     }
 
@@ -420,31 +339,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     return result
   }
 
-  function clearMutations() {
-    mutations.forEach(mutableEmpty)
-  }
-
-  function getComponentMutations(component: Component) {
-    const changeSet = mutations.get(component)
-
-    if (!changeSet) {
-      throw new Error("ChangeSet does not exist for component.")
-    }
-
-    return changeSet
-  }
-
-  function getObservedComponent<C extends Component>(component: C) {
-    return mutationCache.proxy(component) as C
-  }
-
-  function isComponentChanged(component: Component) {
-    const changeSet = mutations.get(component)
-    return changeSet ? changeSet.length > 0 : false
-  }
-
   function clear() {
-    mutations.clear()
     mutableEmpty(archetypes)
     mutableEmpty(archetypeIndicesByEntity)
   }
@@ -465,19 +360,14 @@ export function createStorage(options: StorageOptions = {}): Storage {
     archetypeCreated,
     archetypes,
     clear,
-    clearMutations,
     create,
     destroy,
     entityRelocated,
     findComponent,
     findComponentByComponentTypeId,
-    getComponentMutations,
     getEntityComponents,
-    getObservedComponent,
     hasComponent,
     insert,
-    isComponentChanged,
-    patch,
     remove,
     removeByTypeIds,
     snapshot,
