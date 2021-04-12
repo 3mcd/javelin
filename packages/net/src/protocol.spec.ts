@@ -1,23 +1,33 @@
 import { Component } from "@javelin/ecs"
 import { Entity } from "@javelin/ecs/src/entity"
-import { field, float64, int8, Schema, uint32, uint8 } from "@javelin/pack"
 import {
-  decodeMessage,
-  MessageBuilder,
-  encodeModel,
-  decodeModel,
-  flattenSchema,
-} from "./protocol_v2"
+  arrayOf,
+  createModel,
+  Model,
+  ModelConfig,
+  Schema,
+} from "@javelin/model"
+import { float64, uint32, uint8 } from "@javelin/pack"
+import { decodeMessage, MessageBuilder } from "./protocol"
 
-const schema = {
-  componentBase: {
-    _tid: field(uint8),
-  },
+const baseSchema = {
+  _tid: uint8,
+}
+
+const baseHandlers = {
+  onModel: jest.fn(),
+  onTick: jest.fn(),
+  onCreate: jest.fn(),
+  onAttach: jest.fn(),
+  onUpdate: jest.fn(),
+  onDetach: jest.fn(),
+  onDestroy: jest.fn(),
+  onPatch: jest.fn(),
 }
 
 describe("protocol", () => {
   it("serializes", () => {
-    const model = new Map([[1, schema.componentBase]])
+    const model = createModel(new Map([[1, baseSchema]]))
     const builder = new MessageBuilder(model)
 
     builder.setTick(999)
@@ -32,16 +42,11 @@ describe("protocol", () => {
   })
 
   it("deserializes tick", () => {
-    const model = new Map<number, Schema>()
+    const model = createModel(new Map<number, Schema>())
     const builder = new MessageBuilder(model)
     const handlers = {
-      onModel: jest.fn(),
+      ...baseHandlers,
       onTick: (t: number) => (tick = t),
-      onCreate: jest.fn(),
-      onAttach: jest.fn(),
-      onUpdate: jest.fn(),
-      onDetach: jest.fn(),
-      onDestroy: jest.fn(),
     }
 
     builder.setTick(7)
@@ -54,19 +59,14 @@ describe("protocol", () => {
   })
 
   it("deserializes spawned", () => {
-    const model = new Map([[1, schema.componentBase]])
+    const model = createModel(new Map([[1, baseSchema]]))
     const builder = new MessageBuilder(model)
     const spawns: [entity: number, components: Component[]][] = [
       [7, [{ _tid: 1 }]],
     ]
     const handlers = {
-      onModel: jest.fn(),
-      onTick: jest.fn(),
+      ...baseHandlers,
       onCreate: (...args: [Entity, Component[]]) => results.push(args),
-      onAttach: jest.fn(),
-      onUpdate: jest.fn(),
-      onDetach: jest.fn(),
-      onDestroy: jest.fn(),
     }
 
     for (let i = 0; i < spawns.length; i++) {
@@ -81,19 +81,14 @@ describe("protocol", () => {
   })
 
   it("deserializes attached", () => {
-    const model = new Map([[1, schema.componentBase]])
+    const model = createModel(new Map([[1, baseSchema]]))
     const builder = new MessageBuilder(model)
     const attaches: [entity: number, components: Component[]][] = [
       [7, [{ _tid: 1 }]],
     ]
     const handlers = {
-      onModel: jest.fn(),
-      onTick: jest.fn(),
-      onCreate: jest.fn(),
+      ...baseHandlers,
       onAttach: (...args: [Entity, Component[]]) => results.push(args),
-      onUpdate: jest.fn(),
-      onDetach: jest.fn(),
-      onDestroy: jest.fn(),
     }
 
     for (let i = 0; i < attaches.length; i++) {
@@ -108,19 +103,14 @@ describe("protocol", () => {
   })
 
   it("deserializes updated", () => {
-    const model = new Map([[1, schema.componentBase]])
+    const model = createModel(new Map([[1, baseSchema]]))
     const builder = new MessageBuilder(model)
     const updates: [entity: number, components: Component[]][] = [
       [7, [{ _tid: 1 }]],
     ]
     const handlers = {
-      onModel: jest.fn(),
-      onTick: jest.fn(),
-      onCreate: jest.fn(),
-      onAttach: jest.fn(),
+      ...baseHandlers,
       onUpdate: (...args: [Entity, Component[]]) => results.push(args),
-      onDetach: jest.fn(),
-      onDestroy: jest.fn(),
     }
 
     for (let i = 0; i < updates.length; i++) {
@@ -135,19 +125,14 @@ describe("protocol", () => {
   })
 
   it("deserializes detached", () => {
-    const model = new Map()
+    const model = createModel(new Map())
     const builder = new MessageBuilder(model)
     const detaches: [entity: number, componentTypeIds: number[]][] = [
       [5, [1, 2, 4]],
     ]
     const handlers = {
-      onModel: jest.fn(),
-      onTick: jest.fn(),
-      onCreate: jest.fn(),
-      onAttach: jest.fn(),
-      onUpdate: jest.fn(),
+      ...baseHandlers,
       onDetach: (...args: [Entity, number[]]) => results.push(args),
-      onDestroy: jest.fn(),
     }
 
     for (let i = 0; i < detaches.length; i++) {
@@ -162,16 +147,11 @@ describe("protocol", () => {
   })
 
   it("deserializes destroyed", () => {
-    const model = new Map()
+    const model = createModel(new Map())
     const builder = new MessageBuilder(model)
     const destroys = [2, 7, 12, 100]
     const handlers = {
-      onModel: jest.fn(),
-      onTick: jest.fn(),
-      onCreate: jest.fn(),
-      onAttach: jest.fn(),
-      onUpdate: jest.fn(),
-      onDetach: jest.fn(),
+      ...baseHandlers,
       onDestroy: (entity: Entity) => results.push(entity),
     }
 
@@ -187,45 +167,42 @@ describe("protocol", () => {
   })
 
   it("deserializes model", () => {
-    const model = new Map([
-      [
-        0,
-        {
-          _tid: field(uint8),
-          x: field(float64),
-          nested: { a: field(uint32) },
-          arr_simple: [field(uint8)],
-          arr_schema: [
-            {
-              y: field(float64),
-            },
-          ],
-        } as any,
-      ],
-      [
-        1,
-        {
-          _tid: field(uint8),
-        },
-      ],
-    ])
+    const model = createModel(
+      new Map([
+        [
+          0,
+          {
+            // Note: keys are sorted alphabetically below since model encodes
+            // keys alphabetically
+            _tid: uint8,
+            arr_schema: arrayOf({
+              y: float64,
+            }),
+            arr_simple: arrayOf(uint8),
+            nested: { a: uint32 },
+            x: float64,
+          } as Schema,
+        ],
+        [
+          1,
+          {
+            _tid: uint8,
+          } as Schema,
+        ],
+      ]),
+    )
     const builder = new MessageBuilder(model)
     const handlers = {
-      onModel: jest.fn(),
-      onTick: jest.fn(),
-      onCreate: jest.fn(),
-      onAttach: jest.fn(),
-      onUpdate: jest.fn(),
-      onDetach: jest.fn(),
-      onDestroy: jest.fn(),
+      ...baseHandlers,
     }
 
     builder.model(model)
 
     decodeMessage(builder.encode(), handlers, model)
 
-    expect([...handlers.onModel.mock.calls[0][0].entries()]).toEqual([
-      ...model.entries(),
-    ])
+    const snapshot = (model: Model) => JSON.stringify(model)
+    const emitted = handlers.onModel.mock.calls[0][0]
+
+    expect(snapshot(emitted)).toEqual(snapshot(model))
   })
 })

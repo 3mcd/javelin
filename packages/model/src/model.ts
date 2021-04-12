@@ -10,28 +10,26 @@ export enum DataTypeId {
   Map = "map",
 }
 
-export type DataType<I extends string = string, T = any> = {
-  __data_type__: I
+export type DataType<T = any> = {
+  __data_type__: string
   create(): T
   reset(object: any, key: string, value: T): void
 }
-export type DataTypeNumber = DataType<DataTypeId.Number, number>
-export type DataTypeString = DataType<DataTypeId.String, string>
-export type DataTypeBoolean = DataType<DataTypeId.Boolean, boolean>
+export type DataTypeNumber = DataType<number>
+export type DataTypeString = DataType<string>
+export type DataTypeBoolean = DataType<boolean>
 export type DataTypePrimitive =
   | DataTypeNumber
   | DataTypeString
   | DataTypeBoolean
 export type DataTypeArray<E extends SchemaKey> = DataType<
-  DataTypeId.Array,
   ExtractSchemaKeyType<E>[]
 > & {
   element: E
 }
-export type DataTypeMap<E extends SchemaKey> = DataType<
-  DataTypeId.Map,
-  { [key: string]: ExtractSchemaKeyType<E> }
-> & {
+export type DataTypeMap<E extends SchemaKey> = DataType<{
+  [key: string]: ExtractSchemaKeyType<E>
+}> & {
   element: E
 }
 
@@ -68,14 +66,7 @@ export const mapOf = <E extends SchemaKey>(element: E): DataTypeMap<E> => ({
   },
 })
 
-export type AnyDataType =
-  | DataTypeNumber
-  | DataTypeString
-  | DataTypeBoolean
-  | DataTypeArray<any>
-  | DataTypeMap<any>
-
-export type SchemaKey = AnyDataType | Schema
+export type SchemaKey = DataType | Schema
 export type Schema = { [key: string]: SchemaKey }
 
 export type InstanceOfSchema<S extends Schema> = {
@@ -119,7 +110,8 @@ export type ModelNodeStruct = ModelNodeBase & {
   edges: ModelNode[]
 }
 export type ModelNode = ModelNodeStruct | ModelNodeField
-export type Model = { [typeId: number]: ModelNode }
+export type ModelNodeRoot = ModelNodeStruct
+export type Model = { [typeId: number]: ModelNodeRoot }
 
 const localeCompare = (a: string, b: string) => a.localeCompare(b)
 
@@ -154,14 +146,20 @@ export const collateSchema = (
             value.__data_type__ === DataTypeId.Array
               ? ModelNodeKind.Array
               : ModelNodeKind.Map
+          const { element } = value as DataTypeArray<any> | DataTypeMap<any>
           base.inCollection = true
-          if (isDataType(value.element)) {
-            record = { ...base, hi: id, type: value.element, kind }
+          if (isDataType(element)) {
+            record = {
+              ...base,
+              hi: id,
+              type: element,
+              kind,
+            }
             // TODO: support nested arrays/maps, e.g.
             // arrayOf(arrayOf(number))
           } else {
             record = { ...base, edges: [], kind, keys: {} }
-            ids = collateSchema(value.element, record, ids)
+            ids = collateSchema(element, record, ids)
           }
           break
         }

@@ -1,5 +1,4 @@
 import * as model from "@javelin/model"
-import { DataType } from "@javelin/model"
 
 export enum ViewType {
   Uint8 = "uint8",
@@ -15,28 +14,25 @@ export enum ViewType {
   Boolean = "boolean",
 }
 
-export type View<V extends ViewType = ViewType, T = any> = model.DataType<
-  V,
-  T
-> & {
+export type View<T = any> = model.DataType<T> & {
   byteLength: number
   read(view: DataView, offset: number, length?: number): T
   write(view: DataView, bytes: number, data: T): void
 }
 
-function view<V extends ViewType, T>(
-  name: V,
-  dataType: model.DataType,
+function view<T>(
+  dataTypeId: string,
+  dataTypeBase: model.DataType,
   byteLength: number,
   read: (view: DataView, offset: number, length?: number) => T,
   write: (view: DataView, offset: number, data: T) => void,
-): View<V, T> {
+): View<T> {
   return {
     byteLength,
     read,
     write,
-    ...dataType,
-    __data_type__: name,
+    ...dataTypeBase,
+    __data_type__: dataTypeId,
   }
 }
 
@@ -163,7 +159,10 @@ export const boolean = view(
 export const number = float64
 export const string = string8
 
-export const dataTypeToView = (dataType: DataType) => {
+export const dataTypeToView = (dataType: model.DataType) => {
+  if ("byteLength" in dataType) {
+    return dataType as View
+  }
   switch (dataType) {
     case model.number:
       return number
@@ -172,4 +171,7 @@ export const dataTypeToView = (dataType: DataType) => {
     case model.boolean:
       return boolean
   }
+  throw new Error(
+    `Failed to find view: unsupported DataType "${dataType.__data_type__}"`,
+  )
 }

@@ -7,17 +7,18 @@ type ObservedProps<T = any> = T & {
   __record__: ModelNode
 }
 
-const tmpCollectionTraverse: string[] = []
 const recordIsCollection = (record: ModelNode) =>
   record.kind === ModelNodeKind.Array || record.kind === ModelNodeKind.Map
 const recordIsCollectionDescendant = (record: ModelNode) =>
   record.inCollection === true
 
+const tmpCollectionTraverse: string[] = []
+
 export function createObserver(
-  model: ModelConfig,
+  config: ModelConfig,
   onChange: (object: object) => {},
 ) {
-  const collated = createModel(model)
+  const model = createModel(config)
   const proxies = new WeakMap()
   const set = (target: ObservedProps, key: string | symbol, value: any) => {
     target[key] = value
@@ -122,7 +123,7 @@ export function createObserver(
     if (proxy === undefined) {
       const record =
         parent === undefined
-          ? collated[(object as Component)._tid]
+          ? model[(object as Component)._tid]
           : "keys" in parent.__record__!
           ? parent.__record__.keys[key as string]
           : parent.__record__!
