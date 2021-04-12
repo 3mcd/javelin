@@ -1,4 +1,4 @@
-import { Schema, InstanceOfSchema, isDataType, DataType } from "./model"
+import { Schema, InstanceOfSchema, isPrimitiveType, DataType } from "./model"
 
 export function initialize<S extends Schema>(
   component: InstanceOfSchema<S>,
@@ -7,7 +7,7 @@ export function initialize<S extends Schema>(
   for (const prop in schema) {
     const value = schema[prop]
 
-    if (isDataType(value)) {
+    if (isPrimitiveType(value)) {
       component[prop] = value.create()
     } else {
       initialize(component, value as Schema)
@@ -24,7 +24,7 @@ export function reset<S extends Schema>(
   for (const prop in schema) {
     const value = schema[prop]
 
-    if (isDataType(value)) {
+    if (isPrimitiveType(value)) {
       value.reset(component, prop, undefined)
     } else {
       reset(component, value as Schema)
@@ -38,7 +38,7 @@ export type SerializedSchema<S extends Schema = Schema> = {
   [K in keyof S]: S[K] extends Schema
     ? SerializedSchema<S>
     : S[K] extends DataType<any>
-    ? S[K]["__data_type__"]
+    ? S[K]["__type__"]
     : never
 }
 
@@ -50,8 +50,8 @@ export function serializeSchema<S extends Schema>(
   for (const prop in schema) {
     const value = schema[prop]
 
-    if (isDataType(value)) {
-      out[prop] = value.__data_type__
+    if (isPrimitiveType(value)) {
+      out[prop] = value.__type__
     } else {
       out[prop] = serializeSchema(value as Schema)
     }
@@ -71,8 +71,8 @@ export function schemaEqualsSerializedSchema(
   for (const prop in schema) {
     const value = schema[prop]
 
-    if (isDataType(value)) {
-      if (serializedSchema[prop] !== value.__data_type__) {
+    if (isPrimitiveType(value)) {
+      if (serializedSchema[prop] !== value.__type__) {
         return false
       }
     } else {
