@@ -48,7 +48,7 @@ const instance = {
   buffer: [1, 2, 3],
 }
 
-let n = 100000
+let n = 10000
 let i = 0
 
 const observed = observer.observe(instance, model[0])
@@ -56,8 +56,9 @@ const start_proxy = performance.now()
 
 while (i++ < n) {
   observed.x = i
-  observed.y = i
-  observed.z = i
+  // observed.y = i
+  // observed.z = i
+  observed.buffer.unshift(4)
   // observed.qx = i
   // observed.qy = i
   // observed.qz = i
@@ -66,4 +67,4 @@ while (i++ < n) {
 
 console.log(performance.now() - start_proxy)
 
-console.log(instance.$changes)
+console.log(instance.$changes.arrays)

@@ -5,10 +5,7 @@ describe("observer", () => {
   it("observes", () => {
     const config = new Map([[0, { x: number }]])
     const model = createModel(config)
-    const onChange = (...args: any[]) => {
-      console.log(args)
-    }
-    const observer = createObserver(onChange)
+    const observer = createObserver()
     const instance = {
       x: 0,
     }
