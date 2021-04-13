@@ -35,7 +35,7 @@ const config = new Map([
   ],
 ])
 const model = createModel(config)
-const observer = createObserver(() => j++)
+const observer = createObserver()
 const instance = {
   _tid: 0,
   x: 1,
@@ -50,15 +50,14 @@ const instance = {
 
 let n = 100000
 let i = 0
-let j = 0
 
 const observed = observer.observe(instance, model[0])
 const start_proxy = performance.now()
 
 while (i++ < n) {
   observed.x = i
-  // observed.y = i
-  // observed.z = i
+  observed.y = i
+  observed.z = i
   // observed.qx = i
   // observed.qy = i
   // observed.qz = i
@@ -66,3 +65,5 @@ while (i++ < n) {
 }
 
 console.log(performance.now() - start_proxy)
+
+console.log(instance.$changes)

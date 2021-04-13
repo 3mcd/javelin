@@ -4,13 +4,30 @@ import {
   ModelNodeBase,
   ModelNodeCollection,
   ModelNodeKind,
-  ModelNodeStruct,
 } from "./model"
 
+type Change = [number, any] | [number, any, string[]]
+type ChangeSet = { [key: string]: Change }
+
+const changeSetPush = (
+  changes: ChangeSet,
+  field: number,
+  value: any,
+  traverse?: string[],
+) => {
+  if (traverse === undefined) {
+    changes[field] = value
+  } else {
+    changes[`${field},${traverse.join(",")}`] = value
+  }
+}
+
 type ObservedProps = {
-  __index__: number
-  __parent__: any
-  __type__: ModelNode
+  $changes: ChangeSet
+  $index: number
+  $parent: any
+  $root: ObservedProps
+  $type: ModelNode
 }
 
 type ObservedInstance<T = any> = T & ObservedProps
@@ -23,32 +40,20 @@ const recordIsCollectionDescendant = (record: ModelNode) =>
   record.inCollection === true
 
 const tmpCollectionTraverse: string[] = []
-const getKeyId = (target: ObservedProps, key: string | symbol) => {
-  const { __type__: type } = target
-  let node: ModelNode
-  if (recordIsCollection(type)) {
-    node = type.edge
-  } else {
-    node = (type as ModelNodeStruct).keys[key as string]
-  }
-  return node.id
-}
 
-export function createObserver(
-  onChange: (object: object, id: number, value: unknown) => void,
-) {
+export function createObserver() {
   const proxies = new WeakMap()
   const set = (target: ObservedInstance, key: string | symbol, value: any) => {
     target[key] = value
-    onChange(target, getKeyId(target, key), value)
+    changeSetPush(target.$changes, target.$type.idsByKey[key], value)
     return true
   }
 
   const handlerForNestedCollection = {
     get(target: ObservedInstance, key: string | symbol) {
       const value = target[key]
-      value.__index__ = key
-      value.__parent__ = target
+      value.$index = key
+      value.$parent = target
       return observeInner(value, target, key)
     },
     set(target: ObservedInstance, key: string | symbol, value: any) {
@@ -56,15 +61,15 @@ export function createObserver(
       tmpCollectionTraverse.push(key as string)
       let parent = target
       while (parent !== undefined) {
-        const { __parent__, __index__ } = parent
-        if (__index__ !== undefined) {
-          tmpCollectionTraverse.unshift(__index__)
+        const { $parent, $index } = parent
+        if ($index !== undefined) {
+          tmpCollectionTraverse.unshift($index)
         }
-        parent = __parent__
+        parent = $parent
       }
 
       target[key] = value
-      onChange(target, getKeyId(target, key), value)
+      target.$changes[target.$type.idsByKey[key]] = value
       return true
     },
   }
@@ -72,22 +77,22 @@ export function createObserver(
   const handlerForCollectionDescendant = {
     get(target: ObservedInstance, key: string | symbol) {
       const value = target[key]
-      value.__parent__ = target
+      value.$parent = target
       return observeInner(value, target, key)
     },
     set(target: ObservedInstance, key: string | symbol, value: any) {
       mutableEmpty(tmpCollectionTraverse)
       let parent = target
       while (parent !== undefined) {
-        const { __parent__, __index__ } = parent
-        if (__index__ !== undefined) {
-          tmpCollectionTraverse.unshift(__index__)
+        const { $parent, $index } = parent
+        if ($index !== undefined) {
+          tmpCollectionTraverse.unshift($index)
         }
-        parent = __parent__
+        parent = $parent
       }
 
       target[key] = value
-      onChange(target, getKeyId(target, key), value)
+      target.$changes[target.$type.idsByKey[key]] = value
       return true
     },
   }
@@ -95,7 +100,7 @@ export function createObserver(
   const handlerForCollection = {
     get(target: ObservedInstance, key: string | symbol) {
       const value = target[key]
-      value.__index__ = key
+      value.$index = key
       return observeInner(value, target, key)
     },
     set,
@@ -140,11 +145,12 @@ export function createObserver(
     let proxy = proxies.get(object)
     if (proxy === undefined) {
       const record =
-        "keys" in parent.__type__!
-          ? parent.__type__.keys[key as string]
+        "keys" in parent.$type!
+          ? parent.$type.keys[key as string]
           : // parent will never be primitive
-            (parent.__type__ as ModelNodeCollection).edge
-      object.__type__ = record
+            (parent.$type as ModelNodeCollection).edge
+      object.$type = record
+      object.$changes = parent.$changes || {}
       proxy = new Proxy(object, getHandler(record))
       proxies.set(object, proxy)
     }
@@ -156,7 +162,8 @@ export function createObserver(
     let proxy = proxies.get(object)
     if (proxy === undefined) {
       proxy = new Proxy(object, getHandler(record))
-      ;(object as ObservedInstance).__type__ = record
+      ;(object as ObservedProps).$type = record
+      ;(object as ObservedProps).$changes = {}
       proxies.set(object, proxy)
     }
     return proxy

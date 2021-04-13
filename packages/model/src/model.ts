@@ -114,6 +114,7 @@ export type ModelNodeMap = ModelNodeCollection & {
 }
 export type ModelNodeStruct = ModelNodeBase & {
   edges: ModelNode[]
+  idsByKey: { [key: string]: number }
   keys: { [key: string]: ModelNode }
   kind: ModelNodeKind.Struct
 }
@@ -177,7 +178,13 @@ export const insertNode = (
     record = { ...base, kind: ModelNodeKind.Map } as ModelNodeMap
     ids = insertNode(record, type.__type__, ids)
   } else {
-    record = { ...base, kind: ModelNodeKind.Struct, edges: [], keys: {} }
+    record = {
+      ...base,
+      kind: ModelNodeKind.Struct,
+      edges: [],
+      keys: {},
+      idsByKey: {},
+    }
     ids = collate(type as Schema, record, ids)
   }
 
@@ -186,6 +193,7 @@ export const insertNode = (
   if (key) {
     ;(target as ModelNodeStruct).edges.push(record)
     ;(target as ModelNodeStruct).keys[key] = record
+    ;(target as ModelNodeStruct).idsByKey[key] = id
   } else {
     ;(target as ModelNodeArray | ModelNodeMap).edge = record
   }
@@ -212,6 +220,7 @@ const getModelRoot = (): ModelNodeStruct => ({
   hi: Infinity,
   lo: 1,
   id: 0,
+  idsByKey: {},
   inCollection: false,
   key: "",
   keys: {},
