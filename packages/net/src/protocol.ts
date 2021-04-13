@@ -497,8 +497,12 @@ function encodeModelStruct(node: ModelNodeStruct, out: number[]) {
         out.push(ARRAY)
         offset++
 
-        if ("type" in child) {
-          out.push(getDataTypeId(child.type))
+        if (child.edge.kind === ModelNodeKind.Primitive) {
+          out.push(getDataTypeId(child.edge))
+        }
+
+        if ("__type__" in child) {
+          child.out.push(getDataTypeId(child.type))
           offset++
         } else {
           offset += encodeModelStruct(child, out)
@@ -560,9 +564,9 @@ export function decodeSchema(
       if ((elementType & SCHEMA_MASK) !== 0) {
         const elementSchema = {}
         offset = decodeSchema(encoded, offset - 1, elementSchema)
-        wrapper.element = elementSchema
+        wrapper.__type__ = elementSchema
       } else {
-        wrapper.element = dataTypeIdsLookup.get(elementType)!
+        wrapper.__type__ = dataTypeIdsLookup.get(elementType)!
       }
       schema[key] = wrapper
     } else if ((dataType & SCHEMA_MASK) !== 0) {

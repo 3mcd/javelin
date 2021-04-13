@@ -1,7 +1,6 @@
 import {
   InstanceOfSchema,
-  isDataType,
-  ModelNodeField,
+  ModelNode,
   ModelNodeKind,
   ModelNodeStruct,
   Schema,
@@ -35,58 +34,40 @@ function pushArrayLengthField(out: BufferField[], length: number) {
   return uint32.byteLength
 }
 
-export function serialize<S extends Schema>(
+export function serialize(
   out: BufferField[],
-  spec: ModelNodeStruct,
-  object: InstanceOfSchema<S>,
+  node: ModelNode,
+  object: any,
   offset = 0,
 ) {
-  for (let i = 0; i < spec.edges.length; i++) {
-    const child = spec.edges[i]
-    const { key } = child
-    const value = object[key]
-
-    switch (child.kind) {
-      case ModelNodeKind.Array: {
-        offset += pushArrayLengthField(out, value.length)
-        if ("type" in child) {
-          for (let j = 0; j < value.length; j++) {
-            offset += pushBufferField(out, dataTypeToView(child.type), value[j])
-          }
-        } else {
-          for (let j = 0; j < value.length; j++) {
-            offset = serialize(
-              out,
-              child,
-              value[j] as InstanceOfSchema<any>[],
-              offset,
-            )
-          }
-        }
-        break
+  switch (node.kind) {
+    case ModelNodeKind.Primitive:
+      offset += pushBufferField(out, dataTypeToView(node.type), object)
+      break
+    case ModelNodeKind.Array: {
+      offset += pushArrayLengthField(out, object.length)
+      for (let i = 0; i < object.length; i++) {
+        offset = serialize(out, node.edge, object[i], offset)
       }
-      // TODO: support map
-      case ModelNodeKind.Map:
-        break
-      case ModelNodeKind.Struct:
-        offset = serialize(out, child as ModelNodeStruct, value, offset)
-        break
-      case ModelNodeKind.Primitive:
-        offset += pushBufferField(
-          out,
-          dataTypeToView((child as ModelNodeField).type),
-          value,
-        )
-        break
+      break
     }
+    case ModelNodeKind.Map:
+      // TODO: support map
+      break
+    case ModelNodeKind.Struct:
+      for (let i = 0; i < node.edges.length; i++) {
+        const edge = node.edges[i]
+        offset = serialize(out, edge, object[edge.key], offset)
+      }
+      break
   }
 
   return offset
 }
 
-export function encode(object: any, spec: ModelNodeStruct): ArrayBuffer {
+export function encode(object: any, type: ModelNodeStruct): ArrayBuffer {
   const bufferFields: BufferField[] = []
-  const bufferSize = serialize(bufferFields, spec, object)
+  const bufferSize = serialize(bufferFields, type, object)
   const buffer = new ArrayBuffer(bufferSize)
   const bufferView = new DataView(buffer)
 
@@ -109,66 +90,69 @@ export function decodeProperty(
   offset: number,
 ) {
   out[key] = field.read(bufferView, offset, field.length || 0)
-  return field.byteLength * (field.length || 1)
+  return offset + field.byteLength * (field.length || 1)
 }
 
-export function decode(buffer: ArrayBuffer, spec: ModelNodeStruct) {
+const deserialize = (
+  bufferView: DataView,
+  node: ModelNode,
+  object: any,
+  key: string | number,
+  offset: number = 0,
+) => {
+  let child: any
+
+  switch (node.kind) {
+    case ModelNodeKind.Primitive:
+      offset = decodeProperty(
+        object,
+        key,
+        dataTypeToView(node.type),
+        bufferView,
+        offset,
+      )
+      break
+    case ModelNodeKind.Array: {
+      const length = uint32.read(bufferView, offset, 0)
+      offset += uint32.byteLength
+      child = [] as any[]
+      for (let i = 0; i < length; i++) {
+        offset = deserialize(bufferView, node.edge, child, i, offset)
+      }
+      break
+    }
+    // TODO: support map
+    case ModelNodeKind.Map:
+      break
+    case ModelNodeKind.Struct: {
+      child = {}
+      for (let i = 0; i < node.edges.length; i++) {
+        const edge = node.edges[i]
+        offset = deserialize(bufferView, edge, child, edge.key, offset)
+      }
+      break
+    }
+  }
+
+  if (child !== undefined) {
+    object[key] = child
+  }
+
+  return offset
+}
+
+export function decode(buffer: ArrayBuffer, type: ModelNodeStruct) {
   const bufferView = new DataView(buffer)
+  const root = {}
 
   let offset = 0
 
-  const build = (node: ModelNodeStruct) => {
-    const object: any = {}
-
-    for (let i = 0; i < node.edges.length; i++) {
-      const child = node.edges[i]
-      const { key } = child
-      switch (child.kind) {
-        case ModelNodeKind.Array: {
-          const length = uint32.read(bufferView, offset, 0)
-          const array: any[] = []
-          object[key] = array
-          offset += uint32.byteLength
-          if ("type" in child) {
-            for (let j = 0; j < length; j++) {
-              offset += decodeProperty(
-                array,
-                j,
-                dataTypeToView(child.type),
-                bufferView,
-                offset,
-              )
-            }
-          } else {
-            for (let j = 0; j < length; j++) {
-              array[j] = build(child)
-            }
-          }
-          break
-        }
-        // TODO: support map
-        case ModelNodeKind.Map:
-          break
-        case ModelNodeKind.Struct: {
-          object[key] = build(child as ModelNodeStruct)
-          break
-        }
-        case ModelNodeKind.Primitive:
-          offset += decodeProperty(
-            object,
-            child.key,
-            dataTypeToView((child as ModelNodeField).type),
-            bufferView,
-            offset,
-          )
-          break
-      }
-    }
-
-    return object
+  for (let i = 0; i < type.edges.length; i++) {
+    const edge = type.edges[i]
+    offset = deserialize(bufferView, edge, root, edge.key, offset)
   }
 
-  return build(spec)
+  return root
 }
 
 export * from "./views"

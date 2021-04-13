@@ -1,3 +1,5 @@
+import { assert, ErrorType } from "@javelin/ecs"
+
 export enum SchemaKeyKind {
   Array,
   Map,
@@ -99,9 +101,11 @@ export type ModelNodeBase = {
   id: number
   lo: number
   hi: number
-  key?: string
   kind: ModelNodeKind
   inCollection: boolean
+}
+export type ModelNodeStructDescendant = ModelNode & {
+  key: string
 }
 export type ModelNodeCollection = ModelNodeBase & {
   edge: ModelNode
@@ -113,9 +117,9 @@ export type ModelNodeMap = ModelNodeCollection & {
   kind: ModelNodeKind.Map
 }
 export type ModelNodeStruct = ModelNodeBase & {
-  edges: ModelNode[]
+  edges: ModelNodeStructDescendant[]
   idsByKey: { [key: string]: number }
-  keys: { [key: string]: ModelNode }
+  keys: { [key: string]: ModelNodeStructDescendant }
   kind: ModelNodeKind.Struct
 }
 export type ModelNodePrimitive = ModelNodeBase & {
@@ -127,7 +131,14 @@ export type ModelNode =
   | ModelNodeMap
   | ModelNodeStruct
   | ModelNodePrimitive
+
 export type Model = { [typeId: number]: ModelNodeStruct }
+
+function assertIsModelNodeStructDescendant(
+  node: ModelNode,
+): asserts node is ModelNodeStructDescendant {
+  assert("key" in node, "", ErrorType.Internal)
+}
 
 const localeCompare = (a: string, b: string) => a.localeCompare(b)
 
@@ -164,38 +175,49 @@ export const insertNode = (
       target.kind === ModelNodeKind.Array ||
       target.kind === ModelNodeKind.Map,
     kind,
-    key,
   }
 
-  let record: ModelNode
+  let node: ModelNode | ModelNodeStructDescendant
 
   if (isPrimitiveType(type)) {
-    record = { ...base, kind: ModelNodeKind.Primitive, type }
+    node = { ...base, kind: ModelNodeKind.Primitive, type }
   } else if (isArrayType(type)) {
-    record = { ...base, kind: ModelNodeKind.Array } as ModelNodeArray
-    ids = insertNode(record, type.__type__, ids)
+    node = { ...base, kind: ModelNodeKind.Array } as ModelNodeArray
+    ids = insertNode(node, type.__type__, ids)
   } else if (isMapType(type)) {
-    record = { ...base, kind: ModelNodeKind.Map } as ModelNodeMap
-    ids = insertNode(record, type.__type__, ids)
+    node = { ...base, kind: ModelNodeKind.Map } as ModelNodeMap
+    ids = insertNode(node, type.__type__, ids)
   } else {
-    record = {
+    node = {
       ...base,
       kind: ModelNodeKind.Struct,
       edges: [],
       keys: {},
       idsByKey: {},
     }
-    ids = collate(type as Schema, record, ids)
+    ids = collate(type as Schema, node, ids)
   }
 
-  record.hi = ids
+  node.hi = ids
 
   if (key) {
-    ;(target as ModelNodeStruct).edges.push(record)
-    ;(target as ModelNodeStruct).keys[key] = record
-    ;(target as ModelNodeStruct).idsByKey[key] = id
+    ;(node as ModelNodeStructDescendant).key = key
+    assert(
+      target.kind === ModelNodeKind.Struct,
+      "expected target node to be struct",
+      ErrorType.Internal,
+    )
+    assertIsModelNodeStructDescendant(node)
+    target.edges.push(node)
+    target.keys[node.key] = node
+    target.idsByKey[node.key] = id
   } else {
-    ;(target as ModelNodeArray | ModelNodeMap).edge = record
+    assert(
+      target.kind === ModelNodeKind.Array || target.kind === ModelNodeKind.Map,
+      "expected target node to be collection",
+      ErrorType.Internal,
+    )
+    target.edge = node
   }
 
   return ids
@@ -222,7 +244,6 @@ const getModelRoot = (): ModelNodeStruct => ({
   id: -1,
   idsByKey: {},
   inCollection: false,
-  key: "",
   keys: {},
   kind: ModelNodeKind.Struct,
 })

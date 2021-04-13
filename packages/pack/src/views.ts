@@ -32,7 +32,7 @@ function view<T>(
     read,
     write,
     ...dataTypeBase,
-    __data_type__: dataTypeId,
+    __type__: dataTypeId,
   }
 }
 
@@ -172,6 +172,6 @@ export const dataTypeToView = (dataType: model.DataType) => {
       return boolean
   }
   throw new Error(
-    `Failed to find view: unsupported DataType "${dataType.__data_type__}"`,
+    `Failed to find view: unsupported DataType "${dataType.__type__}"`,
   )
 }

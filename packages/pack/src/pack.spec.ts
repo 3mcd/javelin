@@ -64,4 +64,31 @@ describe("pack", () => {
     const result = decode(encode(object, model[0]), model[0])
     expect(object).toEqual(result)
   })
+
+  it("handles nested arrays", () => {
+    const model = createModel(
+      new Map([
+        [
+          0,
+          {
+            pairs: arrayOf(
+              arrayOf({
+                x: uint8,
+              }),
+            ),
+          },
+        ],
+      ]),
+    )
+    const object = {
+      pairs: [
+        [{ x: 1 }, { x: 2 }],
+        [{ x: 3 }, { x: 4 }],
+        [{ x: 5 }, { x: 6 }],
+      ],
+    }
+
+    const result = decode(encode(object, model[0]), model[0])
+    expect(object).toEqual(result)
+  })
 })
