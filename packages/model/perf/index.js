@@ -13,17 +13,6 @@ const config = new Map([
     {
       x: number,
       y: number,
-      z: number,
-      qx: number,
-      qy: number,
-      qz: number,
-      qw: number,
-      buffer: arrayOf(number),
-    },
-  ],
-  [
-    1,
-    {
       inventory: arrayOf({
         name: string,
         stats: {
@@ -40,12 +29,10 @@ const instance = {
   _tid: 0,
   x: 1,
   y: 2,
-  z: 3,
-  qx: 1,
-  qy: 2,
-  qz: 3,
-  qw: 4,
-  buffer: [1, 2, 3],
+  inventory: [
+    { name: "sword", stats: { damage: 5, speed: 3 } },
+    { name: "shield", stats: { damage: 3, speed: 1 } },
+  ],
 }
 
 let n = 10000
@@ -55,16 +42,17 @@ const observed = observer.observe(instance, model[0])
 const start_proxy = performance.now()
 
 while (i++ < n) {
-  observed.x = i
-  // observed.y = i
-  // observed.z = i
-  observed.buffer.unshift(4)
-  // observed.qx = i
-  // observed.qy = i
-  // observed.qz = i
-  // observed.qw = i
+  observed.x = instance.x + 1
+  observed.y = instance.y + 1
+  observed.inventory[0].stats.speed = 10
+  observed.inventory[1].name = "hi"
+  observed.inventory.push({
+    name: "spaghetti",
+    stats: { damage: 1000, speed: 0 },
+  })
+  observed.inventory.splice(0, 1)
 }
 
 console.log(performance.now() - start_proxy)
-
-console.log(instance.$changes.arrays)
+// console.log(observer.changes.get(instance))
+// console.log(observer.changes.get(instance).arra)
