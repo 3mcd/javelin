@@ -4,6 +4,7 @@ import {
   ModelNodeBase,
   ModelNodeCollection,
   ModelNodeKind,
+  ModelNodeStruct,
 } from "./model"
 
 type ChangeSetOp = { field: number; traverse?: string[] }
@@ -56,17 +57,17 @@ const changeSetArrayOp = (
   })
 }
 
-type ObservedProps = {
-  $type: ModelNode
-  $root: ObservedProps
+type ObservedProps<
+  T extends ModelNodeBase = ModelNodeBase,
+  P = { [key: string]: any }
+> = {
   $lock: boolean
-  $parent: any
-  $index: number
-  $changes: ChangeSet
   $self: any
-}
-
-type ObservedInstance<T = any> = T & ObservedProps
+  $changes: ChangeSet
+  $index: string
+  $parent: any
+  $type: T
+} & P
 
 const recordIsCollection = (
   record: ModelNodeBase,
@@ -78,28 +79,32 @@ const recordIsCollectionDescendant = (record: ModelNode) =>
 const tmpTraverse: string[] = []
 
 export function createObserver() {
-  const proxies = new WeakMap<object, ObservedInstance>()
-  const set = (target: ObservedInstance, key: string | symbol, value: any) => {
+  const proxies = new WeakMap<object, ObservedProps>()
+  const set = (target: ObservedProps, key: string, value: any) => {
     target[key] = value
-    changeSetFieldOp(target.$changes, target.$type.idsByKey[key], value)
+    changeSetFieldOp(
+      target.$changes,
+      (target.$type as ModelNodeStruct).idsByKey[key],
+      value,
+    )
     return true
   }
 
   const handlerForNestedCollection = {
-    get(target: ObservedInstance, key: string | symbol) {
+    get(target: ObservedProps, key: string): any {
       if (key === "$self") return target
       const value = target[key]
       value.$index = key
       value.$parent = target
       return observeInner(value, target, key)
     },
-    set(target: ObservedInstance, key: string | symbol, value: any) {
+    set(target: ObservedProps<ModelNodeStruct>, key: string, value: any) {
       if (target.$lock) {
         return true
       }
 
       mutableEmpty(tmpTraverse)
-      tmpTraverse.push(key as string)
+      tmpTraverse.push(key)
       let parent = target
       while (parent !== undefined) {
         const { $parent, $index } = parent
@@ -110,20 +115,20 @@ export function createObserver() {
       }
 
       target[key] = value
-      target.$changes[target.$type.idsByKey[key]] = value
+      target.$changes.fields[target.$type.idsByKey[key]] = value
 
       return true
     },
   }
 
   const handlerForCollectionDescendant = {
-    get(target: ObservedInstance, key: string | symbol) {
+    get(target: ObservedProps, key: string): any {
       if (key === "$self") return target
       const value = target[key]
       value.$parent = target
       return observeInner(value, target, key)
     },
-    set(target: ObservedInstance, key: string | symbol, value: any) {
+    set(target: ObservedProps<ModelNodeStruct>, key: string, value: any) {
       mutableEmpty(tmpTraverse)
       let parent = target
       while (parent !== undefined) {
@@ -135,19 +140,19 @@ export function createObserver() {
       }
 
       target[key] = value
-      target.$changes[target.$type.idsByKey[key]] = value
+      target.$changes.fields[target.$type.idsByKey[key]] = value
       return true
     },
   }
 
   const handlerForCollection = {
-    get(target: ObservedInstance, key: string | symbol) {
+    get(target: ObservedProps, key: string): any {
       if (key === "$self") return target
       const value = target[key]
       value.$index = key
       return observeInner(value, target, key)
     },
-    set(target: ObservedInstance, key: string | symbol, value: any) {
+    set(target: ObservedProps, key: string, value: any) {
       if (target.$lock) {
         return true
       }
@@ -156,7 +161,7 @@ export function createObserver() {
   }
 
   const handlerForStruct = {
-    get(target: ObservedInstance, key: string | symbol) {
+    get(target: ObservedProps, key: string): any {
       if (key === "$self") return target
       return observeInner(target[key], target, key)
     },
@@ -164,7 +169,7 @@ export function createObserver() {
   }
 
   const handlerForPrimitive = {
-    get(target: ObservedInstance, key: string | symbol) {
+    get(target: ObservedProps, key: string) {
       if (key === "$self") return target
       return target[key]
     },
@@ -172,7 +177,11 @@ export function createObserver() {
   }
 
   const handlerForArrayMethod = {
-    apply(target: Function, thisArg: ObservedProps, args: any[]) {
+    apply(
+      target: ObservedProps<ModelNodeBase, Function>,
+      thisArg: ObservedProps,
+      args: any[],
+    ) {
       let mut = MUT_ARRAY_METHODS.has(target)
       if (mut) {
         thisArg = thisArg.$self
@@ -185,7 +194,7 @@ export function createObserver() {
           }
           parent = $parent
         }
-        switch (target) {
+        switch (target as Function) {
           case Array.prototype.push:
             changeSetArrayOp(
               thisArg.$changes,
@@ -268,16 +277,16 @@ export function createObserver() {
   }
 
   const observeInner = (
-    object: ObservedInstance,
+    object: ObservedProps,
     parent: ObservedProps,
-    key?: string | symbol,
+    key?: string,
   ) => {
     let proxy = proxies.get(object)
     if (proxy === undefined) {
       const record =
         "keys" in parent.$type!
           ? // struct
-            parent.$type.keys[key as string]
+            (parent.$type as ModelNodeStruct).keys[key as string]
           : // only other option is collection because a parent will never be
             // a primitive type
             (parent.$type as ModelNodeCollection).edge
@@ -295,16 +304,16 @@ export function createObserver() {
   const observe = <T extends object>(object: T, record: ModelNode): T => {
     let proxy = proxies.get(object)
     if (proxy === undefined) {
-      proxy = new Proxy(object, getHandler(record, object))
+      proxy = new Proxy(object as any, getHandler(record, object))
       ;(object as ObservedProps).$lock = false
       ;(object as ObservedProps).$type = record
       ;(object as ObservedProps).$changes = {
         fields: {},
         arrays: [],
       }
-      proxies.set(object, proxy)
+      proxies.set(object, proxy!)
     }
-    return proxy
+    return proxy as T
   }
 
   return {
