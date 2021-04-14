@@ -43,11 +43,11 @@ export const request = createEffect(() => {
   let previousUrl: string
   let abortController = new window.AbortController()
 
-  return (
+  return function requestEffection(
     url: string | null,
     options: Parameters<typeof fetch>[1],
     invalidate = previousUrl !== undefined && url !== previousUrl,
-  ) => {
+  ) {
     if (url === null || invalidate) {
       abortController.abort()
       abortController = new AbortController()

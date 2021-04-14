@@ -56,7 +56,7 @@ const createMonitor = (predicate: MonitorPredicate, emitExisting = false) =>
       staged.push(entity)
     })
 
-    return function monitor<S extends Selector>(query: Query<S>) {
+    return function monitorEffect<S extends Selector>(query: Query<S>) {
       let entity: number | undefined
       if (active !== query) {
         reset(query)

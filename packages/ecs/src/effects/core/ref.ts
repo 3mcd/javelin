@@ -5,7 +5,7 @@ type RefEffectApi<T> = { value: T }
 export const ref = createEffect(() => {
   let initial = true
   const api = { value: null } as RefEffectApi<unknown>
-  return <T>(initialValue: T) => {
+  return function refEffect<T>(initialValue: T) {
     if (initial) {
       api.value = initialValue
       initial = false

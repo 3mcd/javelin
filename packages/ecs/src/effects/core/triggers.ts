@@ -104,7 +104,9 @@ const createTrigger = (
       }
     })
 
-    return <T extends ComponentType>(componentType: T): TriggerEffectApi<T> => {
+    return function triggerEffect<T extends ComponentType>(
+      componentType: T,
+    ): TriggerEffectApi<T> {
       if (type === null) {
         initialize(componentType)
       }

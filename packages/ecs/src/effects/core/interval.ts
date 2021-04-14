@@ -4,11 +4,14 @@ import { timer } from "./timer"
 
 type IntervalEffectApi = boolean
 
-export const interval = createEffect(() => (t: number): IntervalEffectApi => {
-  const invalidate = ref(false)
-  const done = timer(t, invalidate.value)
+export const interval = createEffect(
+  () =>
+    function intervalEffect(t: number): IntervalEffectApi {
+      const invalidate = ref(false)
+      const done = timer(t, invalidate.value)
 
-  invalidate.value = done
+      invalidate.value = done
 
-  return done
-})
+      return done
+    },
+)

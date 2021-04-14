@@ -5,7 +5,9 @@ import { request, RequestEffectApi } from "./request"
 export const json = createEffect(() => {
   let response: unknown
 
-  return <T>(...args: Parameters<typeof request>): RequestEffectApi<T> => {
+  return function jsonEffect<T>(
+    ...args: Parameters<typeof request>
+  ): RequestEffectApi<T> {
     const previousResponse = ref<Response | null>(null)
     const result = request(...args)
 

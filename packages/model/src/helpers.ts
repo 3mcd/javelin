@@ -1,4 +1,12 @@
-import { Schema, InstanceOfSchema, isPrimitiveType, DataType } from "./model"
+import { mutableEmpty } from "@javelin/ecs"
+import {
+  InstanceOfSchema,
+  InstanceOfSchemaKey,
+  isArrayType,
+  isPrimitiveType,
+  Schema,
+  SchemaKeyKind,
+} from "./model"
 
 export function initialize<S extends Schema>(
   component: InstanceOfSchema<S>,
@@ -9,8 +17,13 @@ export function initialize<S extends Schema>(
 
     if (isPrimitiveType(value)) {
       component[prop] = value.create()
+    } else if (value.__kind__ === SchemaKeyKind.Array) {
+      component[prop] = [] as InstanceOfSchemaKey<any>
     } else {
-      initialize(component, value as Schema)
+      component[prop] = initialize(
+        {},
+        value as Schema,
+      ) as InstanceOfSchemaKey<any>
     }
   }
 
@@ -26,66 +39,12 @@ export function reset<S extends Schema>(
 
     if (isPrimitiveType(value)) {
       value.reset(component, prop, undefined)
+    } else if (isArrayType(value)) {
+      mutableEmpty((value as unknown) as any[])
     } else {
-      reset(component, value as Schema)
+      reset(component[prop], value as Schema)
     }
   }
 
   return component
-}
-
-export type SerializedSchema<S extends Schema = Schema> = {
-  [K in keyof S]: S[K] extends Schema
-    ? SerializedSchema<S>
-    : S[K] extends DataType<any>
-    ? S[K]["__type__"]
-    : never
-}
-
-export function serializeSchema<S extends Schema>(
-  schema: S,
-): SerializedSchema<S> {
-  const out: any = {}
-
-  for (const prop in schema) {
-    const value = schema[prop]
-
-    if (isPrimitiveType(value)) {
-      out[prop] = value.__type__
-    } else {
-      out[prop] = serializeSchema(value as Schema)
-    }
-  }
-
-  return out as SerializedSchema<S>
-}
-
-export function schemaEqualsSerializedSchema(
-  schema: Schema,
-  serializedSchema: SerializedSchema,
-) {
-  if (Object.keys(schema).length !== Object.keys(serializedSchema).length) {
-    return false
-  }
-
-  for (const prop in schema) {
-    const value = schema[prop]
-
-    if (isPrimitiveType(value)) {
-      if (serializedSchema[prop] !== value.__type__) {
-        return false
-      }
-    } else {
-      const result = schemaEqualsSerializedSchema(
-        value as Schema,
-        serializedSchema[prop],
-      )
-
-      if (!result) {
-        return false
-      }
-    }
-  }
-
-  return true
 }

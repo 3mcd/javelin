@@ -16,6 +16,7 @@ export const createWorld = jest.fn(
       destroy: jest.fn(),
       detach: jest.fn(),
       get: jest.fn(),
+      getModel: jest.fn(() => createModel(new Map())),
       has: jest.fn(),
       id: 1,
       ops: [],
@@ -33,11 +34,11 @@ export const createWorld = jest.fn(
       storage: createStorage(),
       tick: jest.fn(),
       tryGet: jest.fn(),
+      modelChanged: createSignal(),
       attached: createSignal(),
       detached: createSignal(),
       spawned: createSignal(),
       destroyed: createSignal(),
-      getModel: jest.fn(() => createModel(new Map())),
     }
   },
 )

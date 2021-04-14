@@ -166,7 +166,7 @@ describe("protocol", () => {
     expect(results).toEqual(destroys)
   })
 
-  it("deserializes model", () => {
+  it.only("deserializes model", () => {
     const model = createModel(
       new Map([
         [

@@ -1,4 +1,4 @@
-import { assert, Component, ErrorType, mutableEmpty } from "@javelin/ecs"
+import { assert, Component, ErrorType, mutableEmpty, World } from "@javelin/ecs"
 import {
   arrayOf,
   createModel,
@@ -11,6 +11,7 @@ import {
   SchemaKey,
 } from "@javelin/model"
 import {
+  boolean,
   decode,
   encode,
   float32,
@@ -23,7 +24,6 @@ import {
   uint16,
   uint32,
   uint8,
-  boolean,
   View,
 } from "@javelin/pack"
 
@@ -81,8 +81,8 @@ export class MessagePart<
   }
 
   write(buffer: ArrayBuffer, bufferView: DataView, offset: number) {
-    int32.write(bufferView, offset, this._byteLength)
-    offset += int32.byteLength
+    uint32.write(bufferView, offset, this._byteLength)
+    offset += uint32.byteLength
 
     for (let i = 0; i < this.data.length; i++) {
       const data = this.data[i]
@@ -451,10 +451,11 @@ const DATA_TYPE_IDS_LOOKUP = [
   float64,
   string8,
   string16,
+  boolean,
 ]
 
 const SCHEMA_MASK = 1 << 7
-const ARRAY = 10
+const ARRAY = DATA_TYPE_IDS_LOOKUP.length
 
 function getDataTypeId(field: DataType) {
   const id = DATA_TYPE_IDS[field.__type__]

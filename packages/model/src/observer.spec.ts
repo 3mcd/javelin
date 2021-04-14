@@ -15,8 +15,8 @@ describe("observer", () => {
     observed.x = 1
     observed.y = 2
 
-    expect(changes.fields[0 /* x */]).toEqual(1)
-    expect(changes.fields[1 /* y */]).toEqual(2)
+    expect(changes.fields[0 /* x */]).toEqual({ field: 0, value: 1 })
+    expect(changes.fields[1 /* y */]).toEqual({ field: 1, value: 2 })
   })
 
   it("observes array mutations", () => {
@@ -31,8 +31,8 @@ describe("observer", () => {
     observed.x = 1
     observed.y = 2
 
-    expect(changes.fields[0 /* x */]).toEqual(1)
-    expect(changes.fields[1 /* y */]).toEqual(2)
+    expect(changes.fields[0 /* x */]).toEqual({ field: 0, value: 1 })
+    expect(changes.fields[1 /* y */]).toEqual({ field: 1, value: 2 })
   })
 
   it("observes mutating array methods", () => {
@@ -47,8 +47,8 @@ describe("observer", () => {
     observed.x = 1
     observed.y = 2
 
-    expect(changes.fields[0 /* x */]).toEqual(1)
-    expect(changes.fields[1 /* y */]).toEqual(2)
+    expect(changes.fields[0 /* x */]).toEqual({ field: 0, value: 1 })
+    expect(changes.fields[1 /* y */]).toEqual({ field: 1, value: 2 })
   })
 
   it("ignores non-mutating array methods", () => {

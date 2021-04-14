@@ -67,13 +67,18 @@ export type Schema = {
   [key: string]: SchemaKey
 }
 
+export type InstanceOfSchemaKey<K extends SchemaKey> = K extends ArrayType<
+  infer T
+>
+  ? ExtractSchemaKeyType<T>[]
+  : K extends MapType<infer T>
+  ? Record<string, ExtractSchemaKeyType<T>>
+  : ExtractSchemaKeyType<K> // everything else
+
 export type InstanceOfSchema<S extends Schema> = {
-  [K in keyof S]: S[K] extends ArrayType<infer T>
-    ? ExtractSchemaKeyType<T>[]
-    : S[K] extends MapType<infer T>
-    ? Record<string, ExtractSchemaKeyType<T>>
-    : ExtractSchemaKeyType<S[K]> // everything else
+  [K in keyof S]: InstanceOfSchemaKey<S[K]>
 }
+
 export type ExtractSchemaKeyType<
   K extends SchemaKey
 > = K extends DataTypePrimitive

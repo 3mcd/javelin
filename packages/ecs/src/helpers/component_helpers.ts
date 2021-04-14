@@ -1,10 +1,4 @@
-import {
-  initialize,
-  reset,
-  Schema,
-  SerializedSchema,
-  serializeSchema,
-} from "@javelin/model"
+import { initialize, reset, Schema } from "@javelin/model"
 import {
   Component,
   ComponentBase,
@@ -40,22 +34,6 @@ export function createComponentBase(
       _tid: { value: componentType.type, writable: false, enumerable: true },
     },
   )
-}
-
-export type SerializedComponentType<C extends ComponentType = ComponentType> = {
-  name: C["name"]
-  type: C["type"]
-  schema: SerializedSchema<C["schema"]>
-}
-
-export function serializeComponentType(
-  componentType: ComponentType,
-): SerializedComponentType {
-  return {
-    name: componentType.name,
-    type: componentType.type,
-    schema: serializeSchema(componentType.schema),
-  }
 }
 
 export function createComponentPool<C extends ComponentType>(

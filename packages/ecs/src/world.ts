@@ -1,8 +1,4 @@
-import {
-  createModel,
-  Model,
-  schemaEqualsSerializedSchema,
-} from "@javelin/model"
+import { createModel, Model } from "@javelin/model"
 import {
   Component,
   ComponentInitializerArgs,
@@ -10,11 +6,7 @@ import {
   ComponentType,
 } from "./component"
 import { Entity } from "./entity"
-import {
-  createComponentPool,
-  serializeComponentType,
-  SerializedComponentType,
-} from "./helpers"
+import { createComponentPool } from "./helpers"
 import { globals } from "./internal/globals"
 import { createStackPool, StackPool } from "./pool"
 import { createSignal, Signal } from "./signal"
@@ -211,6 +203,12 @@ export interface World<T = any> {
    * Signal dispatched for each destroyed entity.
    */
   readonly destroyed: Signal<number>
+
+  /**
+   * Signal dispatched when model is updated (e.g. a new component type is
+   * registered).
+   */
+  readonly modelChanged: Signal<Model>
 }
 
 export type WorldInternal<T> = World<T> & {
@@ -221,7 +219,6 @@ export type WorldInternal<T> = World<T> & {
 }
 
 export type WorldSnapshot = {
-  componentTypes: SerializedComponentType[]
   storage: StorageSnapshot
 }
 
@@ -265,6 +262,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   )
   const componentTypes: ComponentType[] = []
   const componentTypePools = new Map<number, StackPool<Component>>()
+  const modelChanged = createSignal<Model>()
   const attached = createSignal<number, ReadonlyArray<Component>>()
   const detached = createSignal<number, ReadonlyArray<Component>>()
   const spawned = createSignal<number>()
@@ -527,24 +525,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
       )
     }
 
-    if (options.snapshot) {
-      const snapshotComponentTypeWithTypeId = options.snapshot.componentTypes.find(
-        s => s.type === componentType.type,
-      )
-
-      if (
-        snapshotComponentTypeWithTypeId &&
-        !schemaEqualsSerializedSchema(
-          componentType.schema,
-          snapshotComponentTypeWithTypeId.schema,
-        )
-      ) {
-        throw new Error(
-          `Failed to register component type: component type schema does not match world snapshot`,
-        )
-      }
-    }
-
     componentTypes.push(componentType)
     componentTypePools.set(
       componentType.type,
@@ -560,6 +540,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     // TODO: merge remote model
 
     model = createModel(config)
+    modelChanged.dispatch(model)
   }
 
   function reserve() {
@@ -607,7 +588,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
   function snapshot(): WorldSnapshot {
     return {
-      componentTypes: componentTypes.map(serializeComponentType),
       storage: storage.snapshot(),
     }
   }
@@ -641,6 +621,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     tick,
     tryGet,
     // signals
+    modelChanged,
     attached,
     detached,
     spawned,

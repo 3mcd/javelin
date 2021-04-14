@@ -96,7 +96,13 @@ const traverse = (target: ObservedProps) => {
   return tmpTraversal
 }
 
-export function createObserver() {
+export type Observer = {
+  changes: WeakMap<object, ChangeSet>
+  observe<T extends object>(object: T, type: ModelNode): T
+  reset(object: object): void
+}
+
+export function createObserver(): Observer {
   const proxies = new WeakMap<object, ObservedProps>()
   const changes = new WeakMap<object, ChangeSet>()
   const handlerForNestedCollection = {

@@ -5,7 +5,10 @@ type TimerEffectApi = boolean
 export const timer = createEffect(() => {
   let state = 0
   let timer: NodeJS.Timeout
-  return (duration: number, invalidate: boolean = false): TimerEffectApi => {
+  return function timerEffect(
+    duration: number,
+    invalidate: boolean = false,
+  ): TimerEffectApi {
     if (invalidate) {
       state = 0
       clearTimeout(timer)
