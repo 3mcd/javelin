@@ -7,25 +7,25 @@ This algorithm has been written a million times. So why maintain our own?
 
 ## Features
 
-- Simple, so it's easy to integrate with your existing `ArrayBuffer` protocol.
+- Easy to integrate with your existing ArrayBuffer-based protocol.
 - Includes `boolean`, `string8`, `string16`, `uint8`, `uint16`, `uint32`, `int8`, `int16`, `int32`, `float32`, `float64`.
-- Supports deeply nested objects, e.g. `{ name: string16 }`
-- Supports deeply nested arrays, e.g. `{ order: arrayOf(uint16) }`
+- Deeply nested objects, e.g. `{ name: string16 }`
+- Deeply nested arrays, e.g. `{ order: arrayOf(arrayOf({ name: string16 })) }`
 
 ## Example
 
 ```ts
-import { encode, decode, string8, uint8 } from "@javelin/pack"
+import { encode, decode, string8, uint8, createModel } from "@javelin/pack"
 
-const fields = {
+const person = {
   name: string8,
   age: uint8,
 }
 
-const schema = {
-  ...fields,
-  children: [fields],
-}
+const model = createModel({
+  ...person,
+  children: [person],
+})
 
 const data = {
   name: "Ben",
@@ -36,9 +36,12 @@ const data = {
   ],
 }
 
-const encoded = encode(data, schema) // <08 00 28 e7 ...>
-const decoded = decode(encoded, schema) // { name: "Ben", ... }
+const encoded = encode(data, model) // <08 00 28 e7 ...>
+const decoded = decode(encoded, model) // { name: "Ben", ... }
 ```
+
+## Unsupported
+* Cycles (e.g. `person.children = arrayOf(person)`)
 
 ## Performance
 

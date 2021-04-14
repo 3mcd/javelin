@@ -1,39 +1,44 @@
 import { createEffect } from "../../effect"
 
-export type RequestState<T = Response> =
-  // initial
-  | {
-      error: null
-      response: null
-      done: false
-    }
-  // done
-  | {
-      error: null
-      response: T
-      done: true
-    }
-  // error
-  | {
-      error: string
-      response: null
-      done: true
-    }
-  // error (after re-fetch)
-  | {
-      error: string
-      response: T
-      done: true
-    }
-  // invalidated (re-fetch)
-  | {
-      error: null
-      response: T
-      done: false
-    }
+type RequestStateInitial = {
+  error: null
+  response: null
+  done: false
+}
+
+type RequestStateDone<T> = {
+  error: null
+  response: T
+  done: true
+}
+
+type RequestStateInvalidated<T> = {
+  error: null
+  response: T
+  done: false
+}
+
+type RequestStateError = {
+  error: string
+  response: null
+  done: true
+}
+
+type RequestStateErrorAfterInvalidate<T> = {
+  error: string
+  response: T
+  done: true
+}
+
+export type RequestEffectApi<T = Response> =
+  | RequestStateInitial
+  | RequestStateDone<T>
+  | RequestStateInvalidated<T>
+  | RequestStateError
+  | RequestStateErrorAfterInvalidate<T>
 
 export const request = createEffect(() => {
-  let state: RequestState = { response: null, error: null, done: false }
+  let state: RequestEffectApi = { response: null, error: null, done: false }
   let fetching = false
   let previousUrl: string
   let abortController = new window.AbortController()

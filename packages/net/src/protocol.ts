@@ -23,6 +23,7 @@ import {
   uint16,
   uint32,
   uint8,
+  boolean,
   View,
 } from "@javelin/pack"
 
@@ -436,6 +437,7 @@ const DATA_TYPE_IDS: { [key: string]: number } = {
   float64: 7,
   string8: 8,
   string16: 9,
+  boolean: 10,
 }
 
 const DATA_TYPE_IDS_LOOKUP = [

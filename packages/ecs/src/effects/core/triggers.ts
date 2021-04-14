@@ -9,12 +9,11 @@ type EntityComponentPair<T extends ComponentType = ComponentType> = [
   number,
   ComponentOf<T>,
 ]
-
-export type TriggerIteratee<T extends ComponentType = ComponentType> = (
+type TriggerIteratee<T extends ComponentType = ComponentType> = (
   entity: number,
   component: ComponentOf<T>,
 ) => void
-export type TriggerApi<T extends ComponentType = ComponentType> = {
+type TriggerEffectApi<T extends ComponentType = ComponentType> = {
   forEach(iteratee: TriggerIteratee<T>): void
   [Symbol.iterator](): IterableIterator<EntityComponentPair<T>>
 }
@@ -45,7 +44,7 @@ const createTrigger = (
         iteratee(ready[i][0], ready[i][1])
       }
     }
-    const api: TriggerApi = {
+    const api: TriggerEffectApi = {
       forEach,
       [Symbol.iterator]: () => ready[Symbol.iterator](),
     }
@@ -105,7 +104,7 @@ const createTrigger = (
       }
     })
 
-    return <T extends ComponentType>(componentType: T): TriggerApi<T> => {
+    return <T extends ComponentType>(componentType: T): TriggerEffectApi<T> => {
       if (type === null) {
         initialize(componentType)
       }

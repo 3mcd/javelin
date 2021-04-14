@@ -1,4 +1,3 @@
-import { mutableEmpty } from "@javelin/ecs"
 import {
   ModelNode,
   ModelNodeBase,
@@ -6,16 +5,19 @@ import {
   ModelNodeKind,
   ModelNodeStruct,
 } from "./model"
+import { mutableEmpty } from "./utils"
 
-type ChangeSetOp = { field: number; traversal?: string[] }
-type ChangeSetField = ChangeSetOp & { value: any }
-type ChangeSetArrayOp = ChangeSetOp & {
+export const NO_OP = Symbol("NO_OP")
+
+export type ChangeSetOp = { field: number; traversal?: string[] }
+export type ChangeSetField = ChangeSetOp & { value: any }
+export type ChangeSetArrayOp = ChangeSetOp & {
   index: number
   insert: any[] | null
   remove: number
 }
-type ChangeSet = {
-  fields: { [key: string]: ChangeSetField }
+export type ChangeSet = {
+  fields: { [key: string]: typeof NO_OP | ChangeSetField }
   arrays: ChangeSetArrayOp[]
 }
 
@@ -31,13 +33,17 @@ const MUT_ARRAY_METHODS: Set<Function> = new Set<Function>([
 const pushFieldOp = (
   changes: ChangeSet,
   field: number,
-  value: any,
+  value: unknown,
   traversal?: string[],
 ) => {
   if (traversal === undefined) {
-    changes.fields[field] = value
+    changes.fields[field] = { value, field }
   } else {
-    changes.fields[`${field},${traversal.join(",")}`] = value
+    changes.fields[`${field},${traversal.join(",")}`] = {
+      value,
+      field,
+      traversal,
+    }
   }
 }
 
@@ -305,8 +311,20 @@ export function createObserver() {
     return proxy as T
   }
 
+  const reset = (object: object) => {
+    const changeSet = changes.get(object)
+    if (changeSet === undefined) {
+      return
+    }
+    for (const prop in changeSet.fields) {
+      changeSet.fields[prop] = NO_OP
+    }
+    mutableEmpty(changeSet.arrays)
+  }
+
   return {
     changes,
     observe,
+    reset,
   }
 }

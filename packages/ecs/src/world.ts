@@ -1,4 +1,8 @@
-import { schemaEqualsSerializedSchema } from "@javelin/model"
+import {
+  createModel,
+  Model,
+  schemaEqualsSerializedSchema,
+} from "@javelin/model"
 import {
   Component,
   ComponentInitializerArgs,
@@ -39,6 +43,11 @@ export interface World<T = any> {
    * @param data Tick data
    */
   tick(data: T): void
+
+  /**
+   * Component type model.
+   */
+  getModel(): Model
 
   /**
    * Register a system to be executed each tick.
@@ -263,6 +272,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   const destroying = new Set<number>()
   const storage = createStorage({ snapshot: options.snapshot?.storage })
 
+  let model: Model = createModel(new Map())
   let state: WorldState<T> = getInitialWorldState()
   let prevEntity = 0
   let nextSystem = 0
@@ -540,6 +550,16 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
       componentType.type,
       createComponentPool(componentType, poolSize),
     )
+
+    const config = new Map(
+      componentTypes.map(componentType => [
+        componentType.type,
+        componentType.schema,
+      ]),
+    )
+    // TODO: merge remote model
+
+    model = createModel(config)
   }
 
   function reserve() {
@@ -592,6 +612,10 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     }
   }
 
+  function getModel(): Model {
+    return model
+  }
+
   const world = {
     addSystem,
     addTopic,
@@ -604,6 +628,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     get,
     has,
     id: -1,
+    getModel,
     ops: worldOpsPrevious,
     removeSystem,
     removeTopic,

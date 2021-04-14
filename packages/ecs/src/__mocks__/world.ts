@@ -1,3 +1,4 @@
+import { createModel } from "@javelin/model"
 import { createSignal } from "../signal"
 import { World } from "../world"
 import { createStorage } from "./storage"
@@ -36,6 +37,7 @@ export const createWorld = jest.fn(
       detached: createSignal(),
       spawned: createSignal(),
       destroyed: createSignal(),
+      getModel: jest.fn(() => createModel(new Map())),
     }
   },
 )

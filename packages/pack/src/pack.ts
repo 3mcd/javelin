@@ -1,10 +1,4 @@
-import {
-  InstanceOfSchema,
-  ModelNode,
-  ModelNodeKind,
-  ModelNodeStruct,
-  Schema,
-} from "@javelin/model"
+import { ModelNode, ModelNodeKind, ModelNodeStruct } from "@javelin/model"
 import { dataTypeToView, uint32, View } from "./views"
 
 type Field = View & { length?: number }

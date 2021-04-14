@@ -10,7 +10,7 @@ type MonitorPredicate = (
   prev: Archetype,
   next: Archetype,
 ) => boolean
-type MonitorApi = {
+type MonitorEffectApi = {
   forEach(iteratee: MonitorIteratee): void
   [Symbol.iterator](): IterableIterator<number>
 }
@@ -29,7 +29,7 @@ const createMonitor = (predicate: MonitorPredicate, emitExisting = false) =>
         iteratee(ready[i])
       }
     }
-    const api: MonitorApi = {
+    const api: MonitorEffectApi = {
       forEach,
       [Symbol.iterator]: () => ready[Symbol.iterator](),
     }

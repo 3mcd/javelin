@@ -1,6 +1,6 @@
 export function assert(
   expression: boolean,
-  message: string,
+  message: string = "",
   type?: ErrorType,
 ): asserts expression {
   if (!expression) {

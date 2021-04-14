@@ -1,15 +1,15 @@
 import { createEffect } from "../../effect"
 
-export type RefState<T> = { value: T }
+type RefEffectApi<T> = { value: T }
 
 export const ref = createEffect(() => {
   let initial = true
-  const state = { value: null } as RefState<unknown>
+  const api = { value: null } as RefEffectApi<unknown>
   return <T>(initialValue: T) => {
     if (initial) {
-      state.value = initialValue
+      api.value = initialValue
       initial = false
     }
-    return state as RefState<T>
+    return api as RefEffectApi<T>
   }
 })

@@ -1,11 +1,11 @@
 import { createEffect } from "../../effect"
 import { ref } from "../core"
-import { request, RequestState } from "./request"
+import { request, RequestEffectApi } from "./request"
 
 export const json = createEffect(() => {
   let response: unknown
 
-  return <T>(...args: Parameters<typeof request>) => {
+  return <T>(...args: Parameters<typeof request>): RequestEffectApi<T> => {
     const previousResponse = ref<Response | null>(null)
     const result = request(...args)
 
@@ -16,6 +16,6 @@ export const json = createEffect(() => {
       previousResponse.value = result.response
     }
 
-    return { ...result, response: response || null } as RequestState<T>
+    return { ...result, response: response || null } as RequestEffectApi<T>
   }
 })
