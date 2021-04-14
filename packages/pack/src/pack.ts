@@ -141,7 +141,7 @@ const deserialize = (
   return offset
 }
 
-export function decode(buffer: ArrayBuffer, type: ModelNodeStruct) {
+export function decode<T>(buffer: ArrayBuffer, type: ModelNodeStruct): T {
   const bufferView = new DataView(buffer)
   const root = {}
 
@@ -152,7 +152,7 @@ export function decode(buffer: ArrayBuffer, type: ModelNodeStruct) {
     offset = deserialize(bufferView, edge, root, edge.key, offset)
   }
 
-  return root
+  return root as T
 }
 
 export * from "./views"

@@ -1,8 +1,6 @@
 import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
-import { assert } from "./debug"
 import { Entity } from "./entity"
-import { applyMutation, createMutationCache } from "./mutation_cache"
 import { createSignal, Signal } from "./signal"
 import { mutableEmpty, packSparseArray } from "./util"
 

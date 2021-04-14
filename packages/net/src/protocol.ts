@@ -1,20 +1,14 @@
 import { assert, Component, ErrorType, mutableEmpty } from "@javelin/ecs"
 import {
-  DataType,
-  DataTypeArray,
-  DataTypeId,
-  DataTypeMap,
-  isDataType,
-  ModelConfig,
-  Schema,
   arrayOf,
-  SchemaKey,
-  Model,
   createModel,
+  DataType,
+  Model,
+  ModelConfig,
   ModelNode,
-  ModelNodeStruct,
   ModelNodeKind,
-  ModelNodeField,
+  Schema,
+  SchemaKey,
 } from "@javelin/model"
 import {
   decode,
@@ -314,8 +308,11 @@ function decodeInsert(
         offset + encodedComponentLength,
       )
       offset += encodedComponentLength
-      const component = decode(encodedComponent, model[componentTypeId])
-      component._tid = componentTypeId
+      const component = decode<Component>(
+        encodedComponent,
+        model[componentTypeId],
+      )
+      ;(component as any)._tid = componentTypeId
       components.push(component)
     }
 
@@ -470,60 +467,47 @@ const SCHEMA_MASK = 1 << 7
 const ARRAY = 10
 
 function getDataTypeId(field: DataType) {
-  const id = dataTypeIds.get(field.__data_type__)
+  const id = dataTypeIds.get(field.__type__)
   assert(id !== undefined, "", ErrorType.Internal)
   return id
 }
 
-function encodeModelStruct(node: ModelNodeStruct, out: number[]) {
-  const length = node.edges.length
-  out.push(length | SCHEMA_MASK)
-
-  let offset = 1
-
-  for (let i = 0; i < node.edges.length; i++) {
-    const child = node.edges[i]
-    const key = child.key
-
-    out.push(key.length)
-    offset++
-    for (let i = 0; i < key.length; i++) {
-      out.push(key.charCodeAt(i))
+function encodeModelNode(node: ModelNode, out: number[], offset: number = 0) {
+  switch (node.kind) {
+    case ModelNodeKind.Primitive:
+      out.push(getDataTypeId(node.type))
       offset++
-    }
-
-    switch (child.kind) {
-      case ModelNodeKind.Array: {
-        out.push(ARRAY)
+      break
+    case ModelNodeKind.Array:
+      out.push(ARRAY)
+      offset++
+      offset = encodeModelNode(node.edge, out, offset)
+      break
+    // TODO: support map
+    case ModelNodeKind.Map:
+      break
+    case ModelNodeKind.Struct: {
+      const length = node.edges.length
+      out.push(length | SCHEMA_MASK)
+      offset++
+      for (let i = 0; i < node.edges.length; i++) {
+        const edge = node.edges[i]
+        const { key } = edge
+        out.push(key.length)
         offset++
-
-        if (child.edge.kind === ModelNodeKind.Primitive) {
-          out.push(getDataTypeId(child.edge))
-        }
-
-        if ("__type__" in child) {
-          child.out.push(getDataTypeId(child.type))
+        for (let i = 0; i < key.length; i++) {
+          out.push(key.charCodeAt(i))
           offset++
-        } else {
-          offset += encodeModelStruct(child, out)
         }
-        break
+        offset = encodeModelNode(node.edges[i], out, offset)
       }
-      case ModelNodeKind.Map:
-        break
-      case ModelNodeKind.Struct:
-        offset += encodeModelStruct(child as ModelNodeStruct, out)
-        break
-      case ModelNodeKind.Primitive:
-        out.push(getDataTypeId((child as ModelNodeField).type))
-        offset++
+      break
     }
   }
 
   return offset
 }
 
-// TODO(eric): convert to model from ModelConfig
 export function encodeModel(model: Model) {
   const flat: number[] = []
 
@@ -531,7 +515,7 @@ export function encodeModel(model: Model) {
 
   for (const prop in model) {
     flat.push(+prop)
-    size += encodeModelStruct(model[prop], flat) + 1
+    size += encodeModelNode(model[prop], flat) + 1
   }
 
   const buffer = new ArrayBuffer(size)

@@ -60,38 +60,38 @@ describe("model", () => {
     const { [0]: a, [1]: b } = model
 
     assertIsModelNodeStruct(a)
-    expect(a.id).toBe(0)
+    expect(a.id).toBe(-1)
     const [buffer, x, y] = a.edges
-    expect(buffer.id).toBe(1)
+    expect(buffer.id).toBe(0)
     const { edge } = buffer as ModelNodeArray
-    expect((edge as ModelNodePrimitive).id).toBe(2)
+    expect((edge as ModelNodePrimitive).id).toBe(1)
     expect((edge as ModelNodePrimitive).type).toBe(number)
     expect(edge.inCollection).toBe(true)
-    expect(x.id).toBe(3)
+    expect(x.id).toBe(2)
     expect(x.inCollection).toBe(false)
     expect((x as ModelNodePrimitive).type as DataTypeNumber).toBe(number)
-    expect(y.id).toBe(4)
+    expect(y.id).toBe(3)
     expect((y as ModelNodePrimitive).type as DataTypeNumber).toBe(number)
 
     assertIsModelNodeStruct(b)
-    expect(b.id).toBe(0)
+    expect(b.id).toBe(-1)
     const [inventory] = b.edges
     assertIsModelNodeArray(inventory)
-    expect(inventory.id).toBe(1)
+    expect(inventory.id).toBe(0)
     expect(inventory.kind).toBe(ModelNodeKind.Array)
     const item = inventory.edge
-    expect(item.id).toBe(2)
+    expect(item.id).toBe(1)
     expect(item.inCollection).toBe(true)
     assertIsModelNodeStruct(item)
     const [name, stats] = item.edges
-    expect(name.id).toBe(3)
+    expect(name.id).toBe(2)
     expect((name as ModelNodePrimitive).type).toBe(string)
-    expect(stats.id).toBe(4)
+    expect(stats.id).toBe(3)
     assertIsModelNodeStruct(stats)
     const [damage, speed] = stats.edges
-    expect(damage.id).toBe(5)
+    expect(damage.id).toBe(4)
     expect((damage as ModelNodePrimitive).type).toBe(number)
-    expect(speed.id).toBe(6)
+    expect(speed.id).toBe(5)
     expect(speed.inCollection).toBe(true)
     expect((speed as ModelNodePrimitive).type).toBe(number)
   })

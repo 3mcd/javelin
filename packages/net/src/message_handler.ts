@@ -5,8 +5,7 @@ import {
   World,
   WorldInternal,
 } from "@javelin/ecs"
-import { Model, patch } from "@javelin/model"
-import { uint32, uint8 } from "@javelin/pack"
+import { Model } from "@javelin/model"
 import { decodeMessage, DecodeMessageHandlers } from "./protocol"
 
 function assertWorldInternal<T>(

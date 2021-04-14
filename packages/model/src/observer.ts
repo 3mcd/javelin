@@ -159,9 +159,7 @@ export function createObserver() {
       return inner(value, target, key)
     },
     set(target: ObservedProps<ModelNodeCollection>, key: string, value: any) {
-      if (target.__lock__) {
-        return true
-      }
+      if (target.__lock__) return true
       target[key] = value
       pushFieldOp(changes.get(target)!, target.__type__.edge.id, value)
       return true
