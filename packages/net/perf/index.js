@@ -1,32 +1,33 @@
-const { field, int8, float32 } = require("@javelin/pack")
+const { int8, float32 } = require("@javelin/pack")
+const { createModel } = require("@javelin/model")
 const { encode, decode } = require("@msgpack/msgpack")
 const { performance } = require("perf_hooks")
-const { MessageBuilder, decodeMessage } = require("../dist/protocol_v2")
+const { MessageBuilder, decodeMessage } = require("../dist/cjs/protocol")
 
 const schemaComponentBase = {
-  _tid: field(int8),
+  _tid: int8,
 }
 const schemaPosition = {
   ...schemaComponentBase,
-  x: field(float32),
-  y: field(float32),
-  z: field(float32),
+  x: float32,
+  y: float32,
+  z: float32,
 }
 const schemaVelocity = {
   ...schemaComponentBase,
-  x: field(float32),
-  y: field(float32),
-  z: field(float32),
-  avx: field(float32),
-  avy: field(float32),
-  avz: field(float32),
+  x: float32,
+  y: float32,
+  z: float32,
+  avx: float32,
+  avy: float32,
+  avz: float32,
 }
 const schemaQuaternion = {
   ...schemaComponentBase,
-  x: field(float32),
-  y: field(float32),
-  z: field(float32),
-  w: field(float32),
+  x: float32,
+  y: float32,
+  z: float32,
+  w: float32,
 }
 const a = Math.pow(2, 53)
 
@@ -34,14 +35,15 @@ const position = () => ({ _tid: 1, x: a, y: a, z: a })
 const velocity = () => ({ _tid: 2, x: a, y: a, z: a, avx: a, avy: a, avz: a })
 const quaternion = () => ({ _tid: 3, x: a, y: a, z: a, w: a })
 
-const schemas = new Map([
+const config = new Map([
   [1, schemaPosition],
   [2, schemaVelocity],
   [3, schemaQuaternion],
 ])
+const model = createModel(config)
 
 function createMessageBuilder() {
-  const messageBuilder = new MessageBuilder(schemas)
+  const messageBuilder = new MessageBuilder(model)
   messageBuilder.setTick(123)
 
   // 100 spawned entities
@@ -128,9 +130,10 @@ const handlers = {
   onUpdate: () => {},
   onDetach: () => {},
   onDestroy: () => {},
+  onPatch: () => {},
 }
 const decodeTime = run(() => {
-  decodeMessage(messageBuilderEncoded, schemas, handlers)
+  decodeMessage(messageBuilderEncoded, handlers, model)
 })
 
 /*

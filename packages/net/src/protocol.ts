@@ -178,8 +178,8 @@ export class MessageBuilder {
 
   patch(
     entity: number,
-    key: number,
     cid: number,
+    field: number,
     value: number | ArrayBuffer,
     view?: View<number>,
     traverse?: number[],
@@ -187,7 +187,7 @@ export class MessageBuilder {
     const patch = this.parts[6]
     patch.insert(entity, uint32)
     patch.insert(cid, uint8)
-    patch.insert(key, uint8)
+    patch.insert(field, uint8)
     patch.insert(traverse?.length ?? 0, uint8)
     if (traverse !== undefined) {
       for (let i = 0; i < traverse.length; i++) {
@@ -425,49 +425,37 @@ export function decodeMessage(
   onPatch(buffer, bufferView, model, offset)
 }
 
-type Views =
-  | typeof uint8
-  | typeof uint16
-  | typeof uint32
-  | typeof int8
-  | typeof int16
-  | typeof int32
-  | typeof float32
-  | typeof float64
-  | typeof string8
-  | typeof string16
+const DATA_TYPE_IDS: { [key: string]: number } = {
+  uint8: 0,
+  uint16: 1,
+  uint32: 2,
+  int8: 3,
+  int16: 4,
+  int32: 5,
+  float32: 6,
+  float64: 7,
+  string8: 8,
+  string16: 9,
+}
 
-const dataTypeIds = new Map<string, number>([
-  ["uint8", 0],
-  ["uint16", 1],
-  ["uint32", 2],
-  ["int8", 3],
-  ["int16", 4],
-  ["int32", 5],
-  ["float32", 6],
-  ["float64", 7],
-  ["string8", 8],
-  ["string16", 9],
-])
-
-const dataTypeIdsLookup = new Map<number, Views>([
-  [0, uint8],
-  [1, uint16],
-  [2, uint32],
-  [3, int8],
-  [4, int16],
-  [5, int32],
-  [6, float32],
-  [7, float64],
-  [8, string8],
-  [9, string16],
-])
+const DATA_TYPE_IDS_LOOKUP = [
+  uint8,
+  uint16,
+  uint32,
+  int8,
+  int16,
+  int32,
+  float32,
+  float64,
+  string8,
+  string16,
+]
 
 const SCHEMA_MASK = 1 << 7
 const ARRAY = 10
 
 function getDataTypeId(field: DataType) {
-  const id = dataTypeIds.get(field.__type__)
+  const id = DATA_TYPE_IDS[field.__type__]
   assert(id !== undefined, "", ErrorType.Internal)
   return id
 }
@@ -534,15 +522,14 @@ export function decodeSchema(
   schema: Schema,
 ) {
   let length = encoded[offset++] & ~SCHEMA_MASK
-
   while (length-- > 0) {
     let keySize = encoded[offset++]
     let key = ""
     while (keySize-- > 0) {
       key += String.fromCharCode(encoded[offset++])
     }
-    const dataType = encoded[offset++]
-    if (dataType === ARRAY) {
+    const dataTypeId = encoded[offset++]
+    if (dataTypeId === ARRAY) {
       const wrapper = arrayOf(uint8 as SchemaKey)
       const elementType = encoded[offset++]
       if ((elementType & SCHEMA_MASK) !== 0) {
@@ -550,15 +537,15 @@ export function decodeSchema(
         offset = decodeSchema(encoded, offset - 1, elementSchema)
         wrapper.__type__ = elementSchema
       } else {
-        wrapper.__type__ = dataTypeIdsLookup.get(elementType)!
+        wrapper.__type__ = DATA_TYPE_IDS_LOOKUP[elementType]
       }
       schema[key] = wrapper
-    } else if ((dataType & SCHEMA_MASK) !== 0) {
+    } else if ((dataTypeId & SCHEMA_MASK) !== 0) {
       const child: Schema = {}
       offset = decodeSchema(encoded, offset - 1, child)
       schema[key] = child
     } else {
-      schema[key] = dataTypeIdsLookup.get(dataType)!
+      schema[key] = DATA_TYPE_IDS_LOOKUP[dataTypeId]
     }
   }
 
