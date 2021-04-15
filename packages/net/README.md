@@ -1,70 +1,71 @@
 # `@javelin/net`
 
-Networking utilities for Javelin ECS.
+Networking protocol and utilities for Javelin ECS.
 
-## Message Producer
-
-Produce unreliable and reliable Javelin network protocol messages for a world.
-
-- [maxUpdateSize=10](https://youtu.be/_mPzpv47zCg)
-- [maxUpdateSize=100](https://youtu.be/718N4cmX_rY)
-- [maxUpdateSize=1000](https://youtu.be/7W5L6WTksLY)
-
-### Usage
+## MessageBuilder
 
 ```ts
-import { createWorld } from "@javelin/ecs"
-import { createMessageProducer } from "@javelin/net"
+const model = world.getModel()
+const builder = createMessageBuilder(model)
 
-const world = createWorld({ ... })
-const messageProducer = createMessageProducer({
-  components: [
-    // send components reliably when they change
-    { type: Health },
-    // send components unreliably by specifying a priority
-    { type: Position, priority: 1 },
-  ],
-  // send unreliable updates 30 times a second
-  updateInterval: (1 / 30) * 1000,
-  // send a maximum of 1000 components per unreliable update
-  updateSize: 1000,
-})
+builder.spawn()
+builder.attach()
+builder.detach()
+builder.destroy()
+builder.update()
+builder.patch()
 
-const onClientConnect = client =>
-  // send initial messages to new clients over reliable channel
-  client.sendReliable(messageProducer.getInitialMessages(world))
+builder.encode()
+```
 
-const loop = () => {
-  world.tick()
+```ts
+import { eff_observe } from "@javelin/ecs"
 
-  const reliable = messageProducer.getReliableMessages(world)
-  const unreliable = messageProducer.getUnreliableMessages(world)
+const sys_physics = () => {
+  const observe = eff_observe()
 
-  for (const client of clients) {
-    client.sendReliable(reliable)
-    client.sendUnreliable(unreliable)
+  qry_bodies.forEach((entity, [body]) => {
+    const body_o = observe(body)
+    body_o.x = 1
+    body_o.y = 2
+  })
+}
+
+import { eff_observe, eff_interval } from "@javelin/ecs"
+import { eff_message } from "@javelin/net"
+import { eff_clients } from "./effects"
+
+const sys_net_server = () => {
+  const send = eff_interval((1 / 20) * 1000)
+  const observe = eff_observe()
+  const message = eff_message()
+  const clients = eff_clients()
+
+  if (send) {
+    qry_bodies.forEach((entity, [body]) => {
+      const changes = observe.changes.get(body)
+      message.patch(entity, body, changes)
+      changes.reset(body)
+    })
+
+    for (const client of clients) {
+      client.send_u(message.encode())
+    }
+    message.reset()
   }
 }
 ```
 
-## Message Handler
-
-Apply Javelin network protocol messages to a world.
-
-### Usage
+## MessageHandler
 
 ```ts
-import { createWorld } from "@javelin/ecs"
-import { createMessageHandler } from "@javelin/net"
+import { eff_message_handler } from "@javelin/net"
 
-const messageHandler = createMessageHandler()
-const world = createWorld({
-  systems: [messageHandler.system],
-})
-
-const client = await server.connect()
-
-// apply remote messages to local world next tick
-client.reliable.onMessage(messageHandler.push)
-client.unreliable.onMessage(messageHandler.push)
+const sys_net_client = () => {
+  const {
+    remote: { tick }, // get remote (server) world details
+    patched, // entities patched last message
+    updated, // entities synced last message
+  } = eff_message_handler()
+}
 ```
