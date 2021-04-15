@@ -30,6 +30,7 @@ const pairPool = createStackPool(
 const createTrigger = (
   worldSignalSelector: (world: World) => World["attached"] | World["detached"],
   emitExisting = false,
+  pruneDestroyed = false,
 ) =>
   createEffect(world => {
     const {
@@ -87,21 +88,24 @@ const createTrigger = (
       }
     })
 
-    world.destroyed.subscribe(entity => {
-      if (entities.has(entity)) {
-        let i = 0
-        while (i < staged.length) {
-          if (staged[i][0] === entity) {
-            const head = staged.pop()
-            if (head !== undefined) {
-              staged[i] = head
+    if (pruneDestroyed) {
+      world.destroyed.subscribe(entity => {
+        if (entities.has(entity)) {
+          let i = 0
+          while (i < staged.length) {
+            if (staged[i][0] === entity) {
+              const head = staged.pop()
+              if (staged.length === 0) {
+                continue
+              }
+              staged[i] = head!
+            } else {
+              i++
             }
-          } else {
-            i++
           }
         }
-      }
-    })
+      })
+    }
 
     return function triggerEffect<T extends ComponentType>(
       componentType: T,
@@ -141,7 +145,7 @@ const createTrigger = (
  *   // body was attached to entity last tick
  * }
  */
-export const onAttach = createTrigger(world => world.attached, true)
+export const onAttach = createTrigger(world => world.attached, true, true)
 
 /**
  * Get components of a given type that were detached during the effect's

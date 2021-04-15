@@ -197,23 +197,17 @@ const attract = world => {
       if (we === je) {
         return
       }
-
       const dx = wt.x - jt.x
       const dy = wt.y - jt.y
       const len = Math.sqrt(dx * dx + dy * dy)
-
       if (len <= w.r) {
         j.influenced = true
-
         if (len < w.r / 10) {
           const jw = world.tryGet(je, Wormhole)
-
           if (jw) {
             jw.obliterated = true
           }
-
           w.r += jw?.r || 0.1
-
           world.destroy(je)
         } else {
           jv.x += dx / len / 200
