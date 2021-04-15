@@ -196,7 +196,7 @@ export class MessageBuilder {
     cid: number,
     field: number,
     value: number | ArrayBuffer,
-    traverse?: number[],
+    traverse?: string[],
   ) {
     const node = this._modelFlat[cid][field]
     const patch = this.parts[6]
@@ -211,7 +211,8 @@ export class MessageBuilder {
     patch.insert(traverse?.length ?? 0, uint8)
     if (traverse !== undefined) {
       for (let i = 0; i < traverse.length; i++) {
-        patch.insert(traverse[i], uint16)
+        // TODO: support map (ie. dont convert string path to int)
+        patch.insert(+traverse[i], uint16)
       }
     }
     // TODO: this does nothing right now since complex types are not supported

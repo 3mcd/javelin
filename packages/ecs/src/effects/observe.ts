@@ -18,7 +18,7 @@ export const observe = createEffect(world => {
       type !== undefined,
       "Failed to observe component: component type not registered",
     )
-    return observer.observe(component, model[component._tid])
+    return observer.observe(component, type)
   },
   observer)
 

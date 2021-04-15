@@ -9,7 +9,7 @@ import { mutableEmpty } from "./utils"
 
 export const NO_OP = Symbol("NO_OP")
 
-export type ChangeSetOp = { field: number; traversal?: string[] }
+export type ChangeSetOp = { field: number; traverse?: string[] }
 export type ChangeSetField = ChangeSetOp & { value: any }
 export type ChangeSetArrayOp = ChangeSetOp & {
   index: number
@@ -34,15 +34,15 @@ const pushFieldOp = (
   changes: ChangeSet,
   field: number,
   value: unknown,
-  traversal?: string[],
+  traverse?: string[],
 ) => {
-  if (traversal === undefined) {
+  if (traverse === undefined) {
     changes.fields[field] = { value, field }
   } else {
-    changes.fields[`${field},${traversal.join(",")}`] = {
+    changes.fields[`${field},${traverse.join(",")}`] = {
       value,
       field,
-      traversal,
+      traverse: traverse.slice(),
     }
   }
 }
@@ -53,14 +53,14 @@ const pushArrayOp = (
   index: number,
   insert: any[] | null,
   remove: number,
-  traversal: string[],
+  traverse: string[],
 ) =>
   changes.arrays.push({
     field,
     index,
     insert,
     remove,
-    traversal,
+    traverse,
   })
 
 type ObservedProps<
@@ -82,18 +82,21 @@ const recordIsCollection = (
 const recordIsCollectionDescendant = (record: ModelNode) =>
   record.inCollection === true
 
-const tmpTraversal: string[] = []
-const traverse = (target: ObservedProps) => {
-  mutableEmpty(tmpTraversal)
+const tmpTraverse: string[] = []
+const buildTraverse = (target: ObservedProps, init?: string) => {
+  mutableEmpty(tmpTraverse)
+  if (init !== undefined) {
+    tmpTraverse.push(init)
+  }
   let parent = target
   while (parent !== undefined) {
     const { __parent__, __index__ } = parent
     if (__index__ !== undefined) {
-      tmpTraversal.unshift(__index__)
+      tmpTraverse.unshift(__index__)
     }
     parent = __parent__
   }
-  return tmpTraversal
+  return tmpTraverse
 }
 
 export type Observer = {
@@ -127,7 +130,7 @@ export function createObserver(): Observer {
         changes.get(target)!,
         target.__type__.edge.kind,
         value,
-        traverse(target),
+        buildTraverse(target, key),
       )
       target[key] = value
       return true
@@ -150,7 +153,7 @@ export function createObserver(): Observer {
         changes.get(target)!,
         target.__type__.idsByKey[key],
         value,
-        traverse(target),
+        buildTraverse(target),
       )
       target[key] = value
       return true
@@ -173,7 +176,12 @@ export function createObserver(): Observer {
     set(target: ObservedProps<ModelNodeCollection>, key: string, value: any) {
       if (target.__lock__) return true
       target[key] = value
-      pushFieldOp(changes.get(target)!, target.__type__.edge.id, value)
+      pushFieldOp(
+        changes.get(target)!,
+        target.__type__.edge.id,
+        value,
+        buildTraverse(target, key),
+      )
       return true
     },
   }
@@ -205,7 +213,7 @@ export function createObserver(): Observer {
       if (MUT_ARRAY_METHODS.has(target)) {
         const changeSet = changes.get(self)!
         const field = self.__type__.id
-        const traversal = traverse(target)
+        const traverse = buildTraverse(target)
 
         self.__lock__ = true
         target.apply(self, args)
@@ -213,29 +221,29 @@ export function createObserver(): Observer {
         switch (target as Function) {
           case Array.prototype.push: {
             const head = (self as any[]).length - 1
-            pushArrayOp(changeSet, field, head, args, 0, traversal)
+            pushArrayOp(changeSet, field, head, args, 0, traverse)
             break
           }
           case Array.prototype.pop: {
             const head = (self as any[]).length - 1
-            pushArrayOp(changeSet, field, head, null, 1, traversal)
+            pushArrayOp(changeSet, field, head, null, 1, traverse)
             break
           }
           case Array.prototype.shift:
-            pushArrayOp(changeSet, field, 0, null, 1, traversal)
+            pushArrayOp(changeSet, field, 0, null, 1, traverse)
             break
           case Array.prototype.unshift:
-            pushArrayOp(changeSet, field, 0, args, 0, traversal)
+            pushArrayOp(changeSet, field, 0, args, 0, traverse)
             break
           case Array.prototype.splice: {
             switch (args.length) {
               case 0:
                 break
               case 1:
-                pushArrayOp(changeSet, field, args[0], null, 0, traversal)
+                pushArrayOp(changeSet, field, args[0], null, 0, traverse)
                 break
               case 2:
-                pushArrayOp(changeSet, field, args[0], null, args[1], traversal)
+                pushArrayOp(changeSet, field, args[0], null, args[1], traverse)
                 break
               default:
                 pushArrayOp(
@@ -244,14 +252,14 @@ export function createObserver(): Observer {
                   args[0],
                   args.slice(2),
                   args[1],
-                  traversal,
+                  traverse,
                 )
                 break
             }
             break
           }
           case Array.prototype.sort:
-            pushArrayOp(changeSet, field, 0, self, self.length, traversal)
+            pushArrayOp(changeSet, field, 0, self, self.length, traverse)
             break
         }
 
