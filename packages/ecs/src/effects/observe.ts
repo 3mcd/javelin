@@ -8,7 +8,9 @@ type ObserveEffectApi = (<T extends Component>(component: T) => T) & Observer
 export const observe = createEffect(world => {
   const observer = createObserver()
 
-  let model: Model
+  let model = world.getModel()
+
+  world.modelChanged.subscribe(m => (model = m))
 
   const api: ObserveEffectApi = Object.assign(function getObserved<
     T extends Component
@@ -23,7 +25,6 @@ export const observe = createEffect(world => {
   observer)
 
   return function observeEffect() {
-    model = world.getModel()
     return api
   }
 })
