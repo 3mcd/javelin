@@ -1,7 +1,7 @@
+import { PackedSparseArray, unpackSparseArray } from "@javelin/model"
 import { Component, ComponentOf, ComponentType } from "./component"
 import { createSignal, Signal } from "./signal"
 import { Type } from "./type"
-import { PackedSparseArray, unpackSparseArray } from "./util"
 
 export type ArchetypeTableColumn<T extends ComponentType> = ComponentOf<T>[]
 export type ArchetypeTable<T extends ComponentType[]> = {

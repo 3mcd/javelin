@@ -1,8 +1,8 @@
+import { mutableEmpty, packSparseArray } from "@javelin/model"
 import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
 import { Entity } from "./entity"
 import { createSignal, Signal } from "./signal"
-import { mutableEmpty, packSparseArray } from "./util"
 
 export type StorageSnapshot = {
   archetypes: ArchetypeSnapshot[]

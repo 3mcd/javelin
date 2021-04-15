@@ -1,4 +1,4 @@
-import { mutableEmpty } from "@javelin/ecs"
+import { mutableEmpty } from "./utils"
 import {
   InstanceOfSchema,
   InstanceOfSchemaKey,

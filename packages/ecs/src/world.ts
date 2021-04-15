@@ -1,4 +1,4 @@
-import { createModel, Model } from "@javelin/model"
+import { createModel, Model, mutableEmpty } from "@javelin/model"
 import {
   Component,
   ComponentInitializerArgs,
@@ -12,7 +12,6 @@ import { createStackPool, StackPool } from "./pool"
 import { createSignal, Signal } from "./signal"
 import { createStorage, Storage, StorageSnapshot } from "./storage"
 import { Topic } from "./topic"
-import { mutableEmpty } from "./util"
 import {
   AttachOp,
   DestroyOp,

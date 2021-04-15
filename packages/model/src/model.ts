@@ -1,4 +1,4 @@
-import { assert, ErrorType } from "@javelin/ecs"
+import { assert, ErrorType } from "./debug"
 
 export enum SchemaKeyKind {
   Array,

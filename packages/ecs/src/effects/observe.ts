@@ -1,6 +1,5 @@
-import { createObserver, Observer, ChangeSet, Model } from "@javelin/model"
+import { assert, createObserver, Observer } from "@javelin/model"
 import { Component } from "../component"
-import { assert } from "../debug"
 import { createEffect } from "../effect"
 
 type ObserveEffectApi = (<T extends Component>(component: T) => T) & Observer

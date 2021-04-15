@@ -1,13 +1,12 @@
+import { Component, createEffect, World, WorldInternal } from "@javelin/ecs"
 import {
   assert,
-  Component,
-  createEffect,
   ErrorType,
+  Model,
+  ModelNode,
+  ModelNodeKind,
   mutableEmpty,
-  World,
-  WorldInternal,
-} from "@javelin/ecs"
-import { Model, ModelNode, ModelNodeKind } from "@javelin/model"
+} from "@javelin/model"
 import { View } from "@javelin/pack"
 import { decodeMessage } from "./protocol"
 

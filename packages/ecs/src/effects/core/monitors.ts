@@ -1,8 +1,8 @@
+import { mutableEmpty } from "@javelin/model"
 import { Archetype } from "../../archetype"
 import { createEffect } from "../../effect"
 import { Entity } from "../../entity"
 import { Query, queryMatchesArchetype, Selector } from "../../query"
-import { mutableEmpty } from "../../util"
 
 type MonitorIteratee = (entity: Entity) => void
 type MonitorPredicate = (

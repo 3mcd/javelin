@@ -1,9 +1,9 @@
+import { mutableEmpty } from "@javelin/model"
 import { Archetype, ArchetypeTableColumn } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
 import { globals } from "./internal/globals"
 import { createStackPool } from "./pool"
 import { typeIsSuperset } from "./type"
-import { mutableEmpty } from "./util"
 
 export type Selector = ComponentType[]
 export type SelectorResult<S extends Selector> = {

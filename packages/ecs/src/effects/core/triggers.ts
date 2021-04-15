@@ -2,7 +2,6 @@ import { Component, ComponentOf, ComponentType } from "../../component"
 import { createEffect } from "../../effect"
 import { Entity } from "../../entity"
 import { createStackPool } from "../../pool"
-import { mutableRemoveUnordered } from "../../util"
 import { World } from "../../world"
 
 type EntityComponentPair<T extends ComponentType = ComponentType> = [

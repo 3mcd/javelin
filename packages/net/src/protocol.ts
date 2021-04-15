@@ -1,16 +1,18 @@
-import { assert, Component, ErrorType, mutableEmpty } from "@javelin/ecs"
+import { Component } from "@javelin/ecs"
 import {
   arrayOf,
+  assert,
   createModel,
   DataType,
+  ErrorType,
   flattenModel,
   Model,
   ModelConfig,
   ModelFlat,
   ModelNode,
   ModelNodeKind,
+  mutableEmpty,
   Schema,
-  isPrimitiveType,
   SchemaKey,
 } from "@javelin/model"
 import {
