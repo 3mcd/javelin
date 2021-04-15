@@ -138,6 +138,7 @@ export type ModelNode =
   | ModelNodePrimitive
 
 export type Model = { [typeId: number]: ModelNodeStruct }
+export type ModelFlat = { [typeId: number]: { [field: number]: ModelNode } }
 
 function assertIsModelNodeStructDescendant(
   node: ModelNode,
@@ -268,4 +269,32 @@ export const createModel = (config: ModelConfig): Model => {
     model[typeId] = root
   })
   return model
+}
+
+export const flattenModelNode = (
+  node: ModelNode,
+  flat: ModelFlat[keyof ModelFlat],
+) => {
+  flat[node.id] = node
+  switch (node.kind) {
+    case ModelNodeKind.Array:
+    case ModelNodeKind.Map:
+      flattenModelNode(node.edge, flat)
+      break
+    case ModelNodeKind.Struct:
+      for (let i = 0; i < node.edges.length; i++) {
+        flattenModelNode(node.edges[i], flat)
+      }
+      break
+  }
+}
+
+export const flattenModel = (model: Model): ModelFlat => {
+  const flat: ModelFlat = {}
+  for (const prop in model) {
+    const sub = {} as ModelFlat[keyof ModelFlat]
+    flattenModelNode(model[prop], sub)
+    flat[prop] = sub
+  }
+  return flat
 }

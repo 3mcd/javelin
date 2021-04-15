@@ -1,13 +1,16 @@
-import { assert, Component, ErrorType, mutableEmpty, World } from "@javelin/ecs"
+import { assert, Component, ErrorType, mutableEmpty } from "@javelin/ecs"
 import {
   arrayOf,
   createModel,
   DataType,
+  flattenModel,
   Model,
   ModelConfig,
+  ModelFlat,
   ModelNode,
   ModelNodeKind,
   Schema,
+  isPrimitiveType,
   SchemaKey,
 } from "@javelin/model"
 import {
@@ -121,8 +124,14 @@ export class MessageBuilder {
     new MessagePart<Destroy>(),
     new MessagePart<Patch>(),
   ] as const
+  private _model: Model
+  private _modelFlat: ModelFlat
 
-  constructor(private _model: Model) {}
+  constructor(model: Model) {
+    this._model = model
+    this._modelFlat = flattenModel(model)
+    this.model(model)
+  }
 
   private encodeComponent(component: Component): ArrayBuffer {
     const componentSchema = this._model[component._tid]
@@ -161,6 +170,11 @@ export class MessageBuilder {
   }
 
   model(model: Model) {
+    if (model !== this._model) {
+      this._model = model
+      this._modelFlat = flattenModel(model)
+    }
+
     this.parts[0].reset()
     this.parts[0].insertBuffer(encodeModel(model))
   }
@@ -182,10 +196,15 @@ export class MessageBuilder {
     cid: number,
     field: number,
     value: number | ArrayBuffer,
-    view?: View<number>,
     traverse?: number[],
   ) {
+    const node = this._modelFlat[cid][field]
     const patch = this.parts[6]
+    assert(node !== undefined, "model does not contain component id or field")
+    assert(
+      node.kind === ModelNodeKind.Primitive,
+      "complex types not yet supported in patches",
+    )
     patch.insert(entity, uint32)
     patch.insert(cid, uint8)
     patch.insert(field, uint8)
@@ -195,14 +214,11 @@ export class MessageBuilder {
         patch.insert(traverse[i], uint16)
       }
     }
+    // TODO: this does nothing right now since complex types are not supported
     if (typeof value === "object" && "byteLength" in value) {
       patch.insertBuffer(value)
     } else {
-      assert(
-        view !== undefined,
-        "Failed to insert patch into message: passed a primitive value without a data type",
-      )
-      patch.insert(value, view)
+      patch.insert(value, node.type as View)
     }
   }
 
