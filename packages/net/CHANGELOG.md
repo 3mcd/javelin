@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.22.0](https://github.com/3mcd/javelin/compare/v0.21.2...v0.22.0) (2021-04-15)
+
+
+### Bug Fixes
+
+* add spawn op type to message producer getReliableMessages ([#159](https://github.com/3mcd/javelin/issues/159)) ([207c5ce](https://github.com/3mcd/javelin/commit/207c5ce0b7036cfe861fa52ae9570dc41485bb6a))
+
+
+
+
+
 ## [0.21.2](https://github.com/3mcd/javelin/compare/v0.21.1...v0.21.2) (2021-03-25)
 
 **Note:** Version bump only for package @javelin/net
