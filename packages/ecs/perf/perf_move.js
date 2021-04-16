@@ -1,8 +1,8 @@
 const { performance } = require("perf_hooks")
 const {
   createWorld,
-  onAttach,
-  onDetach,
+  effAttach,
+  effDetach,
   query,
   createComponentType,
 } = require("../dist/cjs")
@@ -19,9 +19,9 @@ const B = createComponentType({
 module.exports.run = () => {
   let i = 0
 
-  const qa = query(A)
+  const qa = createQuery(A)
 
-  const sys_attach = world => {
+  const sysAttach = world => {
     for (const [entities] of qa) {
       for (let i = 0; i < entities.length; i++) {
         const entity = entities[i]
@@ -30,19 +30,19 @@ module.exports.run = () => {
         }
       }
     }
-    onDetach(A).forEach(entity => {
+    effDetach(A).forEach(entity => {
       world.detach(entity, B)
       i++
     })
   }
-  const sys_detach = world => {
-    onAttach(B).forEach(entity => {
+  const sysDetach = world => {
+    effAttach(B).forEach(entity => {
       world.detach(entity, B)
       i++
     })
   }
 
-  const world = createWorld({ systems: [sys_attach, sys_detach] })
+  const world = createWorld({ systems: [sysAttach, sysDetach] })
 
   for (let i = 0; i < 1000000; i++) {
     world.spawn(world.component(A))

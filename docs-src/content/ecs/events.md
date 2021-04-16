@@ -36,8 +36,6 @@ world.destroyed.subscribe(entity => {
 })
 ```
 
-
-
 A function is returned from `signal.subscribe()` that can be used to remove the subscriber.
 
 ```ts
@@ -49,29 +47,29 @@ unsubscribe()
 
 Subscribing to events within systems is tricky since a system is just a function that runs each tick. Javelin has a couple of built-in effects called **triggers** that register event handlers behind the scenes, exposing changed entitites with an iterable API.
 
-### `onAttach`
+### `effAttach`
 
-The `onAttach` trigger accepts a component type and returns an object that can be iterated with `for..of` or `forEach` to get entity-component pairs where the component of the specified type was detached last tick.
+The `effAttach` trigger accepts a component type and returns an object that can be iterated with `for..of` or `forEach` to get entity-component pairs where the component of the specified type was detached last tick.
 
 ```ts
-import { onAttach } from "@javelin/ecs"
+import { effAttach } from "@javelin/ecs"
 
-const sys_physics = () => {
-  onAttach(Body).forEach((entity, body) => {
+const sysPhysics = () => {
+  effAttach(Body).forEach((entity, body) => {
     ...
   })
 }
 ```
 
-### `onDetach`
+### `effDetach`
 
-`onDetach` is similar to `onAttach`, but it returns entity-component pairs whose matching component was detached last tick.
+`effDetach` is similar to `effAttach`, but it returns entity-component pairs whose matching component was detached last tick.
 
 ```ts
-import { onDetach } from "@javelin/ecs"
+import { effDetach } from "@javelin/ecs"
 
-const sys_physics = (world: World) => {
-  onDetach(Body).forEach((entity, body) => ...)
+const sysPhysics = (world: World) => {
+  effDetach(Body).forEach((entity, body) => ...)
 }
 ```
 
@@ -81,13 +79,13 @@ Sometimes you need to go a bit further and detect when an entity matches or no l
 
 An entity is only included in a monitor's results **once** while it continues to match the query. An entity is eligible again only if it is excluded (i.e. due to a change in its type) and re-included.
 
-### `onInsert`
+### `effInsert`
 
-The `onInsert` monitor yields entities who will match a specific query for the first time this tick.
+The `effInsert` monitor yields entities who will match a specific query for the first time this tick.
 
 ```ts
-const spooky = query(Enemy, Ghost)
-onInsert(spooky).forEach(entity => ...)
+const spooky = createQuery(Enemy, Ghost)
+effInsert(spooky).forEach(entity => ...)
 ```
 
 `forEach` executes the provided callback for entities whose component changes last tick caused it to match the query's criteria. In the above example, the `entity` variable would correspond to an entity who made one of the following type transitions last tick:
@@ -100,7 +98,7 @@ from    | to
 (Ghost) | (Enemy, Ghost)
 ```
 
- Below is an example of an entity transitioning between multiple types, and whether or not that transition would result in the entity being included in `onInsert`'s results:
+Below is an example of an entity transitioning between multiple types, and whether or not that transition would result in the entity being included in `effInsert`'s results:
 
 ```
 (Enemy)                  -> excluded
@@ -110,12 +108,12 @@ from    | to
 (Enemy, Ghost)           -> included
 ```
 
-### `onRemove`
+### `effRemove`
 
-`onRemove` is simply the inverse of `onInsert`. It will yield entities whose type no longer matches the query's criteria.
+`effRemove` is simply the inverse of `effInsert`. It will yield entities whose type no longer matches the query's criteria.
 
 ```ts
-onRemove(spooky).forEach(entity => ...)
+effRemove(spooky).forEach(entity => ...)
 ```
 
 ```
@@ -124,14 +122,4 @@ onRemove(spooky).forEach(entity => ...)
 (Enemy, Ghost, Confused) -> excluded
 (Ghost, Confused)        -> included
 (Enemy, Ghost)           -> excluded
-```
-
-## Changes
-
-A world tracks changes made to all its components. The `isComponentChanged` method accepts a component and will return true if the component was changed last tick, otherwise it returns false.
-
-```ts
-if (world.isComponentChanged(body)) {
-  simulation.sync(body)
-}
 ```

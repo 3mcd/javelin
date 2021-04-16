@@ -2,14 +2,26 @@ import { Component, Entity } from "@javelin/ecs"
 import { arrayOf, createModel, Model, Schema } from "@javelin/model"
 import { float64, uint32, uint8 } from "@javelin/pack"
 import {
+  attach,
+  createMessage,
   decodeMessage,
   DecodeMessageHandlers,
-  MessageBuilder,
+  destroy,
+  detach,
+  encodeMessage,
+  patch,
+  spawn,
+  tick,
+  update,
 } from "./protocol"
+
+type EntityComponentsPair = [Entity, Component[]]
+type EntityComponentIdsPair = [Entity, number[]]
 
 describe("protocol", () => {
   const baseSchema = {
     _tid: uint8,
+    x: float64,
   }
 
   let baseHandlers: DecodeMessageHandlers
@@ -27,141 +39,38 @@ describe("protocol", () => {
     }
   })
 
-  it("serializes", () => {
+  it("sanity check", () => {
     const model = createModel(new Map([[1, baseSchema]]))
-    const builder = new MessageBuilder(model)
+    const message = createMessage(model)
 
-    builder.setTick(999)
-    builder.spawn(1, [{ _tid: 1 }])
-    builder.spawn(2, [{ _tid: 1 }])
-    builder.attach(3, [{ _tid: 1 }])
-    builder.detach(4, [1, 2, 3])
-    builder.destroy(5)
-    builder.destroy(6)
+    tick(message, 999)
+    spawn(message, 1, [{ _tid: 1, x: 9 }])
+    spawn(message, 2, [{ _tid: 1, x: 9 }])
+    attach(message, 3, { _tid: 1, x: 9 })
+    update(message, 3, { _tid: 1, x: 9 })
+    patch(message, 3, 1, {
+      arrays: [],
+      fields: { x: { field: 1, value: 10 } },
+      fieldsCount: 1,
+    })
+    patch(message, 3, 1, {
+      arrays: [],
+      fields: { x: { field: 1, value: 11 } },
+      fieldsCount: 1,
+    })
+    detach(message, 4, 1, 2, 3)
+    destroy(message, 5)
+    destroy(message, 6)
 
-    expect(() => builder.encode()).not.toThrow()
-  })
+    expect(() => {
+      decodeMessage(encodeMessage(message), baseHandlers, model)
+      decodeMessage(encodeMessage(message, true), baseHandlers)
+      decodeMessage(encodeMessage(message, true), baseHandlers, model)
+    }).not.toThrow()
 
-  it("deserializes tick", () => {
-    const model = createModel(new Map<number, Schema>())
-    const builder = new MessageBuilder(model)
-    const handlers = {
-      ...baseHandlers,
-      onTick: (t: number) => (tick = t),
-    }
-
-    builder.setTick(7)
-
-    let tick = -1
-
-    decodeMessage(builder.encode(), handlers, model)
-
-    expect(tick).toBe(7)
-  })
-
-  it("deserializes spawned", () => {
-    const model = createModel(new Map([[1, baseSchema]]))
-    const builder = new MessageBuilder(model)
-    const spawns: [entity: number, components: Component[]][] = [
-      [7, [{ _tid: 1 }]],
-    ]
-    const handlers = {
-      ...baseHandlers,
-      onCreate: (...args: [Entity, Component[]]) => results.push(args),
-    }
-
-    for (let i = 0; i < spawns.length; i++) {
-      builder.spawn(...spawns[i])
-    }
-
-    const results: [entity: number, components: Component[]][] = []
-
-    decodeMessage(builder.encode(), handlers, model)
-
-    expect(results).toEqual(spawns)
-  })
-
-  it("deserializes attached", () => {
-    const model = createModel(new Map([[1, baseSchema]]))
-    const builder = new MessageBuilder(model)
-    const attaches: [entity: number, components: Component[]][] = [
-      [7, [{ _tid: 1 }]],
-    ]
-    const handlers = {
-      ...baseHandlers,
-      onAttach: (...args: [Entity, Component[]]) => results.push(args),
-    }
-
-    for (let i = 0; i < attaches.length; i++) {
-      builder.attach(...attaches[i])
-    }
-
-    const results: [entity: number, components: Component[]][] = []
-
-    decodeMessage(builder.encode(), handlers, model)
-
-    expect(results).toEqual(attaches)
-  })
-
-  it("deserializes updated", () => {
-    const model = createModel(new Map([[1, baseSchema]]))
-    const builder = new MessageBuilder(model)
-    const updates: [entity: number, components: Component[]][] = [
-      [7, [{ _tid: 1 }]],
-    ]
-    const results: [entity: number, components: Component[]][] = []
-    const handlers = {
-      ...baseHandlers,
-      onUpdate: (...args: [Entity, Component[]]) => results.push(args),
-    }
-
-    for (let i = 0; i < updates.length; i++) {
-      builder.update(...updates[i])
-    }
-
-    decodeMessage(builder.encode(), handlers, model)
-
-    //   expect(results).toEqual(updates)
-  })
-
-  it("deserializes detached", () => {
-    const model = createModel(new Map())
-    const builder = new MessageBuilder(model)
-    const detaches: [entity: number, componentTypeIds: number[]][] = [
-      [5, [1, 2, 4]],
-    ]
-    const results: [entity: number, componentTypeIds: number[]][] = []
-    const handlers = {
-      ...baseHandlers,
-      onDetach: (...args: [Entity, number[]]) => results.push(args),
-    }
-
-    for (let i = 0; i < detaches.length; i++) {
-      builder.detach(...detaches[i])
-    }
-
-    decodeMessage(builder.encode(), handlers, model)
-
-    expect(results).toEqual(detaches)
-  })
-
-  it("deserializes destroyed", () => {
-    const model = createModel(new Map())
-    const builder = new MessageBuilder(model)
-    const destroys = [2, 7, 12, 100]
-    const results: number[] = []
-    const handlers = {
-      ...baseHandlers,
-      onDestroy: (entity: Entity) => results.push(entity),
-    }
-
-    for (let i = 0; i < destroys.length; i++) {
-      builder.destroy(destroys[i])
-    }
-
-    decodeMessage(builder.encode(), handlers, model)
-
-    expect(results).toEqual(destroys)
+    expect(() => {
+      decodeMessage(encodeMessage(message), baseHandlers)
+    }).toThrow()
   })
 
   it("deserializes model", () => {
@@ -170,8 +79,6 @@ describe("protocol", () => {
         [
           0,
           {
-            // Note: keys are sorted alphabetically below since model encodes
-            // keys alphabetically
             _tid: uint8,
             arr_schema: arrayOf({
               y: float64,
@@ -189,16 +96,115 @@ describe("protocol", () => {
         ],
       ]),
     )
-    const builder = new MessageBuilder(model)
-    const handlers = {
-      ...baseHandlers,
-    }
+    const message = createMessage(model)
 
-    decodeMessage(builder.encode(), handlers, model)
+    decodeMessage(encodeMessage(message, true), baseHandlers)
 
     const snapshot = (model: Model) => JSON.stringify(model)
-    const emitted = (handlers.onModel as jest.Mock).mock.calls[0][0]
+    const emitted = (baseHandlers.onModel as jest.Mock).mock.calls[0][0]
 
     expect(snapshot(emitted)).toEqual(snapshot(model))
+  })
+
+  it("deserializes tick", () => {
+    const model = createModel(new Map<number, Schema>())
+    const message = createMessage(model)
+
+    tick(message, 7)
+    decodeMessage(encodeMessage(message), baseHandlers, model)
+    expect(baseHandlers.onTick).toHaveBeenCalledWith(7)
+  })
+
+  it("deserializes spawned", () => {
+    const model = createModel(new Map([[1, baseSchema]]))
+    const message = createMessage(model)
+    const spawns: EntityComponentsPair[] = [[7, [{ _tid: 1, x: 888 }]]]
+    const results: EntityComponentsPair[] = []
+    const handlers = {
+      ...baseHandlers,
+      onCreate: (...args: EntityComponentsPair) => results.push(args),
+    }
+
+    for (let i = 0; i < spawns.length; i++) {
+      spawn(message, ...spawns[i])
+    }
+
+    decodeMessage(encodeMessage(message), handlers, model)
+    expect(results).toEqual(spawns)
+  })
+
+  it("deserializes attached", () => {
+    const model = createModel(new Map([[1, baseSchema]]))
+    const message = createMessage(model)
+    const attaches: EntityComponentsPair[] = [[7, [{ _tid: 1, x: 888 }]]]
+    const results: EntityComponentsPair[] = []
+    const handlers = {
+      ...baseHandlers,
+      onAttach: (...args: EntityComponentsPair) => results.push(args),
+    }
+
+    for (let i = 0; i < attaches.length; i++) {
+      const [entity, [component]] = attaches[i]
+      attach(message, entity, component)
+    }
+
+    decodeMessage(encodeMessage(message), handlers, model)
+    expect(results).toEqual(attaches)
+  })
+
+  it("deserializes updated", () => {
+    const model = createModel(new Map([[1, baseSchema]]))
+    const message = createMessage(model)
+    const updates: EntityComponentsPair[] = [[7, [{ _tid: 1, x: 888 }]]]
+    const results: EntityComponentsPair[] = []
+    const handlers = {
+      ...baseHandlers,
+      onUpdate: (...args: EntityComponentsPair) => results.push(args),
+    }
+
+    for (let i = 0; i < updates.length; i++) {
+      const [entity, [component]] = updates[i]
+      update(message, entity, component)
+    }
+
+    decodeMessage(encodeMessage(message), handlers, model)
+    expect(results).toEqual(updates)
+  })
+
+  it("deserializes detached", () => {
+    const model = createModel(new Map())
+    const message = createMessage(model)
+    const detaches: EntityComponentIdsPair[] = [[5, [1, 2, 4]]]
+    const results: EntityComponentIdsPair[] = []
+    const handlers = {
+      ...baseHandlers,
+      onDetach: (...args: EntityComponentIdsPair) => results.push(args),
+    }
+
+    for (let i = 0; i < detaches.length; i++) {
+      const [entity, componentIds] = detaches[i]
+      detach(message, entity, ...componentIds)
+    }
+
+    decodeMessage(encodeMessage(message), handlers, model)
+    expect(results).toEqual(detaches)
+  })
+
+  it("deserializes destroyed", () => {
+    const model = createModel(new Map())
+    const message = createMessage(model)
+    const destroys: Entity[] = [1, 2, 3]
+    const results: Entity[] = []
+    const handlers = {
+      ...baseHandlers,
+      onDestroy: (entity: Entity) => results.push(entity),
+    }
+
+    for (let i = 0; i < destroys.length; i++) {
+      destroy(message, destroys[i])
+    }
+
+    decodeMessage(encodeMessage(message), handlers, model)
+    expect(results).toEqual(destroys)
   })
 })

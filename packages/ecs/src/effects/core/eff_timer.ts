@@ -2,10 +2,10 @@ import { createEffect } from "../../effect"
 
 type TimerEffectApi = boolean
 
-export const timer = createEffect(() => {
+export const effTimer = createEffect(() => {
   let state = 0
   let timer: NodeJS.Timeout
-  return function timerEffect(
+  return function effTimer(
     duration: number,
     invalidate: boolean = false,
   ): TimerEffectApi {

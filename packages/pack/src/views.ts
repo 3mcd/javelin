@@ -1,4 +1,5 @@
 import * as model from "@javelin/model"
+import { DataType } from "@javelin/model"
 
 export enum ViewType {
   Uint8 = "uint8",
@@ -12,6 +13,12 @@ export enum ViewType {
   String8 = "string8",
   String16 = "string16",
   Boolean = "boolean",
+}
+
+export const isView = (
+  dataType: DataType<unknown>,
+): dataType is View<unknown> => {
+  return "byteLength" in dataType
 }
 
 export type View<T = any> = model.DataType<T> & {

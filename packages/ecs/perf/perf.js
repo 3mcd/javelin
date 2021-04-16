@@ -43,7 +43,7 @@ module.exports.run = function run() {
     [componentTypes[1], componentTypes[3]],
     [componentTypes[7]],
     [componentTypes[8], componentTypes[9]],
-  ].map(c => query(...c))
+  ].map(c => createQuery(...c))
 
   console.time("create")
   const entities = components.map(c => world.spawn(...c))

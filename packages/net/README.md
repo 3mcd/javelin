@@ -21,13 +21,13 @@ import {
 } from "@javelin/ecs"
 import {
   Message,
-  createMessage,
+  effMessage,
   patch,
   spawn,
   attach,
   detach,
   destroy,
-  pipe,
+  copy,
   reset,
 } from "@javelin/protocol"
 
@@ -41,29 +41,11 @@ const Body = {
   vy: number,
 }
 
-const qryBody = createQuery(Body)
-const qryPlayer = createQuery(Player)
-const qryPlayerWBody = createQuery(Player, Body)
+const qryBody = createcreateQuery(Body)
+const qryPlayer = createcreateQuery(Player)
+const qryPlayerWBody = createcreateQuery(Player, Body)
 
 const effObserve = createEffect(() => () => observe(), { global: true })
-const effMessageRoot = createEffect(
-  () => {
-    const message = createMessage()
-    return () => message
-  },
-  { global: true },
-)
-const effMessagePlayers = createEffect(() => {
-  const messages = new Map<number, Message>()
-  const get = (entity: Entity) => {
-    let message = messages.get(entity)
-    if (message === undefined) {
-      messages.set(entity, (message = createMessage()))
-    }
-    return message
-  }
-  return () => get
-})
 
 const sysPhysics = () => {
   const observe = effObserve()
@@ -75,32 +57,31 @@ const sysPhysics = () => {
 }
 const sysNet = () => {
   const send = effInterval((1 / 20) * 1000)
+  const channel = effChannel()
   const observe = effObserve()
-  const msgRoot = effMessageRoot()
-  const msgPlayers = effMessagePlayers()
+  const msgBase = effMessage()
+  const msgPlayer = effMessage()
 
-  each(effEnter(qryPlayer), entity => spawn(msgRoot, entity))
-  each(effExit(qryPlayer), entity => destroy(msgRoot, entity))
-  each(effAttached(Body), (entity, body) => attach(msgRoot, entity, body))
-  each(effDetached(Body), entity => detach(msgRoot, entity, Body))
+  each(effEnter(qryPlayer), entity => spawn(msgBase, entity))
+  each(effExit(qryPlayer), entity => destroy(msgBase, entity))
+  each(effAttached(Body), (entity, body) => attach(msgBase, entity, body))
+  each(effDetached(Body), entity => detach(msgBase, entity, Body))
 
   if (send) {
     each(qryPlayerWBody, (entity, [bp]) => {
-      const msgPlayer = msgPlayers(entity)
-      const msg = pipe(msgRoot, msgPlayers)
-
+      copy(msgBase, msgPlayer)
       each(qryBody, (e, [b]) => {
         if (inRadius(b, bp, 100)) {
           const changes = observe.changes.get(b)
-          patch(msg, entity, Body, changes)
+          patch(msgPlayer, entity, Body, changes)
         }
       })
 
-      send(entity, msg)
+      channel.of(entity).sendU(encode(msgPlayer))
       reset(msgPlayer)
     })
 
-    reset(msgRoot)
+    reset(msgBase)
   }
 }
 ```

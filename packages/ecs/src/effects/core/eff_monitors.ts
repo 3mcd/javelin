@@ -56,7 +56,7 @@ const createMonitor = (predicate: MonitorPredicate, emitExisting = false) =>
       staged.push(entity)
     })
 
-    return function monitorEffect<S extends Selector>(query: Query<S>) {
+    return function effMonitor<S extends Selector>(query: Query<S>) {
       let entity: number | undefined
       if (active !== query) {
         reset(query)
@@ -82,7 +82,7 @@ const createMonitor = (predicate: MonitorPredicate, emitExisting = false) =>
  *   // entity now matches the bodies query
  * }
  */
-export const onInsert = createMonitor((query, prev, next) => {
+export const effInsert = createMonitor((query, prev, next) => {
   const matchPrev = queryMatchesArchetype(query, prev)
   const matchNext = queryMatchesArchetype(query, next)
   return !matchPrev && matchNext
@@ -101,7 +101,7 @@ export const onInsert = createMonitor((query, prev, next) => {
  *   // entity no longer matches the bodies query
  * }
  */
-export const onRemove = createMonitor((query, prev, next) => {
+export const effRemove = createMonitor((query, prev, next) => {
   const matchPrev = queryMatchesArchetype(query, prev)
   const matchNext = queryMatchesArchetype(query, next)
   return matchPrev && !matchNext

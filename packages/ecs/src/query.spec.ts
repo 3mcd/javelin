@@ -13,7 +13,7 @@ describe("query", () => {
   const B = createComponentType({ type: 1, schema: {} })
 
   it("initializes with sorted signature", () => {
-    const q = query(B, A)
+    const q = createQuery(B, A)
 
     expect(q.signature).toEqual([0, 1])
   })
@@ -46,7 +46,7 @@ describe("query", () => {
     globals.__WORLDS__ = [world]
     globals.__CURRENT_WORLD__ = 0
 
-    const q = query(A, B)
+    const q = createQuery(A, B)
 
     let resultsA: Component[] = []
     let resultsB: Component[] = []

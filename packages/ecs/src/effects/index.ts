@@ -1,3 +1,3 @@
 export * from "./core"
-export * from "./observe"
+export * from "./eff_observe"
 export * from "./web"

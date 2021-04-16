@@ -75,12 +75,12 @@ export const queryMatchesArchetype = (query: Query, archetype: Archetype) =>
  * @param selector Query selector
  * @returns Query
  * @example
- * const burning = query(Player, Burn)
+ * const burning = createQuery(Player, Burn)
  * burning.forEach((entity, [player, burn]) => {
  *   player.health -= burn.damage
  * })
  */
-export function query<S extends Selector>(...selector: S): Query<S> {
+export function createQuery<S extends Selector>(...selector: S): Query<S> {
   const length = selector.length
   const layout = selector.map(s => s.type)
   const filters = {

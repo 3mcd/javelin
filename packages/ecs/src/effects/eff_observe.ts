@@ -4,7 +4,7 @@ import { createEffect } from "../effect"
 
 type ObserveEffectApi = (<T extends Component>(component: T) => T) & Observer
 
-export const observe = createEffect(world => {
+export const effObserve = createEffect(world => {
   const observer = createObserver()
 
   let model = world.getModel()
@@ -23,7 +23,7 @@ export const observe = createEffect(world => {
   },
   observer)
 
-  return function observeEffect() {
+  return function effObserve() {
     return api
   }
 })

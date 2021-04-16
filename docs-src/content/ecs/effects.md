@@ -4,23 +4,24 @@ weight = 5
 +++
 
 You'll often need to interact with some asynchronous code, third-party library, or API that wouldn't fit cleanly into Javelin's synchronous/serializable model. An **effect** is a container for one of these resources.
+
 ## Handling Side-Effects
 
 The below example demonstrates a worker effect that might perform some expensive computation in a worker thread and return a result back to the system when finished.
 
- ```ts
- const sys_physics = () => {
-   const { result, doExpensiveComputation } = effects.worker()
+```ts
+const sysPhysics = () => {
+  const { result, doExpensiveComputation } = effects.worker()
 
-   if (shouldRun && !result) {
-     doExpensiveComputation()
-   }
+  if (shouldRun && !result) {
+    doExpensiveComputation()
+  }
 
-   if (result) {
-     // do something with result
-   }
- }
- ```
+  if (result) {
+    // do something with result
+  }
+}
+```
 
 Effects are created using the aptly named `createEffect`. This function accepts a callback as its first argument. The provided callback receives the active `World` as its first parameter, should define any state (variables) used by the effect, and return a function to be executed each tick.
 
@@ -29,7 +30,7 @@ Below is an effect that will return `false` until the provided duration passes:
 ```ts
 import { createEffect } from "@javelin/ecs"
 
-const timer = createEffect(world => {
+const effTimer = createEffect(world => {
   // effect state
   let state = 0
   // effect function
@@ -54,11 +55,12 @@ Effects have a single rule: they must be called in the same order order and at t
 By default, Javelin will create a copy of the effect closure for each effect call. This lets you use multiple effects of the same type without conflict. Take the example below, where both timers run alongside eachother, with the second timer finishing one second after the first.
 
 ```ts
-const sys_a = () => {
-  if (timer(1000)) console.log("a")
-  if (timer(2000)) console.log("b")
+const sysA = () => {
+  if (effTimer(1000)) console.log("a")
+  if (effTimer(2000)) console.log("b")
 }
 ```
+
 ```
 (1000ms)
 > "a"
@@ -75,7 +77,7 @@ Effects can exist in either **local mode** or **global mode**. Local effects are
 Local effects are useful if you want to perform a one-off task, like perform an API request:
 
 ```ts
-const sys_quest_ui = () => {
+const sysQuestUI = () => {
   const context = effects.canvas()
   const { done, quests } = effects.fetch("/quests?complete=false")
 
@@ -88,7 +90,7 @@ const sys_quest_ui = () => {
 Although you should strive to have all game state in components, it can be tedious to create a singleton component each time you need some state within a system. Effects can be used to wrap arbitrary values that persist between ticks.
 
 ```ts
-const sys_fibonacci = () => {
+const sysFibonacci = () => {
   const a = effects.ref(0)
   const b = effects.ref(1)
   const bPrev = b.value
@@ -113,29 +115,29 @@ The most common use-case for effects is probably interacting with a third party,
 Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.
 
 ```ts
-const simulationEffect = createEffect(world => {
-  const simulation = new Library.Simulation()
+const effSim = createEffect(world => {
+  const sim = new Library.Simulation()
   return () => {
-    queries.attached.forEach(...)  // add new bodies to simulation   
+    queries.attached.forEach(...)  // add new bodies to simulation
     queries.detached.forEach(...)  // remove detached bodies from simulation
     queries.simulated.forEach(...) // copy simulation state to components
-    simulation.step(world.state.currentTickData) // step simulation in sync with world
-    return simulation
+    sim.step(world.state.currentTickData) // step simulation in sync with world
+    return sim
   }
 }, {
   global: true
 });
 
-const sys_jump = () => {
-  const simulation = simulationEffect()
+const sysJump = () => {
+  const sim = effSim()
   queries.jumping.forEach((e, [body, input]) => {
-    simulation.applyImpulse(body.simulationId, ...)
+    sim.applyImpulse(body.simulationId, ...)
   })
 }
 
-const sys_move = () => {
-  // references the same simulation as in sys_jump
-  const simulation = simulationEffect()
+const sysMove = () => {
+  // references the same simulation as in sysJump
+  const sim = effSim()
   ...
 }
 ```
@@ -150,13 +152,14 @@ Some useful effects are included with the core ECS package. A few are outlined b
   </p>
 </aside>
 
-### `ref<T>(initialValue: T): { value: T }`
+### `effRef<T>(initialValue: T): { value: T }`
 
-A ref is a mutable value that persists between ticks.
+`effRef` returns a mutable value that persists between ticks.
 
-The following example demonstrates a ref which stores the radius of the largest organism in a game. This value is persisted through ticks, so it ultimately references the radius of the largest organism queried across **all ticks**, not just the current tick. 
+The following example demonstrates a ref which stores the radius of the largest organism in a game. This value is persisted through ticks, so it ultimately references the radius of the largest organism queried across **all ticks**, not just the current tick.
+
 ```ts
-const biggest = ref<number | null>(null)
+const biggest = effRef<number | null>(null)
 
 organisms.forEach((entity, [circle]) => {
   if (circle.radius > biggest.value) {
@@ -165,26 +168,26 @@ organisms.forEach((entity, [circle]) => {
 })
 ```
 
-### `interval(duration: number): boolean`
+### `effInterval(duration: number): boolean`
 
-The interval effect returns `false` until the specified duration passes, at which point it will begin returning `true`. It will then immediately flip back to false until the duration passes again.
+The `effInterval` effect returns `false` until the specified duration passes, at which point it will begin returning `true`. It will then immediately flip back to false until the duration passes again.
 
-You could use `interval` to write a system that sends user input to a server at regular intervals:
+You could use `effInterval` to write a system that sends user input to a server at regular intervals:
 
 ```ts
-const send = interval(INPUT_SEND_FREQUENCY)
+const send = effInterval(INPUT_SEND_FREQUENCY)
 ...
 if (send) {
   channel.send(input)
 }
 ```
 
-### `json<T>(path: string | null, options: FetchDict, invalidate: boolean): RequestState<T>`
+### `effJson<T>(path: string | null, options: FetchDict, invalidate: boolean): RequestState<T>`
 
-The json effect initiates an HTTP request and returns an object that describes the state of the request. Passing a `null` URL will cancel any ongoing requests.
+The `effJson` effect initiates an HTTP request and returns an object that describes the state of the request. Passing a `null` URL will cancel any ongoing requests.
 
 ```ts
-const { done, response, error } = json(
+const { done, response, error } = effJson(
   player.value
     ? `/players/${player.value.id}/inbox`
     : null
@@ -198,27 +201,27 @@ if (done) {
 ```
 
 <script>
-  const sys_interval = () => {
-    const ref = Javelin.ref(0)
-    const log = Javelin.interval(4000)
+  const sysInterval = () => {
+    const ref = Javelin.effRef(0)
+    const log = Javelin.effInterval(4000)
 
     if (log) {
       console.log("interval", ++ref.value)
     }
   }
-  const sys_json = () => {
+  const sysJson = () => {
     // start request after 1s
-    const timer = Javelin.timer(1000)
+    const timer = Javelin.effTimer(1000)
     // cancel request after 5s
-    const cancel = Javelin.timer(5000)
-    const request = Javelin.json(
+    const cancel = Javelin.effTimer(5000)
+    const request = Javelin.effJson(
       !cancel && timer ? `https://jsonplaceholder.typicode.com/todos/1` : null
     )
 
     console.log(request)
   }
   const world = Javelin.createWorld({
-    systems: [sys_json, sys_interval]
+    systems: [sysJson, sysInterval]
   })
 
   setInterval(() => {

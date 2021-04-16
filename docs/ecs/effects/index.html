@@ -183,24 +183,24 @@
 </h2>
 <p>The below example demonstrates a worker effect that might perform some expensive computation in a worker thread and return a result back to the system when finished.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">sys_physics </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-</span><span style="color:#555c64;">  </span><span style="color:#388282;">const </span><span style="color:#555c64;">{ result, doExpensiveComputation } </span><span style="color:#388282;">= </span><span style="color:#555c64;">effects.worker()
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">sysPhysics </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">const </span><span style="color:#555c64;">{ result, doExpensiveComputation } </span><span style="color:#388282;">= </span><span style="color:#555c64;">effects.worker()
 
-</span><span style="color:#555c64;">  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(shouldRun </span><span style="color:#388282;">&amp;&amp; !</span><span style="color:#555c64;">result) {
-</span><span style="color:#555c64;">    doExpensiveComputation()
-</span><span style="color:#555c64;">  }
+  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(shouldRun </span><span style="color:#388282;">&amp;&amp; !</span><span style="color:#555c64;">result) {
+    doExpensiveComputation()
+  }
 
-</span><span style="color:#555c64;">  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(result) {
-</span><span style="color:#555c64;">    </span><span style="color:#8c95a0;">// do something with result
-</span><span style="color:#555c64;">  }
-</span><span style="color:#555c64;">}
+  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(result) {
+    </span><span style="color:#8c95a0;">// do something with result
+  </span><span style="color:#555c64;">}
+}
 </span></code></pre>
 <p>Effects are created using the aptly named <code>createEffect</code>. This function accepts a callback as its first argument. The provided callback receives the active <code>World</code> as its first parameter, should define any state (variables) used by the effect, and return a function to be executed each tick.</p>
 <p>Below is an effect that will return <code>false</code> until the provided duration passes:</p>
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createEffect } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">timer </span><span style="color:#388282;">= </span><span style="color:#555c64;">createEffect(</span><span style="color:#8a6c3c;">world </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">effTimer </span><span style="color:#388282;">= </span><span style="color:#555c64;">createEffect(</span><span style="color:#8a6c3c;">world </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#8c95a0;">// effect state
   </span><span style="color:#388282;">let </span><span style="color:#555c64;">state </span><span style="color:#388282;">= </span><span style="color:#4179ad;">0
   </span><span style="color:#8c95a0;">// effect function
@@ -220,9 +220,9 @@
 <p>Effects have a single rule: they must be called in the same order order and at the same frequency every tick. This means that you shouldn't call effects conditionally (i.e. in a if/else statement or a loop).</p>
 <p>By default, Javelin will create a copy of the effect closure for each effect call. This lets you use multiple effects of the same type without conflict. Take the example below, where both timers run alongside eachother, with the second timer finishing one second after the first.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">sys_a </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(timer(</span><span style="color:#4179ad;">1000</span><span style="color:#555c64;">)) </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;a&quot;</span><span style="color:#555c64;">)
-  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(timer(</span><span style="color:#4179ad;">2000</span><span style="color:#555c64;">)) </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;b&quot;</span><span style="color:#555c64;">)
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">sysA </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(effTimer(</span><span style="color:#4179ad;">1000</span><span style="color:#555c64;">)) </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;a&quot;</span><span style="color:#555c64;">)
+  </span><span style="color:#388282;">if </span><span style="color:#555c64;">(effTimer(</span><span style="color:#4179ad;">2000</span><span style="color:#555c64;">)) </span><span style="color:#88669e;">console</span><span style="color:#555c64;">.log(</span><span style="color:#4179ad;">&quot;b&quot;</span><span style="color:#555c64;">)
 }
 </span></code></pre><pre style="background-color:#f6f8f8;">
 <code><span style="color:#555c64;">(1000ms)
@@ -240,7 +240,7 @@
 </h3>
 <p>Local effects are useful if you want to perform a one-off task, like perform an API request:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">sys_quest_ui </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">sysQuestUI </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">context </span><span style="color:#388282;">= </span><span style="color:#555c64;">effects.canvas()
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">{ done, quests } </span><span style="color:#388282;">= </span><span style="color:#555c64;">effects.fetch(</span><span style="color:#4179ad;">&quot;/quests?complete=false&quot;</span><span style="color:#555c64;">)
 
@@ -251,7 +251,7 @@
 </span></code></pre>
 <p>Although you should strive to have all game state in components, it can be tedious to create a singleton component each time you need some state within a system. Effects can be used to wrap arbitrary values that persist between ticks.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">sys_fibonacci </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">sysFibonacci </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">a </span><span style="color:#388282;">= </span><span style="color:#555c64;">effects.ref(</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">)
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">b </span><span style="color:#388282;">= </span><span style="color:#555c64;">effects.ref(</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">)
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">bPrev </span><span style="color:#388282;">= </span><span style="color:#555c64;">b.value
@@ -273,29 +273,29 @@
 <p>The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS. Global effects are a good candidate for encapsulating this type of dependency. They are only executed once per tick and share the same state between systems.</p>
 <p>Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">simulationEffect </span><span style="color:#388282;">= </span><span style="color:#555c64;">createEffect(</span><span style="color:#8a6c3c;">world </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">const </span><span style="color:#555c64;">simulation </span><span style="color:#388282;">= new </span><span style="color:#555c64;">Library.Simulation()
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">effSim </span><span style="color:#388282;">= </span><span style="color:#555c64;">createEffect(</span><span style="color:#8a6c3c;">world </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">const </span><span style="color:#555c64;">sim </span><span style="color:#388282;">= new </span><span style="color:#555c64;">Library.Simulation()
   </span><span style="color:#388282;">return </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-    queries.attached.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">)  </span><span style="color:#8c95a0;">// add new bodies to simulation   
+    queries.attached.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">)  </span><span style="color:#8c95a0;">// add new bodies to simulation
     </span><span style="color:#555c64;">queries.detached.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">)  </span><span style="color:#8c95a0;">// remove detached bodies from simulation
     </span><span style="color:#555c64;">queries.simulated.forEach(</span><span style="color:#388282;">...</span><span style="color:#555c64;">) </span><span style="color:#8c95a0;">// copy simulation state to components
-    </span><span style="color:#555c64;">simulation.step(world.state.currentTickData) </span><span style="color:#8c95a0;">// step simulation in sync with world
-    </span><span style="color:#388282;">return </span><span style="color:#555c64;">simulation
+    </span><span style="color:#555c64;">sim.step(world.state.currentTickData) </span><span style="color:#8c95a0;">// step simulation in sync with world
+    </span><span style="color:#388282;">return </span><span style="color:#555c64;">sim
   }
 }, {
   global: </span><span style="color:#a35d66;">true
 </span><span style="color:#555c64;">});
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">sys_jump </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#388282;">const </span><span style="color:#555c64;">simulation </span><span style="color:#388282;">= </span><span style="color:#555c64;">simulationEffect()
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">sysJump </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#388282;">const </span><span style="color:#555c64;">sim </span><span style="color:#388282;">= </span><span style="color:#555c64;">effSim()
   queries.jumping.forEach((</span><span style="color:#8a6c3c;">e</span><span style="color:#555c64;">, [</span><span style="color:#8a6c3c;">body</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">input</span><span style="color:#555c64;">]) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-    simulation.applyImpulse(body.simulationId, </span><span style="color:#388282;">...</span><span style="color:#555c64;">)
+    sim.applyImpulse(body.simulationId, </span><span style="color:#388282;">...</span><span style="color:#555c64;">)
   })
 }
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">sys_move </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
-  </span><span style="color:#8c95a0;">// references the same simulation as in sys_jump
-  </span><span style="color:#388282;">const </span><span style="color:#555c64;">simulation </span><span style="color:#388282;">= </span><span style="color:#555c64;">simulationEffect()
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">sysMove </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+  </span><span style="color:#8c95a0;">// references the same simulation as in sysJump
+  </span><span style="color:#388282;">const </span><span style="color:#555c64;">sim </span><span style="color:#388282;">= </span><span style="color:#555c64;">effSim()
   </span><span style="color:#388282;">...
 </span><span style="color:#555c64;">}
 </span></code></pre><h2 id="built-in-effects">Built-in Effects<a class="zola-anchor" href="#built-in-effects" aria-label="Anchor link for: built-in-effects"
@@ -308,39 +308,39 @@
     <strong>Tip</strong> — check the source code of this page to see a few effects in action.
   </p>
 </aside>
-<h3 id="ref-t-initialvalue-t-value-t"><code>ref&lt;T&gt;(initialValue: T): { value: T }</code><a class="zola-anchor" href="#ref-t-initialvalue-t-value-t" aria-label="Anchor link for: ref-t-initialvalue-t-value-t"
+<h3 id="effref-t-initialvalue-t-value-t"><code>effRef&lt;T&gt;(initialValue: T): { value: T }</code><a class="zola-anchor" href="#effref-t-initialvalue-t-value-t" aria-label="Anchor link for: effref-t-initialvalue-t-value-t"
   >#</a
 >
 </h3>
-<p>A ref is a mutable value that persists between ticks.</p>
-<p>The following example demonstrates a ref which stores the radius of the largest organism in a game. This value is persisted through ticks, so it ultimately references the radius of the largest organism queried across <strong>all ticks</strong>, not just the current tick. </p>
+<p><code>effRef</code> returns a mutable value that persists between ticks.</p>
+<p>The following example demonstrates a ref which stores the radius of the largest organism in a game. This value is persisted through ticks, so it ultimately references the radius of the largest organism queried across <strong>all ticks</strong>, not just the current tick.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">biggest </span><span style="color:#388282;">= </span><span style="color:#555c64;">ref&lt;</span><span style="color:#88669e;">number </span><span style="color:#388282;">| </span><span style="color:#88669e;">null</span><span style="color:#555c64;">&gt;(</span><span style="color:#a35d66;">null</span><span style="color:#555c64;">)
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">biggest </span><span style="color:#388282;">= </span><span style="color:#555c64;">effRef&lt;</span><span style="color:#88669e;">number </span><span style="color:#388282;">| </span><span style="color:#88669e;">null</span><span style="color:#555c64;">&gt;(</span><span style="color:#a35d66;">null</span><span style="color:#555c64;">)
 
 organisms.forEach((</span><span style="color:#8a6c3c;">entity</span><span style="color:#555c64;">, [</span><span style="color:#8a6c3c;">circle</span><span style="color:#555c64;">]) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">if </span><span style="color:#555c64;">(circle.radius </span><span style="color:#388282;">&gt; </span><span style="color:#555c64;">biggest.value) {
     biggest.value </span><span style="color:#388282;">= </span><span style="color:#555c64;">circle.radius
   }
 })
-</span></code></pre><h3 id="interval-duration-number-boolean"><code>interval(duration: number): boolean</code><a class="zola-anchor" href="#interval-duration-number-boolean" aria-label="Anchor link for: interval-duration-number-boolean"
+</span></code></pre><h3 id="effinterval-duration-number-boolean"><code>effInterval(duration: number): boolean</code><a class="zola-anchor" href="#effinterval-duration-number-boolean" aria-label="Anchor link for: effinterval-duration-number-boolean"
   >#</a
 >
 </h3>
-<p>The interval effect returns <code>false</code> until the specified duration passes, at which point it will begin returning <code>true</code>. It will then immediately flip back to false until the duration passes again.</p>
-<p>You could use <code>interval</code> to write a system that sends user input to a server at regular intervals:</p>
+<p>The <code>effInterval</code> effect returns <code>false</code> until the specified duration passes, at which point it will begin returning <code>true</code>. It will then immediately flip back to false until the duration passes again.</p>
+<p>You could use <code>effInterval</code> to write a system that sends user input to a server at regular intervals:</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">send </span><span style="color:#388282;">= </span><span style="color:#555c64;">interval(INPUT_SEND_FREQUENCY)
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">send </span><span style="color:#388282;">= </span><span style="color:#555c64;">effInterval(INPUT_SEND_FREQUENCY)
 </span><span style="color:#388282;">...
 if </span><span style="color:#555c64;">(send) {
   channel.send(input)
 }
-</span></code></pre><h3 id="json-t-path-string-null-options-fetchdict-invalidate-boolean-requeststate-t"><code>json&lt;T&gt;(path: string | null, options: FetchDict, invalidate: boolean): RequestState&lt;T&gt;</code><a class="zola-anchor" href="#json-t-path-string-null-options-fetchdict-invalidate-boolean-requeststate-t" aria-label="Anchor link for: json-t-path-string-null-options-fetchdict-invalidate-boolean-requeststate-t"
+</span></code></pre><h3 id="effjson-t-path-string-null-options-fetchdict-invalidate-boolean-requeststate-t"><code>effJson&lt;T&gt;(path: string | null, options: FetchDict, invalidate: boolean): RequestState&lt;T&gt;</code><a class="zola-anchor" href="#effjson-t-path-string-null-options-fetchdict-invalidate-boolean-requeststate-t" aria-label="Anchor link for: effjson-t-path-string-null-options-fetchdict-invalidate-boolean-requeststate-t"
   >#</a
 >
 </h3>
-<p>The json effect initiates an HTTP request and returns an object that describes the state of the request. Passing a <code>null</code> URL will cancel any ongoing requests.</p>
+<p>The <code>effJson</code> effect initiates an HTTP request and returns an object that describes the state of the request. Passing a <code>null</code> URL will cancel any ongoing requests.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">{ done, response, error } </span><span style="color:#388282;">= </span><span style="color:#555c64;">json(
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">{ done, response, error } </span><span style="color:#388282;">= </span><span style="color:#555c64;">effJson(
   player.value
     </span><span style="color:#388282;">? </span><span style="color:#4179ad;">`/players/${player.value.id}/inbox`
     </span><span style="color:#388282;">: </span><span style="color:#a35d66;">null
@@ -352,33 +352,34 @@ if </span><span style="color:#555c64;">(send) {
   }
 }
 </span></code></pre><script>
-  const sys_interval = () => {
-    const ref = Javelin.ref(0)
-    const log = Javelin.interval(4000)
+  const sysInterval = () => {
+    const ref = Javelin.effRef(0)
+    const log = Javelin.effInterval(4000)
 
     if (log) {
       console.log("interval", ++ref.value)
     }
   }
-  const sys_json = () => {
+  const sysJson = () => {
     // start request after 1s
-    const timer = Javelin.timer(1000)
+    const timer = Javelin.effTimer(1000)
     // cancel request after 5s
-    const cancel = Javelin.timer(5000)
-    const request = Javelin.json(
+    const cancel = Javelin.effTimer(5000)
+    const request = Javelin.effJson(
       !cancel && timer ? `https://jsonplaceholder.typicode.com/todos/1` : null
     )
 
     console.log(request)
   }
   const world = Javelin.createWorld({
-    systems: [sys_json, sys_interval]
+    systems: [sysJson, sysInterval]
   })
 
   setInterval(() => {
     world.tick()
   }, 2000);
-</script> 
+</script>
+ 
                     </div>
                 </div>
             </div>

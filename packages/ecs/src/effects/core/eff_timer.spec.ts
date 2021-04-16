@@ -1,11 +1,11 @@
-import { timer } from "./timer"
+import { effTimer } from "./eff_timer"
 
 jest.mock("../../effect")
 
-describe("timer", () => {
+describe("effTimer", () => {
   beforeEach(() => {
     jest.useFakeTimers()
-    ;(timer as any).reset()
+    ;(effTimer as any).reset()
   })
 
   afterEach(() => {
@@ -13,33 +13,33 @@ describe("timer", () => {
   })
 
   it("returns false initially", () => {
-    const done = timer(0)
+    const done = effTimer(0)
 
     expect(done).toBe(false)
   })
 
   it("returns true after duration passes", () => {
-    expect(timer(100)).toBe(false)
+    expect(effTimer(100)).toBe(false)
 
     jest.advanceTimersByTime(50)
-    expect(timer(100)).toBe(false)
+    expect(effTimer(100)).toBe(false)
 
     jest.advanceTimersByTime(50)
-    expect(timer(100)).toBe(true)
+    expect(effTimer(100)).toBe(true)
   })
 
   it("restarts timer when invalidate is true", () => {
-    expect(timer(100)).toBe(false)
+    expect(effTimer(100)).toBe(false)
 
     jest.advanceTimersByTime(50)
-    expect(timer(100)).toBe(false)
+    expect(effTimer(100)).toBe(false)
 
-    timer(100, true)
-
-    jest.advanceTimersByTime(50)
-    expect(timer(100)).toBe(false)
+    effTimer(100, true)
 
     jest.advanceTimersByTime(50)
-    expect(timer(100)).toBe(true)
+    expect(effTimer(100)).toBe(false)
+
+    jest.advanceTimersByTime(50)
+    expect(effTimer(100)).toBe(true)
   })
 })

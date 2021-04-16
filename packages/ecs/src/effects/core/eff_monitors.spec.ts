@@ -4,7 +4,7 @@ import { createComponentType } from "../../helpers"
 import { globals } from "../../internal/globals"
 import { query } from "../../query"
 import { createWorld, World } from "../../world"
-import { onInsert, onRemove } from "./monitors"
+import { effInsert, effRemove } from "./eff_monitors"
 
 jest.mock("../../archetype")
 jest.mock("../../effect")
@@ -14,14 +14,14 @@ const A = createComponentType({ type: 1 })
 const B = createComponentType({ type: 2 })
 const C = createComponentType({ type: 3 })
 
-const a = query(A)
-const ab = query(A, B)
-const c = query(C)
+const a = createQuery(A)
+const ab = createQuery(A, B)
+const c = createQuery(C)
 
 const entitySortComparator = (a: Entity, b: Entity) => a - b
 
 function runIncludeTest(
-  monitor: typeof onInsert | typeof onRemove,
+  monitor: typeof effInsert | typeof effRemove,
   world: World,
   insert = true,
   useForEach = true,
@@ -50,7 +50,7 @@ function runIncludeTest(
 }
 
 function runExcludeTest(
-  monitor: typeof onInsert | typeof onRemove,
+  monitor: typeof effInsert | typeof effRemove,
   world: World,
   insert = true,
 ) {
@@ -85,7 +85,7 @@ function runExcludeTest(
 }
 
 function runSwapTest(
-  monitor: typeof onInsert | typeof onRemove,
+  monitor: typeof effInsert | typeof effRemove,
   world: World,
   insert = true,
 ) {
@@ -115,14 +115,14 @@ function runSwapTest(
   expect(results.sort(entitySortComparator)).toEqual([4])
 }
 
-describe("onInsert", () => {
+describe("effInsert", () => {
   let world: World
 
   beforeEach(() => {
     world = createWorld()
     globals.__CURRENT_WORLD__ = 1
     globals.__WORLDS__ = [, world] as World[]
-    ;(onInsert as any).reset(world)
+    ;(effInsert as any).reset(world)
   })
 
   afterEach(() => {
@@ -138,49 +138,49 @@ describe("onInsert", () => {
     }
     ;(world.storage.archetypes as Archetype[]).push(archetype)
 
-    onInsert(ab).forEach(entity => results.push(entity))
+    effInsert(ab).forEach(entity => results.push(entity))
 
     expect(results.sort(entitySortComparator)).toEqual([2, 4, 6])
   })
 
   it("yields entities that were relocated last tick and now match query", () => {
-    runIncludeTest(onInsert, world)
+    runIncludeTest(effInsert, world)
   })
 
   it("supports [Symbol.iterator]", () => {
-    runIncludeTest(onInsert, world, true, true)
+    runIncludeTest(effInsert, world, true, true)
   })
 
   it("excludes entities that already match query", () => {
-    runExcludeTest(onInsert, world)
+    runExcludeTest(effInsert, world)
   })
 
   it("clears buffer and subscribes to new component type when swapped", () => {
-    runSwapTest(onInsert, world)
+    runSwapTest(effInsert, world)
   })
 })
 
-describe("onRemove", () => {
+describe("effRemove", () => {
   let world: World
 
   beforeEach(() => {
     world = createWorld()
-    ;(onRemove as any).reset(world)
+    ;(effRemove as any).reset(world)
   })
 
   it("yields entities that were relocated last tick and no longer match query", () => {
-    runIncludeTest(onRemove, world, false)
+    runIncludeTest(effRemove, world, false)
   })
 
   it("supports [Symbol.iterator]", () => {
-    runIncludeTest(onRemove, world, false, true)
+    runIncludeTest(effRemove, world, false, true)
   })
 
   it("excludes entities that already match query", () => {
-    runExcludeTest(onRemove, world, false)
+    runExcludeTest(effRemove, world, false)
   })
 
   it("clears buffer and subscribes to new component type when swapped", () => {
-    runSwapTest(onRemove, world, false)
+    runSwapTest(effRemove, world, false)
   })
 })

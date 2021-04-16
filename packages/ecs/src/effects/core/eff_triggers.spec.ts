@@ -4,12 +4,12 @@ import { Entity } from "../../entity"
 import { createComponentType } from "../../helpers"
 import { Signal } from "../../signal"
 import { createWorld, World } from "../../world"
-import { onAttach, onDetach } from "./triggers"
+import { effAttach, effDetach } from "./eff_triggers"
 
 jest.mock("../../world")
 jest.mock("../../effect")
 
-type Trigger = typeof onAttach | typeof onDetach
+type Trigger = typeof effAttach | typeof effDetach
 type ComponentsSignal = Signal<Entity, ReadonlyArray<Component>>
 
 const A = createComponentType({ type: 1 })
@@ -101,12 +101,12 @@ function runSwitchTest(trigger: Trigger, signal: ComponentsSignal) {
   expect(results.length).toBe(2)
 }
 
-describe("onAttach", () => {
+describe("effAttach", () => {
   let world: World
 
   beforeEach(() => {
     world = createWorld()
-    ;(onAttach as any).reset(world)
+    ;(effAttach as any).reset(world)
   })
   it("yields components that were added prior to the first execution", () => {
     const results: [Entity, Component][] = []
@@ -121,49 +121,49 @@ describe("onAttach", () => {
     } = archetype
     ;(world.storage.archetypes as Archetype[]).push(archetype)
 
-    onAttach(A).forEach((entity, a) => results.push([entity, a]))
+    effAttach(A).forEach((entity, a) => results.push([entity, a]))
 
     expect(getComponentFromResults(results, e1)).toBe(c1)
     expect(getComponentFromResults(results, e2)).toBe(c2)
     expect(getComponentFromResults(results, e3)).toBe(c3)
   })
   it("yields components that were attached t-1", () => {
-    runIncludeTest(onAttach, world.attached)
+    runIncludeTest(effAttach, world.attached)
   })
   it("supports [Symbol.iterator]", () => {
-    runIncludeTest(onAttach, world.attached, false)
+    runIncludeTest(effAttach, world.attached, false)
   })
   it("ignores components of different type", () => {
-    runExcludeTest(onAttach, world.attached)
+    runExcludeTest(effAttach, world.attached)
   })
   it("excludes components that were attached t-2", () => {
-    runFlushTest(onAttach, world.attached)
+    runFlushTest(effAttach, world.attached)
   })
   it("supports switching component type", () => {
-    runSwitchTest(onAttach, world.attached)
+    runSwitchTest(effAttach, world.attached)
   })
 })
 
-describe("onDetach", () => {
+describe("effDetach", () => {
   let world: World
 
   beforeEach(() => {
     world = createWorld()
-    ;(onDetach as any).reset(world)
+    ;(effDetach as any).reset(world)
   })
   it("yields components that were detached t-1", () => {
-    runIncludeTest(onDetach, world.detached)
+    runIncludeTest(effDetach, world.detached)
   })
   it("supports [Symbol.iterator]", () => {
-    runIncludeTest(onDetach, world.detached, false)
+    runIncludeTest(effDetach, world.detached, false)
   })
   it("ignores components of different type", () => {
-    runExcludeTest(onDetach, world.detached)
+    runExcludeTest(effDetach, world.detached)
   })
   it("excludes components that were detached t-2", () => {
-    runFlushTest(onDetach, world.detached)
+    runFlushTest(effDetach, world.detached)
   })
   it("supports switching component type", () => {
-    runSwitchTest(onDetach, world.detached)
+    runSwitchTest(effDetach, world.detached)
   })
 })

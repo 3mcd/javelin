@@ -21,7 +21,7 @@ type Impulse = {
 When you need to apply a impulse to an entity, you insert an `Impulse` component on the current tick, and remove it on the following tick.
 
 ```ts
-const sys_input = () => {
+const sysInput = () => {
   queries.jumping.forEach(entity => {
     world.attach(entity, world.component(Impulse))
   })
@@ -30,7 +30,7 @@ const sys_input = () => {
   })
 }
 
-const sys_physics = () => {
+const sysPhysics = () => {
   queries.withImpulse((entity, [impulse]) => {
     const body = getBodyByEntity(entity)
     physicsEngine.applyImpulseLocal(body, impulse)
@@ -39,6 +39,7 @@ const sys_physics = () => {
 ```
 
 This will work fine for a small game; however, there are a couple of problems with this approach as you scale to more complex games:
+
 1. Adding and removing components in an archetypal ECS is slow
 2. Your physics system must wait until the next tick to detect the newly attached impluse component
 
@@ -51,11 +52,7 @@ Topics are created using the `createTopic<T>()` function, where `T` is the type 
 ```ts
 import { createTopic } from "@javelin/ecs"
 
-type ImpulseCommand = [
-  type: "impulse",
-  entity: number,
-  force: [number, number],
-]
+type ImpulseCommand = [type: "impulse", entity: number, force: [number, number]]
 
 const physicsTopic = createTopic<ImpulseCommand>()
 ```
@@ -81,7 +78,7 @@ Messages can then be read using a for..of loop.
 ```ts
 import { physicsTopic } from "./physics_topic"
 
-const sys_physics = () => {
+const sysPhysics = () => {
   for (const command of physicsTopic) {
     if (command[0] === "impulse") {
       const body = getBodyByEntity(command[1])

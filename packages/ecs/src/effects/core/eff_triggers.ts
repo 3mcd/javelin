@@ -107,7 +107,7 @@ const createTrigger = (
       })
     }
 
-    return function triggerEffect<T extends ComponentType>(
+    return function effTrigger<T extends ComponentType>(
       componentType: T,
     ): TriggerEffectApi<T> {
       if (type === null) {
@@ -145,7 +145,7 @@ const createTrigger = (
  *   // body was attached to entity last tick
  * }
  */
-export const onAttach = createTrigger(world => world.attached, true, true)
+export const effAttach = createTrigger(world => world.attached, true, true)
 
 /**
  * Get components of a given type that were detached during the effect's
@@ -161,4 +161,4 @@ export const onAttach = createTrigger(world => world.attached, true, true)
  *   // body was detached from entity last tick, and is reset and re-pooled
  * }
  */
-export const onDetach = createTrigger(world => world.detached)
+export const effDetach = createTrigger(world => world.detached)

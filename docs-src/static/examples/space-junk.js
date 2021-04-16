@@ -112,9 +112,9 @@ const topics = {
 }
 
 const queries = {
-  wormholes: query(Transform, Wormhole, Velocity),
-  junk: query(Transform, Velocity, Junk),
-  dragging: query(Transform, Wormhole, Dragging),
+  wormholes: createQuery(Transform, Wormhole, Velocity),
+  junk: createQuery(Transform, Velocity, Junk),
+  dragging: createQuery(Transform, Wormhole, Dragging),
 }
 
 function inside(a, b, x, y, r) {

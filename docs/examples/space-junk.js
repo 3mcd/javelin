@@ -112,9 +112,9 @@ const topics = {
 }
 
 const queries = {
-  wormholes: query(Transform, Wormhole, Velocity),
-  junk: query(Transform, Velocity, Junk),
-  dragging: query(Transform, Wormhole, Dragging),
+  wormholes: createQuery(Transform, Wormhole, Velocity),
+  junk: createQuery(Transform, Velocity, Junk),
+  dragging: createQuery(Transform, Wormhole, Dragging),
 }
 
 function inside(a, b, x, y, r) {
@@ -197,23 +197,17 @@ const attract = world => {
       if (we === je) {
         return
       }
-
       const dx = wt.x - jt.x
       const dy = wt.y - jt.y
       const len = Math.sqrt(dx * dx + dy * dy)
-
       if (len <= w.r) {
         j.influenced = true
-
         if (len < w.r / 10) {
           const jw = world.tryGet(je, Wormhole)
-
           if (jw) {
             jw.obliterated = true
           }
-
           w.r += jw?.r || 0.1
-
           world.destroy(je)
         } else {
           jv.x += dx / len / 200

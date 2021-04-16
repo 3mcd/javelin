@@ -13,9 +13,11 @@ Visit https://javelin.games for documentation, examples, and external resources.
 ## Features
 
 ### Fast
+
 Entities are organized by their component makeup into Archetypes for quick lookups and iteration. In a small app (10 component types, 10 archetypes, 10 queries), Javelin can iterate ~2.5 million entities per 16ms on a 2GHz Intel i5 processor.
 
 ### Intuitive
+
 Game data is stored in plain old JavaScript objects. Iterate over game state using familiar syntax:
 
 ```ts
@@ -29,13 +31,13 @@ bodies.forEach((entity, [v, p]) => {
 Best practices are built-in with tools like [Topics](https://javelin.games/ecs/topics) for inter-system messaging:
 
 ```ts
-const sys_movement = () => {
+const sysMovement = () => {
   queries.input.forEach((entity, [input]) => {
     if (input.jump)
       topics.physics.push(impulse(entity, ...))
   })
 }
-const sys_physics = () => {
+const sysPhysics = () => {
   for (const message of topics.physics)
     ...
 }
@@ -44,7 +46,7 @@ const sys_physics = () => {
 and [Effects](https://javelin.games/ecs/effects) for handling async code and third-party dependencies
 
 ```ts
-const sys_render = () => {
+const sysRender = () => {
   const scene = effects.scene()
   const model = effects.gltf("llama.gltf")
 
