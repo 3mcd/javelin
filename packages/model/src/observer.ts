@@ -17,6 +17,7 @@ export type ChangeSetArrayOp = ChangeSetOp & {
   remove: number
 }
 export type ChangeSet = {
+  fieldsCount: number
   fields: { [key: string]: typeof NO_OP | ChangeSetField }
   arrays: ChangeSetArrayOp[]
 }
@@ -45,6 +46,7 @@ const pushFieldOp = (
       traverse: traverse.slice(),
     }
   }
+  changes.fieldsCount++
 }
 
 const pushArrayOp = (
@@ -273,7 +275,7 @@ export function createObserver(): Observer {
   const init = (
     observed: ObservedProps,
     type: ModelNode,
-    changeSet: ChangeSet = { fields: {}, arrays: [] },
+    changeSet: ChangeSet = { fieldsCount: 0, fields: {}, arrays: [] },
   ) => {
     let handler
 
@@ -334,6 +336,7 @@ export function createObserver(): Observer {
       changeSet.fields[prop] = NO_OP
     }
     mutableEmpty(changeSet.arrays)
+    changeSet.fieldsCount = 0
   }
 
   return {

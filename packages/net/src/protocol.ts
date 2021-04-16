@@ -2,6 +2,7 @@ import { Component } from "@javelin/ecs"
 import {
   arrayOf,
   assert,
+  ChangeSet,
   createModel,
   DataType,
   ErrorType,
@@ -12,6 +13,7 @@ import {
   ModelNode,
   ModelNodeKind,
   mutableEmpty,
+  NO_OP,
   Schema,
   SchemaKey,
 } from "@javelin/model"
@@ -193,34 +195,41 @@ export class MessageBuilder {
     this.insert(entity, components, this.parts[3])
   }
 
-  patch(
-    entity: number,
-    cid: number,
-    field: number,
-    value: number | ArrayBuffer,
-    traverse?: string[],
-  ) {
-    const node = this._modelFlat[cid][field]
+  patch(entity: number, cid: number, changes: ChangeSet) {
     const patch = this.parts[6]
-    assert(node !== undefined, "model does not contain component id or field")
-    assert(
-      node.kind === ModelNodeKind.Primitive,
-      "complex types not yet supported in patches",
-    )
+    const { fields, fieldsCount } = changes
+
+    if (fieldsCount === 0) {
+      return
+    }
+
     patch.insert(entity, uint32)
     patch.insert(cid, uint8)
-    patch.insert(field, uint8)
-    patch.insert(traverse?.length ?? 0, uint8)
-    if (traverse !== undefined) {
-      for (let i = 0; i < traverse.length; i++) {
-        // TODO: support map (ie. dont convert string path to int)
-        patch.insert(+traverse[i], uint16)
+    patch.insert(fieldsCount, uint8)
+
+    for (const prop in fields) {
+      const change = fields[prop]
+      if (change === NO_OP) {
+        continue
       }
-    }
-    // TODO: this does nothing right now since complex types are not supported
-    if (typeof value === "object" && "byteLength" in value) {
-      patch.insertBuffer(value)
-    } else {
+      const { field, traverse, value } = change
+      const node = this._modelFlat[cid][field]
+      assert(node !== undefined, "model does not contain component id or field")
+      assert(
+        node.kind === ModelNodeKind.Primitive,
+        "complex types not yet supported in patches",
+      )
+      patch.insert(field, uint8)
+      patch.insert(traverse?.length ?? 0, uint8)
+
+      if (traverse !== undefined) {
+        for (let i = 0; i < traverse.length; i++) {
+          // TODO: support map (ie. dont convert string path to int)
+          patch.insert(+traverse[i], uint16)
+        }
+      }
+
+      // TODO: support complex types
       patch.insert(value, node.type as View)
     }
   }

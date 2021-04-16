@@ -87,32 +87,40 @@ export const createMessageHandler = (world: World) => {
       offset += 4
       while (offset < length) {
         const entity = bufferView.getUint32(offset)
-        offset += 4
-        const componentTypeId = bufferView.getUint8(offset)
-        offset += 1
-        const field = bufferView.getUint8(offset)
-        offset += 1
-        const traverseLength = bufferView.getUint8(offset)
-        offset += 1
-        mutableEmpty(tmpTraverse)
-        for (let i = 0; i < traverseLength; i++) {
-          tmpTraverse.push(bufferView.getUint16(offset))
-          offset += 2
-        }
-
-        const type = model[componentTypeId]
         const local = entities.get(entity)
 
-        if (local !== undefined) {
-          const component = world.storage.findComponentByComponentTypeId(
-            local,
-            componentTypeId,
-          )
+        offset += 4
 
-          if (!component) {
-            continue
+        if (local === undefined) {
+          continue
+        }
+
+        const componentTypeId = bufferView.getUint8(offset)
+        offset += 1
+        const fieldsCount = bufferView.getUint8(offset)
+        offset += 1
+
+        const component = world.storage.findComponentByComponentTypeId(
+          local,
+          componentTypeId,
+        )
+
+        if (!component) {
+          continue
+        }
+
+        for (let i = 0; i < fieldsCount; i++) {
+          const field = bufferView.getUint8(offset)
+          offset += 1
+          const traverseLength = bufferView.getUint8(offset)
+          offset += 1
+          mutableEmpty(tmpTraverse)
+          for (let i = 0; i < traverseLength; i++) {
+            tmpTraverse.push(bufferView.getUint16(offset))
+            offset += 2
           }
 
+          const type = model[componentTypeId]
           let t = 0
           let k: string | number | null = null
           let ref = component
@@ -156,9 +164,9 @@ export const createMessageHandler = (world: World) => {
           const value = view.read(bufferView, offset)
           offset += view.byteLength
           ref[k] = value
-
-          patched.add(local)
         }
+
+        patched.add(local)
       }
     },
   }
