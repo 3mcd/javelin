@@ -2,70 +2,105 @@
 
 Networking protocol and utilities for Javelin ECS.
 
-## MessageBuilder
+## Examples
+
+### Filtering
 
 ```ts
-const model = world.getModel()
-const builder = createMessageBuilder(model)
+import { observe, number, string } from "@javelin/model"
+import {
+  Entity,
+  createQuery,
+  createEffect,
+  effEnter,
+  effExit,
+  effAttached,
+  effDetached,
+  effInterval,
+  each,
+} from "@javelin/ecs"
+import {
+  Message,
+  createMessage,
+  patch,
+  spawn,
+  attach,
+  detach,
+  destroy,
+  pipe,
+  reset,
+} from "@javelin/protocol"
 
-builder.spawn()
-builder.attach()
-builder.detach()
-builder.destroy()
-builder.update()
-builder.patch()
+const Player = {
+  name: string,
+}
+const Body = {
+  x: number,
+  y: number,
+  vx: number,
+  vy: number,
+}
 
-builder.encode()
-```
+const qryBody = createQuery(Body)
+const qryPlayer = createQuery(Player)
+const qryPlayerWBody = createQuery(Player, Body)
 
-```ts
-import { eff_observe } from "@javelin/ecs"
+const effObserve = createEffect(() => () => observe(), { global: true })
+const effMessageRoot = createEffect(
+  () => {
+    const message = createMessage()
+    return () => message
+  },
+  { global: true },
+)
+const effMessagePlayers = createEffect(() => {
+  const messages = new Map<number, Message>()
+  const get = (entity: Entity) => {
+    let message = messages.get(entity)
+    if (message === undefined) {
+      messages.set(entity, (message = createMessage()))
+    }
+    return message
+  }
+  return () => get
+})
 
-const sys_physics = () => {
-  const observe = eff_observe()
-
-  qry_bodies.forEach((entity, [body]) => {
-    const body_o = observe(body)
-    body_o.x = 1
-    body_o.y = 2
+const sysPhysics = () => {
+  const observe = effObserve()
+  qryBody.forEach((entity, [b]) => {
+    const bObserved = observe(b)
+    bObserved.x += b.vx
+    bObserved.y += b.vy
   })
 }
+const sysNet = () => {
+  const send = effInterval((1 / 20) * 1000)
+  const observe = effObserve()
+  const msgRoot = effMessageRoot()
+  const msgPlayers = effMessagePlayers()
 
-import { eff_observe, eff_interval } from "@javelin/ecs"
-import { eff_message } from "@javelin/net"
-import { eff_clients } from "./effects"
-
-const sys_net_server = () => {
-  const send = eff_interval((1 / 20) * 1000)
-  const observe = eff_observe()
-  const message = eff_message()
-  const clients = eff_clients()
+  each(effEnter(qryPlayer), entity => spawn(msgRoot, entity))
+  each(effExit(qryPlayer), entity => destroy(msgRoot, entity))
+  each(effAttached(Body), (entity, body) => attach(msgRoot, entity, body))
+  each(effDetached(Body), entity => detach(msgRoot, entity, Body))
 
   if (send) {
-    qry_bodies.forEach((entity, [body]) => {
-      const changes = observe.changes.get(body)
-      message.patch(entity, body, changes)
-      changes.reset(body)
+    each(qryPlayerWBody, (entity, [bp]) => {
+      const msgPlayer = msgPlayers(entity)
+      const msg = pipe(msgRoot, msgPlayers)
+
+      each(qryBody, (e, [b]) => {
+        if (inRadius(b, bp, 100)) {
+          const changes = observe.changes.get(b)
+          patch(msg, entity, Body, changes)
+        }
+      })
+
+      send(entity, msg)
+      reset(msgPlayer)
     })
 
-    for (const client of clients) {
-      client.send_u(message.encode())
-    }
-    message.reset()
+    reset(msgRoot)
   }
-}
-```
-
-## MessageHandler
-
-```ts
-import { eff_message_handler } from "@javelin/net"
-
-const sys_net_client = () => {
-  const {
-    remote: { tick }, // get remote (server) world details
-    patched, // entities patched last message
-    updated, // entities synced last message
-  } = eff_message_handler()
 }
 ```
