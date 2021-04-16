@@ -1,21 +1,18 @@
 import { Component, ComponentOf, ComponentType } from "../../component"
 import { createEffect } from "../../effect"
 import { Entity } from "../../entity"
+import { $type } from "../../internal/symbols"
 import { createStackPool } from "../../pool"
+import { Collection } from "../../types"
 import { World } from "../../world"
 
-type EntityComponentPair<T extends ComponentType = ComponentType> = [
+type EntityComponentPair<C extends ComponentType = ComponentType> = [
   number,
-  ComponentOf<T>,
+  ComponentOf<C>,
 ]
-type TriggerIteratee<T extends ComponentType = ComponentType> = (
-  entity: number,
-  component: ComponentOf<T>,
-) => void
-type TriggerEffectApi<T extends ComponentType = ComponentType> = {
-  forEach(iteratee: TriggerIteratee<T>): void
-  [Symbol.iterator](): IterableIterator<EntityComponentPair<T>>
-}
+type TriggerEffectApi<C extends ComponentType = ComponentType> = Collection<
+  EntityComponentPair<C>
+>
 
 const pairPool = createStackPool(
   () => ([-1, null] as unknown) as EntityComponentPair,
@@ -39,13 +36,12 @@ const createTrigger = (
     const entities = new Set<Entity>()
     const ready: EntityComponentPair[] = []
     const staged: EntityComponentPair[] = []
-    const forEach = (iteratee: TriggerIteratee) => {
-      for (let i = 0; i < ready.length; i++) {
-        iteratee(ready[i][0], ready[i][1])
-      }
-    }
     const api: TriggerEffectApi = {
-      forEach,
+      forEach(iteratee) {
+        for (let i = 0; i < ready.length; i++) {
+          iteratee(ready[i][0], ready[i][1])
+        }
+      },
       [Symbol.iterator]: () => ready[Symbol.iterator](),
     }
     const signal = worldSignalSelector(world)
@@ -62,7 +58,7 @@ const createTrigger = (
       }
       for (let i = 0; i < archetypes.length; i++) {
         const { table, entities, signatureInverse } = archetypes[i]
-        const index = signatureInverse[componentType.type]
+        const index = signatureInverse[componentType[$type]]
 
         if (index !== undefined) {
           const column = table[index]
@@ -82,7 +78,7 @@ const createTrigger = (
       }
       for (let i = 0; i < components.length; i++) {
         const component = components[i]
-        if (component._tid === type) {
+        if (component.__type__ === type) {
           push(entity, component)
         }
       }
@@ -107,14 +103,14 @@ const createTrigger = (
       })
     }
 
-    return function effTrigger<T extends ComponentType>(
-      componentType: T,
-    ): TriggerEffectApi<T> {
+    return function effTrigger<C extends ComponentType>(
+      componentType: C,
+    ): TriggerEffectApi<C> {
       if (type === null) {
         initialize(componentType)
       }
 
-      type = componentType.type
+      type = componentType[$type]
 
       let r: EntityComponentPair | undefined
       while ((r = ready.pop())) {
@@ -128,7 +124,7 @@ const createTrigger = (
 
       entities.clear()
 
-      return api
+      return api as TriggerEffectApi<C>
     }
   })
 

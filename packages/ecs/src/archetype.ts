@@ -140,7 +140,7 @@ export function createArchetype<T extends ComponentType[]>(
   function insert(entity: number, components: Component[]) {
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const componentTypeIndex = signatureInverse[component._tid]
+      const componentTypeIndex = signatureInverse[component.__type__]
 
       table[componentTypeIndex].push(component)
     }

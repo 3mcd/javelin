@@ -2,22 +2,16 @@ import { mutableEmpty } from "@javelin/model"
 import { Archetype, ArchetypeTableColumn } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
 import { globals } from "./internal/globals"
+import { $type } from "./internal/symbols"
 import { createStackPool } from "./pool"
 import { typeIsSuperset } from "./type"
+import { Collection } from "./types"
 
 export type Selector = ComponentType[]
 export type SelectorResult<S extends Selector> = {
   [K in keyof S]: S[K] extends ComponentType ? ComponentOf<S[K]> : Component
 }
 
-export type QueryForEachIteratee<S extends Selector> = (
-  entity: number,
-  selectorResult: SelectorResult<S>,
-) => void
-export type QueryIteratorResult<S extends Selector> = [
-  number,
-  ...SelectorResult<S>
-]
 export type QueryRecord<S extends Selector> = [
   entities: ReadonlyArray<number>,
   columns: {
@@ -26,7 +20,14 @@ export type QueryRecord<S extends Selector> = [
       : never
   },
 ]
-export type Query<S extends Selector = Selector> = {
+export type QueryForEachRecord<S extends Selector> = [
+  entity: number,
+  selectorResult: SelectorResult<S>,
+]
+export type Query<S extends Selector = Selector> = Collection<
+  QueryForEachRecord<S>,
+  QueryRecord<S>
+> & {
   readonly layout: number[]
   readonly length: number
   readonly signature: number[]
@@ -35,33 +36,11 @@ export type Query<S extends Selector = Selector> = {
   }
 
   /**
-   * Iterate over the query's matching entities, executing the provided
-   * iteratee for each [entity, component-array] pair.
-   * @param iteratee Function executed for each query result
-   * @example
-   * burning.forEach((entity, [player, burn]) => {
-   *   player.health -= burn.damage
-   * })
-   */
-  forEach(iteratee: QueryForEachIteratee<S>): void
-
-  /**
    * Exclude entities with components of provided component type(s) from the
    * query results.
    * @param selector
    */
   not(...selector: Selector): Query<S>
-
-  /**
-   * Manually iterate underlying query records. Faster than forEach.
-   * @example
-   * for (const [entities, [player, burn]] of burning) {
-   *   for (let i = 0; i < entities.length; i++) {
-   *     player[i].health -= burn[i].damage
-   *   }
-   * }
-   */
-  [Symbol.iterator](): IterableIterator<QueryRecord<S>>
 }
 
 export const queryMatchesArchetype = (query: Query, archetype: Archetype) =>
@@ -82,7 +61,7 @@ export const queryMatchesArchetype = (query: Query, archetype: Archetype) =>
  */
 export function createQuery<S extends Selector>(...selector: S): Query<S> {
   const length = selector.length
-  const layout = selector.map(s => s.type)
+  const layout = selector.map(s => s[$type])
   const filters = {
     not: new Set<number>(),
   }
@@ -121,18 +100,18 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
     1000,
   )
 
-  const query = {
+  const query: Query<S> = {
     layout,
     length,
     signature,
     filters,
     not(...selector: Selector) {
       for (let i = 0; i < selector.length; i++) {
-        filters.not.add(selector[i].type)
+        filters.not.add(selector[i][$type])
       }
       return query
     },
-    forEach(iteratee: QueryForEachIteratee<S>) {
+    forEach(iteratee) {
       const records =
         recordsByWorldId[globals.__CURRENT_WORLD__] ||
         registerWorld(globals.__CURRENT_WORLD__)

@@ -16,21 +16,29 @@ module.exports.run = function run() {
     { schema: { value: number }, type: 10 },
   ]
   const components = [
-    ...arrayOf(175000, () => [{ _tid: 1 }]),
-    ...arrayOf(175000, () => [{ _tid: 1 }, { _tid: 3 }]),
-    ...arrayOf(175000, () => [{ _tid: 2 }]),
-    ...arrayOf(175000, () => [{ _tid: 1 }, { _tid: 2 }, { _tid: 3 }]),
-    ...arrayOf(175000, () => [{ _tid: 4 }]),
-    ...arrayOf(175000, () => [{ _tid: 2 }, { _tid: 4 }]),
-    ...arrayOf(175000, () => [{ _tid: 2 }, { _tid: 5 }, { _tid: 8 }]),
+    ...arrayOf(175000, () => [{ __type__: 1 }]),
+    ...arrayOf(175000, () => [{ __type__: 1 }, { __type__: 3 }]),
+    ...arrayOf(175000, () => [{ __type__: 2 }]),
     ...arrayOf(175000, () => [
-      { _tid: 5 },
-      { _tid: 6 },
-      { _tid: 7 },
-      { _tid: 9 },
+      { __type__: 1 },
+      { __type__: 2 },
+      { __type__: 3 },
     ]),
-    ...arrayOf(175000, () => [{ _tid: 7 }]),
-    ...arrayOf(175000, () => [{ _tid: 7 }, { _tid: 9 }]),
+    ...arrayOf(175000, () => [{ __type__: 4 }]),
+    ...arrayOf(175000, () => [{ __type__: 2 }, { __type__: 4 }]),
+    ...arrayOf(175000, () => [
+      { __type__: 2 },
+      { __type__: 5 },
+      { __type__: 8 },
+    ]),
+    ...arrayOf(175000, () => [
+      { __type__: 5 },
+      { __type__: 6 },
+      { __type__: 7 },
+      { __type__: 9 },
+    ]),
+    ...arrayOf(175000, () => [{ __type__: 7 }]),
+    ...arrayOf(175000, () => [{ __type__: 7 }, { __type__: 9 }]),
   ]
   const queries = [
     [componentTypes[0]],

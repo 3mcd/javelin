@@ -14,7 +14,7 @@ export const effObserve = createEffect(world => {
   const api: ObserveEffectApi = Object.assign(function getObserved<
     T extends Component
   >(component: T): T {
-    const type = model[component._tid]
+    const type = model[component.__type__]
     assert(
       type !== undefined,
       "Failed to observe component: component type not registered",

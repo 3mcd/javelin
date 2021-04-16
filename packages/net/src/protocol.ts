@@ -3,6 +3,7 @@ import {
   assert,
   ChangeSet,
   createModel,
+  ErrorType,
   flattenModel,
   Model,
   ModelFlat,
@@ -11,9 +12,9 @@ import {
   NO_OP,
 } from "@javelin/model"
 import {
+  dataTypeToView,
   decode,
   encode,
-  isView,
   uint16,
   uint32,
   uint8,
@@ -107,11 +108,11 @@ const encodePart = (
         // (p.1) entity
         uint32.write(bufferView, offset, entity)
         offset += uint32.byteLength
-        changeMap.forEach((changeSet, componentId) => {
+        changeMap.forEach((changeSet, componentTypeId) => {
           const { fields, fieldsCount } = changeSet
-          const type = message.modelFlat[componentId]
+          const type = message.modelFlat[componentTypeId]
           // (p.2) component id
-          uint8.write(bufferView, offset, componentId)
+          uint8.write(bufferView, offset, componentTypeId)
           offset += uint8.byteLength
           // (p.2.a) field count
           uint8.write(bufferView, offset, fieldsCount)
@@ -141,8 +142,7 @@ const encodePart = (
               typeField.kind === ModelNodeKind.Primitive,
               "Failed to encode patch: only primitive field mutations are currently supported",
             )
-            const view = typeField.type
-            assert(isView(view))
+            const view = dataTypeToView(typeField.type)
             view.write(bufferView, offset, value)
             offset += view.byteLength
           }
@@ -153,7 +153,7 @@ const encodePart = (
     default:
       for (let i = 0; i < part.data.length; i++) {
         const data = part.data[i]
-        const view = part.type[i]
+        const type = part.type[i]
 
         if (data instanceof ArrayBuffer) {
           new Uint8Array(buffer, 0, buffer.byteLength).set(
@@ -162,8 +162,9 @@ const encodePart = (
           )
           offset += data.byteLength
         } else {
-          ;(view as View).write(bufferView, offset, data)
-          offset += (view as View).byteLength
+          assert(type !== null, "", ErrorType.Internal)
+          type.write(bufferView, offset, data)
+          offset += type.byteLength
         }
       }
       break
@@ -191,10 +192,10 @@ const insertEntityComponents = (
 
   for (let i = 0; i < components.length; i++) {
     const component = components[i]
-    const componentId = component._tid
-    const componentEncoded = encode(component, model[componentId])
+    const componentTypeId = component.__type__
+    const componentEncoded = encode(component, model[componentTypeId])
     // component type id
-    insert(part, componentId, uint8)
+    insert(part, componentTypeId, uint8)
     // encoded component length
     insert(part, componentEncoded.byteLength, uint16)
     // encoded component
@@ -344,9 +345,7 @@ const calcChangeByteLength = (
       node.kind === ModelNodeKind.Primitive,
       "Failed to encode change: only primitive field mutations are currently supported",
     )
-    const { type } = node
-    assert(isView(type))
-    byteLength += type.byteLength
+    byteLength += dataTypeToView(node.type).byteLength
   }
 
   return byteLength
@@ -355,7 +354,7 @@ const calcChangeByteLength = (
 export const patch = (
   message: Message,
   entity: Entity,
-  componentId: number,
+  componentTypeId: number,
   changeSet: ChangeSet,
 ) => {
   const part = message.parts[5]
@@ -375,8 +374,8 @@ export const patch = (
     delta += uint32.byteLength
   }
 
-  const componentFieldTypes = message.modelFlat[componentId]
-  const existingChanges = changeMap.get(componentId)
+  const componentFieldTypes = message.modelFlat[componentTypeId]
+  const existingChanges = changeMap.get(componentTypeId)
 
   if (existingChanges) {
     delta -= calcChangeByteLength(existingChanges, componentFieldTypes)
@@ -387,7 +386,7 @@ export const patch = (
     delta += uint8.byteLength
   }
 
-  changeMap.set(componentId, changeSet)
+  changeMap.set(componentTypeId, changeSet)
 
   part.byteLength +=
     delta + calcChangeByteLength(changeSet, componentFieldTypes)
@@ -396,14 +395,14 @@ export const patch = (
 export const detach = (
   message: Message,
   entity: Entity,
-  ...componentIds: number[]
+  ...componentTypeIds: number[]
 ) => {
   const part = message.parts[6]
-  const length = componentIds.length
+  const length = componentTypeIds.length
   insert(part, entity, uint32)
   insert(part, length, uint8)
   for (let i = 0; i < length; i++) {
-    insert(part, componentIds[i], uint8)
+    insert(part, componentTypeIds[i], uint8)
   }
 }
 
@@ -480,7 +479,7 @@ function decodeEntityComponentsPart(
         encodedComponent,
         model[componentTypeId],
       )
-      ;(component as any)._tid = componentTypeId
+      ;(component as any).__type__ = componentTypeId
       components.push(component)
     }
 

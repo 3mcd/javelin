@@ -1,7 +1,7 @@
 import { Archetype, createArchetype } from "../../archetype"
 import { Component } from "../../component"
 import { Entity } from "../../entity"
-import { createComponentType } from "../../helpers"
+import { $type } from "../../internal/symbols"
 import { Signal } from "../../signal"
 import { createWorld, World } from "../../world"
 import { effAttach, effDetach } from "./eff_triggers"
@@ -12,8 +12,8 @@ jest.mock("../../effect")
 type Trigger = typeof effAttach | typeof effDetach
 type ComponentsSignal = Signal<Entity, ReadonlyArray<Component>>
 
-const A = createComponentType({ type: 1 })
-const B = createComponentType({ type: 2 })
+const A = { [$type]: 1 }
+const B = { [$type]: 2 }
 
 const getComponentFromResults = (
   results: [Entity, Component][],
@@ -26,9 +26,9 @@ function runIncludeTest(
   useForEach = true,
 ) {
   const inserts: [number, Component[]][] = [
-    [1, [{ _tid: A.type }]],
-    [2, [{ _tid: A.type }]],
-    [3, [{ _tid: A.type }]],
+    [1, [{ __type__: A[$type] }]],
+    [2, [{ __type__: A[$type] }]],
+    [3, [{ __type__: A[$type] }]],
   ]
   const [[e1, [c1]], [e2, [c2]], [e3, [c3]]] = inserts
   const results: [number, Component][] = []
@@ -58,13 +58,13 @@ function runExcludeTest(trigger: Trigger, signal: ComponentsSignal) {
 
   trigger(A)
 
-  signal.dispatch(1, [{ _tid: A.type }])
-  signal.dispatch(2, [{ _tid: B.type }])
+  signal.dispatch(1, [{ __type__: A[$type] }])
+  signal.dispatch(2, [{ __type__: B[$type] }])
 
   trigger(A).forEach(() => i++)
 
-  signal.dispatch(3, [{ _tid: A.type }])
-  signal.dispatch(4, [{ _tid: B.type }])
+  signal.dispatch(3, [{ __type__: A[$type] }])
+  signal.dispatch(4, [{ __type__: B[$type] }])
 
   trigger(A).forEach(() => i++)
 
@@ -76,7 +76,7 @@ function runFlushTest(trigger: Trigger, signal: ComponentsSignal) {
 
   trigger(A)
 
-  signal.dispatch(1, [{ _tid: A.type }])
+  signal.dispatch(1, [{ __type__: A[$type] }])
 
   trigger(A)
   trigger(A).forEach(() => i++)
@@ -89,12 +89,12 @@ function runSwitchTest(trigger: Trigger, signal: ComponentsSignal) {
 
   trigger(A)
 
-  signal.dispatch(1, [{ _tid: A.type }])
+  signal.dispatch(1, [{ __type__: A[$type] }])
 
   trigger(B).forEach((e, c) => results.push(c))
 
-  signal.dispatch(2, [{ _tid: A.type }])
-  signal.dispatch(3, [{ _tid: B.type }])
+  signal.dispatch(2, [{ __type__: A[$type] }])
+  signal.dispatch(3, [{ __type__: B[$type] }])
 
   trigger(B).forEach((e, c) => results.push(c))
 
@@ -111,9 +111,15 @@ describe("effAttach", () => {
   it("yields components that were added prior to the first execution", () => {
     const results: [Entity, Component][] = []
     const archetype = {
-      ...createArchetype({ signature: [A.type] }),
+      ...createArchetype({ signature: [A[$type]] }),
       entities: [2, 4, 6],
-      table: [[{ _tid: A.type }, { _tid: A.type }, { _tid: A.type }]],
+      table: [
+        [
+          { __type__: A[$type] },
+          { __type__: A[$type] },
+          { __type__: A[$type] },
+        ],
+      ],
     }
     const {
       entities: [e1, e2, e3],

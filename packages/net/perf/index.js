@@ -5,7 +5,7 @@ const { performance } = require("perf_hooks")
 const { MessageBuilder, decodeMessage } = require("../dist/cjs/protocol")
 
 const schemaComponentBase = {
-  _tid: int8,
+  __type__: int8,
 }
 const schemaPosition = {
   ...schemaComponentBase,
@@ -31,9 +31,17 @@ const schemaQuaternion = {
 }
 const a = Math.pow(2, 53)
 
-const position = () => ({ _tid: 1, x: a, y: a, z: a })
-const velocity = () => ({ _tid: 2, x: a, y: a, z: a, avx: a, avy: a, avz: a })
-const quaternion = () => ({ _tid: 3, x: a, y: a, z: a, w: a })
+const position = () => ({ __type__: 1, x: a, y: a, z: a })
+const velocity = () => ({
+  __type__: 2,
+  x: a,
+  y: a,
+  z: a,
+  avx: a,
+  avy: a,
+  avz: a,
+})
+const quaternion = () => ({ __type__: 3, x: a, y: a, z: a, w: a })
 
 const config = new Map([
   [1, schemaPosition],

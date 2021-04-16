@@ -44,7 +44,7 @@ export const createMessageHandler = (world: World) => {
         const source = components[i]
         const target = world.storage.findComponentByComponentTypeId(
           local,
-          source._tid,
+          source.__type__,
         )
 
         if (target) {

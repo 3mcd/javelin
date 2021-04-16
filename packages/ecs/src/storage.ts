@@ -2,6 +2,7 @@ import { mutableEmpty, packSparseArray } from "@javelin/model"
 import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
 import { Entity } from "./entity"
+import { $type } from "./internal/symbols"
 import { createSignal, Signal } from "./signal"
 
 export type StorageSnapshot = {
@@ -147,7 +148,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
       let match = true
 
       for (let j = 0; j < componentsLength; j++) {
-        if (signature.indexOf(components[j]._tid) === -1) {
+        if (signature.indexOf(components[j].__type__) === -1) {
           match = false
           break
         }
@@ -170,7 +171,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
     if (!archetype) {
       archetype = createArchetype({
-        signature: components.map(c => c._tid),
+        signature: components.map(c => c.__type__),
       })
       archetypes.push(archetype)
       archetypeCreated.dispatch(archetype)
@@ -226,7 +227,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     for (let i = 0; i < source.signature.length; i++) {
       const componentTypeId = source.signature[i]
 
-      if (components.find(c => c._tid === componentTypeId)) {
+      if (components.find(c => c.__type__ === componentTypeId)) {
         throw new Error(
           `Cannot attach component with type ${componentTypeId} — entity already has component of type.`,
         )
@@ -239,7 +240,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
   }
 
   function remove(entity: number, components: Component[]) {
-    const typesToRemove = components.map(component => component._tid)
+    const typesToRemove = components.map(component => component.__type__)
 
     removeByTypeIds(entity, typesToRemove)
   }
@@ -277,7 +278,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const column = archetype.signatureInverse[component._tid]
+      const column = archetype.signatureInverse[component.__type__]
 
       if (column === undefined) {
         // Entity component makeup does not match patch component, insert the new
@@ -296,7 +297,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
   function hasComponent(entity: number, componentType: ComponentType) {
     const archetype = getEntityArchetype(entity)
-    return archetype.signature.includes(componentType.type)
+    return archetype.signature.includes(componentType[$type])
   }
 
   function findComponent<T extends ComponentType>(
@@ -305,7 +306,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
   ) {
     return findComponentByComponentTypeId(
       entity,
-      componentType.type,
+      componentType[$type],
     ) as ComponentOf<T>
   }
 

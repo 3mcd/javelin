@@ -20,7 +20,7 @@ type EntityComponentIdsPair = [Entity, number[]]
 
 describe("protocol", () => {
   const baseSchema = {
-    _tid: uint8,
+    __type__: uint8,
     x: float64,
   }
 
@@ -44,10 +44,10 @@ describe("protocol", () => {
     const message = createMessage(model)
 
     tick(message, 999)
-    spawn(message, 1, [{ _tid: 1, x: 9 }])
-    spawn(message, 2, [{ _tid: 1, x: 9 }])
-    attach(message, 3, { _tid: 1, x: 9 })
-    update(message, 3, { _tid: 1, x: 9 })
+    spawn(message, 1, [{ __type__: 1, x: 9 }])
+    spawn(message, 2, [{ __type__: 1, x: 9 }])
+    attach(message, 3, { __type__: 1, x: 9 })
+    update(message, 3, { __type__: 1, x: 9 })
     patch(message, 3, 1, {
       arrays: [],
       fields: { x: { field: 1, value: 10 } },
@@ -79,7 +79,7 @@ describe("protocol", () => {
         [
           0,
           {
-            _tid: uint8,
+            __type__: uint8,
             arr_schema: arrayOf({
               y: float64,
             }),
@@ -91,7 +91,7 @@ describe("protocol", () => {
         [
           1,
           {
-            _tid: uint8,
+            __type__: uint8,
           } as Schema,
         ],
       ]),
@@ -118,7 +118,7 @@ describe("protocol", () => {
   it("deserializes spawned", () => {
     const model = createModel(new Map([[1, baseSchema]]))
     const message = createMessage(model)
-    const spawns: EntityComponentsPair[] = [[7, [{ _tid: 1, x: 888 }]]]
+    const spawns: EntityComponentsPair[] = [[7, [{ __type__: 1, x: 888 }]]]
     const results: EntityComponentsPair[] = []
     const handlers = {
       ...baseHandlers,
@@ -136,7 +136,7 @@ describe("protocol", () => {
   it("deserializes attached", () => {
     const model = createModel(new Map([[1, baseSchema]]))
     const message = createMessage(model)
-    const attaches: EntityComponentsPair[] = [[7, [{ _tid: 1, x: 888 }]]]
+    const attaches: EntityComponentsPair[] = [[7, [{ __type__: 1, x: 888 }]]]
     const results: EntityComponentsPair[] = []
     const handlers = {
       ...baseHandlers,
@@ -155,7 +155,7 @@ describe("protocol", () => {
   it("deserializes updated", () => {
     const model = createModel(new Map([[1, baseSchema]]))
     const message = createMessage(model)
-    const updates: EntityComponentsPair[] = [[7, [{ _tid: 1, x: 888 }]]]
+    const updates: EntityComponentsPair[] = [[7, [{ __type__: 1, x: 888 }]]]
     const results: EntityComponentsPair[] = []
     const handlers = {
       ...baseHandlers,
@@ -182,8 +182,8 @@ describe("protocol", () => {
     }
 
     for (let i = 0; i < detaches.length; i++) {
-      const [entity, componentIds] = detaches[i]
-      detach(message, entity, ...componentIds)
+      const [entity, componentTypeIds] = detaches[i]
+      detach(message, entity, ...componentTypeIds)
     }
 
     decodeMessage(encodeMessage(message), handlers, model)

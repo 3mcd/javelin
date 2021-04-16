@@ -1,8 +1,8 @@
 import { Archetype, createArchetype } from "../../archetype"
 import { Entity } from "../../entity"
-import { createComponentType } from "../../helpers"
 import { globals } from "../../internal/globals"
-import { query } from "../../query"
+import { $type } from "../../internal/symbols"
+import { createQuery } from "../../query"
 import { createWorld, World } from "../../world"
 import { effInsert, effRemove } from "./eff_monitors"
 
@@ -10,9 +10,9 @@ jest.mock("../../archetype")
 jest.mock("../../effect")
 jest.mock("../../world")
 
-const A = createComponentType({ type: 1 })
-const B = createComponentType({ type: 2 })
-const C = createComponentType({ type: 3 })
+const A = { [$type]: 1 }
+const B = { [$type]: 2 }
+const C = { [$type]: 3 }
 
 const a = createQuery(A)
 const ab = createQuery(A, B)
@@ -27,8 +27,8 @@ function runIncludeTest(
   useForEach = true,
 ) {
   const results: number[] = []
-  const prev = createArchetype({ signature: [A.type] })
-  const next = createArchetype({ signature: [A.type, B.type] })
+  const prev = createArchetype({ signature: [A[$type]] })
+  const next = createArchetype({ signature: [A[$type], B[$type]] })
   const left = insert ? prev : next
   const right = insert ? next : prev
 
@@ -56,8 +56,8 @@ function runExcludeTest(
 ) {
   const results: number[] = []
   const root = createArchetype({ signature: [] })
-  const prev = createArchetype({ signature: [A.type] })
-  const next = createArchetype({ signature: [A.type, B.type] })
+  const prev = createArchetype({ signature: [A[$type]] })
+  const next = createArchetype({ signature: [A[$type], B[$type]] })
   const left = insert ? prev : next
   const right = insert ? next : prev
 
@@ -90,9 +90,9 @@ function runSwapTest(
   insert = true,
 ) {
   const results: number[] = []
-  const prev = createArchetype({ signature: [A.type] })
-  const next = createArchetype({ signature: [A.type, B.type] })
-  const changed = createArchetype({ signature: [C.type] })
+  const prev = createArchetype({ signature: [A[$type]] })
+  const next = createArchetype({ signature: [A[$type], B[$type]] })
+  const changed = createArchetype({ signature: [C[$type]] })
   const left = insert ? prev : next
   const right = insert ? next : prev
 
@@ -133,7 +133,7 @@ describe("effInsert", () => {
   it("yields entities that were added prior to the first execution", () => {
     const results: number[] = []
     const archetype = {
-      ...createArchetype({ signature: [A.type, B.type] }),
+      ...createArchetype({ signature: [A[$type], B[$type]] }),
       entities: [2, 4, 6],
     }
     ;(world.storage.archetypes as Archetype[]).push(archetype)

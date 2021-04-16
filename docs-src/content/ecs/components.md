@@ -3,20 +3,20 @@ title = "Components"
 weight = 3
 +++
 
-Most data within a game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `_tid` — short for type id, a unique integer that is shared between all components of the same kind.
+Most data within a game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `__type__` — short for type id, a unique integer that is shared between all components of the same kind.
 
-The `_tid` field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example.
+The `__type__` field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example.
 
 ```ts
-const position = { _tid: 0, x: 2, y: 2 }
-const health = { _tid: 0, value: 100 }
+const position = { __type__: 0, x: 2, y: 2 }
+const health = { __type__: 0, value: 100 }
 ```
 
-Using the same `_tid` for components with a different shape could result in catastrophic behavior! Just make the types unique:
+Using the same `__type__` for components with a different shape could result in catastrophic behavior! Just make the types unique:
 
 ```ts
-const position = { _tid: 0, ... }
-const health = { _tid: 1, ... }
+const position = { __type__: 0, ... }
+const health = { __type__: 1, ... }
 ```
 
 ## Component Types
@@ -42,7 +42,6 @@ A component type has, at minimum, a type and **schema**, which is discussed belo
 A component type's schema defines the field names and data types that make up the shape of the component. The schema is used to initialize component instances and reset them when they are detached from an entity.
 
 The schema currently supports the following data types:
-
 
 ```
 number  (default = 0)

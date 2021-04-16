@@ -1,13 +1,9 @@
 import { createModel, Model, mutableEmpty } from "@javelin/model"
-import {
-  Component,
-  ComponentInitializerArgs,
-  ComponentOf,
-  ComponentType,
-} from "./component"
+import { Component, ComponentOf, ComponentType } from "./component"
 import { Entity } from "./entity"
 import { createComponentPool } from "./helpers"
 import { globals } from "./internal/globals"
+import { $type } from "./internal/symbols"
 import { createStackPool, StackPool } from "./pool"
 import { createSignal, Signal } from "./signal"
 import { createStorage, Storage, StorageSnapshot } from "./storage"
@@ -81,10 +77,7 @@ export interface World<T = any> {
    * @param componentType component type
    * @param args component type initializer arguments
    */
-  component<T extends ComponentType>(
-    componentType: T,
-    ...args: ComponentInitializerArgs<T>
-  ): ComponentOf<T>
+  component<T extends ComponentType>(componentType: T): ComponentOf<T>
 
   /**
    * Attach new components to an entity.
@@ -260,6 +253,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     1000,
   )
   const componentTypes: ComponentType[] = []
+  const componentTypeIds = new Set<number>()
   const componentTypePools = new Map<number, StackPool<Component>>()
   const modelChanged = createSignal<Model>()
   const attached = createSignal<number, ReadonlyArray<Component>>()
@@ -273,6 +267,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   let state: WorldState<T> = getInitialWorldState()
   let prevEntity = 0
   let nextSystem = 0
+  let nextComponentTypeId = 0
 
   options.systems?.forEach(addSystem)
 
@@ -348,7 +343,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function maybeReleaseComponent(component: Component) {
-    const pool = componentTypePools.get(component._tid)
+    const pool = componentTypePools.get(component.__type__)
 
     if (pool) {
       pool.release(component)
@@ -413,7 +408,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
   function component<T extends ComponentType>(
     componentType: T,
-    ...args: ComponentInitializerArgs<T>
   ): ComponentOf<T> {
     const componentTypeHasBeenRegistered = componentTypes.includes(
       componentType,
@@ -423,17 +417,11 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
       registerComponentType(componentType)
     }
 
-    const pool = componentTypePools.get(componentType.type) as StackPool<
+    const pool = componentTypePools.get(componentType[$type]) as StackPool<
       ComponentOf<T>
     >
 
-    const component = pool.retain()
-
-    if (componentType.initialize) {
-      componentType.initialize(component, ...args)
-    }
-
-    return component
+    return pool.retain()
   }
 
   function spawn(...components: ReadonlyArray<Component>) {
@@ -514,8 +502,15 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     componentType: ComponentType,
     poolSize = componentPoolSize,
   ) {
+    let type = componentType[$type]
+
+    if (!($type in componentType)) {
+      while (!componentTypeIds.has(nextComponentTypeId++));
+      type = componentType[$type] = nextComponentTypeId
+    }
+
     const registeredComponentTypeWithTypeId = componentTypes.find(
-      ({ type }) => componentType.type === type,
+      ({ [$type]: type }) => componentType[$type] === type,
     )
 
     if (registeredComponentTypeWithTypeId) {
@@ -525,20 +520,11 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     }
 
     componentTypes.push(componentType)
-    componentTypePools.set(
-      componentType.type,
-      createComponentPool(componentType, poolSize),
-    )
+    componentTypePools.set(type, createComponentPool(componentType, poolSize))
 
-    const config = new Map(
-      componentTypes.map(componentType => [
-        componentType.type,
-        componentType.schema,
-      ]),
-    )
-    // TODO: merge remote model
+    const modelConfig = new Map(componentTypes.map(ct => [type, ct]))
 
-    model = createModel(config)
+    model = createModel(modelConfig)
     modelChanged.dispatch(model)
   }
 

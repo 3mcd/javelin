@@ -3,38 +3,34 @@ import { Archetype } from "../../archetype"
 import { createEffect } from "../../effect"
 import { Entity } from "../../entity"
 import { Query, queryMatchesArchetype, Selector } from "../../query"
+import { Collection } from "../../types"
 
-type MonitorIteratee = (entity: Entity) => void
 type MonitorPredicate = (
   query: Query,
   prev: Archetype,
   next: Archetype,
 ) => boolean
-type MonitorEffectApi = {
-  forEach(iteratee: MonitorIteratee): void
-  [Symbol.iterator](): IterableIterator<number>
-}
+type MonitorEffectApi = Collection<number>
 
 const createMonitor = (predicate: MonitorPredicate, emitExisting = false) =>
   createEffect(world => {
     const {
       storage: { entityRelocated },
     } = world
-    let active: Query<any> | null = null
+    let active: Query<Selector> | null = null
     let staged: number[] = []
     let ready: number[] = []
 
-    const forEach = (iteratee: MonitorIteratee) => {
-      for (let i = 0; i < ready.length; i++) {
-        iteratee(ready[i])
-      }
-    }
     const api: MonitorEffectApi = {
-      forEach,
+      forEach(iteratee) {
+        for (let i = 0; i < ready.length; i++) {
+          iteratee(ready[i])
+        }
+      },
       [Symbol.iterator]: () => ready[Symbol.iterator](),
     }
 
-    const reset = (query: Query<any>) => {
+    const reset = (query: Query<Selector>) => {
       mutableEmpty(staged)
       mutableEmpty(ready)
 

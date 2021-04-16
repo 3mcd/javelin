@@ -1,16 +1,16 @@
 import { Archetype, createArchetype } from "./archetype"
 import { Component } from "./component"
-import { createComponentType } from "./helpers"
 import { globals } from "./internal/globals"
-import { query } from "./query"
+import { $type } from "./internal/symbols"
+import { createQuery } from "./query"
 import { createWorld } from "./world"
 
 jest.mock("./archetype")
 jest.mock("./world")
 
-describe("query", () => {
-  const A = createComponentType({ type: 0, schema: {} })
-  const B = createComponentType({ type: 1, schema: {} })
+describe("createQuery", () => {
+  const A = { [$type]: 0 }
+  const B = { [$type]: 1 }
 
   it("initializes with sorted signature", () => {
     const q = createQuery(B, A)
@@ -21,14 +21,14 @@ describe("query", () => {
     const world = createWorld()
     const table = [
       [
-        { _tid: 0, foo: 4 },
-        { _tid: 0, foo: 5 },
-        { _tid: 0, foo: 6 },
+        { __type__: 0, foo: 4 },
+        { __type__: 0, foo: 5 },
+        { __type__: 0, foo: 6 },
       ],
       [
-        { _tid: 1, foo: 1 },
-        { _tid: 1, foo: 2 },
-        { _tid: 1, foo: 3 },
+        { __type__: 1, foo: 1 },
+        { __type__: 1, foo: 2 },
+        { __type__: 1, foo: 3 },
       ],
     ]
 

@@ -26,7 +26,7 @@ const config = new Map([
 const model = createModel(config)
 const observer = createObserver()
 const instance = {
-  _tid: 0,
+  __type__: 0,
   x: 1,
   y: 2,
   inventory: [

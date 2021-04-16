@@ -9,3 +9,12 @@ export type MutableDeep<T> = {
     ? U[]
     : T[P]
 }
+
+export type CollectionRecord = unknown | unknown[]
+export type CollectionIteratee<R extends CollectionRecord> = R extends unknown[]
+  ? (key: R[0], value: R[1]) => unknown
+  : (value: R) => unknown
+export type Collection<R extends CollectionRecord, I = R> = {
+  forEach(iteratee: CollectionIteratee<R>): void
+  [Symbol.iterator](): IterableIterator<I>
+}
