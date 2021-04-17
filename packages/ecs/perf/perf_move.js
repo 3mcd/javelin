@@ -3,18 +3,12 @@ const {
   createWorld,
   effAttach,
   effDetach,
-  query,
-  createComponentType,
+  createQuery,
+  component,
 } = require("../dist/cjs")
 
-const A = createComponentType({
-  type: 0,
-  schema: {},
-})
-const B = createComponentType({
-  type: 1,
-  schema: {},
-})
+const A = {}
+const B = {}
 
 module.exports.run = () => {
   let i = 0
@@ -26,7 +20,7 @@ module.exports.run = () => {
       for (let i = 0; i < entities.length; i++) {
         const entity = entities[i]
         if (!world.has(entity, B)) {
-          world.attach(entity, world.component(B))
+          world.attach(entity, component(B))
         }
       }
     }
@@ -45,7 +39,7 @@ module.exports.run = () => {
   const world = createWorld({ systems: [sysAttach, sysDetach] })
 
   for (let i = 0; i < 1000000; i++) {
-    world.spawn(world.component(A))
+    world.spawn(component(A))
   }
 
   const start = performance.now()

@@ -430,7 +430,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
       return
     }
 
-    if ("type" in components[0]) {
+    if ($type in components[0]) {
       components = (components as ComponentType[]).map(ct => get(entity, ct))
     }
 

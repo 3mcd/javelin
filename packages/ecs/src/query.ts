@@ -4,7 +4,6 @@ import {
   Component,
   ComponentOf,
   ComponentType,
-  componentTypeIds,
   registerComponentType,
 } from "./component"
 import { globals } from "./internal/globals"

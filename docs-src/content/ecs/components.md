@@ -19,77 +19,53 @@ const position = { __type__: 0, ... }
 const health = { __type__: 1, ... }
 ```
 
+Entities can have a single instance of a given type.
+
 ## Component Types
 
-The `createComponentType` helper is used to define the types of components in your game. Component types make it easy to initialize components from a schema, and components created with a component type are automatically pooled.
+A **component type** defines the structure of a component.
 
 ```ts
-import { createComponentType, number } from "@javelin/ecs"
+import { number } from "@javelin/ecs"
 
-const Position = createComponentType({
-  type: 1,
-  schema: {
-    x: number,
-    y: number,
-  },
-})
+const Position = {
+  x: number,
+  y: number,
+}
 ```
 
-A component type has, at minimum, a type and **schema**, which is discussed below.
+Components types can range from simple, with few (or no) properties, to complex with deeply nested structures.
 
-### Schema
-
-A component type's schema defines the field names and data types that make up the shape of the component. The schema is used to initialize component instances and reset them when they are detached from an entity.
+A component type defines the field names and data types that make up the shape of the component. This object is used to initialize component instances and reset them when they are detached from an entity.
 
 The schema currently supports the following data types:
 
 ```
 number  (default = 0)
-boolean (default = false)
 string  (default = "")
-array   (default = [])
+boolean (default = false)
+arrayOf (default = [])
 ```
 
-A default value for a data type can be specified in the schema by wrapping the data type in an object:
+A unique id is automatically assigned to each component type the ECS encounters for the first time. If you need to register and assign an id manually (e.g., you are synchronizing your component model in a multiplayer game), you can register the component type manually using `registerComponentType`:
 
 ```ts
-schema: {
-  x: { type: number, defaultValue: -1 }
-}
+import { registerComponentType } from "@javelin/ecs"
+
+registerComponentType(Position, 4)
 ```
 
 ### Creating Components
 
-A component is initialized from a component type using `world.component`:
+Components are created using the `component()` function.
 
 ```ts
-const position = world.component(Position)
+import { component } from "@javelin/ecs"
 
-position.x // 0
-position.y // 0
+const position = component(Position)
 ```
 
-You may also specify an initializer function for a component type to make component creation easier.
-
-```ts
-const Position = createComponentType({
-  ...
-  initialize(position, x = 0, y = 0) {
-    position.x = x
-    position.y = y
-  },
-})
-
-const position = world.component(
-  Position,
-  10, // x
-  20, // y
-)
-```
-
-### Object Pooling
-
-Components created via a component type are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singleton or low-volume components. You can modify the default pool size of all component types by setting the `componentPoolSize` option on the config object passed to `createWorld()`:
+Components created using `component()` are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singleton or low-volume components. You can modify the default pool size of all component types by setting the `componentPoolSize` option on the config object passed to `createWorld()`:
 
 ```ts
 const world = createWorld({
@@ -97,14 +73,14 @@ const world = createWorld({
 })
 ```
 
-Or, you can specify the pool size for a single component type when registering the it with `world.registerComponentType`:
+Or, you can specify the pool size for a single component type when registering the it with `registerComponentType`:
 
 ```ts
-world.registerComponentType(Position, 10000)
+registerComponentType(Position, 4, 10000)
 ```
 
 <aside>
   <p>
-    <strong>Tip</strong> — the configured or default pool size will be used if a component type is encountered by <code>world.component()</code> prior to manual registration.
+    <strong>Tip</strong> — the configured or default pool size will be used if a component type is encountered by <code>component()</code> prior to manual registration.
   </p>
 </aside>

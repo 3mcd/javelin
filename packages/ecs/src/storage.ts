@@ -229,7 +229,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
       if (components.find(c => c.__type__ === componentTypeId)) {
         throw new Error(
-          `Cannot attach component with type ${componentTypeId} — entity already has component of type.`,
+          `Failed to attach component with type ${componentTypeId}: entity already has component of type`,
         )
       }
 

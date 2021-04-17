@@ -86,7 +86,7 @@ Depending on its archetype, an entity may be eligible for iteration by a system 
 Queries are created with the `createQuery` function, which takes a **selector** of component types.
 
 ```ts
-import { query } from "@javelin/ecs"
+import { createQuery } from "@javelin/ecs"
 
 const players = createQuery(Position, Velocity)
 ```
@@ -122,8 +122,8 @@ players.forEach((entity, [position, velocity]) => {
 The order of component types in the query's selector will match the order of components in the query's results. That is, `createQuery(Position, Player)` will always yield tuples of components `(Position, Player)`:
 
 ```ts
-world.spawn(world.component(Player), world.component(Position))
-world.spawn(world.component(Position), world.component(Player))
+world.spawn(component(Player), component(Position))
+world.spawn(component(Position), component(Player))
 
 const sysRender = () => {
   players.forEach((entity, [position, player]) => {

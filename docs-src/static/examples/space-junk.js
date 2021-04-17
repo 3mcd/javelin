@@ -1,4 +1,5 @@
 const {
+  each,
   boolean,
   component,
   createEffect,
@@ -79,15 +80,11 @@ const effMouseup = createMouseEventEffect("mouseup")
 const effMousedown = createMouseEventEffect("mousedown")
 const effMousemove = createMouseEventEffect("mousemove")
 
-const topics = {
-  log: createTopic(),
-}
+const log = createTopic()
 
-const queries = {
-  wormholes: createQuery(Transform, Wormhole, Velocity),
-  junk: createQuery(Transform, Velocity, Junk),
-  dragging: createQuery(Transform, Wormhole, Dragging),
-}
+const qryWormhole = createQuery(Transform, Wormhole, Velocity)
+const qryJunk = createQuery(Transform, Velocity, Junk)
+const qryDragging = createQuery(Transform, Wormhole, Dragging)
 
 function inside(a, b, x, y, r) {
   const dist = (a - x) * (a - x) + (b - y) * (b - y)
@@ -95,7 +92,7 @@ function inside(a, b, x, y, r) {
   return dist < r
 }
 
-const spawn = world => {
+const sysSpawn = world => {
   const mouseup = effMouseup()
   const mousedown = effMousedown()
   const mousemove = effMousemove()
@@ -103,7 +100,7 @@ const spawn = world => {
   const shouldSpawnWormhole = effInterval(3500)
 
   if (mousedown.active) {
-    for (const [entities, [wt, w]] of queries.wormholes) {
+    for (const [entities, [wt, w]] of qryWormhole) {
       for (let i = 0; i < entities.length; i++) {
         const { x, y } = wt[i]
         const { r } = w[i]
@@ -116,7 +113,7 @@ const spawn = world => {
 
   if (mouseup.active) {
     let isDragging = false
-    for (const [entities] of queries.dragging) {
+    for (const [entities] of qryDragging) {
       for (let i = 0; i < entities.length; i++) {
         world.detach(entities[i], Dragging)
         isDragging = true
@@ -129,7 +126,7 @@ const spawn = world => {
   }
 
   if (mousemove.active) {
-    queries.dragging.forEach((entity, [t, w]) => {
+    each(qryDragging, (entity, [t]) => {
       t.x = mousemove.coords.x
       t.y = mousemove.coords.y
     })
@@ -157,14 +154,14 @@ const spawnJunk = () => {
   }
 }
 
-const attract = world => {
-  queries.wormholes.forEach((we, [wt, w, wv]) => {
+const sysAttract = world => {
+  each(qryWormhole, (we, [wt, w, wv]) => {
     if (w.obliterated) {
       return
     }
     wv.x *= 0.95
     wv.y *= 0.95
-    queries.junk.forEach((je, [jt, jv, j]) => {
+    each(qryJunk, (je, [jt, jv, j]) => {
       if (we === je) {
         return
       }
@@ -189,19 +186,19 @@ const attract = world => {
   })
 }
 
-const render = () => {
+const sysRender = () => {
   context.clearRect(0, 0, 800, 300)
 
-  queries.junk.forEach((e, [{ x, y }, t, { influenced }]) => {
+  each(qryJunk, (e, [{ x, y }, t, { influenced }]) => {
     context.fillStyle = influenced ? "#fff" : "#99c7c7"
     context.fillRect(Math.floor(x), Math.floor(y), 1, 1)
   })
 
-  queries.wormholes.forEach((e, [{ x, y }, { r }]) => {
+  each(qryWormhole, (e, [{ x, y }]) => {
     let maxPos
     let maxLen = Infinity
 
-    queries.wormholes.forEach((e2, [pos2]) => {
+    each(qryWormhole, (e2, [pos2]) => {
       if (e === e2) {
         return
       }
@@ -228,7 +225,7 @@ const render = () => {
     }
   })
 
-  queries.wormholes.forEach((e, [{ x, y }, { r }]) => {
+  each(qryWormhole, (e, [{ x, y }, { r }]) => {
     context.fillStyle = "#fff"
     context.beginPath()
     context.arc(Math.floor(x), Math.floor(y), r / 10, 0, 2 * Math.PI)
@@ -236,41 +233,38 @@ const render = () => {
   })
 }
 
-const physics = () => {
-  queries.junk.forEach((_, [t, { x, y }]) => {
+const sysPhysics = () => {
+  each(qryJunk, (_, [t, { x, y }]) => {
     t.x += x
     t.y += y
   })
 }
 
-const triggers = () => {
+const sysTriggers = () => {
   const shouldLog = effInterval(1000)
   const countAttach = effRef(0)
   const countDetach = effRef(0)
 
-  for (const [] of effAttach(Transform)) {
-    countAttach.value++
-  }
-
-  effDetach(Transform).forEach(() => countDetach.value++)
+  each(effAttach(Transform), () => countAttach.value++)
+  each(effDetach(Transform), () => countDetach.value++)
 
   if (shouldLog) {
-    topics.log.pushImmediate(`(t) +${countAttach.value} -${countDetach.value}`)
+    log.pushImmediate(`(t) +${countAttach.value} -${countDetach.value}`)
     countAttach.value = 0
     countDetach.value = 0
   }
 }
 
-const monitors = () => {
+const sysMonitors = () => {
   const shouldLog = effInterval(1000)
   const countInsert = effRef(0)
   const countRemove = effRef(0)
 
-  effInsert(queries.wormholes).forEach(() => countInsert.value++)
-  effRemove(queries.wormholes).forEach(() => countRemove.value++)
+  each(effInsert(qryWormhole), () => countInsert.value++)
+  each(effRemove(qryWormhole), () => countRemove.value++)
 
   if (shouldLog) {
-    topics.log.pushImmediate(`(w) +${countInsert.value} -${countRemove.value}`)
+    log.pushImmediate(`(w) +${countInsert.value} -${countRemove.value}`)
     countInsert.value = 0
     countRemove.value = 0
   }
@@ -284,9 +278,9 @@ const rightPad = (str, n) => {
   return out
 }
 
-const log = () => {
+const sysLog = () => {
   const messages = []
-  for (const message of topics.log) {
+  for (const message of log) {
     messages.push(message)
   }
   if (messages.length > 0) {
@@ -301,16 +295,16 @@ const log = () => {
 
 const world = createWorld({
   systems: [
-    spawn,
+    sysSpawn,
     spawnJunk,
-    physics,
-    attract,
-    render,
-    triggers,
-    monitors,
-    log,
+    sysPhysics,
+    sysAttract,
+    sysRender,
+    sysTriggers,
+    sysMonitors,
+    sysLog,
   ],
-  topics: [topics.log],
+  topics: [log],
 })
 
 function spawnWormhole(

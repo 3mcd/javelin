@@ -23,7 +23,7 @@ When you need to apply a impulse to an entity, you insert an `Impulse` component
 ```ts
 const sysInput = () => {
   queries.jumping.forEach(entity => {
-    world.attach(entity, world.component(Impulse))
+    world.attach(entity, component(Impulse))
   })
   queries.withImpulse.forEach(entity => {
     world.detach(entity, impulse)
