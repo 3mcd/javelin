@@ -1,1 +1,1 @@
-export * from "./helpers_component"
+export * from "./helpers_collection"

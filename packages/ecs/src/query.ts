@@ -1,6 +1,12 @@
 import { mutableEmpty } from "@javelin/model"
 import { Archetype, ArchetypeTableColumn } from "./archetype"
-import { Component, ComponentOf, ComponentType } from "./component"
+import {
+  Component,
+  ComponentOf,
+  ComponentType,
+  componentTypeIds,
+  registerComponentType,
+} from "./component"
 import { globals } from "./internal/globals"
 import { $type } from "./internal/symbols"
 import { createStackPool } from "./pool"
@@ -61,7 +67,9 @@ export const queryMatchesArchetype = (query: Query, archetype: Archetype) =>
  */
 export function createQuery<S extends Selector>(...selector: S): Query<S> {
   const length = selector.length
-  const layout = selector.map(s => s[$type])
+  const layout = selector.map(componentType =>
+    registerComponentType(componentType),
+  )
   const filters = {
     not: new Set<number>(),
   }

@@ -1,18 +1,18 @@
 const {
   boolean,
-  createComponentType,
+  component,
   createEffect,
+  createQuery,
   createTopic,
   createWorld,
-  interval,
+  effAttach,
+  effDetach,
+  effInsert,
+  effInterval,
+  effRef,
+  effRemove,
+  effTimer,
   number,
-  onAttach,
-  onDetach,
-  onInsert,
-  onRemove,
-  query,
-  ref,
-  timer,
 } = Javelin
 
 function relMouseCoords(canvas, event) {
@@ -39,48 +39,22 @@ context.imageSmoothingEnabled = false
 canvas.width = 800
 canvas.height = 300
 
-const Transform = createComponentType({
-  type: 1,
-  schema: {
-    x: number,
-    y: number,
-  },
-  initialize: (t, x = 0, y = 0) => {
-    t.x = x
-    t.y = y
-  },
-})
-const Velocity = createComponentType({
-  type: 2,
-  schema: {
-    x: number,
-    y: number,
-  },
-  initialize: (v, x = 0, y = 0) => {
-    v.x = x
-    v.y = y
-  },
-})
-const Junk = createComponentType({
-  type: 3,
-  schema: {
-    influenced: boolean,
-  },
-})
-const Wormhole = createComponentType({
-  type: 4,
-  schema: {
-    r: number,
-    obliterated: boolean,
-  },
-  initialize: (w, r = 0.5) => {
-    w.r = r
-    w.obliterated = false
-  },
-})
-const Dragging = createComponentType({
-  type: 5,
-})
+const Transform = {
+  x: number,
+  y: number,
+}
+const Velocity = {
+  x: number,
+  y: number,
+}
+const Junk = {
+  influenced: boolean,
+}
+const Wormhole = {
+  r: number,
+  obliterated: boolean,
+}
+const Dragging = {}
 
 const createMouseEventEffect = name =>
   createEffect(() => {
@@ -101,11 +75,9 @@ const createMouseEventEffect = name =>
     }
   })
 
-const effects = {
-  mouseup: createMouseEventEffect("mouseup"),
-  mousedown: createMouseEventEffect("mousedown"),
-  mousemove: createMouseEventEffect("mousemove"),
-}
+const effMouseup = createMouseEventEffect("mouseup")
+const effMousedown = createMouseEventEffect("mousedown")
+const effMousemove = createMouseEventEffect("mousemove")
 
 const topics = {
   log: createTopic(),
@@ -124,11 +96,11 @@ function inside(a, b, x, y, r) {
 }
 
 const spawn = world => {
-  const mouseup = effects.mouseup()
-  const mousedown = effects.mousedown()
-  const mousemove = effects.mousemove()
-  const hasClickedOnce = ref(false)
-  const shouldSpawnWormhole = interval(3500)
+  const mouseup = effMouseup()
+  const mousedown = effMousedown()
+  const mousemove = effMousemove()
+  const hasClickedOnce = effRef(false)
+  const shouldSpawnWormhole = effInterval(3500)
 
   if (mousedown.active) {
     for (const [entities, [wt, w]] of queries.wormholes) {
@@ -136,7 +108,7 @@ const spawn = world => {
         const { x, y } = wt[i]
         const { r } = w[i]
         if (inside(mousedown.coords.x, mousedown.coords.y, x, y, r / 10)) {
-          world.attach(entities[i], world.component(Dragging))
+          world.attach(entities[i], component(Dragging))
         }
       }
     }
@@ -169,17 +141,16 @@ const spawn = world => {
 }
 
 const spawnJunk = () => {
-  const shouldSpawnJunk = ref(true)
+  const shouldSpawnJunk = effRef(true)
 
   if (shouldSpawnJunk.value) {
     for (let i = 0; i < 10000; i++) {
       const x = Math.random() * (canvas.width * 1.5) - 0.25 * canvas.width
       const y = Math.random() * (canvas.height * 1.5) - 0.25 * canvas.height
-      world.spawn(
-        world.component(Transform, x, y),
-        world.component(Velocity),
-        world.component(Junk),
-      )
+      const t = component(Transform)
+      t.x = x
+      t.y = y
+      world.spawn(t, component(Velocity), component(Junk))
     }
 
     shouldSpawnJunk.value = false
@@ -273,15 +244,15 @@ const physics = () => {
 }
 
 const triggers = () => {
-  const shouldLog = interval(1000)
-  const countAttach = ref(0)
-  const countDetach = ref(0)
+  const shouldLog = effInterval(1000)
+  const countAttach = effRef(0)
+  const countDetach = effRef(0)
 
-  for (const [] of onAttach(Transform)) {
+  for (const [] of effAttach(Transform)) {
     countAttach.value++
   }
 
-  onDetach(Transform).forEach(() => countDetach.value++)
+  effDetach(Transform).forEach(() => countDetach.value++)
 
   if (shouldLog) {
     topics.log.pushImmediate(`(t) +${countAttach.value} -${countDetach.value}`)
@@ -291,12 +262,12 @@ const triggers = () => {
 }
 
 const monitors = () => {
-  const shouldLog = interval(1000)
-  const countInsert = ref(0)
-  const countRemove = ref(0)
+  const shouldLog = effInterval(1000)
+  const countInsert = effRef(0)
+  const countRemove = effRef(0)
 
-  onInsert(queries.wormholes).forEach(() => countInsert.value++)
-  onRemove(queries.wormholes).forEach(() => countRemove.value++)
+  effInsert(queries.wormholes).forEach(() => countInsert.value++)
+  effRemove(queries.wormholes).forEach(() => countRemove.value++)
 
   if (shouldLog) {
     topics.log.pushImmediate(`(w) +${countInsert.value} -${countRemove.value}`)
@@ -347,12 +318,12 @@ function spawnWormhole(
   y = Math.random() * canvas.height,
   r = Math.max(10, Math.random() * 60),
 ) {
-  world.spawn(
-    world.component(Transform, x, y),
-    world.component(Wormhole, r),
-    world.component(Velocity),
-    world.component(Junk),
-  )
+  const t = component(Transform)
+  const w = component(Wormhole)
+  t.x = x
+  t.y = y
+  w.r = r
+  world.spawn(t, w, component(Velocity), component(Junk))
 }
 
 spawnWormhole()

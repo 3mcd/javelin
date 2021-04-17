@@ -1,10 +1,14 @@
 import { createModel, Model, mutableEmpty } from "@javelin/model"
-import { Component, ComponentOf, ComponentType } from "./component"
+import {
+  Component,
+  ComponentOf,
+  ComponentType,
+  componentTypePools,
+} from "./component"
 import { Entity } from "./entity"
-import { createComponentPool } from "./helpers"
 import { globals } from "./internal/globals"
 import { $type } from "./internal/symbols"
-import { createStackPool, StackPool } from "./pool"
+import { createStackPool } from "./pool"
 import { createSignal, Signal } from "./signal"
 import { createStorage, Storage, StorageSnapshot } from "./storage"
 import { Topic } from "./topic"
@@ -70,14 +74,6 @@ export interface World<T = any> {
    * @param components The new entity's components
    */
   spawn(...components: ReadonlyArray<Component>): number
-
-  /**
-   * Create a component.
-   *
-   * @param componentType component type
-   * @param args component type initializer arguments
-   */
-  component<T extends ComponentType>(componentType: T): ComponentOf<T>
 
   /**
    * Attach new components to an entity.
@@ -167,11 +163,6 @@ export interface World<T = any> {
   readonly ops: ReadonlyArray<WorldOp>
 
   /**
-   * Array of registered component factories.
-   */
-  readonly componentTypes: ReadonlyArray<ComponentType>
-
-  /**
    * Current world state including current tick number and tick data.
    */
   readonly state: { readonly [K in keyof WorldState<T>]: WorldState<T>[K] }
@@ -240,7 +231,7 @@ function getInitialWorldState<T>() {
 }
 
 export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
-  const { componentPoolSize = 1000, topics = [] } = options
+  const { topics = [] } = options
   const systems: System<T>[] = []
   const worldOps: WorldOp[] = []
   const worldOpsPrevious: WorldOp[] = []
@@ -252,10 +243,8 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     },
     1000,
   )
-  const componentTypes: ComponentType[] = []
-  const componentTypeIds = new Set<number>()
-  const componentTypePools = new Map<number, StackPool<Component>>()
   const modelChanged = createSignal<Model>()
+  const seenComponentTypes = new Set<ComponentType>()
   const attached = createSignal<number, ReadonlyArray<Component>>()
   const detached = createSignal<number, ReadonlyArray<Component>>()
   const spawned = createSignal<number>()
@@ -406,22 +395,16 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     }
   }
 
-  function component<T extends ComponentType>(
-    componentType: T,
-  ): ComponentOf<T> {
-    const componentTypeHasBeenRegistered = componentTypes.includes(
-      componentType,
-    )
+  function maybeRegisterComponentType(componentType: ComponentType) {
+    const isRegistered = seenComponentTypes.has(componentType)
 
-    if (!componentTypeHasBeenRegistered) {
-      registerComponentType(componentType)
+    if (!isRegistered) {
+      const modelConfig = new Map(
+        Array.from(seenComponentTypes).map(ct => [ct[$type], ct]),
+      )
+      model = createModel(modelConfig)
+      modelChanged.dispatch(model)
     }
-
-    const pool = componentTypePools.get(componentType[$type]) as StackPool<
-      ComponentOf<T>
-    >
-
-    return pool.retain()
   }
 
   function spawn(...components: ReadonlyArray<Component>) {
@@ -475,6 +458,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function has(entity: number, componentType: ComponentType) {
+    maybeRegisterComponentType(componentType)
     return storage.hasComponent(entity, componentType)
   }
 
@@ -482,6 +466,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     entity: number,
     componentType: T,
   ): ComponentOf<T> {
+    maybeRegisterComponentType(componentType)
     const component = storage.findComponent(entity, componentType)
 
     if (component === null) {
@@ -495,37 +480,8 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     entity: number,
     componentType: T,
   ): ComponentOf<T> | null {
+    maybeRegisterComponentType(componentType)
     return storage.findComponent(entity, componentType)
-  }
-
-  function registerComponentType(
-    componentType: ComponentType,
-    poolSize = componentPoolSize,
-  ) {
-    let type = componentType[$type]
-
-    if (!($type in componentType)) {
-      while (!componentTypeIds.has(nextComponentTypeId++));
-      type = componentType[$type] = nextComponentTypeId
-    }
-
-    const registeredComponentTypeWithTypeId = componentTypes.find(
-      ({ [$type]: type }) => componentType[$type] === type,
-    )
-
-    if (registeredComponentTypeWithTypeId) {
-      throw new Error(
-        `Failed to register component type: a componentType with same id is already registered`,
-      )
-    }
-
-    componentTypes.push(componentType)
-    componentTypePools.set(type, createComponentPool(componentType, poolSize))
-
-    const modelConfig = new Map(componentTypes.map(ct => [type, ct]))
-
-    model = createModel(modelConfig)
-    modelChanged.dispatch(model)
   }
 
   function reserve() {
@@ -535,10 +491,8 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   function reset() {
     mutableEmpty(worldOps)
     mutableEmpty(worldOpsPrevious)
-    mutableEmpty(componentTypes)
     mutableEmpty(systems)
 
-    componentTypePools.clear()
     destroying.clear()
 
     state = getInitialWorldState()
@@ -586,8 +540,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     addTopic,
     applyOps,
     attach,
-    component,
-    componentTypes,
     destroy,
     detach,
     get,

@@ -9,25 +9,22 @@ import {
 } from "./model"
 
 export function initialize<S extends Schema>(
-  component: InstanceOfSchema<S>,
+  object: InstanceOfSchema<S>,
   schema: S,
 ): InstanceOfSchema<S> {
   for (const prop in schema) {
     const value = schema[prop]
 
     if (isPrimitiveType(value)) {
-      component[prop] = value.create()
+      object[prop] = value.create()
     } else if (value.__kind__ === SchemaKeyKind.Array) {
-      component[prop] = [] as InstanceOfSchemaKey<any>
+      object[prop] = [] as InstanceOfSchemaKey<any>
     } else {
-      component[prop] = initialize(
-        {},
-        value as Schema,
-      ) as InstanceOfSchemaKey<any>
+      object[prop] = initialize({}, value as Schema) as InstanceOfSchemaKey<any>
     }
   }
 
-  return component
+  return object
 }
 
 export function reset<S extends Schema>(
