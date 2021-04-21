@@ -21,9 +21,7 @@ const Body = {
 const players = createQuery(Player, Body)
 const bodies = createQuery(Body)
 
-const sysPhysics = () => {
-  const observe = effObserve()
-
+const sysPhysics: System = ({ observe }) => {
   each(bodies, (e, [b]) => {
     const bo = observe(b)
     bo.x += b.vx
@@ -32,16 +30,15 @@ const sysPhysics = () => {
 }
 
 const sysNetPrioritize = () => {
-  const { changesOf } = effObserve()
-  const views = effViews()
+  const priorities = effPlayerPriorities()
 
-  each(players, (ep, [, bp]) => {
-    const view = views.get(ep)
-    each(bodies, (e, [b]) => {
+  each(players, (e, [, bp]) => {
+    const acc = priorites.get(e)
+    each(bodies, (eb, [b]) => {
       const distance = distanceTo(bp, b)
       if (distance <= MAX_UPDATE_DISTANCE) {
-        const priority = e === ep ? Infinity : 1 / distance
-        view.update(ep, e, Body, changesOf(b), priority)
+        const priority = eb === e ? Infinity : 1 / distance
+        acc.add(e, eb, Body, priority)
       }
     })
   })
@@ -49,31 +46,45 @@ const sysNetPrioritize = () => {
 
 const sysNetSend = () => {
   const send = effInterval()
-  const views = effViews()
   const messages = effPlayerMessages()
-  const messageBase = effMessage()
+  const base = effMessage()
 
-  each(effInsert(players), entity => spawn(msgBase, entity))
-  each(effRemove(players), entity => destroy(msgBase, entity))
-  each(effAttach(Body), (entity, body) => attach(msgBase, entity, body))
-  each(effDetach(Body), entity => detach(msgBase, entity, Body))
+  effTransition(
+    players,
+    e => spawn(base, e),
+    e => destroy(base, e),
+  )
+  effModify(
+    Body,
+    (e, b) => attach(base, e, b),
+    e => detach(base, e, Body),
+  )
+
+  players(e => {})
 
   if (send) {
-    each(players, ep => {
-      const view = views.get(ep)
-      const message = messages.get(ep)
-      for (const e of view.take(ep, Body, MAX_UPDATE_BODIES)) {
-        patch(message, utations.take(e, Body))
-        view.clear(ep, e, Body)
-      }
-      send(message, ep)
+    players(e => {
+      const view = views.get(e)
+      const message = messages.get(e)
+
+      copy(base, message)
+      send(message, e)
       reset(message)
     })
+    reset(base)
   }
 }
 
 const sysResetChanges = () => {
   const observe = effObserve()
   each(bodies, (e, [b]) => observe.reset(b))
+}
+```
+
+```ts
+each(onInsert(players), e => {
+  const msg = createMessage()
+  link(msg, msgBase)
+  messages.set(e, msg)
 }
 ```

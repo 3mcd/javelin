@@ -34,9 +34,15 @@ const Position = {
 }
 ```
 
-Components types can range from simple, with few (or no) properties, to complex with deeply nested structures.
+Components types may range from flat structures with few (or no) properties, to complex objects containing deeply nested structures.
 
-A component type defines the field names and data types that make up the shape of the component. This object is used to initialize component instances and reset them when they are detached from an entity.
+```ts
+const Inventory = {
+  bags: arrayOf({ items: arrayOf(number) }),
+}
+```
+
+A component type is used to initialize component instances and reset them when they are detached from an entity.
 
 The schema currently supports the following data types:
 
@@ -47,7 +53,7 @@ boolean (default = false)
 arrayOf (default = [])
 ```
 
-A unique id is automatically assigned to each component type the ECS encounters for the first time. If you need to register and assign an id manually (e.g., you are synchronizing your component model in a multiplayer game), you can register the component type manually using `registerComponentType`:
+When the ECS encounters a component type for the first time, it will assign it a unique integer id. If you need to assign a specific id to a component type (e.g., you are synchronizing your component model in a multiplayer game), you can register the component type manually using `registerComponentType`:
 
 ```ts
 import { registerComponentType } from "@javelin/ecs"
@@ -65,15 +71,7 @@ import { component } from "@javelin/ecs"
 const position = component(Position)
 ```
 
-Components created using `component()` are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singleton or low-volume components. You can modify the default pool size of all component types by setting the `componentPoolSize` option on the config object passed to `createWorld()`:
-
-```ts
-const world = createWorld({
-  componentPoolSize: 100,
-})
-```
-
-Or, you can specify the pool size for a single component type when registering the it with `registerComponentType`:
+Components created using `component()` are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal for singleton or low-volume components. You may specify the pool size for a single component type when registering the it with `registerComponentType`:
 
 ```ts
 registerComponentType(Position, 4, 10000)

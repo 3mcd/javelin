@@ -374,11 +374,11 @@ export const patch = (
     delta += uint32.byteLength
   }
 
-  const componentFieldTypes = message.modelFlat[componentTypeId]
-  const existingChanges = changeMap.get(componentTypeId)
+  const fields = message.modelFlat[componentTypeId]
+  const existing = changeMap.get(componentTypeId)
 
-  if (existingChanges) {
-    delta -= calcChangeByteLength(existingChanges, componentFieldTypes)
+  if (existing) {
+    delta -= calcChangeByteLength(existing, fields)
   } else {
     // (p.2) component id
     delta += uint8.byteLength
@@ -388,8 +388,7 @@ export const patch = (
 
   changeMap.set(componentTypeId, changeSet)
 
-  part.byteLength +=
-    delta + calcChangeByteLength(changeSet, componentFieldTypes)
+  part.byteLength += delta + calcChangeByteLength(changeSet, fields)
 }
 
 export const detach = (
