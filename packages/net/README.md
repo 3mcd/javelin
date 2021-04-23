@@ -19,72 +19,81 @@ const Body = {
 }
 
 const players = createQuery(Player, Body)
-const bodies = createQuery(Body)
+const dynamic = createQuery(Body)
 
 const sysPhysics: System = ({ observe }) => {
-  each(bodies, (e, [b]) => {
+  dynamic.forEach((e, [b]) => {
     const bo = observe(b)
     bo.x += b.vx
     bo.y += b.vy
   })
 }
 
-const sysNetPrioritize = () => {
-  const priorities = effPlayerPriorities()
+const createClient = () => ({
+  producers: {
+    [Channel.Reliable]: createMessageProducer(),
+    [Channel.Unreliable]: createMessageProducer({
+      maxByteLength: 1000,
+    }),
+  },
+  channels: {
+    [Channel.Reliable]: createChannel(),
+    [Channel.Unreliable]: createChannel(),
+  },
+})
 
-  each(players, (e, [, bp]) => {
-    const acc = priorites.get(e)
-    each(bodies, (eb, [b]) => {
-      const distance = distanceTo(bp, b)
-      if (distance <= MAX_UPDATE_DISTANCE) {
-        const priority = eb === e ? Infinity : 1 / distance
-        acc.add(e, eb, Body, priority)
-      }
-    })
-  })
+const sysNetClientState = () => {
+  const clients = effClients()
+
+  effMonitor(
+    players,
+    e => {
+      clients[e] = createClient()
+    },
+    e => {
+      delete clients[e]
+    },
+  )
 }
 
 const sysNetSend = () => {
+  const base = effProducer()
   const send = effInterval()
-  const messages = effPlayerMessages()
-  const base = effMessage()
+  const clients = effClients()
 
-  effTransition(
-    players,
-    e => spawn(base, e),
-    e => destroy(base, e),
+  effMonitor(
+    dynamic,
+    e => base.spawn(e),
+    e => base.destroy(e),
   )
-  effModify(
+  effTrigger(
     Body,
-    (e, b) => attach(base, e, b),
-    e => detach(base, e, Body),
+    (e, b) => base.attach(e, b),
+    e => base.detach(e, Body),
   )
 
-  players(e => {})
+  players.forEach((e, [pb]) => {
+    const producer = clients[e].producers[Channel.Unreliable]
+    dynamic.forEach((eb, [b]) =>
+      producer.patch(eb, observe.changesOf(b), getPriority(pb, b)),
+    )
+  })
 
   if (send) {
-    players(e => {
-      const view = views.get(e)
-      const message = messages.get(e)
-
-      copy(base, message)
-      send(message, e)
-      reset(message)
+    players.forEach(e => {
+      const {
+        [Channel.Unreliable]: producerU,
+        [Channel.Reliable]: producerR,
+      } = producers
+      const {
+        [Channel.Unreliable]: channelU,
+        [Channel.Reliable]: channelR,
+      } = channels
+      producerR.insert(base)
+      channelU.send(producerU.take())
+      channelR.send(producerR.take())
     })
-    reset(base)
+    base.reset()
   }
-}
-
-const sysResetChanges = () => {
-  const observe = effObserve()
-  each(bodies, (e, [b]) => observe.reset(b))
-}
-```
-
-```ts
-each(onInsert(players), e => {
-  const msg = createMessage()
-  link(msg, msgBase)
-  messages.set(e, msg)
 }
 ```
