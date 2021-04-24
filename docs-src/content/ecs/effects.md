@@ -78,8 +78,8 @@ Local effects are useful if you want to perform a one-off task, like perform an 
 
 ```ts
 const sysQuestUI = () => {
-  const context = effects.canvas()
-  const { done, quests } = effects.fetch("/quests?complete=false")
+  const context = effCanvas()
+  const { done, quests } = effFetch("/quests?complete=false")
 
   if (done) {
     // render quest log
@@ -91,8 +91,8 @@ Although you should strive to have all game state in components, it can be tedio
 
 ```ts
 const sysFibonacci = () => {
-  const a = effects.ref(0)
-  const b = effects.ref(1)
+  const a = effRef(0)
+  const b = effRef(1)
   const bPrev = b.value
 
   b.value += a.value

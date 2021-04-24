@@ -6,11 +6,11 @@ import {
   ComponentType,
   registerComponentType,
 } from "./component"
+import { Entity } from "./entity"
 import { globals } from "./internal/globals"
 import { $type } from "./internal/symbols"
 import { createStackPool } from "./pool"
 import { typeIsSuperset } from "./type"
-import { Collection } from "./types"
 
 export type Selector = ComponentType[]
 export type SelectorResult<S extends Selector> = {
@@ -29,16 +29,20 @@ export type QueryForEachRecord<S extends Selector> = [
   entity: number,
   selectorResult: SelectorResult<S>,
 ]
-export type Query<S extends Selector = Selector> = Collection<
-  QueryForEachRecord<S>,
-  QueryRecord<S>
-> & {
-  readonly layout: number[]
-  readonly length: number
-  readonly signature: number[]
-  readonly filters: {
+export type QueryIteratee<S extends Selector> = (
+  entity: Entity,
+  components: SelectorResult<S>,
+) => unknown
+export type Query<S extends Selector = Selector> = ((
+  callback: QueryIteratee<S>,
+) => void) & {
+  layout: number[]
+  signature: number[]
+  filters: {
     not: ReadonlySet<number>
   }
+
+  [Symbol.iterator](): IterableIterator<QueryRecord<S>>
 
   /**
    * Exclude entities with components of provided component type(s) from the
@@ -107,39 +111,39 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
     1000,
   )
 
-  const query: Query<S> = {
-    layout,
-    length,
-    signature,
-    filters,
-    not(...selector: Selector) {
-      for (let i = 0; i < selector.length; i++) {
-        filters.not.add(selector[i][$type])
-      }
-      return query
-    },
-    forEach(iteratee) {
-      const records =
-        recordsByWorldId[globals.__CURRENT_WORLD__] ||
-        registerWorld(globals.__CURRENT_WORLD__)
-      const components = pool.retain()
+  const forEach = (iteratee: QueryIteratee<S>) => {
+    const records =
+      recordsByWorldId[globals.__CURRENT_WORLD__] ||
+      registerWorld(globals.__CURRENT_WORLD__)
+    const components = pool.retain()
 
-      for (let i = 0; i < records.length; i++) {
-        const [entities, columns] = records[i]
-        for (let j = 0; j < entities.length; j++) {
-          for (let k = 0; k < length; k++) {
-            components[k] = columns[k][j]
-          }
-          iteratee(entities[j], components)
+    for (let i = 0; i < records.length; i++) {
+      const [entities, columns] = records[i]
+      for (let j = 0; j < entities.length; j++) {
+        for (let k = 0; k < length; k++) {
+          components[k] = columns[k][j]
         }
+        iteratee(entities[j], components)
       }
+    }
 
-      pool.release(components)
-    },
-    [Symbol.iterator]() {
-      return (recordsByWorldId[globals.__CURRENT_WORLD__] ||
-        registerWorld(globals.__CURRENT_WORLD__))[Symbol.iterator]()
-    },
+    pool.release(components)
+  }
+
+  const query = forEach as Query<S>
+
+  query.layout = layout
+  query.signature = signature
+  query.filters = filters
+  query.not = (...selector: Selector) => {
+    for (let i = 0; i < selector.length; i++) {
+      filters.not.add(selector[i][$type])
+    }
+    return query
+  }
+  query[Symbol.iterator] = () => {
+    return (recordsByWorldId[globals.__CURRENT_WORLD__] ||
+      registerWorld(globals.__CURRENT_WORLD__))[Symbol.iterator]()
   }
 
   return query

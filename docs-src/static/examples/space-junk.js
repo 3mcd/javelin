@@ -1,18 +1,17 @@
 const {
-  each,
   boolean,
   component,
   createEffect,
   createQuery,
   createTopic,
   createWorld,
-  effAttach,
-  effDetach,
-  effInsert,
+  each,
   effInterval,
+  effMonitor,
   effRef,
-  effRemove,
   effTimer,
+  effTrigger,
+  effObserve,
   number,
 } = Javelin
 
@@ -126,7 +125,7 @@ const sysSpawn = world => {
   }
 
   if (mousemove.active) {
-    each(qryDragging, (entity, [t]) => {
+    qryDragging((entity, [t]) => {
       t.x = mousemove.coords.x
       t.y = mousemove.coords.y
     })
@@ -155,13 +154,13 @@ const spawnJunk = () => {
 }
 
 const sysAttract = world => {
-  each(qryWormhole, (we, [wt, w, wv]) => {
+  qryWormhole((we, [wt, w, wv]) => {
     if (w.obliterated) {
       return
     }
     wv.x *= 0.95
     wv.y *= 0.95
-    each(qryJunk, (je, [jt, jv, j]) => {
+    qryJunk((je, [jt, jv, j]) => {
       if (we === je) {
         return
       }
@@ -189,16 +188,16 @@ const sysAttract = world => {
 const sysRender = () => {
   context.clearRect(0, 0, 800, 300)
 
-  each(qryJunk, (e, [{ x, y }, t, { influenced }]) => {
+  qryJunk((e, [{ x, y }, t, { influenced }]) => {
     context.fillStyle = influenced ? "#fff" : "#99c7c7"
     context.fillRect(Math.floor(x), Math.floor(y), 1, 1)
   })
 
-  each(qryWormhole, (e, [{ x, y }]) => {
+  qryWormhole((e, [{ x, y }]) => {
     let maxPos
     let maxLen = Infinity
 
-    each(qryWormhole, (e2, [pos2]) => {
+    qryWormhole((e2, [pos2]) => {
       if (e === e2) {
         return
       }
@@ -225,7 +224,7 @@ const sysRender = () => {
     }
   })
 
-  each(qryWormhole, (e, [{ x, y }, { r }]) => {
+  qryWormhole((e, [{ x, y }, { r }]) => {
     context.fillStyle = "#fff"
     context.beginPath()
     context.arc(Math.floor(x), Math.floor(y), r / 10, 0, 2 * Math.PI)
@@ -234,19 +233,23 @@ const sysRender = () => {
 }
 
 const sysPhysics = () => {
-  each(qryJunk, (_, [t, { x, y }]) => {
-    t.x += x
-    t.y += y
+  const { track } = effObserve()
+  qryJunk((e, [t, { x, y }]) => {
+    track(t, "x", (t.x += x))
+    track(t, "y", (t.y += y))
   })
 }
 
-const sysTriggers = () => {
+const sysTrigger = () => {
   const shouldLog = effInterval(1000)
   const countAttach = effRef(0)
   const countDetach = effRef(0)
 
-  each(effAttach(Transform), () => countAttach.value++)
-  each(effDetach(Transform), () => countDetach.value++)
+  effTrigger(
+    Transform,
+    () => countAttach.value++,
+    () => countDetach.value++,
+  )
 
   if (shouldLog) {
     log.pushImmediate(`(t) +${countAttach.value} -${countDetach.value}`)
@@ -255,13 +258,16 @@ const sysTriggers = () => {
   }
 }
 
-const sysMonitors = () => {
+const sysMonitor = () => {
   const shouldLog = effInterval(1000)
   const countInsert = effRef(0)
   const countRemove = effRef(0)
 
-  each(effInsert(qryWormhole), () => countInsert.value++)
-  each(effRemove(qryWormhole), () => countRemove.value++)
+  effMonitor(
+    qryWormhole,
+    () => countInsert.value++,
+    () => countRemove.value++,
+  )
 
   if (shouldLog) {
     log.pushImmediate(`(w) +${countInsert.value} -${countRemove.value}`)
@@ -300,8 +306,8 @@ const world = createWorld({
     sysPhysics,
     sysAttract,
     sysRender,
-    sysTriggers,
-    sysMonitors,
+    sysTrigger,
+    sysMonitor,
     sysLog,
   ],
   topics: [log],

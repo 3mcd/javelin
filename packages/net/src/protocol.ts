@@ -66,7 +66,7 @@ type Parts = [
   PartDestroy,
 ]
 
-type Message = {
+export type Message = {
   parts: Parts
   model: Model
   modelFlat: ModelFlat
@@ -119,7 +119,7 @@ const encodePart = (
           offset += uint8.byteLength
           for (const prop in fields) {
             const change = fields[prop]
-            if (change === NO_OP) {
+            if (change.field === NO_OP) {
               continue
             }
             const { field, traverse, value } = change
@@ -329,7 +329,7 @@ const calcChangeByteLength = (
 
   for (const prop in fields) {
     const change = fields[prop]
-    if (change === NO_OP) {
+    if (change.field === NO_OP) {
       continue
     }
     const { field, traverse } = change

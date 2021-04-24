@@ -22,7 +22,7 @@ const players = createQuery(Player, Body)
 const dynamic = createQuery(Body)
 
 const sysPhysics: System = ({ observe }) => {
-  dynamic.forEach((e, [b]) => {
+  dynamic((e, [b]) => {
     const bo = observe(b)
     bo.x += b.vx
     bo.y += b.vy
@@ -72,15 +72,15 @@ const sysNetSend = () => {
     e => base.detach(e, Body),
   )
 
-  players.forEach((e, [pb]) => {
+  players((e, [pb]) => {
     const producer = clients[e].producers[Channel.Unreliable]
-    dynamic.forEach((eb, [b]) =>
+    dynamic((eb, [b]) =>
       producer.patch(eb, observe.changesOf(b), getPriority(pb, b)),
     )
   })
 
   if (send) {
-    players.forEach(e => {
+    players(e => {
       const {
         [Channel.Unreliable]: producerU,
         [Channel.Reliable]: producerR,

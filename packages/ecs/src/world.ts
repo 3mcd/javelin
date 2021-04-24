@@ -1,9 +1,10 @@
-import { createModel, Model, mutableEmpty } from "@javelin/model"
+import { mutableEmpty } from "@javelin/model"
 import {
   Component,
   ComponentOf,
   ComponentType,
   componentTypePools,
+  registerComponentType,
 } from "./component"
 import { Entity } from "./entity"
 import { globals } from "./internal/globals"
@@ -34,11 +35,6 @@ export interface World<T = any> {
    * @param data Tick data
    */
   tick(data: T): void
-
-  /**
-   * Component type model.
-   */
-  getModel(): Model
 
   /**
    * Register a system to be executed each tick.
@@ -186,12 +182,6 @@ export interface World<T = any> {
    * Signal dispatched for each destroyed entity.
    */
   readonly destroyed: Signal<number>
-
-  /**
-   * Signal dispatched when model is updated (e.g. a new component type is
-   * registered).
-   */
-  readonly modelChanged: Signal<Model>
 }
 
 export type WorldInternal<T> = World<T> & {
@@ -243,7 +233,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     },
     1000,
   )
-  const modelChanged = createSignal<Model>()
   const seenComponentTypes = new Set<ComponentType>()
   const attached = createSignal<number, ReadonlyArray<Component>>()
   const detached = createSignal<number, ReadonlyArray<Component>>()
@@ -252,7 +241,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   const destroying = new Set<number>()
   const storage = createStorage({ snapshot: options.snapshot?.storage })
 
-  let model: Model = createModel(new Map())
   let state: WorldState<T> = getInitialWorldState()
   let prevEntity = 0
   let nextSystem = 0
@@ -395,18 +383,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     }
   }
 
-  function maybeRegisterComponentType(componentType: ComponentType) {
-    const isRegistered = seenComponentTypes.has(componentType)
-
-    if (!isRegistered) {
-      const modelConfig = new Map(
-        Array.from(seenComponentTypes).map(ct => [ct[$type], ct]),
-      )
-      model = createModel(modelConfig)
-      modelChanged.dispatch(model)
-    }
-  }
-
   function spawn(...components: ReadonlyArray<Component>) {
     const entity = prevEntity++
 
@@ -458,7 +434,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function has(entity: number, componentType: ComponentType) {
-    maybeRegisterComponentType(componentType)
+    registerComponentType(componentType)
     return storage.hasComponent(entity, componentType)
   }
 
@@ -466,7 +442,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     entity: number,
     componentType: T,
   ): ComponentOf<T> {
-    maybeRegisterComponentType(componentType)
+    registerComponentType(componentType)
     const component = storage.findComponent(entity, componentType)
 
     if (component === null) {
@@ -480,7 +456,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     entity: number,
     componentType: T,
   ): ComponentOf<T> | null {
-    maybeRegisterComponentType(componentType)
+    registerComponentType(componentType)
     return storage.findComponent(entity, componentType)
   }
 
@@ -531,10 +507,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     }
   }
 
-  function getModel(): Model {
-    return model
-  }
-
   const world = {
     addSystem,
     addTopic,
@@ -545,7 +517,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     get,
     has,
     id: -1,
-    getModel,
     ops: worldOpsPrevious,
     removeSystem,
     removeTopic,
@@ -558,7 +529,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     tick,
     tryGet,
     // signals
-    modelChanged,
     attached,
     detached,
     spawned,

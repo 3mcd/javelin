@@ -9,7 +9,7 @@ import { mutableEmpty } from "./utils"
 
 export const NO_OP = Symbol("NO_OP")
 
-export type ChangeSetOp = { field: number; traverse?: string[] }
+export type ChangeSetOp = { field: number | typeof NO_OP; traverse?: string[] }
 export type ChangeSetField = ChangeSetOp & { value: any }
 export type ChangeSetArrayOp = ChangeSetOp & {
   index: number
@@ -18,7 +18,7 @@ export type ChangeSetArrayOp = ChangeSetOp & {
 }
 export type ChangeSet = {
   fieldsCount: number
-  fields: { [key: string]: typeof NO_OP | ChangeSetField }
+  fields: { [key: string]: ChangeSetField }
   arrays: ChangeSetArrayOp[]
 }
 
@@ -38,7 +38,13 @@ const pushFieldOp = (
   traverse?: string[],
 ) => {
   if (traverse === undefined) {
-    changes.fields[field] = { value, field }
+    let fieldChange = changes.fields[field]
+    if (fieldChange === undefined) {
+      changes.fields[field] = { value, field }
+    } else {
+      fieldChange.field = field
+      fieldChange.value = value
+    }
   } else {
     changes.fields[`${field},${traverse.join(",")}`] = {
       value,
@@ -74,7 +80,7 @@ type ObservedProps<
   __cache__: ChangeSet
   __index__: string
   __parent__: any
-  __type__: T
+  __node__: T
 } & P
 
 const recordIsCollection = (
@@ -115,7 +121,7 @@ export function createObserver(): Observer {
       if (key === "__self__") return target
       if (
         key === "length" ||
-        target.__type__.edge.kind === ModelNodeKind.Primitive
+        target.__node__.edge.kind === ModelNodeKind.Primitive
       ) {
         return target[key]
       }
@@ -130,7 +136,7 @@ export function createObserver(): Observer {
       }
       pushFieldOp(
         changes.get(target)!,
-        target.__type__.edge.kind,
+        target.__node__.edge.kind,
         value,
         buildTraverse(target, key),
       )
@@ -142,7 +148,7 @@ export function createObserver(): Observer {
   const handlerForCollectionDescendant = {
     get(target: ObservedProps<ModelNodeStruct>, key: string): any {
       if (key === "__self__") return target
-      const type = target.__type__.keys[key]
+      const type = target.__node__.keys[key]
       if (type === undefined || type.kind === ModelNodeKind.Primitive) {
         return target[key]
       }
@@ -153,7 +159,7 @@ export function createObserver(): Observer {
     set(target: ObservedProps<ModelNodeStruct>, key: string, value: any) {
       pushFieldOp(
         changes.get(target)!,
-        target.__type__.idsByKey[key],
+        target.__node__.idsByKey[key],
         value,
         buildTraverse(target),
       )
@@ -167,7 +173,7 @@ export function createObserver(): Observer {
       if (key === "__self__") return target
       if (
         key === "length" ||
-        target.__type__.edge.kind === ModelNodeKind.Primitive
+        target.__node__.edge.kind === ModelNodeKind.Primitive
       ) {
         return target[key]
       }
@@ -180,7 +186,7 @@ export function createObserver(): Observer {
       target[key] = value
       pushFieldOp(
         changes.get(target)!,
-        target.__type__.edge.id,
+        target.__node__.edge.id,
         value,
         buildTraverse(target, key),
       )
@@ -191,7 +197,7 @@ export function createObserver(): Observer {
   const handlerForStruct = {
     get(target: ObservedProps<ModelNodeStruct>, key: string): any {
       if (key === "__self__") return target
-      const type = target.__type__.keys[key]
+      const type = target.__node__.keys[key]
       if (type === undefined || type.kind === ModelNodeKind.Primitive) {
         return target[key]
       }
@@ -199,7 +205,7 @@ export function createObserver(): Observer {
     },
     set(target: ObservedProps<ModelNodeStruct>, key: string, value: any) {
       target[key] = value
-      pushFieldOp(changes.get(target)!, target.__type__.idsByKey[key], value)
+      pushFieldOp(changes.get(target)!, target.__node__.idsByKey[key], value)
       return true
     },
   }
@@ -214,7 +220,7 @@ export function createObserver(): Observer {
 
       if (MUT_ARRAY_METHODS.has(target)) {
         const changeSet = changes.get(self)!
-        const field = self.__type__.id
+        const field = self.__node__.id
         const traverse = buildTraverse(target)
 
         self.__lock__ = true
@@ -291,7 +297,7 @@ export function createObserver(): Observer {
       handler = handlerForStruct
     }
 
-    observed.__type__ = type
+    observed.__node__ = type
     observed.__lock__ = false
     changes.set(observed, changeSet)
     return new Proxy(observed, handler)
@@ -305,12 +311,12 @@ export function createObserver(): Observer {
     let proxy = proxies.get(observed)
     if (proxy === undefined) {
       const type =
-        "keys" in parent.__type__!
+        "keys" in parent.__node__!
           ? // struct
-            (parent.__type__ as ModelNodeStruct).keys[key as string]
+            (parent.__node__ as ModelNodeStruct).keys[key as string]
           : // only other option is collection because a parent will never be
             // a primitive type
-            (parent.__type__ as ModelNodeCollection).edge
+            (parent.__node__ as ModelNodeCollection).edge
       proxy = init(observed, type, changes.get(parent))
       proxies.set(observed, proxy)
     }
@@ -333,7 +339,7 @@ export function createObserver(): Observer {
       return
     }
     for (const prop in changeSet.fields) {
-      changeSet.fields[prop] = NO_OP
+      changeSet.fields[prop].field = NO_OP
     }
     mutableEmpty(changeSet.arrays)
     changeSet.fieldsCount = 0

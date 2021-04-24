@@ -1,5 +1,5 @@
 export * from "./eff_interval"
 export * from "./eff_ref"
 export * from "./eff_timer"
-export * from "./eff_monitors"
-export * from "./eff_triggers"
+export * from "./eff_monitor"
+export * from "./eff_trigger"

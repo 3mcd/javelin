@@ -43,52 +43,40 @@ const unsubscribe = world.attached.subscribe(...)
 unsubscribe()
 ```
 
-## Triggers
+## Trigger
 
-Subscribing to events within systems is tricky since a system is just a function that runs each tick. Javelin has a couple of built-in effects called **triggers** that register event handlers behind the scenes, exposing changed entitites with an iterable API.
+Subscribing to events within systems is tricky because a system runs each tick. Javelin has a built-in effect named `effTrigger` that registers event handlers behind the scenes, emitting changed entitites using callback functions.
 
-### `effAttach`
-
-The `effAttach` trigger accepts a component type and returns an object that can be iterated with `for..of` or `forEach` to get entity-component pairs where the component of the specified type was detached last tick.
+`effTrigger` trigger accepts a component type, an `onEnter` function that is executed when a component is attached to an entity, and an `onExit` function that is executed with a component is detached from an entity.
 
 ```ts
-import { effAttach } from "@javelin/ecs"
+import { effTrigger } from "@javelin/ecs"
 
 const sysPhysics = () => {
-  effAttach(Body).forEach((entity, body) => {
-    ...
-  })
-}
-```
-
-### `effDetach`
-
-`effDetach` is similar to `effAttach`, but it returns entity-component pairs whose matching component was detached last tick.
-
-```ts
-import { effDetach } from "@javelin/ecs"
-
-const sysPhysics = (world: World) => {
-  effDetach(Body).forEach((entity, body) => ...)
+  effTrigger(
+    Body,
+    (e, b) => {}, // Body `b` was attached to entity `e`
+    (e, b) => {}, // Body `b` was detached from entity `e`
+  )
 }
 ```
 
 ## Monitors
 
-Sometimes you need to go a bit further and detect when an entity matches or no longer matches a complex query. A **monitor** is an effect that accepts a query and yields entities that meet one of these conditions. Like triggers, monitors can be iterated with `forEach` or `for..of`.
+Sometimes you need to go a bit further and detect when an entity matches or no longer matches a complex query. `effMonitor` is an effect that accepts a query and executes callbacks when an entity meets or no longer meets the query's criteria.
 
-An entity is only included in a monitor's results **once** while it continues to match the query. An entity is eligible again only if it is excluded (i.e. due to a change in its type) and re-included.
-
-### `effInsert`
-
-The `effInsert` monitor yields entities who will match a specific query for the first time this tick.
+Like `effTrigger`, `effMonitor` accepts `onEnter` and `onExit` callback functions. An entity is only included in a monitor's results **once** while it continues to match the query. An entity is eligible again only if it is excluded (i.e. due to a change in its type) and re-included.
 
 ```ts
 const spooky = createQuery(Enemy, Ghost)
-effInsert(spooky).forEach(entity => ...)
+effMonitor(
+  spooky,
+  e => {}, // entity `e` matches query `spooky`
+  e => {}, // entity `e` no longer matches query `spooky`
+)
 ```
 
-`forEach` executes the provided callback for entities whose component changes last tick caused it to match the query's criteria. In the above example, the `entity` variable would correspond to an entity who made one of the following type transitions last tick:
+In the above example, the `e` variable would correspond to an entity who made one of the following type transitions last tick:
 
 ```
 from    | to
@@ -98,7 +86,7 @@ from    | to
 (Ghost) | (Enemy, Ghost)
 ```
 
-Below is an example of an entity transitioning between multiple types, and whether or not that transition would result in the entity being included in `effInsert`'s results:
+Below is an example of an entity transitioning between multiple types, and whether or not that transition would result in the entity being passed to the `onEnter` callback:
 
 ```
 (Enemy)                  -> excluded
@@ -106,20 +94,4 @@ Below is an example of an entity transitioning between multiple types, and wheth
 (Enemy, Ghost, Confused) -> excluded
 (Ghost, Confused)        -> excluded
 (Enemy, Ghost)           -> included
-```
-
-### `effRemove`
-
-`effRemove` is simply the inverse of `effInsert`. It will yield entities whose type no longer matches the query's criteria.
-
-```ts
-effRemove(spooky).forEach(entity => ...)
-```
-
-```
-(Enemy)                  -> excluded
-(Enemy, Ghost)           -> excluded
-(Enemy, Ghost, Confused) -> excluded
-(Ghost, Confused)        -> included
-(Enemy, Ghost)           -> excluded
 ```
