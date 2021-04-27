@@ -34,7 +34,7 @@ const world = createWorld({
 })
 
 module.exports.run = () => {
-  let n = 100_000
+  let n = 25_000
   let t = 100
   let i = 0
 
@@ -48,7 +48,7 @@ module.exports.run = () => {
   let endInit
 
   console.log(
-    `tracking ${(3 * n).toLocaleString()} changes per tick for ${t} ticks`,
+    `tracking ${(4 * n).toLocaleString()} changes per tick for ${t} ticks`,
   )
 
   while (i++ < t) {
@@ -63,6 +63,7 @@ module.exports.run = () => {
 
   end = performance.now()
 
-  console.log(`init: ${endInit - startInit} ms`)
-  console.log(`tick: ${(end - start) / t} ms/tick`)
+  console.log(`tick_count    | ${t}`)
+  console.log(`tick_time_avg | ${(end - start) / t}ms`)
+  console.log(`init_time     | ${endInit - startInit}ms`)
 }

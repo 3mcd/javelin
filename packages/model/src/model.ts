@@ -1,9 +1,9 @@
 import { assert, ErrorType } from "./debug"
 
 export enum SchemaKeyKind {
+  Primitive,
   Array,
   Map,
-  Primitive,
 }
 
 export enum DataTypeId {

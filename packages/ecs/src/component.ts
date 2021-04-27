@@ -87,7 +87,9 @@ export const registerComponentType = (
   type = componentTypeId
 
   if (type === undefined) {
-    while (modelConfig.has(nextComponentTypeId++));
+    while (modelConfig.has(nextComponentTypeId)) {
+      nextComponentTypeId++
+    }
     type = componentType[$type] = nextComponentTypeId
   } else if (modelConfig.has(type)) {
     throw new Error(

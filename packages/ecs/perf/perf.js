@@ -1,4 +1,4 @@
-const { $type, createWorld, createQuery, number } = require("../dist/cjs")
+const { createWorld, createQuery, number } = require("../dist/cjs")
 const { createArray } = require("../../model/dist/cjs")
 
 module.exports.run = function run() {
@@ -54,9 +54,7 @@ module.exports.run = function run() {
     [componentTypes[8], componentTypes[9]],
   ].map(c => createQuery(...c))
 
-  console.time("create")
   const entities = components.map(c => world.spawn(...c))
-  console.timeEnd("create")
 
   let i = n
   let c = 0
@@ -82,23 +80,19 @@ module.exports.run = function run() {
 
   const runEnd = Date.now()
 
-  console.time("destroy")
   for (let i = 0; i < entities.length; i++) {
     world.destroy(entities[i])
   }
-  console.timeEnd("destroy")
 
   components.forEach(c => world.spawn(...c))
 
-  console.time("reset")
   world.reset()
-  console.timeEnd("reset")
 
-  console.log(`entities      | ${components.length}`)
-  console.log(`components    | ${componentTypes.length}`)
-  console.log(`queries       | ${queries.length}`)
-  console.log(`ticks         | ${n}`)
-  console.log(`iter_tick     | ${c / n}`)
-  console.log(`iter_total    | ${c}`)
-  console.log(`avg_tick      | ${(runEnd - runStart) / n}ms`)
+  console.log(`entity_count         | ${components.length}`)
+  console.log(`component_type_count | ${componentTypes.length}`)
+  console.log(`query_count          | ${queries.length}`)
+  console.log(`tick_count           | ${n}`)
+  console.log(`tick_time_avg        | ${(runEnd - runStart) / n}ms`)
+  console.log(`iters_per_tick       | ${c / n}`)
+  console.log(`iters_total          | ${c}`)
 }

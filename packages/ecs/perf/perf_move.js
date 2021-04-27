@@ -10,7 +10,12 @@ const A = {}
 const B = {}
 
 module.exports.run = () => {
-  let i = 0
+  const n = 10000
+  const t = 100
+
+  console.log(`swapping component A-B of ${n} entities for ${t} ticks`)
+
+  let ops = 0
 
   const qa = createQuery(A)
 
@@ -25,27 +30,28 @@ module.exports.run = () => {
     }
     effTrigger(A, undefined, entity => {
       world.detach(entity, B)
-      i++
+      ops++
     })
   }
   const sysDetach = world => {
     effTrigger(B, entity => {
       world.detach(entity, B)
-      i++
+      ops++
     })
   }
 
   const world = createWorld({ systems: [sysAttach, sysDetach] })
 
-  for (let i = 0; i < 10000; i++) {
+  for (let i = 0; i < n; i++) {
     world.spawn(component(A))
   }
 
   const start = performance.now()
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < t; i++) {
     world.tick()
   }
   const time = performance.now() - start
-  console.log(time / 100)
-  console.log(i)
+  console.log(`tick_count     | ${t}`)
+  console.log(`tick_time_avg  | ${time / t} ms`)
+  console.log(`ops_per_tick   | ${ops / t}`)
 }
