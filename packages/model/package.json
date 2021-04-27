@@ -6,7 +6,6 @@
   "browser": "dist/javelin-model.bundle.js",
   "license": "MIT",
   "scripts": {
-    "perf": "yarn build && node perf/index.js",
     "build": "rm -rf dist && tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
     "prepare": "yarn build"
   },
