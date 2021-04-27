@@ -1,8 +1,7 @@
 const { performance } = require("perf_hooks")
 const {
   createWorld,
-  effAttach,
-  effDetach,
+  effTrigger,
   createQuery,
   component,
 } = require("../dist/cjs")
@@ -24,13 +23,13 @@ module.exports.run = () => {
         }
       }
     }
-    effDetach(A).forEach(entity => {
+    effTrigger(A, undefined, entity => {
       world.detach(entity, B)
       i++
     })
   }
   const sysDetach = world => {
-    effAttach(B).forEach(entity => {
+    effTrigger(B, entity => {
       world.detach(entity, B)
       i++
     })
@@ -38,7 +37,7 @@ module.exports.run = () => {
 
   const world = createWorld({ systems: [sysAttach, sysDetach] })
 
-  for (let i = 0; i < 1000000; i++) {
+  for (let i = 0; i < 10000; i++) {
     world.spawn(component(A))
   }
 

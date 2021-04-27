@@ -17,7 +17,6 @@ export type ChangeSetArrayOp = ChangeSetOp & {
   remove: number
 }
 export type ChangeSet = {
-  fieldsCount: number
   fields: { [key: string]: ChangeSetField }
   arrays: ChangeSetArrayOp[]
 }
@@ -52,7 +51,6 @@ const pushFieldOp = (
       traverse: traverse.slice(),
     }
   }
-  changes.fieldsCount++
 }
 
 const pushArrayOp = (
@@ -77,7 +75,7 @@ type ObservedProps<
 > = {
   __lock__: boolean
   __self__: any
-  __cache__: ChangeSet
+  __changes__: ChangeSet
   __index__: string
   __parent__: any
   __node__: T
@@ -108,14 +106,12 @@ const buildTraverse = (target: ObservedProps, init?: string) => {
 }
 
 export type Observer = {
-  changes: WeakMap<object, ChangeSet>
   observe<T extends object>(object: T, type: ModelNode): T
   reset(object: object): void
 }
 
 export function createObserver(): Observer {
   const proxies = new WeakMap<object, ObservedProps>()
-  const changes = new WeakMap<object, ChangeSet>()
   const handlerForNestedCollection = {
     get(target: ObservedProps<ModelNodeCollection>, key: string): any {
       if (key === "__self__") return target
@@ -135,7 +131,7 @@ export function createObserver(): Observer {
         return true
       }
       pushFieldOp(
-        changes.get(target)!,
+        target.__changes__!,
         target.__node__.edge.kind,
         value,
         buildTraverse(target, key),
@@ -158,7 +154,7 @@ export function createObserver(): Observer {
     },
     set(target: ObservedProps<ModelNodeStruct>, key: string, value: any) {
       pushFieldOp(
-        changes.get(target)!,
+        target.__changes__!,
         target.__node__.idsByKey[key],
         value,
         buildTraverse(target),
@@ -185,7 +181,7 @@ export function createObserver(): Observer {
       if (target.__lock__) return true
       target[key] = value
       pushFieldOp(
-        changes.get(target)!,
+        target.__changes__!,
         target.__node__.edge.id,
         value,
         buildTraverse(target, key),
@@ -205,7 +201,7 @@ export function createObserver(): Observer {
     },
     set(target: ObservedProps<ModelNodeStruct>, key: string, value: any) {
       target[key] = value
-      pushFieldOp(changes.get(target)!, target.__node__.idsByKey[key], value)
+      pushFieldOp(target.__changes__!, target.__node__.idsByKey[key], value)
       return true
     },
   }
@@ -219,7 +215,7 @@ export function createObserver(): Observer {
       const self = observed.__self__
 
       if (MUT_ARRAY_METHODS.has(target)) {
-        const changeSet = changes.get(self)!
+        const changeSet = self.__changes__!
         const field = self.__node__.id
         const traverse = buildTraverse(target)
 
@@ -281,7 +277,7 @@ export function createObserver(): Observer {
   const init = (
     observed: ObservedProps,
     type: ModelNode,
-    changeSet: ChangeSet = { fieldsCount: 0, fields: {}, arrays: [] },
+    changeSet: ChangeSet = { fields: {}, arrays: [] },
   ) => {
     let handler
 
@@ -299,7 +295,7 @@ export function createObserver(): Observer {
 
     observed.__node__ = type
     observed.__lock__ = false
-    changes.set(observed, changeSet)
+    observed.__changes__ = changeSet
     return new Proxy(observed, handler)
   }
 
@@ -317,7 +313,7 @@ export function createObserver(): Observer {
           : // only other option is collection because a parent will never be
             // a primitive type
             (parent.__node__ as ModelNodeCollection).edge
-      proxy = init(observed, type, changes.get(parent))
+      proxy = init(observed, type, parent.__changes__)
       proxies.set(observed, proxy)
     }
 
@@ -334,7 +330,7 @@ export function createObserver(): Observer {
   }
 
   const reset = (object: object) => {
-    const changeSet = changes.get(object)
+    const changeSet = (object as ObservedProps).__changes__
     if (changeSet === undefined) {
       return
     }
@@ -342,11 +338,9 @@ export function createObserver(): Observer {
       changeSet.fields[prop].field = NO_OP
     }
     mutableEmpty(changeSet.arrays)
-    changeSet.fieldsCount = 0
   }
 
   return {
-    changes,
     observe,
     reset,
   }

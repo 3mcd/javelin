@@ -1,44 +1,45 @@
-const { number, createWorld, query, arrayOf } = require("../dist/cjs")
+const { $type, createWorld, createQuery, number } = require("../dist/cjs")
+const { createArray } = require("../../model/dist/cjs")
 
 module.exports.run = function run() {
   let n = 1000
   const world = createWorld()
   const componentTypes = [
-    { schema: { value: number }, type: 1 },
-    { schema: { value: number }, type: 2 },
-    { schema: { value: number }, type: 3 },
-    { schema: { value: number }, type: 4 },
-    { schema: { value: number }, type: 5 },
-    { schema: { value: number }, type: 6 },
-    { schema: { value: number }, type: 7 },
-    { schema: { value: number }, type: 8 },
-    { schema: { value: number }, type: 9 },
-    { schema: { value: number }, type: 10 },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
   ]
   const components = [
-    ...arrayOf(175000, () => [{ __type__: 1 }]),
-    ...arrayOf(175000, () => [{ __type__: 1 }, { __type__: 3 }]),
-    ...arrayOf(175000, () => [{ __type__: 2 }]),
-    ...arrayOf(175000, () => [
+    ...createArray(175000, () => [{ __type__: 1 }]),
+    ...createArray(175000, () => [{ __type__: 1 }, { __type__: 3 }]),
+    ...createArray(175000, () => [{ __type__: 2 }]),
+    ...createArray(175000, () => [
       { __type__: 1 },
       { __type__: 2 },
       { __type__: 3 },
     ]),
-    ...arrayOf(175000, () => [{ __type__: 4 }]),
-    ...arrayOf(175000, () => [{ __type__: 2 }, { __type__: 4 }]),
-    ...arrayOf(175000, () => [
+    ...createArray(175000, () => [{ __type__: 4 }]),
+    ...createArray(175000, () => [{ __type__: 2 }, { __type__: 4 }]),
+    ...createArray(175000, () => [
       { __type__: 2 },
       { __type__: 5 },
       { __type__: 8 },
     ]),
-    ...arrayOf(175000, () => [
+    ...createArray(175000, () => [
       { __type__: 5 },
       { __type__: 6 },
       { __type__: 7 },
       { __type__: 9 },
     ]),
-    ...arrayOf(175000, () => [{ __type__: 7 }]),
-    ...arrayOf(175000, () => [{ __type__: 7 }, { __type__: 9 }]),
+    ...createArray(175000, () => [{ __type__: 7 }]),
+    ...createArray(175000, () => [{ __type__: 7 }, { __type__: 9 }]),
   ]
   const queries = [
     [componentTypes[0]],
@@ -66,18 +67,10 @@ module.exports.run = function run() {
     for (let j = 0; j < queries.length; j++) {
       for (const [entities, [a]] of queries[j]) {
         for (let i = 0; i < entities.length; i++) {
-          a[i].value
+          a[i].x
           c++
         }
       }
-      // for (const [entity, first] of queries[j]) {
-      //   first.value
-      //   c++
-      // }
-      // queries[j].forEach((entity, [first]) => {
-      //   first.value
-      //   c++
-      // })
     }
   })
 

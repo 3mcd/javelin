@@ -109,13 +109,17 @@ const encodePart = (
         uint32.write(bufferView, offset, entity)
         offset += uint32.byteLength
         changeMap.forEach((changeSet, componentTypeId) => {
-          const { fields, fieldsCount } = changeSet
+          const { fields } = changeSet
           const type = message.modelFlat[componentTypeId]
           // (p.2) component id
           uint8.write(bufferView, offset, componentTypeId)
           offset += uint8.byteLength
           // (p.2.a) field count
-          uint8.write(bufferView, offset, fieldsCount)
+          let count = 0
+          for (const prop in fields) {
+            count++
+          }
+          uint8.write(bufferView, offset, count)
           offset += uint8.byteLength
           for (const prop in fields) {
             const change = fields[prop]
@@ -358,11 +362,6 @@ export const patch = (
   changeSet: ChangeSet,
 ) => {
   const part = message.parts[5]
-  const { fieldsCount } = changeSet
-
-  if (fieldsCount === 0) {
-    return
-  }
 
   let delta = 0
   let changeMap = part.changeMapByEntity.get(entity)
