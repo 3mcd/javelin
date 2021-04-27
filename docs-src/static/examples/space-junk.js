@@ -233,18 +233,18 @@ const sysRender = () => {
 }
 
 const sysPhysics = () => {
-  const { set, track } = effObserve()
-  const observe = effObserve()
+  const { track, trackPop } = effObserve()
   qryJunk((e, [t, { x, y }]) => {
     // const o = observe(t)
     // o.x = t.x + x
     // o.y = t.y + y
     // t.x += x
     // t.y += y
-    // track(t, "x", (t.x += x))
-    // track(t, "y", (t.y += y))
-    set(t, "x", t.x + x)
-    set(t, "y", t.y + y)
+    track(t, "x", (t.x += x))
+    track(t, "y", (t.y += y))
+    trackArray(t, "buffer", i, 0, 1200)
+    // set(t, "x", t.x + x)
+    // set(t, "y", t.y + y)
   })
 }
 

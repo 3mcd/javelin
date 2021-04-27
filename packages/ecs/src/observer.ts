@@ -2,37 +2,75 @@ import { ModelNode, ModelNodeKind, ModelNodeStruct } from "@javelin/model"
 import { Component } from "./component"
 import { globals } from "./internal"
 
-export type ObserverChangePointer = {
+export const NO_OP = Symbol("javelin_observer_no_op")
+
+export enum MutArrayMethod {
+  Pop,
+  Push,
+  Shift,
+  Unshift,
+  Splice,
+}
+export type ObserverChangeRecord = {
   field: number
   path: string
   split: string[]
   traverse: string[]
 }
-export type ObserverChangeInfo = {
-  value: unknown
-  pointer: ObserverChangePointer
+export type ObserverChange = {
+  value: unknown | typeof NO_OP
+  record: ObserverChangeRecord
 }
-export type ObserverChangeSet = Record<string, ObserverChangeInfo>
+export type ObserverChangeArray = { record: ObserverChangeRecord } & (
+  | { method: MutArrayMethod.Pop }
+  | { method: MutArrayMethod.Push; values: unknown[] }
+  | { method: MutArrayMethod.Shift }
+  | { method: MutArrayMethod.Unshift; values: unknown[] }
+  | {
+      method: MutArrayMethod.Splice
+      index: number
+      remove: number
+      values: unknown[]
+    }
+)
+export type ObserverChangeSet = {
+  object: Record<string, ObserverChange>
+  objectCount: number
+  array: ObserverChangeArray[]
+  arrayCount: number
+}
 export type Observer = {
-  set(component: Component, path: string, value: unknown): void
   track(component: Component, path: string, value: unknown): void
+  trackPop(component: Component, path: string): void
+  trackPush(component: Component, path: string, ...values: unknown[]): void
+  trackShift(component: Component, path: string): void
+  trackUnshift(component: Component, path: string, ...values: unknown[]): void
+  trackSplice(
+    component: Component,
+    path: string,
+    index: number,
+    remove: number,
+    ...values: unknown[]
+  ): void
+  reset(component: Component): void
+  clear(): void
   changesOf(component: Component): ObserverChangeSet | null
 }
 
 const PATH_DELIMITER = "."
-const pointerLookup: Record<number, Record<string, ObserverChangePointer>> = {}
+const recordLookup: Record<number, Record<string, ObserverChangeRecord>> = {}
 
 export const createObserver = (): Observer => {
-  const cache = new WeakMap<Component, ObserverChangeSet>()
-  const track = (component: Component, path: string, value: unknown) => {
+  let cache = new Map<Component, ObserverChangeSet>()
+  const getRecord = (component: Component, path: string) => {
     const { __type__: type } = component
     const root = globals.__MODEL__[type]
-    let pointers = pointerLookup[type]
-    if (pointers === undefined) {
-      pointers = pointerLookup[type] = {}
+    let records = recordLookup[type]
+    if (records === undefined) {
+      records = recordLookup[type] = {}
     }
-    let pointer = pointers[path]
-    if (pointer === undefined) {
+    let record = records[path]
+    if (record === undefined) {
       let node: ModelNode = root
       const traverse: string[] = []
       const split = path.split(PATH_DELIMITER)
@@ -49,32 +87,116 @@ export const createObserver = (): Observer => {
             break
         }
       }
-      pointers[path] = pointer = { traverse, path, split, field: node.id }
+      records[path] = record = { traverse, path, split, field: node.id }
     }
-
+    return record
+  }
+  const getChanges = (component: Component) => {
     let changes = cache.get(component)
     if (changes === undefined) {
-      changes = {}
+      changes = { object: {}, objectCount: 0, array: [], arrayCount: 0 }
       cache.set(component, changes)
     }
-    if (changes[path]) {
-      changes[path].value = value
-    } else {
-      changes[path] = { pointer, value }
-    }
-    return pointer
+    return changes
   }
-  const set = (component: Component, path: string, value: unknown) => {
-    const { split } = track(component, path, value)
-    const end = split.length - 1
-    let parent = component
-    let i: number
-    for (i = 0; i < end; i++) {
-      parent = component[split[i]]
+  const track = (component: Component, path: string, value: unknown) => {
+    const record = getRecord(component, path)
+    const changes = getChanges(component)
+    const change = changes.object[path]
+    if (change) {
+      if (change.value === NO_OP) {
+        changes.objectCount++
+      }
+      change.value = value
+    } else {
+      changes.objectCount++
+      changes.object[path] = { record, value }
     }
-    parent[split[i]] = value
+  }
+  const trackPop = (component: Component, path: string) => {
+    const record = getRecord(component, path)
+    const changes = getChanges(component)
+    changes.arrayCount++
+    changes.array.push({ method: MutArrayMethod.Pop, record })
+  }
+  const trackPush = (
+    component: Component,
+    path: string,
+    ...values: unknown[]
+  ) => {
+    const record = getRecord(component, path)
+    const changes = getChanges(component)
+    changes.arrayCount++
+    changes.array.push({ method: MutArrayMethod.Push, record, values })
+  }
+  const trackShift = (component: Component, path: string) => {
+    const record = getRecord(component, path)
+    const changes = getChanges(component)
+    changes.arrayCount++
+    changes.array.push({ method: MutArrayMethod.Shift, record })
+  }
+  const trackUnshift = (
+    component: Component,
+    path: string,
+    ...values: unknown[]
+  ) => {
+    const record = getRecord(component, path)
+    const changes = getChanges(component)
+    changes.arrayCount++
+    changes.array.push({
+      method: MutArrayMethod.Unshift,
+      record,
+      values,
+    })
+  }
+  const trackSplice = (
+    component: Component,
+    path: string,
+    index: number,
+    remove: number,
+    ...values: unknown[]
+  ) => {
+    const record = getRecord(component, path)
+    const changes = getChanges(component)
+    changes.arrayCount++
+    changes.array.push({
+      method: MutArrayMethod.Splice,
+      record,
+      index,
+      remove,
+      values,
+    })
+  }
+  const resetChanges = (changes: ObserverChangeSet) => {
+    for (const prop in changes.array) {
+      delete changes.array[prop]
+    }
+    for (const prop in changes.object) {
+      changes.object[prop].value = NO_OP
+    }
+    changes.objectCount = 0
+    changes.arrayCount = 0
+  }
+  const reset = (component: Component) => {
+    const changes = cache.get(component)
+    if (changes !== undefined) {
+      resetChanges(changes)
+    }
+  }
+  const clear = () => {
+    cache.forEach(resetChanges)
   }
   const changesOf = (component: Component) => cache.get(component) || null
 
-  return { track, changesOf, set }
+  return {
+    track,
+    trackPop,
+    trackPush,
+    trackShift,
+    trackUnshift,
+    trackSplice,
+    changesOf,
+    reset,
+    clear,
+  }
 }

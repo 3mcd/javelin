@@ -1,7 +1,12 @@
-import { Component, Entity } from "@javelin/ecs"
+import {
+  Component,
+  Entity,
+  ObserverChangeSet,
+  NO_OP,
+  MutArrayMethod,
+} from "@javelin/ecs"
 import {
   assert,
-  ChangeSet,
   createModel,
   ErrorType,
   flattenModel,
@@ -9,7 +14,6 @@ import {
   ModelFlat,
   ModelNodeKind,
   mutableEmpty,
-  NO_OP,
 } from "@javelin/model"
 import {
   dataTypeToView,
@@ -37,21 +41,8 @@ type PartModel = Part
 type PartSpawn = Part
 type PartAttach = Part
 type PartUpdate = Part
-/**
- * p: [
- *   1: entity
- *   2: component id [
- *     a: field count
- *     b: field [
- *       1: traverse length
- *       2: traverse keys
- *       3: value
- *     ]
- *   ]
- * ]
- */
 type PartPatch = Part & {
-  changeMapByEntity: Map<Entity, Map<number, ChangeSet>>
+  changesByEntity: Map<Entity, Map<number, ObserverChangeSet>>
 }
 type PartDetach = Part
 type PartDestroy = Part
@@ -90,6 +81,109 @@ const encodePartHeader = (
   return offset
 }
 
+const encodeChange = (
+  buffer: ArrayBuffer,
+  bufferView: DataView,
+  offset: number,
+  message: Message,
+  changes: ObserverChangeSet,
+  componentTypeId: number,
+) => {
+  const { object, objectCount, array, arrayCount } = changes
+  const type = message.modelFlat[componentTypeId]
+  // component id
+  uint8.write(bufferView, offset, componentTypeId)
+  offset += uint8.byteLength
+  // object count
+  uint8.write(bufferView, offset, objectCount)
+  offset += uint8.byteLength
+  // array count
+  uint8.write(bufferView, offset, arrayCount)
+  offset += uint8.byteLength
+  for (const prop in object) {
+    const { value, record } = object[prop]
+    if (value === NO_OP) {
+      continue
+    }
+    const { field, traverse } = record
+    // field
+    uint8.write(bufferView, offset, field)
+    offset += uint8.byteLength
+    // traverse length
+    uint8.write(bufferView, offset, traverse?.length ?? 0)
+    offset += uint8.byteLength
+    // traverse keys
+    if (traverse !== undefined) {
+      for (let i = 0; i < traverse.length; i++) {
+        uint16.write(bufferView, offset, +traverse[i])
+        offset += uint16.byteLength
+      }
+    }
+    // value
+    const typeField = type[field]
+    assert(
+      typeField.kind === ModelNodeKind.Primitive,
+      "Failed to encode patch: only primitive field mutations are currently supported",
+    )
+    const view = dataTypeToView(typeField.type)
+    view.write(bufferView, offset, value)
+    offset += view.byteLength
+  }
+  for (let i = 0; i < arrayCount; i++) {
+    const change = array[i]
+    const {
+      method,
+      record: { field, traverse },
+    } = change
+    // field
+    uint8.write(bufferView, offset, field)
+    offset += uint8.byteLength
+    // traverse length
+    uint8.write(bufferView, offset, traverse?.length ?? 0)
+    offset += uint8.byteLength
+    // array method
+    uint8.write(bufferView, offset, method)
+    offset += uint8.byteLength
+
+    if (
+      change.method === MutArrayMethod.Pop ||
+      change.method === MutArrayMethod.Shift
+    ) {
+      continue
+    }
+
+    const typeField = type[field]
+    assert(
+      typeField.kind === ModelNodeKind.Primitive,
+      "Failed to encode patch: only primitive field mutations are currently supported",
+    )
+    const view = dataTypeToView(typeField.type)
+    const length = change.values.length
+
+    // insert length
+    uint8.write(bufferView, offset, length)
+    offset += uint8.byteLength
+
+    for (let j = 0; j < length; j++) {
+      // insert
+      const value = change.values[i]
+      view.write(bufferView, offset, value)
+      offset += view.byteLength
+    }
+
+    if (change.method === MutArrayMethod.Splice) {
+      // splice index
+      uint8.write(bufferView, offset, change.index)
+      offset += uint8.byteLength
+      // remove
+      uint8.write(bufferView, offset, change.remove)
+      offset += uint8.byteLength
+    }
+  }
+
+  return offset
+}
+
 const encodePart = (
   buffer: ArrayBuffer,
   bufferView: DataView,
@@ -104,52 +198,20 @@ const encodePart = (
   switch (partsIndex) {
     case 5: {
       const patch = message.parts[partsIndex]
-      patch.changeMapByEntity.forEach((changeMap, entity) => {
-        // (p.1) entity
+      patch.changesByEntity.forEach((changeMap, entity) => {
+        // entity
         uint32.write(bufferView, offset, entity)
         offset += uint32.byteLength
-        changeMap.forEach((changeSet, componentTypeId) => {
-          const { fields } = changeSet
-          const type = message.modelFlat[componentTypeId]
-          // (p.2) component id
-          uint8.write(bufferView, offset, componentTypeId)
-          offset += uint8.byteLength
-          // (p.2.a) field count
-          let count = 0
-          for (const prop in fields) {
-            count++
-          }
-          uint8.write(bufferView, offset, count)
-          offset += uint8.byteLength
-          for (const prop in fields) {
-            const change = fields[prop]
-            if (change.field === NO_OP) {
-              continue
-            }
-            const { field, traverse, value } = change
-            // (p.2.b) field
-            uint8.write(bufferView, offset, field)
-            offset += uint8.byteLength
-            // (p.2.b.1) traverse length
-            uint8.write(bufferView, offset, traverse?.length ?? 0)
-            offset += uint8.byteLength
-            // (p.2.b.2) traverse keys
-            if (traverse !== undefined) {
-              for (let i = 0; i < traverse.length; i++) {
-                uint16.write(bufferView, offset, +traverse[i])
-                offset += uint16.byteLength
-              }
-            }
-            // (p.2.b.3) value
-            const typeField = type[field]
-            assert(
-              typeField.kind === ModelNodeKind.Primitive,
-              "Failed to encode patch: only primitive field mutations are currently supported",
-            )
-            const view = dataTypeToView(typeField.type)
-            view.write(bufferView, offset, value)
-            offset += view.byteLength
-          }
+        // changes
+        changeMap.forEach((changes, componentTypeId) => {
+          offset += encodeChange(
+            buffer,
+            bufferView,
+            offset,
+            message,
+            changes,
+            componentTypeId,
+          )
         })
       })
       break
@@ -265,7 +327,7 @@ export const createMessage = (model: Model): Message => {
       createPart(),
       createPart(),
       createPart(),
-      { ...createPart(), changeMapByEntity: new Map() },
+      { ...createPart(), changesByEntity: new Map() },
       createPart(),
       createPart(),
     ],
@@ -295,7 +357,7 @@ export const reset = (message: Message) => {
     const part = parts[i]
     switch (i) {
       case 5:
-        ;(part as PartPatch).changeMapByEntity.clear()
+        ;(part as PartPatch).changesByEntity.clear()
       default:
         mutableEmpty(part.data)
         mutableEmpty(part.type)
@@ -324,32 +386,74 @@ export const update = (
 ) => insertEntityComponents(message.parts[4], entity, components, message.model)
 
 const calcChangeByteLength = (
-  changeSet: ChangeSet,
-  modelFlat: ModelFlat[keyof ModelFlat],
+  changes: ObserverChangeSet,
+  type: ModelFlat[keyof ModelFlat],
 ) => {
-  const { fields } = changeSet
+  const { object, array } = changes
 
-  let byteLength = 0
+  // object count + array count
+  let byteLength = uint8.byteLength * 2
 
-  for (const prop in fields) {
-    const change = fields[prop]
-    if (change.field === NO_OP) {
+  for (const prop in object) {
+    const change = object[prop]
+    if (change.value === NO_OP) {
       continue
     }
-    const { field, traverse } = change
-    // (p.2.b) field
+    const {
+      record: { field, traverse },
+    } = change
+    // field
     byteLength += uint8.byteLength
-    // (p.2.b.1) traverse length
+    // traverse length
     byteLength += uint8.byteLength
-    // (p.2.b.2) traverse keys
+    // traverse keys
     byteLength += uint16.byteLength * (traverse?.length ?? 0)
-    // (p.2.b.3) value
-    const node = modelFlat[field]
+    // value
+    const node = type[field]
     assert(
       node.kind === ModelNodeKind.Primitive,
       "Failed to encode change: only primitive field mutations are currently supported",
     )
     byteLength += dataTypeToView(node.type).byteLength
+  }
+
+  for (let i = 0; i < array.length; i++) {
+    const change = array[i]
+    const {
+      record: { field, traverse },
+    } = change
+    // field
+    byteLength += uint8.byteLength
+    // traverse length
+    byteLength += uint8.byteLength
+    // traverse keys
+    byteLength += uint16.byteLength * (traverse?.length ?? 0)
+    // array method
+    byteLength += uint8.byteLength
+    if (
+      change.method === MutArrayMethod.Pop ||
+      change.method === MutArrayMethod.Shift
+    ) {
+      continue
+    }
+    // insert length
+    byteLength += uint8.byteLength
+
+    const node = type[field]
+    assert(
+      node.kind === ModelNodeKind.Primitive,
+      "Failed to encode change: only primitive field mutations are currently supported",
+    )
+
+    // insert values
+    byteLength += dataTypeToView(node.type).byteLength * change.values.length
+
+    if (change.method === MutArrayMethod.Splice) {
+      // index
+      byteLength += uint8.byteLength
+      // remove
+      byteLength += uint8.byteLength
+    }
   }
 
   return byteLength
@@ -359,16 +463,16 @@ export const patch = (
   message: Message,
   entity: Entity,
   componentTypeId: number,
-  changeSet: ChangeSet,
+  changes: ObserverChangeSet,
 ) => {
   const part = message.parts[5]
 
   let delta = 0
-  let changeMap = part.changeMapByEntity.get(entity)
+  let changeMap = part.changesByEntity.get(entity)
 
   if (changeMap === undefined) {
     changeMap = new Map()
-    part.changeMapByEntity.set(entity, changeMap)
+    part.changesByEntity.set(entity, changeMap)
     // (p.1) entity
     delta += uint32.byteLength
   }
@@ -385,9 +489,9 @@ export const patch = (
     delta += uint8.byteLength
   }
 
-  changeMap.set(componentTypeId, changeSet)
+  changeMap.set(componentTypeId, changes)
 
-  part.byteLength += delta + calcChangeByteLength(changeSet, fields)
+  part.byteLength += delta + calcChangeByteLength(changes, fields)
 }
 
 export const detach = (
