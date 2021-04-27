@@ -1,5 +1,4 @@
-import { ComponentType, Entity } from "@javelin/ecs"
-import { ChangeSet } from "@javelin/model"
+import { ComponentType, Entity, ObserverChangeSet } from "@javelin/ecs"
 import { Message } from "./protocol"
 
 export type MessageProducer = {}
@@ -15,7 +14,7 @@ export const createMessageProducer = (
   const patch = (
     entity: Entity,
     componentType: ComponentType,
-    changes: ChangeSet,
+    changes: ObserverChangeSet,
     priority = Infinity,
   ) => {}
 

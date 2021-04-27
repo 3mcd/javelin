@@ -1,4 +1,5 @@
 const {
+  arrayOf,
   boolean,
   component,
   createEffect,
@@ -49,6 +50,7 @@ const Velocity = {
 }
 const Junk = {
   influenced: boolean,
+  buffer: arrayOf(arrayOf(number)),
 }
 const Wormhole = {
   r: number,
@@ -234,17 +236,10 @@ const sysRender = () => {
 
 const sysPhysics = () => {
   const { track, trackPop } = effObserve()
-  qryJunk((e, [t, { x, y }]) => {
-    // const o = observe(t)
-    // o.x = t.x + x
-    // o.y = t.y + y
-    // t.x += x
-    // t.y += y
-    track(t, "x", (t.x += x))
-    track(t, "y", (t.y += y))
-    trackArray(t, "buffer", i, 0, 1200)
-    // set(t, "x", t.x + x)
-    // set(t, "y", t.y + y)
+  qryJunk((e, [t, v, j]) => {
+    track(t, "x", (t.x += v.x))
+    track(t, "y", (t.y += v.y))
+    trackPop(j, "buffer.3", 1, 0, 1200)
   })
 }
 

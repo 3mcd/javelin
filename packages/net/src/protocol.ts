@@ -1,9 +1,8 @@
 import {
   Component,
   Entity,
-  ObserverChangeSet,
-  NO_OP,
   MutArrayMethod,
+  ObserverChangeSet,
 } from "@javelin/ecs"
 import {
   assert,
@@ -82,7 +81,6 @@ const encodePartHeader = (
 }
 
 const encodeChange = (
-  buffer: ArrayBuffer,
   bufferView: DataView,
   offset: number,
   message: Message,
@@ -101,8 +99,8 @@ const encodeChange = (
   uint8.write(bufferView, offset, arrayCount)
   offset += uint8.byteLength
   for (const prop in object) {
-    const { value, record } = object[prop]
-    if (value === NO_OP) {
+    const { value, record, noop } = object[prop]
+    if (noop) {
       continue
     }
     const { field, traverse } = record
@@ -141,6 +139,13 @@ const encodeChange = (
     // traverse length
     uint8.write(bufferView, offset, traverse?.length ?? 0)
     offset += uint8.byteLength
+    // traverse keys
+    if (traverse !== undefined) {
+      for (let i = 0; i < traverse.length; i++) {
+        uint16.write(bufferView, offset, +traverse[i])
+        offset += uint16.byteLength
+      }
+    }
     // array method
     uint8.write(bufferView, offset, method)
     offset += uint8.byteLength
@@ -205,7 +210,6 @@ const encodePart = (
         // changes
         changeMap.forEach((changes, componentTypeId) => {
           offset += encodeChange(
-            buffer,
             bufferView,
             offset,
             message,
@@ -396,18 +400,15 @@ const calcChangeByteLength = (
 
   for (const prop in object) {
     const change = object[prop]
-    if (change.value === NO_OP) {
+    if (change.noop) {
       continue
     }
     const {
       record: { field, traverse },
     } = change
-    // field
-    byteLength += uint8.byteLength
-    // traverse length
-    byteLength += uint8.byteLength
-    // traverse keys
-    byteLength += uint16.byteLength * (traverse?.length ?? 0)
+    // field + traverse length + traverse keys
+    byteLength +=
+      uint8.byteLength * 2 + uint16.byteLength * (traverse?.length ?? 0)
     // value
     const node = type[field]
     assert(
@@ -422,12 +423,9 @@ const calcChangeByteLength = (
     const {
       record: { field, traverse },
     } = change
-    // field
-    byteLength += uint8.byteLength
-    // traverse length
-    byteLength += uint8.byteLength
-    // traverse keys
-    byteLength += uint16.byteLength * (traverse?.length ?? 0)
+    // field + traverse length + traverse keys
+    byteLength +=
+      uint8.byteLength * 2 + uint16.byteLength * (traverse?.length ?? 0)
     // array method
     byteLength += uint8.byteLength
     if (
@@ -449,10 +447,8 @@ const calcChangeByteLength = (
     byteLength += dataTypeToView(node.type).byteLength * change.values.length
 
     if (change.method === MutArrayMethod.Splice) {
-      // index
-      byteLength += uint8.byteLength
-      // remove
-      byteLength += uint8.byteLength
+      // index + remove
+      byteLength += uint16.byteLength + uint8.byteLength
     }
   }
 
@@ -473,7 +469,7 @@ export const patch = (
   if (changeMap === undefined) {
     changeMap = new Map()
     part.changesByEntity.set(entity, changeMap)
-    // (p.1) entity
+    // entity
     delta += uint32.byteLength
   }
 
@@ -483,10 +479,8 @@ export const patch = (
   if (existing) {
     delta -= calcChangeByteLength(existing, fields)
   } else {
-    // (p.2) component id
-    delta += uint8.byteLength
-    // (p.2.a) field count
-    delta += uint8.byteLength
+    // component id + field count
+    delta += uint8.byteLength * 2
   }
 
   changeMap.set(componentTypeId, changes)

@@ -1,9 +1,12 @@
 import { createEffect } from "../effect"
 import { createObserver } from "../observer"
 
-export const effObserve = createEffect(() => {
+export const effObserve = createEffect(world => {
   const observer = createObserver()
-  return function effObserve(clear: boolean) {
+  world.detached.subscribe((e, components) =>
+    components.forEach(observer.reset),
+  )
+  return function effObserve(clear = true) {
     if (clear) {
       observer.clear()
     }

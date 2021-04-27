@@ -1,8 +1,28 @@
-import { ModelNode, ModelNodeKind, ModelNodeStruct } from "@javelin/model"
+import {
+  ModelNode,
+  ModelNodeKind,
+  ModelNodeStruct,
+  mutableEmpty,
+} from "@javelin/model"
 import { Component } from "./component"
 import { globals } from "./internal"
+import { createStackPool } from "./pool"
 
-export const NO_OP = Symbol("javelin_observer_no_op")
+const arrayOpPool = createStackPool<ObserverArrayOp>(
+  () =>
+    (({
+      method: -1,
+      record: null,
+      values: [],
+    } as unknown) as ObserverArrayOp),
+  op => {
+    op.method = -1
+    op.record = (null as unknown) as ObserverChangeRecord
+    mutableEmpty((op as ArrayOpInsert).values)
+    return op
+  },
+  10000,
+)
 
 export enum MutArrayMethod {
   Pop,
@@ -11,6 +31,10 @@ export enum MutArrayMethod {
   Unshift,
   Splice,
 }
+export type ArrayOpBase = {
+  method: MutArrayMethod
+  record: ObserverChangeRecord
+}
 export type ObserverChangeRecord = {
   field: number
   path: string
@@ -18,25 +42,32 @@ export type ObserverChangeRecord = {
   traverse: string[]
 }
 export type ObserverChange = {
-  value: unknown | typeof NO_OP
+  noop: boolean
+  value: unknown
   record: ObserverChangeRecord
 }
-export type ObserverChangeArray = { record: ObserverChangeRecord } & (
-  | { method: MutArrayMethod.Pop }
-  | { method: MutArrayMethod.Push; values: unknown[] }
-  | { method: MutArrayMethod.Shift }
-  | { method: MutArrayMethod.Unshift; values: unknown[] }
-  | {
-      method: MutArrayMethod.Splice
-      index: number
-      remove: number
-      values: unknown[]
-    }
-)
+type ArrayOpInsert = ArrayOpBase & {
+  values: unknown[]
+}
+type ArrayOpPop = ArrayOpBase & { method: MutArrayMethod.Pop }
+type ArrayOpShift = ArrayOpBase & { method: MutArrayMethod.Shift }
+type ArrayOpPush = ArrayOpInsert & { method: MutArrayMethod.Push }
+type ArrayOpUnshift = ArrayOpInsert & { method: MutArrayMethod.Unshift }
+type ArrayOpSplice = ArrayOpInsert & {
+  method: MutArrayMethod.Splice
+  index: number
+  remove: number
+}
+export type ObserverArrayOp =
+  | ArrayOpPop
+  | ArrayOpShift
+  | ArrayOpPush
+  | ArrayOpUnshift
+  | ArrayOpSplice
 export type ObserverChangeSet = {
   object: Record<string, ObserverChange>
   objectCount: number
-  array: ObserverChangeArray[]
+  array: ObserverArrayOp[]
   arrayCount: number
 }
 export type Observer = {
@@ -52,6 +83,7 @@ export type Observer = {
     remove: number,
     ...values: unknown[]
   ): void
+  empty(component: Component): void
   reset(component: Component): void
   clear(): void
   changesOf(component: Component): ObserverChangeSet | null
@@ -104,88 +136,104 @@ export const createObserver = (): Observer => {
     const changes = getChanges(component)
     const change = changes.object[path]
     if (change) {
-      if (change.value === NO_OP) {
+      if (change.noop) {
+        change.noop = false
         changes.objectCount++
       }
       change.value = value
     } else {
       changes.objectCount++
-      changes.object[path] = { record, value }
+      changes.object[path] = { record, value, noop: false }
     }
   }
-  const trackPop = (component: Component, path: string) => {
+  function trackPop(component: Component, path: string) {
     const record = getRecord(component, path)
     const changes = getChanges(component)
+    const arrayOp = arrayOpPool.retain()
+    arrayOp.record = record
+    arrayOp.method = MutArrayMethod.Pop
     changes.arrayCount++
-    changes.array.push({ method: MutArrayMethod.Pop, record })
+    changes.array.push(arrayOp)
   }
-  const trackPush = (
-    component: Component,
-    path: string,
-    ...values: unknown[]
-  ) => {
+  function trackPush(component: Component, path: string) {
     const record = getRecord(component, path)
     const changes = getChanges(component)
+    const arrayOp = arrayOpPool.retain() as ArrayOpPush
+    arrayOp.record = record
+    arrayOp.method = MutArrayMethod.Push
+    for (let i = 2; i < arguments.length; i++) {
+      arrayOp.values.push(arguments[i])
+    }
     changes.arrayCount++
-    changes.array.push({ method: MutArrayMethod.Push, record, values })
+    changes.array.push(arrayOp)
   }
-  const trackShift = (component: Component, path: string) => {
+  function trackShift(component: Component, path: string) {
     const record = getRecord(component, path)
     const changes = getChanges(component)
+    const arrayOp = arrayOpPool.retain()
+    arrayOp.record = record
+    arrayOp.method = MutArrayMethod.Shift
     changes.arrayCount++
-    changes.array.push({ method: MutArrayMethod.Shift, record })
+    changes.array.push(arrayOp)
   }
-  const trackUnshift = (
-    component: Component,
-    path: string,
-    ...values: unknown[]
-  ) => {
+  function trackUnshift(component: Component, path: string) {
     const record = getRecord(component, path)
     const changes = getChanges(component)
+    const arrayOp = arrayOpPool.retain() as ArrayOpUnshift
+    arrayOp.record = record
+    arrayOp.method = MutArrayMethod.Unshift
+    for (let i = 2; i < arguments.length; i++) {
+      arrayOp.values.push(arguments[i])
+    }
     changes.arrayCount++
-    changes.array.push({
-      method: MutArrayMethod.Unshift,
-      record,
-      values,
-    })
+    changes.array.push(arrayOp)
   }
-  const trackSplice = (
+  function trackSplice(
     component: Component,
     path: string,
     index: number,
     remove: number,
-    ...values: unknown[]
-  ) => {
+  ) {
     const record = getRecord(component, path)
     const changes = getChanges(component)
-    changes.arrayCount++
-    changes.array.push({
-      method: MutArrayMethod.Splice,
-      record,
-      index,
-      remove,
-      values,
-    })
-  }
-  const resetChanges = (changes: ObserverChangeSet) => {
-    for (const prop in changes.array) {
-      delete changes.array[prop]
+    const arrayOp = arrayOpPool.retain() as ArrayOpSplice
+    arrayOp.record = record
+    arrayOp.method = MutArrayMethod.Splice
+    arrayOp.index = index
+    arrayOp.remove = remove
+    for (let i = 2; i < arguments.length; i++) {
+      arrayOp.values.push(arguments[i])
     }
-    for (const prop in changes.object) {
-      changes.object[prop].value = NO_OP
+    changes.arrayCount++
+    changes.array.push(arrayOp)
+  }
+  const emptyChanges = (changes: ObserverChangeSet) => {
+    const { array, object } = changes
+    let arrayOp: ObserverArrayOp | undefined
+    while ((arrayOp = array.pop())) {
+      arrayOpPool.release(arrayOp)
+    }
+    for (const prop in object) {
+      object[prop].noop = true
     }
     changes.objectCount = 0
     changes.arrayCount = 0
   }
+  const empty = (component: Component) => {
+    const changes = cache.get(component)
+    if (changes !== undefined) {
+      emptyChanges(changes)
+    }
+  }
+  const clear = () => cache.forEach(emptyChanges)
   const reset = (component: Component) => {
     const changes = cache.get(component)
     if (changes !== undefined) {
-      resetChanges(changes)
+      emptyChanges(changes)
     }
+    cache.delete(component)
   }
-  const clear = () => {
-    cache.forEach(resetChanges)
-  }
+
   const changesOf = (component: Component) => cache.get(component) || null
 
   return {
@@ -196,7 +244,8 @@ export const createObserver = (): Observer => {
     trackUnshift,
     trackSplice,
     changesOf,
-    reset,
+    empty,
     clear,
+    reset,
   }
 }
