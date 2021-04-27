@@ -51,7 +51,7 @@ describe("createQuery", () => {
     let resultsA: Component[] = []
     let resultsB: Component[] = []
 
-    q.forEach((e, [a, b]) => {
+    q((e, [a, b]) => {
       resultsA.push(a)
       resultsB.push(b)
     })

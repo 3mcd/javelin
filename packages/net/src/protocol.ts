@@ -62,6 +62,22 @@ export type Message = {
   modelFlat: ModelFlat
 }
 
+export type DecodeMessageHandlers = {
+  onTick(tick: number): void
+  onModel(model: Model): void
+  onCreate(entity: number, components: Component[]): void
+  onAttach(entity: number, components: Component[]): void
+  onUpdate(entity: number, components: Component[]): void
+  onDetach(entity: number, componentTypeIds: number[]): void
+  onDestroy(entity: number): void
+  onPatch(
+    buffer: ArrayBuffer,
+    bufferView: DataView,
+    model: Model,
+    offset: number,
+  ): void
+}
+
 const createPart = (): Part => {
   return {
     data: [],
@@ -209,7 +225,7 @@ const encodePart = (
         offset += uint32.byteLength
         // changes
         changeMap.forEach((changes, componentTypeId) => {
-          offset += encodeChange(
+          offset = encodeChange(
             bufferView,
             offset,
             message,
@@ -479,8 +495,8 @@ export const patch = (
   if (existing) {
     delta -= calcChangeByteLength(existing, fields)
   } else {
-    // component id + field count
-    delta += uint8.byteLength * 2
+    // component type id
+    delta += uint8.byteLength
   }
 
   changeMap.set(componentTypeId, changes)
@@ -633,22 +649,6 @@ function decodeDestroy(
   return offset
 }
 
-export type DecodeMessageHandlers = {
-  onTick(tick: number): void
-  onModel(model: Model): void
-  onCreate(entity: number, components: Component[]): void
-  onAttach(entity: number, components: Component[]): void
-  onUpdate(entity: number, components: Component[]): void
-  onDetach(entity: number, componentTypeIds: number[]): void
-  onDestroy(entity: number): void
-  onPatch(
-    buffer: ArrayBuffer,
-    bufferView: DataView,
-    model: Model,
-    offset: number,
-  ): void
-}
-
 export function decodeMessage(
   buffer: ArrayBuffer,
   handlers: DecodeMessageHandlers,
@@ -710,8 +710,6 @@ export function decodeMessage(
     offset,
     onUpdate,
   )
-  // TODO: patch iterator
-  // patch
   const patchLength = uint16.read(bufferView, offset)
   onPatch(buffer, bufferView, model, offset)
   offset += patchLength + uint16.byteLength

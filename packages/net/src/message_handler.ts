@@ -90,12 +90,11 @@ export const createMessageHandler = (world: World) => {
       offset: number,
     ) {
       const length = bufferView.getUint32(offset)
-
       offset += 4
+
       while (offset < length) {
         const entity = bufferView.getUint32(offset)
         const local = entities.get(entity)
-
         offset += 4
 
         if (local === undefined) {
@@ -123,7 +122,9 @@ export const createMessageHandler = (world: World) => {
           offset += 1
           const traverseLength = bufferView.getUint8(offset)
           offset += 1
+
           mutableEmpty(tmpTraverse)
+
           for (let i = 0; i < traverseLength; i++) {
             tmpTraverse.push(bufferView.getUint16(offset))
             offset += 2

@@ -49,15 +49,29 @@ describe("protocol", () => {
     attach(message, 3, { __type__: 1, x: 9 })
     update(message, 3, { __type__: 1, x: 9 })
     patch(message, 3, 1, {
-      arrays: [],
-      fields: { x: { field: 1, value: 10 } },
-      fieldsCount: 1,
+      array: [],
+      arrayCount: 0,
+      object: {
+        x: {
+          value: 10,
+          record: { field: 1, path: "x", split: ["x"], traverse: [] },
+          noop: false,
+        },
+      },
+      objectCount: 1,
     })
-    patch(message, 3, 1, {
-      arrays: [],
-      fields: { x: { field: 1, value: 11 } },
-      fieldsCount: 1,
-    })
+    // patch(message, 3, 1, {
+    //   array: [],
+    //   arrayCount: 0,
+    //   object: {
+    //     x: {
+    //       value: 11,
+    //       record: { field: 1, path: "x", split: ["x"], traverse: [] },
+    //       noop: false,
+    //     },
+    //   },
+    //   objectCount: 1,
+    // })
     detach(message, 4, 1, 2, 3)
     destroy(message, 5)
     destroy(message, 6)
