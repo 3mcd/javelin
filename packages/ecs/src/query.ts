@@ -1,4 +1,4 @@
-import { mutableEmpty } from "@javelin/model"
+import { assert, ErrorType, mutableEmpty } from "@javelin/model"
 import { Archetype, ArchetypeTableColumn } from "./archetype"
 import {
   Component,
@@ -11,6 +11,10 @@ import { UNSAFE_internals } from "./internal"
 import { $componentType } from "./internal/symbols"
 import { createStackPool } from "./pool"
 import { typeIsSuperset } from "./type"
+import { World } from "./world"
+
+const ERROR_MSG_UNBOUND_QUERY =
+  "a query must be executed within a system or bound to a world using Query.bind()"
 
 export type Selector = ComponentType[]
 export type SelectorResult<S extends Selector> = {
@@ -24,6 +28,7 @@ export type QueryRecord<S extends Selector> = [
       ? ArchetypeTableColumn<S[K]>
       : never
   },
+  entityLookup: ReadonlyArray<number>,
 ]
 export type QueryForEachRecord<S extends Selector> = [
   entity: number,
@@ -41,6 +46,7 @@ export type Query<S extends Selector = Selector> = ((
   filters: {
     not: ReadonlySet<number>
   }
+  context: number | null
 
   [Symbol.iterator](): IterableIterator<QueryRecord<S>>
 
@@ -50,6 +56,12 @@ export type Query<S extends Selector = Selector> = ((
    * @param selector
    */
   not(...selector: Selector): Query<S>
+
+  /**
+   * Determine if an entity test the query.
+   * @param entity
+   */
+  test(entity: Entity): boolean
 }
 
 export const queryMatchesArchetype = (query: Query, archetype: Archetype) =>
@@ -77,7 +89,7 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
     not: new Set<number>(),
   }
   const signature = layout.slice().sort((a, b) => a - b)
-  const recordsByWorldId = [] as QueryRecord<S>[][]
+  const recordsIndex = [] as QueryRecord<S>[][]
   const maybeRegisterArchetype = (
     archetype: Archetype,
     records: QueryRecord<S>[],
@@ -87,13 +99,17 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
         componentTypeId =>
           archetype.table[archetype.signature.indexOf(componentTypeId)],
       )
-      records.push([archetype.entities, columns as QueryRecord<S>[1]])
+      records.push([
+        archetype.entities,
+        columns as QueryRecord<S>[1],
+        archetype.indices,
+      ])
     }
   }
   const registerWorld = (worldId: number) => {
     const world = UNSAFE_internals.__WORLDS__[worldId]
     const records: QueryRecord<S>[] = []
-    recordsByWorldId[worldId] = records
+    recordsIndex[worldId] = records
     world.storage.archetypes.forEach(archetype =>
       maybeRegisterArchetype(archetype, records),
     )
@@ -112,9 +128,13 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
   )
 
   const forEach = (iteratee: QueryIteratee<S>) => {
-    const records =
-      recordsByWorldId[UNSAFE_internals.__CURRENT_WORLD__] ||
-      registerWorld(UNSAFE_internals.__CURRENT_WORLD__)
+    const context = query.context ?? UNSAFE_internals.__CURRENT_WORLD__
+    assert(
+      context !== null && context !== -1,
+      ERROR_MSG_UNBOUND_QUERY,
+      ErrorType.Query,
+    )
+    const records = recordsIndex[context] || registerWorld(context)
     const components = pool.retain()
 
     for (let i = 0; i < records.length; i++) {
@@ -135,15 +155,42 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
   query.layout = layout
   query.signature = signature
   query.filters = filters
+  query.context = null
+
   query.not = (...selector: Selector) => {
     for (let i = 0; i < selector.length; i++) {
       filters.not.add(selector[i][$componentType])
     }
     return query
   }
+  query.bind = (world: World) => {
+    const query = createQuery(...selector)
+    query.context = world.id
+    return query
+  }
+  query.test = (entity: Entity) => {
+    const context = query.context ?? UNSAFE_internals.__CURRENT_WORLD__
+    const records = recordsIndex[context]
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i]
+      if (record[2][entity] !== undefined) {
+        return true
+      }
+    }
+    return false
+  }
   query[Symbol.iterator] = () => {
-    return (recordsByWorldId[UNSAFE_internals.__CURRENT_WORLD__] ||
-      registerWorld(UNSAFE_internals.__CURRENT_WORLD__))[Symbol.iterator]()
+    const context = query.context ?? UNSAFE_internals.__CURRENT_WORLD__
+    assert(
+      context !== null && context !== -1,
+      ERROR_MSG_UNBOUND_QUERY,
+      ErrorType.Query,
+    )
+    const iterator = (recordsIndex[context] || registerWorld(context))[
+      Symbol.iterator
+    ]()
+
+    return iterator
   }
 
   return query

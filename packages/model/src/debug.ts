@@ -14,8 +14,10 @@ export function assert(
 
 export enum ErrorType {
   Internal = 0,
+  Query = 1,
 }
 
 const errorMessagePrefixes: Record<ErrorType, string> = {
   [ErrorType.Internal]: "Internal Error",
+  [ErrorType.Query]: "Query Error",
 }

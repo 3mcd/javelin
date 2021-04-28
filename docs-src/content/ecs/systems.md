@@ -49,8 +49,9 @@ Systems have a signature of `(world: World<T>) => void`, where the first argumen
 The following is a world that will log the time elapsed since the last tick at around 60Hz:
 
 ```ts
+const sysPrint = world => console.log(world.state.currentTickData)
 const world = createWorld<number>({
-  systems: [world => console.log(world.state.currentTickData)],
+  systems: [sysPrint],
 })
 
 let previousTime = Date.now()
@@ -58,9 +59,7 @@ let previousTime = Date.now()
 setInterval(() => {
   const currentTime = Date.now()
   const delta = currentTime - previousTime
-
   world.tick(delta)
-
   previousTime = currentTime
 }, 1000 / 60)
 ```
@@ -79,11 +78,11 @@ setInterval(() => {
 
 ## Querying and Iteration
 
-Systems query collections of entities and operate on their data to yield the next game state. These iterable collections are created using **queries** that specify a set of component types to query.
+Systems query collections of entities and operate on their data to yield the next game state. These iterable collections are called **queries**.
 
 Depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next. This is the cornerstone of ECS: modifying component makeup also modifies game behavior. In addition, the isolation of game logic into systems makes your game world easier to debug and provides a clear target for performance and unit tests.
 
-Queries are created with the `createQuery` function, which takes a **selector** of component types.
+Queries are created with the `createQuery` function, which accepts a **selector** of component types.
 
 ```ts
 import { createQuery } from "@javelin/ecs"
@@ -91,15 +90,17 @@ import { createQuery } from "@javelin/ecs"
 const qryBodies = createQuery(Position, Velocity)
 ```
 
-A query is an iterable object that produces tuples of `(entity, Component[])` for entities that meet the selector's criteria.
+A query is an iterable object that produces tuples of `(entity, Component[])` for entities that meet the selector's criteria. By default, queries are intimately tied to systems – they resolve the component data of the world that is currently mid-tick.
 
 There are two ways to iterate a query. The first (and fastest) way is to iterate the query directly with a `for..of` loop:
 
 ```ts
-for (const [entities, [positions, velocities]] of qryBodies) {
-  for (let i = 0; i < entities.length; i++) {
-    positions[i].x += velocities[i].x
-    positions[i].y += velocities[i].y
+const sysPhysics = () => {
+  for (const [entities, [positions, velocities]] of qryBodies) {
+    for (let i = 0; i < entities.length; i++) {
+      positions[i].x += velocities[i].x
+      positions[i].y += velocities[i].y
+    }
   }
 }
 ```
@@ -107,17 +108,33 @@ for (const [entities, [positions, velocities]] of qryBodies) {
 This method of iteration leaks the implementation details of how components are stored in archetypes. An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. If your game doesn't reach extremely high entity counts and you don't mind a 2-3x iteration performance hit, consider using the function form of a query:
 
 ```ts
-qryBodies((e, [p, v]) => {
-  p.x += v.x
-  p.y += v.y
-})
+const sysPhysics = () =>
+  qryBodies((e, [p, v]) => {
+    p.x += v.x
+    p.y += v.y
+  })
 ```
 
 <aside>
   <p>
-    <strong>Tip</strong> — most examples in the Javelin docs iterate queries using the <code>query()</code> syntax since it's a bit easier to read, but stick to the <code>for..of</code> approach if your game world holds many entities.
+    <strong>Tip</strong> — most examples in the Javelin docs iterate queries using <code>query(iteratee)</code> syntax since it's a bit easier to read, but stick to the <code>for..of</code> approach if your game world holds many entities.
   </p>
 </aside>
+
+If you need to run a query against a specific world (i.e., outside of a system), you can bind a query to a specific world using the `bind` method:
+
+```ts
+const qryBodiesBound = qryBodies.bind(world)
+// Always executes against `world`
+qryBodiesBound(e => {})
+```
+
+You can use a query's `test` method to check if an entity would match that query.
+
+```ts
+// within a system
+qryBodies.test(e)
+```
 
 The order of component types in the query's selector will match the order of components in the query's results. That is, `createQuery(Position, Player)` will always yield tuples of components `(Position, Player)`:
 
@@ -148,7 +165,7 @@ const sysStatusEffects = () => {
 }
 ```
 
-Every index of `results` corresponds to the same array, which is the tuple of components attached to the entity of the last iteration. If you absolutely need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
+Every index of `results` references the same array, which is the tuple of components attached to the entity of the last iteration. If you absolutely need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
 
 ```ts
 const results = []

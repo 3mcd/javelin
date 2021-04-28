@@ -328,7 +328,9 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function tick(data: T) {
+    let prevWorld = UNSAFE_internals.__CURRENT_WORLD__
     UNSAFE_internals.__CURRENT_WORLD__ = id
+
     state.currentTickData = data
 
     // Clear world op history
@@ -356,6 +358,8 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     destroying.clear()
 
     state.currentTick++
+
+    UNSAFE_internals.__CURRENT_WORLD__ = prevWorld
   }
 
   function addSystem(system: System<T>) {
