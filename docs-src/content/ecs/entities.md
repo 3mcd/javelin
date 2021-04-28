@@ -11,7 +11,7 @@ A world has several methods for managing entities.
 
 ### Creating Entities
 
-Entities are created using `world.spawn`. This method accepts 0..n components and returns the newly created entity.
+Entities are created using `world.spawn`. This method accepts zero or more components and returns the newly created entity.
 
 ```ts
 const player = component(Player)

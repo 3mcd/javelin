@@ -16,14 +16,33 @@ Visit https://javelin.games for documentation, examples, and external resources.
 
 Entities are organized by their component makeup into Archetypes for quick lookups and iteration. In a small app (10 component types, 10 archetypes, 10 queries), Javelin can iterate ~2.5 million entities per 16ms on a 2GHz Intel i5 processor.
 
-### Intuitive
+### Ergonomic
 
-Game data is stored in plain old JavaScript objects. Iterate over game state using familiar syntax:
+Component types are defined with simple syntax and registered automatically:
 
 ```ts
-bodies.forEach((entity, [v, p]) => {
-  p.x += v.x
-})
+const Transform = {
+  x: float64,
+  y: float64,
+}
+const Inventory = {
+  bags: arrayOf(arrayOf(uint32)),
+}
+component(Transform) // => { x: 0, y: 0 }
+component(Inventory) // => { bags: [] }
+```
+
+### Intuitive
+
+Game data is stored in plain old JavaScript objects. Iterate over game state using simple syntax:
+
+```ts
+const qryBodies = createQuery(Transform, Velocity)
+const sysPhysics = () =>
+  qryBodies((entity, [t, v]) => {
+    t.x += v.x
+    t.y += v.y
+  })
 ```
 
 ### Powerful
@@ -31,15 +50,16 @@ bodies.forEach((entity, [v, p]) => {
 Best practices are built-in with tools like [Topics](https://javelin.games/ecs/topics) for inter-system messaging:
 
 ```ts
-const sysMovement = () => {
-  queries.input.forEach((entity, [input]) => {
-    if (input.jump)
-      topics.physics.push(impulse(entity, ...))
+const sysMovement = () =>
+  qryInput((entity, [input]) => {
+    if (input.jump) {
+      topPhysics.push(impulse(entity, 0, 10))
+    }
   })
-}
 const sysPhysics = () => {
-  for (const message of topics.physics)
-    ...
+  for (const message of topPhysics) {
+    // ...
+  }
 }
 ```
 
@@ -47,11 +67,13 @@ and [Effects](https://javelin.games/ecs/effects) for handling async code and thi
 
 ```ts
 const sysRender = () => {
-  const scene = effects.scene()
-  const model = effects.gltf("llama.gltf")
+  const scene = effScene()
+  const model = effLoadGLTF("llama.gltf")
 
-  queries.players.forEach((entity, [player, position]) => {
-    scene.insert(model, position)
-  })
+  effMonitor(
+    qryPlayers,
+    e => scene.insert(e, model, world.get(e, Transform)),
+    e => scene.destroy(e),
+  )
 }
 ```

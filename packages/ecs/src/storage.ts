@@ -2,7 +2,7 @@ import { mutableEmpty, packSparseArray } from "@javelin/model"
 import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
 import { Component, ComponentOf, ComponentType } from "./component"
 import { Entity } from "./entity"
-import { $type } from "./internal/symbols"
+import { $componentType } from "./internal/symbols"
 import { createSignal, Signal } from "./signal"
 
 export type StorageSnapshot = {
@@ -297,7 +297,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
   function hasComponent(entity: number, componentType: ComponentType) {
     const archetype = getEntityArchetype(entity)
-    return archetype.signature.includes(componentType[$type])
+    return archetype.signature.includes(componentType[$componentType])
   }
 
   function findComponent<T extends ComponentType>(
@@ -306,7 +306,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
   ) {
     return findComponentByComponentTypeId(
       entity,
-      componentType[$type],
+      componentType[$componentType],
     ) as ComponentOf<T>
   }
 

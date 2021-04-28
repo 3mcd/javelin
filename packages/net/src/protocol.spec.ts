@@ -1,4 +1,4 @@
-import { Component, Entity } from "@javelin/ecs"
+import { Component, Entity, setModel } from "@javelin/ecs"
 import { arrayOf, createModel, Model, Schema } from "@javelin/model"
 import { float64, uint32, uint8 } from "@javelin/pack"
 import {
@@ -41,7 +41,9 @@ describe("protocol", () => {
 
   it("sanity check", () => {
     const model = createModel(new Map([[1, baseSchema]]))
-    const message = createMessage(model)
+    const message = createMessage()
+
+    setModel(model)
 
     tick(message, 999)
     spawn(message, 1, [{ __type__: 1, x: 9 }])
@@ -60,18 +62,18 @@ describe("protocol", () => {
       },
       objectCount: 1,
     })
-    // patch(message, 3, 1, {
-    //   array: [],
-    //   arrayCount: 0,
-    //   object: {
-    //     x: {
-    //       value: 11,
-    //       record: { field: 1, path: "x", split: ["x"], traverse: [] },
-    //       noop: false,
-    //     },
-    //   },
-    //   objectCount: 1,
-    // })
+    patch(message, 3, 1, {
+      array: [],
+      arrayCount: 0,
+      object: {
+        x: {
+          value: 11,
+          record: { field: 1, path: "x", split: ["x"], traverse: [] },
+          noop: false,
+        },
+      },
+      objectCount: 1,
+    })
     detach(message, 4, 1, 2, 3)
     destroy(message, 5)
     destroy(message, 6)
@@ -110,7 +112,9 @@ describe("protocol", () => {
         ],
       ]),
     )
-    const message = createMessage(model)
+    const message = createMessage()
+
+    setModel(model)
 
     decodeMessage(encodeMessage(message, true), baseHandlers)
 
@@ -122,7 +126,9 @@ describe("protocol", () => {
 
   it("deserializes tick", () => {
     const model = createModel(new Map<number, Schema>())
-    const message = createMessage(model)
+    const message = createMessage()
+
+    setModel(model)
 
     tick(message, 7)
     decodeMessage(encodeMessage(message), baseHandlers, model)
@@ -131,13 +137,15 @@ describe("protocol", () => {
 
   it("deserializes spawned", () => {
     const model = createModel(new Map([[1, baseSchema]]))
-    const message = createMessage(model)
+    const message = createMessage()
     const spawns: EntityComponentsPair[] = [[7, [{ __type__: 1, x: 888 }]]]
     const results: EntityComponentsPair[] = []
     const handlers = {
       ...baseHandlers,
       onCreate: (...args: EntityComponentsPair) => results.push(args),
     }
+
+    setModel(model)
 
     for (let i = 0; i < spawns.length; i++) {
       spawn(message, ...spawns[i])
@@ -149,13 +157,15 @@ describe("protocol", () => {
 
   it("deserializes attached", () => {
     const model = createModel(new Map([[1, baseSchema]]))
-    const message = createMessage(model)
+    const message = createMessage()
     const attaches: EntityComponentsPair[] = [[7, [{ __type__: 1, x: 888 }]]]
     const results: EntityComponentsPair[] = []
     const handlers = {
       ...baseHandlers,
       onAttach: (...args: EntityComponentsPair) => results.push(args),
     }
+
+    setModel(model)
 
     for (let i = 0; i < attaches.length; i++) {
       const [entity, [component]] = attaches[i]
@@ -168,13 +178,15 @@ describe("protocol", () => {
 
   it("deserializes updated", () => {
     const model = createModel(new Map([[1, baseSchema]]))
-    const message = createMessage(model)
+    const message = createMessage()
     const updates: EntityComponentsPair[] = [[7, [{ __type__: 1, x: 888 }]]]
     const results: EntityComponentsPair[] = []
     const handlers = {
       ...baseHandlers,
       onUpdate: (...args: EntityComponentsPair) => results.push(args),
     }
+
+    setModel(model)
 
     for (let i = 0; i < updates.length; i++) {
       const [entity, [component]] = updates[i]
@@ -187,13 +199,14 @@ describe("protocol", () => {
 
   it("deserializes detached", () => {
     const model = createModel(new Map())
-    const message = createMessage(model)
+    const message = createMessage()
     const detaches: EntityComponentIdsPair[] = [[5, [1, 2, 4]]]
     const results: EntityComponentIdsPair[] = []
     const handlers = {
       ...baseHandlers,
       onDetach: (...args: EntityComponentIdsPair) => results.push(args),
     }
+    setModel(model)
 
     for (let i = 0; i < detaches.length; i++) {
       const [entity, componentTypeIds] = detaches[i]
@@ -206,13 +219,15 @@ describe("protocol", () => {
 
   it("deserializes destroyed", () => {
     const model = createModel(new Map())
-    const message = createMessage(model)
+    const message = createMessage()
     const destroys: Entity[] = [1, 2, 3]
     const results: Entity[] = []
     const handlers = {
       ...baseHandlers,
       onDestroy: (entity: Entity) => results.push(entity),
     }
+
+    setModel(model)
 
     for (let i = 0; i < destroys.length; i++) {
       destroy(message, destroys[i])

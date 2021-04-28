@@ -1,7 +1,6 @@
 import { Archetype, createArchetype } from "../../archetype"
 import { Entity } from "../../entity"
-import { globals } from "../../internal/globals"
-import { $type } from "../../internal/symbols"
+import { $componentType, UNSAFE_internals } from "../../internal"
 import { createQuery } from "../../query"
 import { createWorld, World } from "../../world"
 import { effMonitor } from "./eff_monitor"
@@ -10,9 +9,9 @@ jest.mock("../../archetype")
 jest.mock("../../effect")
 jest.mock("../../world")
 
-const A = { [$type]: 1 }
-const B = { [$type]: 2 }
-const C = { [$type]: 3 }
+const A = { [$componentType]: 1 }
+const B = { [$componentType]: 2 }
+const C = { [$componentType]: 3 }
 
 const a = createQuery(A)
 const ab = createQuery(A, B)
@@ -25,20 +24,20 @@ describe("effMonitor", () => {
 
   beforeEach(() => {
     world = createWorld()
-    globals.__CURRENT_WORLD__ = 1
-    globals.__WORLDS__ = [, world] as World[]
+    UNSAFE_internals.__CURRENT_WORLD__ = 1
+    UNSAFE_internals.__WORLDS__ = [, world] as World[]
     ;(effMonitor as any).reset(world)
   })
 
   afterEach(() => {
-    globals.__CURRENT_WORLD__ = -1
-    globals.__WORLDS__ = []
+    UNSAFE_internals.__CURRENT_WORLD__ = -1
+    UNSAFE_internals.__WORLDS__ = []
   })
 
   it("emits entities that were added prior to the first execution", () => {
     const results: number[] = []
     const archetype = {
-      ...createArchetype({ signature: [A[$type], B[$type]] }),
+      ...createArchetype({ signature: [A[$componentType], B[$componentType]] }),
       entities: [2, 4, 6],
     }
     ;(world.storage.archetypes as Archetype[]).push(archetype)
@@ -51,8 +50,10 @@ describe("effMonitor", () => {
   it("emits entities that were relocated last tick", () => {
     const resultsEnter: number[] = []
     const resultsExit: number[] = []
-    const prev = createArchetype({ signature: [A[$type]] })
-    const next = createArchetype({ signature: [A[$type], B[$type]] })
+    const prev = createArchetype({ signature: [A[$componentType]] })
+    const next = createArchetype({
+      signature: [A[$componentType], B[$componentType]],
+    })
 
     effMonitor(ab)
 
@@ -72,9 +73,11 @@ describe("effMonitor", () => {
   it("clears buffer and subscribes to new component type when swapped", () => {
     const resultsEnter: number[] = []
     const resultsExit: number[] = []
-    const prev = createArchetype({ signature: [A[$type]] })
-    const next = createArchetype({ signature: [A[$type], B[$type]] })
-    const changed = createArchetype({ signature: [C[$type]] })
+    const prev = createArchetype({ signature: [A[$componentType]] })
+    const next = createArchetype({
+      signature: [A[$componentType], B[$componentType]],
+    })
+    const changed = createArchetype({ signature: [C[$componentType]] })
 
     effMonitor(ab)
 

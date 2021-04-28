@@ -88,7 +88,7 @@ Queries are created with the `createQuery` function, which takes a **selector** 
 ```ts
 import { createQuery } from "@javelin/ecs"
 
-const bodies = createQuery(Position, Velocity)
+const qryBodies = createQuery(Position, Velocity)
 ```
 
 A query is an iterable object that produces tuples of `(entity, Component[])` for entities that meet the selector's criteria.
@@ -96,7 +96,7 @@ A query is an iterable object that produces tuples of `(entity, Component[])` fo
 There are two ways to iterate a query. The first (and fastest) way is to iterate the query directly with a `for..of` loop:
 
 ```ts
-for (const [entities, [positions, velocities]] of bodies) {
+for (const [entities, [positions, velocities]] of qryBodies) {
   for (let i = 0; i < entities.length; i++) {
     positions[i].x += velocities[i].x
     positions[i].y += velocities[i].y
@@ -107,7 +107,7 @@ for (const [entities, [positions, velocities]] of bodies) {
 This method of iteration leaks the implementation details of how components are stored in archetypes. An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. If your game doesn't reach extremely high entity counts and you don't mind a 2-3x iteration performance hit, consider using the function form of a query:
 
 ```ts
-bodies((e, [p, v]) => {
+qryBodies((e, [p, v]) => {
   p.x += v.x
   p.y += v.y
 })
@@ -126,7 +126,7 @@ world.spawn(component(Player), component(Position))
 world.spawn(component(Position), component(Player))
 
 const sysRender = () => {
-  players((e, [{ x, y }, { name }]) => {
+  qryPlayers((e, [{ x, y }, { name }]) => {
     // render each player with a name tag
     drawSprite(sprites.player, x, y)
     drawText(name, x, y)
@@ -141,7 +141,7 @@ The tuple of components yielded by queries is re-used each iteration. This means
 ```ts
 const sysStatusEffects = () => {
   const results = []
-  shocked((e, components) => {
+  qryShocked((e, components) => {
     results.push(components)
   })
   ...
@@ -152,7 +152,7 @@ Every index of `results` corresponds to the same array, which is the tuple of co
 
 ```ts
 const results = []
-shocked((e, [a, b]) => {
+qryShocked((e, [a, b]) => {
   results.push([a, b])
 })
 ```

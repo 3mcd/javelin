@@ -1,7 +1,6 @@
 import { Archetype, createArchetype } from "./archetype"
 import { Component } from "./component"
-import { globals } from "./internal/globals"
-import { $type } from "./internal/symbols"
+import { $componentType, UNSAFE_internals } from "./internal"
 import { createQuery } from "./query"
 import { createWorld } from "./world"
 
@@ -9,8 +8,8 @@ jest.mock("./archetype")
 jest.mock("./world")
 
 describe("createQuery", () => {
-  const A = { [$type]: 0 }
-  const B = { [$type]: 1 }
+  const A = { [$componentType]: 0 }
+  const B = { [$componentType]: 1 }
 
   it("initializes with sorted signature", () => {
     const q = createQuery(B, A)
@@ -43,8 +42,8 @@ describe("createQuery", () => {
       } as Archetype,
     ]
 
-    globals.__WORLDS__ = [world]
-    globals.__CURRENT_WORLD__ = 0
+    UNSAFE_internals.__WORLDS__ = [world]
+    UNSAFE_internals.__CURRENT_WORLD__ = 0
 
     const q = createQuery(A, B)
 

@@ -1,16 +1,15 @@
 import { Archetype, createArchetype } from "../../archetype"
 import { Component } from "../../component"
 import { Entity } from "../../entity"
-import { globals } from "../../internal/globals"
-import { $type } from "../../internal/symbols"
+import { $componentType, UNSAFE_internals } from "../../internal"
 import { createWorld, World } from "../../world"
 import { effTrigger } from "./eff_trigger"
 
 jest.mock("../../world")
 jest.mock("../../effect")
 
-const A = { [$type]: 1 }
-const B = { [$type]: 2 }
+const A = { [$componentType]: 1 }
+const B = { [$componentType]: 2 }
 
 const getComponentFromResults = (
   results: [Entity, Component][],
@@ -22,26 +21,26 @@ describe("effAttach", () => {
 
   beforeEach(() => {
     world = createWorld()
-    globals.__CURRENT_WORLD__ = 1
-    globals.__WORLDS__ = [, world] as World[]
+    UNSAFE_internals.__CURRENT_WORLD__ = 1
+    UNSAFE_internals.__WORLDS__ = [, world] as World[]
     ;(effTrigger as any).reset(world)
   })
 
   afterEach(() => {
-    globals.__CURRENT_WORLD__ = -1
-    globals.__WORLDS__ = []
+    UNSAFE_internals.__CURRENT_WORLD__ = -1
+    UNSAFE_internals.__WORLDS__ = []
   })
 
   it("yields components that were added prior to the first execution", () => {
     const results: [Entity, Component][] = []
     const archetype = {
-      ...createArchetype({ signature: [A[$type]] }),
+      ...createArchetype({ signature: [A[$componentType]] }),
       entities: [2, 4, 6],
       table: [
         [
-          { __type__: A[$type] },
-          { __type__: A[$type] },
-          { __type__: A[$type] },
+          { __type__: A[$componentType] },
+          { __type__: A[$componentType] },
+          { __type__: A[$componentType] },
         ],
       ],
     }
@@ -59,9 +58,9 @@ describe("effAttach", () => {
   })
   it("yields components that were attached t-1", () => {
     const inserts: [number, Component[]][] = [
-      [1, [{ __type__: A[$type] }]],
-      [2, [{ __type__: A[$type] }]],
-      [3, [{ __type__: A[$type] }]],
+      [1, [{ __type__: A[$componentType] }]],
+      [2, [{ __type__: A[$componentType] }]],
+      [3, [{ __type__: A[$componentType] }]],
     ]
     const [[e1, [c1]], [e2, [c2]], [e3, [c3]]] = inserts
     const results: [number, Component][] = []
@@ -84,13 +83,13 @@ describe("effAttach", () => {
 
     effTrigger(A)
 
-    world.attached.dispatch(1, [{ __type__: A[$type] }])
-    world.attached.dispatch(2, [{ __type__: B[$type] }])
+    world.attached.dispatch(1, [{ __type__: A[$componentType] }])
+    world.attached.dispatch(2, [{ __type__: B[$componentType] }])
 
     effTrigger(A, () => i++)
 
-    world.attached.dispatch(3, [{ __type__: A[$type] }])
-    world.attached.dispatch(4, [{ __type__: B[$type] }])
+    world.attached.dispatch(3, [{ __type__: A[$componentType] }])
+    world.attached.dispatch(4, [{ __type__: B[$componentType] }])
 
     effTrigger(A, () => i++)
 
@@ -101,7 +100,7 @@ describe("effAttach", () => {
 
     effTrigger(A)
 
-    world.attached.dispatch(1, [{ __type__: A[$type] }])
+    world.attached.dispatch(1, [{ __type__: A[$componentType] }])
 
     effTrigger(A)
     effTrigger(A, () => i++)
@@ -113,12 +112,12 @@ describe("effAttach", () => {
 
     effTrigger(A)
 
-    world.attached.dispatch(1, [{ __type__: A[$type] }])
+    world.attached.dispatch(1, [{ __type__: A[$componentType] }])
 
     effTrigger(B, (e, c) => results.push(c))
 
-    world.attached.dispatch(2, [{ __type__: A[$type] }])
-    world.attached.dispatch(3, [{ __type__: B[$type] }])
+    world.attached.dispatch(2, [{ __type__: A[$componentType] }])
+    world.attached.dispatch(3, [{ __type__: B[$componentType] }])
 
     effTrigger(B, (e, c) => results.push(c))
 

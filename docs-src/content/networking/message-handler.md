@@ -3,7 +3,7 @@ title = "Message Handler"
 weight = 4
 +++
 
-While your application can decode and handle messages directly, a **message handler** provides some sane defaults for how instructions are extracted from messages and applied to a local world.
+A **message handler** enqueues network messages applies their contained operations to a world.
 
 ```ts
 import { createMessageHandler } from "@javelin/net"
@@ -18,15 +18,21 @@ const world = createWorld({ systems: [messageHandler.system] })
 channel.listen(message => messageHandler.push(message))
 ```
 
-A message handler also exposes an effect that can be used to inspect the remote world state, a `Set` of patched entities, and a `Set` of updated entities.
+They also also expose an effect that can be used to inspect the remote world state, a `Set` of patched entities, and a `Set` of updated entities.
 
 ```ts
 const sysNet = () => {
   const {
     remote: { tick },
-    patched,
-    updated,
+    patched, // entities patched last message
+    updated, // entities updated last message
   } = messageHandler.effect()
   // ...
+
+  qryBodies(e => {
+    if (patched.has(e) || updated.has(e)) {
+      interpolate(e)
+    }
+  })
 }
 ```

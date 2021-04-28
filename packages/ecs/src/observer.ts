@@ -5,7 +5,7 @@ import {
   mutableEmpty,
 } from "@javelin/model"
 import { Component } from "./component"
-import { globals } from "./internal"
+import { UNSAFE_internals } from "./internal"
 import { createStackPool } from "./pool"
 
 const arrayOpPool = createStackPool<ObserverArrayOp>(
@@ -96,7 +96,7 @@ export const createObserver = (): Observer => {
   let cache = new Map<Component, ObserverChangeSet>()
   const getRecord = (component: Component, path: string) => {
     const { __type__: type } = component
-    const root = globals.__MODEL__[type]
+    const root = UNSAFE_internals.__MODEL__[type]
     let records = recordLookup[type]
     if (records === undefined) {
       records = recordLookup[type] = {}

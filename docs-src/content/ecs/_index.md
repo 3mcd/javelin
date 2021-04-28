@@ -5,7 +5,7 @@ sort_by = "weight"
 insert_anchor_links = "right"
 +++
 
-This section aims to serve as a quick primer on Entity Component Systems (ECS) and how to think in ECS. The goal is not to belittle other methods of building games or make ECS seem like a panacea, because ECS does come with its own challenges. Godot has a great article about [why Godot does not use ECS](https://godotengine.org/article/why-isnt-godot-ecs-based-game-engine) that I recommend you read if you are trying to determine whether or not you should use Javelin.
+This section aims to serve as a quick primer on Entity Component Systems (ECS) and how to think in ECS. The goal is not to belittle other methods of building games or make ECS seem like a panacea, because ECS does come with its own challenges. Juan Linietsky wrote a great article about [why Godot does not use ECS](https://godotengine.org/article/why-isnt-godot-ecs-based-game-engine) that I recommend you read if you are trying to determine whether or not you should use Javelin.
 
 <aside>
   <p>
@@ -15,18 +15,18 @@ This section aims to serve as a quick primer on Entity Component Systems (ECS) a
 
 ## Building a Game
 
-A best practice in OOP game development is to favor composition over inheritance when designing game data and behavior. Take the following example, where a `Player` class accepts `Body` and `Input` objects to enhance players with physics properties and input control:
+A best practice in OOP game development is to favor composition over inheritance when designing game data and behavior. Take the following example, where a `Player` class accepts `RigidBody` and `Input` objects to enhance players with physics properties and input control:
 
 ```ts
-class Body {
+class RigidBody {
   readonly velocity = { x: 0, y: 0 }
 }
 
 class Player {
-  private body: Body
+  private body: RigidBody
   private input: Input
 
-  constructor(body: Body, input: Input) {
+  constructor(body: RigidBody, input: Input) {
     this.body = body
     this.input = input
   }
@@ -42,7 +42,7 @@ class Player {
   }
 }
 
-const player = new Player(new Body(), new Input())
+const player = new Player(new RigidBody(), new Input())
 
 setInterval(() => {
   player.update()
@@ -51,11 +51,11 @@ setInterval(() => {
 
 When the player presses the spacebar on their keyboard, `player.jump()` is called, and the physics body jumps! Easy enough.
 
-What if a player wants to spectate our game instead of controlling a character? In that scenario, it would be unnecessary for `Player` to care about `Body`, and we'd need to write code that makes `Body` an optional dependency of `Player`, e.g.
+What if a player wants to spectate our game instead of controlling a character? In that scenario, it would be unnecessary for `Player` to care about `RigidBody`, and we'd need to write code that makes `RigidBody` an optional dependency of `Player`, e.g.
 
 ```ts
 class Player {
-  private body?: Body
+  private body?: RigidBody
   ...
   jump() {
     this.body?.velocity[1] += 1
@@ -67,7 +67,7 @@ If there are many states/dependencies a player can have (e.g. spectating, drivin
 
 ## What's an ECS?
 
-Data and behavior are separate concerns in an ECS. There are three main parts to an ECS: **components** – game data, **entities** – game objects (like a tree, chest, or spawn position), and **systems** – game behavior. As we'll see, this architecture enables runtime composition of behavior that would be tricky to implement in the example above.
+Data and behavior are separate concerns in an ECS. There are three main parts to an ECS: **components** – game data, **entities** – game objects (like a tree, chest, or spawner), and **systems** – game behavior. As we'll see, this architecture enables runtime composition of behavior that would be tricky to implement in the example above.
 
 ### Components
 
@@ -93,12 +93,12 @@ for entity of (player, input, body)
     body[entity].y += 1
 ```
 
-This example shows a system which iterates all components that have a `Player`, `Body`, and `Input` (e.g. a gamepad) component. Each player's input component is checked to determine if the jump key is pressed. If so, we locate the entity's body component and add to it's y-velocity.
+This example shows a system which iterates all components that have a `Player`, `RigidBody`, and `Input` (e.g. a gamepad) component. Each player's input component is checked to determine if the jump key is pressed. If so, we locate the entity's body component and add to it's y-velocity.
 
-Spectators can now be represented with a `(Player, Input)` entity. Even though they aren't controlling a physics body yet, the `Input` component might allow them to move the game camera around. If the player chooses to enter the fray, we can insert a `Body` component into their entity, allowing them to control an actor in the scene.
+Spectators can now be represented with a `(Player, Input)` entity. Even though they aren't controlling a physics body yet, the `Input` component might allow them to move the game camera around. If the player chooses to enter the fray, we can insert a `RigidBody` component into their entity, allowing them to control an actor in the scene.
 
 ```ts
-add(entity, Body)
+add(entity, RigidBody)
 ```
 
 This pattern can be applied to many types of games. For example, an FPS game might consist of systems that handle physics, user input and movement, projectile collisions, and player inventory.

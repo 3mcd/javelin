@@ -1,7 +1,7 @@
 import { Component, ComponentOf, ComponentType } from "../../component"
 import { createEffect } from "../../effect"
 import { Entity } from "../../entity"
-import { $type } from "../../internal/symbols"
+import { $componentType } from "../../internal/symbols"
 import { createStackPool } from "../../pool"
 
 type EntityComponentPair<C extends ComponentType = ComponentType> = [
@@ -62,7 +62,7 @@ export const effTrigger = createEffect(world => {
   const register = (componentType: ComponentType) => {
     for (let i = 0; i < archetypes.length; i++) {
       const { table, entities, signatureInverse } = archetypes[i]
-      const index = signatureInverse[componentType[$type]]
+      const index = signatureInverse[componentType[$componentType]]
 
       if (index !== undefined) {
         const column = table[index]
@@ -74,7 +74,7 @@ export const effTrigger = createEffect(world => {
     }
 
     _componentType = componentType
-    _componentTypeId = componentType[$type]
+    _componentTypeId = componentType[$componentType]
   }
 
   world.attached.subscribe((e, components) => {

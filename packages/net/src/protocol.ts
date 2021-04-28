@@ -1,6 +1,8 @@
 import {
   Component,
   Entity,
+  UNSAFE_internals,
+  UNSAFE_modelChanged,
   MutArrayMethod,
   ObserverChangeSet,
 } from "@javelin/ecs"
@@ -58,8 +60,6 @@ type Parts = [
 
 export type Message = {
   parts: Parts
-  model: Model
-  modelFlat: ModelFlat
 }
 
 export type DecodeMessageHandlers = {
@@ -86,6 +86,14 @@ const createPart = (): Part => {
   }
 }
 
+let modelEncoded = encodeModel(UNSAFE_internals.__MODEL__)
+let modelFlat = flattenModel(UNSAFE_internals.__MODEL__)
+
+UNSAFE_modelChanged.subscribe(model => {
+  modelEncoded = encodeModel(model)
+  modelFlat = flattenModel(model)
+})
+
 const encodePartHeader = (
   bufferView: DataView,
   offset: number,
@@ -104,7 +112,7 @@ const encodeChange = (
   componentTypeId: number,
 ) => {
   const { object, objectCount, array, arrayCount } = changes
-  const type = message.modelFlat[componentTypeId]
+  const type = modelFlat[componentTypeId]
   // component id
   uint8.write(bufferView, offset, componentTypeId)
   offset += uint8.byteLength
@@ -302,6 +310,14 @@ export const encodeMessage = (
   const { parts } = message
   let length = 0
 
+  if (includeModel) {
+    const partModel = parts[1]
+    mutableEmpty(partModel.data)
+    mutableEmpty(partModel.type)
+    partModel.byteLength = 0
+    insertBuffer(partModel, modelEncoded)
+  }
+
   for (let i = 0; i < parts.length; i++) {
     // header
     length += uint16.byteLength
@@ -337,13 +353,11 @@ export const encodeMessage = (
 }
 export { encodeMessage as encode }
 
-export const createMessage = (model: Model): Message => {
-  const partModel = createPart()
-  insertBuffer(partModel, encodeModel(model))
+export const createMessage = (): Message => {
   return {
     parts: [
       createPart(),
-      partModel,
+      createPart(),
       createPart(),
       createPart(),
       createPart(),
@@ -351,8 +365,6 @@ export const createMessage = (model: Model): Message => {
       createPart(),
       createPart(),
     ],
-    model,
-    modelFlat: flattenModel(model),
   }
 }
 
@@ -391,19 +403,37 @@ export const spawn = (
   message: Message,
   entity: Entity,
   components: Component[] = [],
-) => insertEntityComponents(message.parts[2], entity, components, message.model)
+) =>
+  insertEntityComponents(
+    message.parts[2],
+    entity,
+    components,
+    UNSAFE_internals.__MODEL__,
+  )
 
 export const attach = (
   message: Message,
   entity: Entity,
   ...components: Component[]
-) => insertEntityComponents(message.parts[3], entity, components, message.model)
+) =>
+  insertEntityComponents(
+    message.parts[3],
+    entity,
+    components,
+    UNSAFE_internals.__MODEL__,
+  )
 
 export const update = (
   message: Message,
   entity: Entity,
   ...components: Component[]
-) => insertEntityComponents(message.parts[4], entity, components, message.model)
+) =>
+  insertEntityComponents(
+    message.parts[4],
+    entity,
+    components,
+    UNSAFE_internals.__MODEL__,
+  )
 
 const calcChangeByteLength = (
   changes: ObserverChangeSet,
@@ -489,7 +519,7 @@ export const patch = (
     delta += uint32.byteLength
   }
 
-  const fields = message.modelFlat[componentTypeId]
+  const fields = modelFlat[componentTypeId]
   const existing = changeMap.get(componentTypeId)
 
   if (existing) {

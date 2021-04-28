@@ -7,8 +7,8 @@ import {
   registerComponentType,
 } from "./component"
 import { Entity } from "./entity"
-import { globals } from "./internal/globals"
-import { $type } from "./internal/symbols"
+import { UNSAFE_internals } from "./internal"
+import { $componentType } from "./internal/symbols"
 import { createStackPool } from "./pool"
 import { createSignal, Signal } from "./signal"
 import { createStorage, Storage, StorageSnapshot } from "./storage"
@@ -328,7 +328,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function tick(data: T) {
-    globals.__CURRENT_WORLD__ = id
+    UNSAFE_internals.__CURRENT_WORLD__ = id
     state.currentTickData = data
 
     // Clear world op history
@@ -406,7 +406,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
       return
     }
 
-    if ($type in components[0]) {
+    if ($componentType in components[0]) {
       components = (components as ComponentType[]).map(ct => get(entity, ct))
     }
 
@@ -540,7 +540,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     internalDestroy,
   }
 
-  let id = (world.id = globals.__WORLDS__.push(world) - 1)
+  let id = (world.id = UNSAFE_internals.__WORLDS__.push(world) - 1)
 
   return world
 }

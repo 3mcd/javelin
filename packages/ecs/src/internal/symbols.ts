@@ -1,1 +1,1 @@
-export const $type = Symbol("javelin_component_type")
+export const $componentType = Symbol("javelin_component_type")

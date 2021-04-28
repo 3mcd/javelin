@@ -5,12 +5,12 @@ import {
   reset,
   Schema,
 } from "@javelin/model"
-import { globals } from "./internal"
-import { $type } from "./internal/symbols"
+import { setModel } from "./internal"
+import { $componentType } from "./internal/symbols"
 import { createStackPool, StackPool } from "./pool"
 
 export type ComponentType<S extends Schema = Schema> = {
-  [$type]: number
+  [$componentType]: number
 } & S
 
 export type ComponentProps = {
@@ -18,7 +18,7 @@ export type ComponentProps = {
 }
 
 export type ComponentOf<C extends ComponentType> = C extends ComponentType
-  ? ComponentProps & InstanceOfSchema<Omit<C, typeof $type>>
+  ? ComponentProps & InstanceOfSchema<Omit<C, typeof $componentType>>
   : never
 
 export type Component = ComponentOf<ComponentType>
@@ -36,7 +36,7 @@ export function createComponentBase<C extends ComponentType>(
     {},
     {
       __type__: {
-        value: componentType[$type],
+        value: componentType[$componentType],
         writable: false,
         enumerable: true,
       },
@@ -48,7 +48,7 @@ export function isComponentOf<T extends ComponentType>(
   component: Component,
   componentTypeId: T,
 ): component is ComponentOf<T> {
-  return component.__type__ === componentTypeId[$type]
+  return component.__type__ === componentTypeId[$componentType]
 }
 
 export const componentTypePools = new Map<number, StackPool<Component>>()
@@ -78,7 +78,7 @@ export const registerComponentType = (
   componentTypeId?: number,
   poolSize = 1000,
 ) => {
-  let type: number | undefined = componentType[$type]
+  let type: number | undefined = componentType[$componentType]
 
   if (type !== undefined) {
     return type
@@ -90,7 +90,7 @@ export const registerComponentType = (
     while (modelConfig.has(nextComponentTypeId)) {
       nextComponentTypeId++
     }
-    type = componentType[$type] = nextComponentTypeId
+    type = componentType[$componentType] = nextComponentTypeId
   } else if (modelConfig.has(type)) {
     throw new Error(
       "Failed to register component type: a component with same id is already registered",
@@ -100,7 +100,7 @@ export const registerComponentType = (
   componentTypePools.set(type, createComponentPool(componentType, poolSize))
   modelConfig.set(type, componentType)
 
-  globals.__MODEL__ = createModel(modelConfig)
+  setModel(createModel(modelConfig))
 
   return type
 }
@@ -109,7 +109,7 @@ export const component = <C extends ComponentType>(
   componentType: C,
 ): ComponentOf<C> => {
   registerComponentType(componentType)
-  return (componentTypePools.get(componentType[$type]) as StackPool<
+  return (componentTypePools.get(componentType[$componentType]) as StackPool<
     ComponentOf<C>
   >).retain()
 }

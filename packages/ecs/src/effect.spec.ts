@@ -1,6 +1,6 @@
-import { globals } from "./internal/globals"
-import { World } from "./world"
 import { createEffect } from "./effect"
+import { UNSAFE_internals } from "./internal"
+import { World } from "./world"
 
 function flushPromises() {
   return new Promise(resolve => setImmediate(resolve))
@@ -8,11 +8,11 @@ function flushPromises() {
 
 describe("createEffect", () => {
   const reset = (currentTick = 0, currentWorld = 0, currentSystem = 0) => {
-    globals.__WORLDS__ = [
+    UNSAFE_internals.__WORLDS__ = [
       { id: 0, state: { currentTick, currentSystem } } as World,
       { id: 1, state: { currentTick, currentSystem } } as World,
     ]
-    globals.__CURRENT_WORLD__ = currentWorld
+    UNSAFE_internals.__CURRENT_WORLD__ = currentWorld
   }
 
   beforeEach(() => {

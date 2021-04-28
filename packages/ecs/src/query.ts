@@ -7,8 +7,8 @@ import {
   registerComponentType,
 } from "./component"
 import { Entity } from "./entity"
-import { globals } from "./internal/globals"
-import { $type } from "./internal/symbols"
+import { UNSAFE_internals } from "./internal"
+import { $componentType } from "./internal/symbols"
 import { createStackPool } from "./pool"
 import { typeIsSuperset } from "./type"
 
@@ -91,7 +91,7 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
     }
   }
   const registerWorld = (worldId: number) => {
-    const world = globals.__WORLDS__[worldId]
+    const world = UNSAFE_internals.__WORLDS__[worldId]
     const records: QueryRecord<S>[] = []
     recordsByWorldId[worldId] = records
     world.storage.archetypes.forEach(archetype =>
@@ -113,8 +113,8 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
 
   const forEach = (iteratee: QueryIteratee<S>) => {
     const records =
-      recordsByWorldId[globals.__CURRENT_WORLD__] ||
-      registerWorld(globals.__CURRENT_WORLD__)
+      recordsByWorldId[UNSAFE_internals.__CURRENT_WORLD__] ||
+      registerWorld(UNSAFE_internals.__CURRENT_WORLD__)
     const components = pool.retain()
 
     for (let i = 0; i < records.length; i++) {
@@ -137,13 +137,13 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
   query.filters = filters
   query.not = (...selector: Selector) => {
     for (let i = 0; i < selector.length; i++) {
-      filters.not.add(selector[i][$type])
+      filters.not.add(selector[i][$componentType])
     }
     return query
   }
   query[Symbol.iterator] = () => {
-    return (recordsByWorldId[globals.__CURRENT_WORLD__] ||
-      registerWorld(globals.__CURRENT_WORLD__))[Symbol.iterator]()
+    return (recordsByWorldId[UNSAFE_internals.__CURRENT_WORLD__] ||
+      registerWorld(UNSAFE_internals.__CURRENT_WORLD__))[Symbol.iterator]()
   }
 
   return query
