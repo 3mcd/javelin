@@ -12,7 +12,7 @@ Systems are typically **pure**, as they only read/modify the components of queri
 Let's say you want to apply an impulse to a physics body when a player jumps so it gains some momentum in a direction. One way of doing this is to model the operation as a component.
 
 ```ts
-type Impulse = {
+const Impulse = {
   x: number
   y: number
 }

@@ -88,7 +88,7 @@ Queries are created with the `createQuery` function, which takes a **selector** 
 ```ts
 import { createQuery } from "@javelin/ecs"
 
-const players = createQuery(Position, Velocity)
+const bodies = createQuery(Position, Velocity)
 ```
 
 A query is an iterable object that produces tuples of `(entity, Component[])` for entities that meet the selector's criteria.
@@ -96,26 +96,26 @@ A query is an iterable object that produces tuples of `(entity, Component[])` fo
 There are two ways to iterate a query. The first (and fastest) way is to iterate the query directly with a `for..of` loop:
 
 ```ts
-for (const [entities, [position, velocity]] of players) {
+for (const [entities, [positions, velocities]] of bodies) {
   for (let i = 0; i < entities.length; i++) {
-    position[i].x += velocity[i].x
-    position[i].y += velocity[i].y
+    positions[i].x += velocities[i].x
+    positions[i].y += velocities[i].y
   }
 }
 ```
 
-This method of iteration leaks the implementation details of how components are stored in archetypes. An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. If your game doesn't reach high entity counts (10^5) and you don't mind a 2-3x iteration performance hit, consider using `forEach`. This method executes a callback for each entity that matches the query:
+This method of iteration leaks the implementation details of how components are stored in archetypes. An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. If your game doesn't reach extremely high entity counts and you don't mind a 2-3x iteration performance hit, consider using the function form of a query:
 
 ```ts
-players.forEach((entity, [position, velocity]) => {
-  position.x += velocity.x
-  position.y += velocity.y
+bodies((e, [p, v]) => {
+  p.x += v.x
+  p.y += v.y
 })
 ```
 
 <aside>
   <p>
-    <strong>Tip</strong> — most examples in the Javelin docs use <code>forEach</code> since it's a bit easier to read, but stick to the <code>for..of</code> approach if your game has many entities.
+    <strong>Tip</strong> — most examples in the Javelin docs iterate queries using the <code>query()</code> syntax since it's a bit easier to read, but stick to the <code>for..of</code> approach if your game world holds many entities.
   </p>
 </aside>
 
@@ -126,9 +126,10 @@ world.spawn(component(Player), component(Position))
 world.spawn(component(Position), component(Player))
 
 const sysRender = () => {
-  players.forEach((entity, [position, player]) => {
+  players((e, [{ x, y }, { name }]) => {
     // render each player with a name tag
-    draw(sprites.player, position, player.name)
+    drawSprite(sprites.player, x, y)
+    drawText(name, x, y)
   })
 }
 ```
@@ -140,7 +141,7 @@ The tuple of components yielded by queries is re-used each iteration. This means
 ```ts
 const sysStatusEffects = () => {
   const results = []
-  shocked.forEach((e, components) => {
+  shocked((e, components) => {
     results.push(components)
   })
   ...
@@ -151,7 +152,7 @@ Every index of `results` corresponds to the same array, which is the tuple of co
 
 ```ts
 const results = []
-shocked.forEach((e, [a, b]) => {
+shocked((e, [a, b]) => {
   results.push([a, b])
 })
 ```

@@ -14,10 +14,12 @@ A world has several methods for managing entities.
 Entities are created using `world.spawn`. This method accepts 0..n components and returns the newly created entity.
 
 ```ts
-const player = { __type__: 1, name: "elrond" }
-const health = { __type__: 2, value: 100 }
+const player = component(Player)
+const health = component(Health)
 const entity = world.spawn(player, health)
 ```
+
+Entities can have a single instance of a given component type.
 
 <aside>
   <p>
@@ -32,7 +34,7 @@ The array of components associated with an entity defines its **archetype**. The
 Components can be assigned to existing entities using `world.attach`, and removed from entities using `world.detach`. The following example modifies an entity of archetype `(Player, Health)` to `(Player, Health, Input)`, and then back to `(Player, Health)`:
 
 ```ts
-const input = { __type__: 3, space: true }
+const input = component(Input)
 
 world.attach(entity, input)
 world.tick() // (Player, Health) -> (Player, Health, Input)

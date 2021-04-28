@@ -69,11 +69,13 @@ Like `effTrigger`, `effMonitor` accepts `onEnter` and `onExit` callback function
 
 ```ts
 const spooky = createQuery(Enemy, Ghost)
-effMonitor(
-  spooky,
-  e => {}, // entity `e` matches query `spooky`
-  e => {}, // entity `e` no longer matches query `spooky`
-)
+const sysAi = () => {
+  effMonitor(
+    spooky,
+    e => {}, // entity `e` matches query `spooky`
+    e => {}, // entity `e` no longer matches query `spooky`
+  )
+}
 ```
 
 In the above example, the `e` variable would correspond to an entity who made one of the following type transitions last tick:

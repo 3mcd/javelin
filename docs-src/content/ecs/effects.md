@@ -11,7 +11,7 @@ The below example demonstrates a worker effect that might perform some expensive
 
 ```ts
 const sysPhysics = () => {
-  const { result, doExpensiveComputation } = effects.worker()
+  const { result, doExpensiveComputation } = effWorker()
 
   if (shouldRun && !result) {
     doExpensiveComputation()
@@ -31,9 +31,9 @@ Below is an effect that will return `false` until the provided duration passes:
 import { createEffect } from "@javelin/ecs"
 
 const effTimer = createEffect(world => {
-  // effect state
+  // effect closure (state)
   let state = 0
-  // effect function
+  // effect executor (callback)
   return (duration: number) => {
     if (state === 0) {
       state = 1

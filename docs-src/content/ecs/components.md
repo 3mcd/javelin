@@ -3,27 +3,25 @@ title = "Components"
 weight = 3
 +++
 
-Most data within a game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `__type__` — short for type id, a unique integer that is shared between all components of the same kind.
+Most data within a game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `__type__`, a unique integer that is shared between all components of the same kind.
 
-The `__type__` field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example.
+The `__type__` field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example:
 
 ```ts
 const position = { __type__: 0, x: 2, y: 2 }
 const health = { __type__: 0, value: 100 }
 ```
 
-Using the same `__type__` for components with a different shape could result in catastrophic behavior! Just make the types unique:
+Although the two objects represent different state, Javelin won't be able to tell the difference between the two because they share the same identifier. Using the same `__type__` for components with a different shape could result in catastrophic behavior in your game! Just make the types unique:
 
 ```ts
 const position = { __type__: 0, ... }
 const health = { __type__: 1, ... }
 ```
 
-Entities can have a single instance of a given type.
-
 ## Component Types
 
-A **component type** defines the structure of a component.
+A **component type** is an object that defines the structure of a component.
 
 ```ts
 import { number } from "@javelin/ecs"
@@ -53,7 +51,7 @@ boolean (default = false)
 arrayOf (default = [])
 ```
 
-When the ECS encounters a component type for the first time, it will assign it a unique integer id. If you need to assign a specific id to a component type (e.g., you are synchronizing your component model in a multiplayer game), you can register the component type manually using `registerComponentType`:
+When the Javelin encounters a component type for the first time, it will assign it a unique integer id. If you need to assign a specific id to a component type (e.g., you are synchronizing your component model in a multiplayer game), you can register the component type manually using `registerComponentType`:
 
 ```ts
 import { registerComponentType } from "@javelin/ecs"
