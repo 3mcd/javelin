@@ -63,7 +63,7 @@ const sysPhysics = () => {
 }
 ```
 
-and [Effects](https://javelin.games/ecs/effects) for handling async code and third-party dependencies
+and [Effects](https://javelin.games/ecs/effects) for handling async code, third-party dependencies, and events:
 
 ```ts
 const sysRender = () => {
