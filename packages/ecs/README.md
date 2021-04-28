@@ -18,7 +18,7 @@ Entities are organized by their component makeup into Archetypes for quick looku
 
 ### Ergonomic
 
-Component types are defined with simple syntax and registered automatically:
+Define your game's data model using simple syntax.
 
 ```ts
 const Transform = {
@@ -28,18 +28,21 @@ const Transform = {
 const Inventory = {
   bags: arrayOf(arrayOf(uint32)),
 }
-component(Transform) // => { x: 0, y: 0 }
-component(Inventory) // => { bags: [] }
+const world = createWorld()
+const entity = world.spawn(
+  component(Transform), // => { x: 0, y: 0 }
+  component(Inventory), // => { bags: [] }
+)
 ```
 
 ### Intuitive
 
-Game data is stored in plain old JavaScript objects. Iterate over game state using simple syntax:
+Query game state using simple syntax.
 
 ```ts
 const qryBodies = createQuery(Transform, Velocity)
 const sysPhysics = () =>
-  qryBodies((entity, [t, v]) => {
+  qryBodies((e, [t, v]) => {
     t.x += v.x
     t.y += v.y
   })
@@ -51,9 +54,9 @@ Best practices are built-in with tools like [Topics](https://javelin.games/ecs/t
 
 ```ts
 const sysMovement = () =>
-  qryInput((entity, [input]) => {
+  qryInput((e, [input]) => {
     if (input.jump) {
-      topPhysics.push(impulse(entity, 0, 10))
+      topPhysics.push(impulse(e, 0, 10))
     }
   })
 const sysPhysics = () => {
