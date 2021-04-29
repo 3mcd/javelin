@@ -12,7 +12,6 @@ const {
   useRef,
   useTimer,
   useTrigger,
-  useObserve,
   number,
 } = Javelin
 
@@ -235,21 +234,25 @@ const sysRender = () => {
 }
 
 const sysPhysics = () => {
-  const { track, trackPop } = useObserve()
+  // const { track, trackPop } = useObserve()
   qryJunk((e, [t, v, j]) => {
-    track(t, "x", (t.x += v.x))
-    track(t, "y", (t.y += v.y))
-    trackPop(j, "buffer.3", 1, 0, 1200)
+    t.x += v.x
+    t.y += v.y
+    // track(t, "x", (t.x += v.x))
+    // track(t, "y", (t.y += v.y))
+    // trackPop(j, "buffer.3", 1, 0, 1200)
   })
 }
+
+const transforms = createQuery(Transform)
 
 const sysTrigger = () => {
   const shouldLog = useInterval(1000)
   const countAttach = useRef(0)
   const countDetach = useRef(0)
 
-  useTrigger(
-    Transform,
+  useMonitor(
+    transforms,
     () => countAttach.value++,
     () => countDetach.value++,
   )

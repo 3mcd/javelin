@@ -34,12 +34,8 @@ Below is an extension of the above example that demonstrates how you might write
 const sysNet = () => {
   const { spawn, destroy, attach, detach, take } = useProducer().value
   useMonitor(players, spawn, destroy)
-  useMonitor(
-    Body,
-    (e, b) => attach(e, [b]),
-    (e, b) => detach(e, [b]),
-    players.test, // filter only entities that match `players`
-  )
+  useChanged(players, subQuery, attach, detach)
+
   if (useInterval(1 / 20) * 1000) {
     send(encodeMessage(take()))
   }
