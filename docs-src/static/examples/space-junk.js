@@ -7,12 +7,12 @@ const {
   createTopic,
   createWorld,
   each,
-  effInterval,
-  effMonitor,
-  effRef,
-  effTimer,
-  effTrigger,
-  effObserve,
+  useInterval,
+  useMonitor,
+  useRef,
+  useTimer,
+  useTrigger,
+  useObserve,
   number,
 } = Javelin
 
@@ -77,9 +77,9 @@ const createMouseEventEffect = name =>
     }
   })
 
-const effMouseup = createMouseEventEffect("mouseup")
-const effMousedown = createMouseEventEffect("mousedown")
-const effMousemove = createMouseEventEffect("mousemove")
+const useMouseup = createMouseEventEffect("mouseup")
+const useMousedown = createMouseEventEffect("mousedown")
+const useMousemove = createMouseEventEffect("mousemove")
 
 const log = createTopic()
 
@@ -94,11 +94,11 @@ function inside(a, b, x, y, r) {
 }
 
 const sysSpawn = world => {
-  const mouseup = effMouseup()
-  const mousedown = effMousedown()
-  const mousemove = effMousemove()
-  const hasClickedOnce = effRef(false)
-  const shouldSpawnWormhole = effInterval(3500)
+  const mouseup = useMouseup()
+  const mousedown = useMousedown()
+  const mousemove = useMousemove()
+  const hasClickedOnce = useRef(false)
+  const shouldSpawnWormhole = useInterval(3500)
 
   if (mousedown.active) {
     for (const [entities, [wt, w]] of qryWormhole) {
@@ -139,7 +139,7 @@ const sysSpawn = world => {
 }
 
 const spawnJunk = () => {
-  const shouldSpawnJunk = effRef(true)
+  const shouldSpawnJunk = useRef(true)
 
   if (shouldSpawnJunk.value) {
     for (let i = 0; i < 10000; i++) {
@@ -235,7 +235,7 @@ const sysRender = () => {
 }
 
 const sysPhysics = () => {
-  const { track, trackPop } = effObserve()
+  const { track, trackPop } = useObserve()
   qryJunk((e, [t, v, j]) => {
     track(t, "x", (t.x += v.x))
     track(t, "y", (t.y += v.y))
@@ -244,11 +244,11 @@ const sysPhysics = () => {
 }
 
 const sysTrigger = () => {
-  const shouldLog = effInterval(1000)
-  const countAttach = effRef(0)
-  const countDetach = effRef(0)
+  const shouldLog = useInterval(1000)
+  const countAttach = useRef(0)
+  const countDetach = useRef(0)
 
-  effTrigger(
+  useTrigger(
     Transform,
     () => countAttach.value++,
     () => countDetach.value++,
@@ -262,11 +262,11 @@ const sysTrigger = () => {
 }
 
 const sysMonitor = () => {
-  const shouldLog = effInterval(1000)
-  const countInsert = effRef(0)
-  const countRemove = effRef(0)
+  const shouldLog = useInterval(1000)
+  const countInsert = useRef(0)
+  const countRemove = useRef(0)
 
-  effMonitor(
+  useMonitor(
     qryWormhole,
     () => countInsert.value++,
     () => countRemove.value++,

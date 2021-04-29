@@ -37,13 +37,13 @@ export type RequestEffectApi<T = Response> =
   | RequestStateError
   | RequestStateErrorAfterInvalidate<T>
 
-export const effRequest = createEffect(() => {
+export const useRequest = createEffect(() => {
   let state: RequestEffectApi = { response: null, error: null, done: false }
   let fetching = false
   let previousUrl: string
   let abortController = new window.AbortController()
 
-  return function effRequest(
+  return function useRequest(
     url: string | null,
     options: Parameters<typeof fetch>[1],
     invalidate = previousUrl !== undefined && url !== previousUrl,

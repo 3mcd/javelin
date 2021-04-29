@@ -43,9 +43,9 @@ const createClient = () => ({
 })
 
 const sysNetClientState = () => {
-  const clients = effClients()
+  const clients = useClients()
 
-  effMonitor(
+  useMonitor(
     players,
     e => {
       clients[e] = createClient()
@@ -58,15 +58,15 @@ const sysNetClientState = () => {
 
 const sysNetSend = () => {
   const base = effProducer()
-  const send = effInterval()
-  const clients = effClients()
+  const send = useInterval()
+  const clients = useClients()
 
-  effMonitor(
+  useMonitor(
     dynamic,
     e => base.spawn(e),
     e => base.destroy(e),
   )
-  effTrigger(
+  useTrigger(
     Body,
     (e, b) => base.attach(e, b),
     e => base.detach(e, Body),

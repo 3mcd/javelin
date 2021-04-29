@@ -73,7 +73,7 @@ const sysRender = () => {
   const scene = effScene()
   const model = effLoadGLTF("llama.gltf")
 
-  effMonitor(
+  useMonitor(
     qryPlayers,
     e => scene.insert(e, model, world.get(e, Transform)),
     e => scene.destroy(e),

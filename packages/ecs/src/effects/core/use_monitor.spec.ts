@@ -3,7 +3,7 @@ import { Entity } from "../../entity"
 import { $componentType, UNSAFE_internals } from "../../internal"
 import { createQuery } from "../../query"
 import { createWorld, World } from "../../world"
-import { effMonitor } from "./eff_monitor"
+import { useMonitor } from "./use_monitor"
 
 jest.mock("../../archetype")
 jest.mock("../../effect")
@@ -19,14 +19,14 @@ const c = createQuery(C)
 
 const entitySortComparator = (a: Entity, b: Entity) => a - b
 
-describe("effMonitor", () => {
+describe("useMonitor", () => {
   let world: World
 
   beforeEach(() => {
     world = createWorld()
     UNSAFE_internals.__CURRENT_WORLD__ = 1
     UNSAFE_internals.__WORLDS__ = [, world] as World[]
-    ;(effMonitor as any).reset(world)
+    ;(useMonitor as any).reset(world)
   })
 
   afterEach(() => {
@@ -42,7 +42,7 @@ describe("effMonitor", () => {
     }
     ;(world.storage.archetypes as Archetype[]).push(archetype)
 
-    effMonitor(ab, e => results.push(e))
+    useMonitor(ab, e => results.push(e))
 
     expect(results.sort(entitySortComparator)).toEqual([2, 4, 6])
   })
@@ -55,13 +55,13 @@ describe("effMonitor", () => {
       signature: [A[$componentType], B[$componentType]],
     })
 
-    effMonitor(ab)
+    useMonitor(ab)
 
     world.storage.entityRelocated.dispatch(1, prev, next)
     world.storage.entityRelocated.dispatch(2, prev, next)
     world.storage.entityRelocated.dispatch(3, next, prev)
 
-    effMonitor(
+    useMonitor(
       ab,
       e => resultsEnter.push(e),
       e => resultsExit.push(e),
@@ -79,12 +79,12 @@ describe("effMonitor", () => {
     })
     const changed = createArchetype({ signature: [C[$componentType]] })
 
-    effMonitor(ab)
+    useMonitor(ab)
 
     world.storage.entityRelocated.dispatch(1, prev, next)
     world.storage.entityRelocated.dispatch(2, prev, next)
 
-    effMonitor(
+    useMonitor(
       c,
       e => resultsEnter.push(e),
       e => resultsExit.push(e),
@@ -93,7 +93,7 @@ describe("effMonitor", () => {
     world.storage.entityRelocated.dispatch(3, prev, next)
     world.storage.entityRelocated.dispatch(4, prev, changed)
 
-    effMonitor(
+    useMonitor(
       c,
       e => resultsEnter.push(e),
       e => resultsExit.push(e),

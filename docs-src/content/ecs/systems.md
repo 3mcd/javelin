@@ -90,9 +90,7 @@ import { createQuery } from "@javelin/ecs"
 const qryBodies = createQuery(Position, Velocity)
 ```
 
-A query is an iterable object that produces tuples of `(entity, Component[])` for entities that meet the selector's criteria. By default, queries are intimately tied to systems – they resolve the component data of the world that is currently mid-tick.
-
-There are two ways to iterate a query. The first (and fastest) way is to iterate the query directly with a `for..of` loop:
+A query is an iterable object that produces tuples of `(entity, Component[])` for entities that meet the selector's criteria. There are two ways to iterate a query. The first (and fastest) way is to iterate the query directly with a `for..of` loop:
 
 ```ts
 const sysPhysics = () => {
@@ -121,7 +119,7 @@ const sysPhysics = () =>
   </p>
 </aside>
 
-If you need to run a query against a specific world (i.e., outside of a system), you can bind a query to a specific world using the `bind` method:
+By default, queries will resolve entities and components of the world that is currently mid-tick. If you need to run a query against a specific world (i.e., outside of a system), you can bind a query to a specific world using the `bind` method:
 
 ```ts
 const qryBodiesBound = qryBodies.bind(world)

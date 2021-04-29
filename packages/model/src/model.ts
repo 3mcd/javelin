@@ -4,6 +4,7 @@ export enum SchemaKeyKind {
   Primitive,
   Array,
   Map,
+  Dynamic,
 }
 
 export enum DataTypeId {
@@ -25,6 +26,9 @@ export type ArrayType<E extends SchemaKey = SchemaKey> = {
 export type MapType<E extends SchemaKey = SchemaKey> = {
   __kind__: SchemaKeyKind.Map
   __type__: E
+}
+export type DynamicType = {
+  __kind__: SchemaKeyKind.Dynamic
 }
 export type DataTypeNumber = DataType<number>
 export type DataTypeString = DataType<string>
@@ -53,6 +57,10 @@ export const boolean: DataTypeBoolean = {
   reset: (object, key) => (object[key] = 0),
 }
 
+export const dynamic: DynamicType = {
+  __kind__: SchemaKeyKind.Dynamic,
+}
+
 export const arrayOf = <E extends SchemaKey>(element: E): ArrayType<E> => ({
   __kind__: SchemaKeyKind.Array,
   __type__: element,
@@ -62,7 +70,12 @@ export const mapOf = <E extends SchemaKey>(element: E): MapType<E> => ({
   __type__: element,
 })
 
-export type SchemaKey = DataType | ArrayType<any> | MapType<any> | Schema
+export type SchemaKey =
+  | DataType
+  | ArrayType<any>
+  | MapType<any>
+  | DynamicType
+  | Schema
 export type Schema = {
   [key: string]: SchemaKey
 }
@@ -73,6 +86,8 @@ export type InstanceOfSchemaKey<K extends SchemaKey> = K extends ArrayType<
   ? ExtractSchemaKeyType<T>[]
   : K extends MapType<infer T>
   ? Record<string, ExtractSchemaKeyType<T>>
+  : K extends DynamicType
+  ? unknown
   : ExtractSchemaKeyType<K> // everything else
 
 export type InstanceOfSchema<S extends Schema> = {
@@ -94,6 +109,9 @@ export const isArrayType = (object: object): object is ArrayType =>
   "__kind__" in object && (object as ArrayType).__kind__ === SchemaKeyKind.Array
 export const isMapType = (object: object): object is MapType =>
   "__kind__" in object && (object as MapType).__kind__ === SchemaKeyKind.Map
+export const isDynamicType = (object: object): object is DynamicType =>
+  "__kind__" in object &&
+  (object as DynamicType).__kind__ === SchemaKeyKind.Dynamic
 
 export type ModelConfig = Map<number, Schema>
 export enum ModelNodeKind {
@@ -101,6 +119,7 @@ export enum ModelNodeKind {
   Struct,
   Array,
   Map,
+  Dynamic,
 }
 export type ModelNodeBase = {
   id: number
@@ -131,11 +150,15 @@ export type ModelNodePrimitive = ModelNodeBase & {
   type: DataType
   kind: ModelNodeKind.Primitive
 }
+export type ModelNodeDynamic = ModelNodeBase & {
+  kind: ModelNodeKind.Dynamic
+}
 export type ModelNode =
   | ModelNodeArray
   | ModelNodeMap
   | ModelNodeStruct
   | ModelNodePrimitive
+  | ModelNodeDynamic
 
 export type Model = { [typeId: number]: ModelNodeStruct }
 export type ModelFlat = { [typeId: number]: { [field: number]: ModelNode } }
@@ -167,6 +190,9 @@ export const insertNode = (
     case SchemaKeyKind.Primitive:
       kind = ModelNodeKind.Primitive
       break
+    case SchemaKeyKind.Dynamic:
+      kind = ModelNodeKind.Dynamic
+      break
     default:
       kind = ModelNodeKind.Struct
       break
@@ -193,6 +219,8 @@ export const insertNode = (
   } else if (isMapType(type)) {
     node = { ...base, kind: ModelNodeKind.Map } as ModelNodeMap
     ids = insertNode(node, type.__type__, ids)
+  } else if (isDynamicType(type)) {
+    node = { ...base, kind: ModelNodeKind.Dynamic }
   } else {
     node = {
       ...base,

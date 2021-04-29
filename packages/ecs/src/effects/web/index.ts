@@ -1,2 +1,2 @@
-export * from "./eff_request"
-export * from "./eff_json"
+export * from "./use_request"
+export * from "./use_json"

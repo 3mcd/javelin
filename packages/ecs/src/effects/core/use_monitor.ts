@@ -1,22 +1,42 @@
 import { mutableEmpty } from "@javelin/model"
+import { Component, componentTypePools } from "../../component"
 import { createEffect } from "../../effect"
 import { Entity } from "../../entity"
-import { Query, queryMatchesArchetype, Selector } from "../../query"
+import { createStackPool } from "../../pool"
+import {
+  Query,
+  queryMatchesArchetype,
+  Selector,
+  SelectorResult,
+} from "../../query"
 
-type MonitorCallback = (entity: Entity) => unknown
+type OnEnterCallback<S extends Selector> = (
+  entity: Entity,
+  components: SelectorResult<S>,
+) => unknown
+type OnExitCallback<S extends Selector> = (entity: Entity) => unknown
+
+const componentsPool = createStackPool(
+  () => [] as Component[],
+  c => {
+    mutableEmpty(c)
+    return c
+  },
+  1000,
+)
 
 /**
  * Detect when an entity begins matching, or no longer matches, a query.
  *
  * @param query
  * @example
- * effMonitor(
+ * useMonitor(
  *   bodies,
  *   e => console.log(`${e} matches bodies`),
  *   e => console.log(`${e} no longer matches bodies`),
  * )
  */
-export const effMonitor = createEffect(world => {
+export const useMonitor = createEffect(world => {
   const {
     storage: { entityRelocated },
   } = world
@@ -55,10 +75,12 @@ export const effMonitor = createEffect(world => {
     }
   })
 
-  return function effMonitor<S extends Selector>(
+  const tmpComponents: SelectorResult<Selector> = []
+
+  return function useMonitor<S extends Selector>(
     query: Query<S>,
-    onEnter?: MonitorCallback,
-    onExit?: MonitorCallback,
+    onEnter?: OnEnterCallback<S>,
+    onExit?: OnExitCallback<S>,
   ) {
     if (_query !== query) {
       register(query)
@@ -78,7 +100,10 @@ export const effMonitor = createEffect(world => {
 
     if (onEnter !== undefined) {
       for (let i = 0; i < readyEnter.length; i++) {
-        onEnter(readyEnter[i])
+        const entity = readyEnter[i]
+        if (query.get(entity, tmpComponents as SelectorResult<S>)) {
+          onEnter(readyEnter[i], tmpComponents as SelectorResult<S>)
+        }
       }
     }
 

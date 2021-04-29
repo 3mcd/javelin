@@ -43,42 +43,24 @@ const unsubscribe = world.attached.subscribe(...)
 unsubscribe()
 ```
 
-## Trigger
-
-Subscribing to events within systems is tricky because a system runs each tick. Javelin has a built-in effect named `effTrigger` that registers event handlers behind the scenes, emitting changed entitites using callback functions.
-
-`effTrigger` trigger accepts a component type, an `onEnter` function that is executed when a component is attached to an entity, and an `onExit` function that is executed with a component is detached from an entity.
-
-```ts
-import { effTrigger } from "@javelin/ecs"
-
-const sysPhysics = () => {
-  effTrigger(
-    Body,
-    (e, b) => {}, // Body `b` was attached to entity `e`
-    (e, b) => {}, // Body `b` was detached from entity `e`
-  )
-}
-```
-
 ## Monitors
 
-Sometimes you need to go a bit further and detect when an entity matches or no longer matches a complex query. `effMonitor` is an effect that accepts a query and executes callbacks when an entity meets or no longer meets the query's criteria.
+The easiest way to detect when an entity matches or no longer matches a query is with a **monitor**. `useMonitor` is an effect that accepts a query and executes callbacks when an entity meets or no longer meets the query's criteria.
 
-Like `effTrigger`, `effMonitor` accepts `onEnter` and `onExit` callback functions. An entity is only included in a monitor's results **once** while it continues to match the query. An entity is eligible again only if it is excluded (i.e. due to a change in its type) and re-included.
+`useMonitor` accepts `onEnter` and `onExit` callback functions. An entity is only included in a monitor's results **once** while it continues to match the query. An entity is eligible again only if it is excluded (i.e. due to a change in its type) and re-included.
 
 ```ts
 const spooky = createQuery(Enemy, Ghost)
-const sysAi = () => {
-  effMonitor(
+const controlAi = () => {
+  useMonitor(
     spooky,
-    e => {}, // entity `e` matches query `spooky`
-    e => {}, // entity `e` no longer matches query `spooky`
+    e => {}, // entity matches query `spooky`
+    e => {}, // entity no longer matches query `spooky`
   )
 }
 ```
 
-In the above example, the `e` variable would correspond to an entity who made one of the following type transitions last tick:
+In the above example, the entity passed to the `onEnter` callback is an entity who made one of the following type transitions last tick:
 
 ```
 from    | to
@@ -88,7 +70,7 @@ from    | to
 (Ghost) | (Enemy, Ghost)
 ```
 
-Below is an example of an entity transitioning between multiple types, and whether or not that transition would result in the entity being passed to the `onEnter` callback:
+Below is an example of an entity transitioning between multiple archetypes, and whether or not that transition would result in the entity being passed to the `onEnter` callback:
 
 ```
 (Enemy)                  -> excluded
@@ -96,4 +78,17 @@ Below is an example of an entity transitioning between multiple types, and wheth
 (Enemy, Ghost, Confused) -> excluded
 (Ghost, Confused)        -> excluded
 (Enemy, Ghost)           -> included
+```
+
+Monitors can also be used to detect when a single component is added or removed from an entity by using a query with a single component type.
+
+```ts
+const bodies = createQuery(Body)
+const simulate = () => {
+  useMonitor(
+    bodies,
+    e => {}, // Body component attached to entity
+    e => {}, // Body component detached from entity
+  )
+}
 ```

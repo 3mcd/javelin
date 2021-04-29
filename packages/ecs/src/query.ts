@@ -57,11 +57,15 @@ export type Query<S extends Selector = Selector> = ((
    */
   not(...selector: Selector): Query<S>
 
+  get(entity: Entity, out: SelectorResult<S>): boolean
+
   /**
    * Determine if an entity test the query.
    * @param entity
    */
   test(entity: Entity): boolean
+
+  bind(world: World): Query<S>
 }
 
 export const queryMatchesArchetype = (query: Query, archetype: Archetype) =>
@@ -82,9 +86,10 @@ export const queryMatchesArchetype = (query: Query, archetype: Archetype) =>
  */
 export function createQuery<S extends Selector>(...selector: S): Query<S> {
   const length = selector.length
-  const layout = selector.map(componentType =>
-    registerComponentType(componentType),
-  )
+  const layout = selector.map(componentType => {
+    registerComponentType(componentType)
+    return componentType[$componentType]
+  })
   const filters = {
     not: new Set<number>(),
   }
@@ -162,6 +167,21 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
       filters.not.add(selector[i][$componentType])
     }
     return query
+  }
+  query.get = (entity: Entity, out: SelectorResult<S>) => {
+    const context = query.context ?? UNSAFE_internals.__CURRENT_WORLD__
+    const records = recordsIndex[context]
+    for (let i = 0; i < records.length; i++) {
+      const [, columns, indices] = records[i]
+      const index = indices[entity]
+      if (index !== undefined) {
+        for (let i = 0; i < columns.length; i++) {
+          out[i] = columns[i][index]
+        }
+        return true
+      }
+    }
+    return false
   }
   query.bind = (world: World) => {
     const query = createQuery(...selector)

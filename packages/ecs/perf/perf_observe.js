@@ -2,7 +2,7 @@ const {
   createWorld,
   createQuery,
   component,
-  effObserve,
+  useObserve,
   number,
   arrayOf,
 } = require("../dist/cjs")
@@ -16,7 +16,7 @@ const Player = {
 
 const qryPlayers = createQuery(Player)
 const sysObserve = () => {
-  const { track, trackPop, trackPush } = effObserve()
+  const { track, trackPop, trackPush } = useObserve()
   qryPlayers((e, [p]) => {
     p.x += 1
     p.y += 1

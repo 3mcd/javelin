@@ -1,4 +1,4 @@
-export const effRequest = jest.fn(() => ({
+export const useRequest = jest.fn(() => ({
   response: {
     json: () =>
       Promise.resolve({

@@ -1,15 +1,15 @@
 import { createEffect } from "../../effect"
-import { effRef } from "../core"
-import { effRequest, RequestEffectApi } from "./eff_request"
+import { useRef } from "../core"
+import { useRequest, RequestEffectApi } from "./use_request"
 
-export const effJson = createEffect(() => {
+export const useJson = createEffect(() => {
   let response: unknown
 
-  return function effJson<T>(
-    ...args: Parameters<typeof effRequest>
+  return function useJson<T>(
+    ...args: Parameters<typeof useRequest>
   ): RequestEffectApi<T> {
-    const previousResponse = effRef<Response | null>(null)
-    const result = effRequest(...args)
+    const previousResponse = useRef<Response | null>(null)
+    const result = useRequest(...args)
 
     if (result.response && result.response !== previousResponse.value) {
       result.response.json().then((json: T) => {

@@ -17,14 +17,11 @@ export type ComponentProps = {
   readonly __type__: number
 }
 
-export type ComponentOf<C extends ComponentType> = C extends ComponentType
-  ? ComponentProps & InstanceOfSchema<Omit<C, typeof $componentType>>
-  : never
+export type ComponentOf<S extends Schema> = ComponentProps & InstanceOfSchema<S>
+export type Component = ComponentOf<Schema>
 
-export type Component = ComponentOf<ComponentType>
-
-export type ComponentsOf<C extends ComponentType[]> = {
-  [K in keyof C]: C[K] extends ComponentType ? ComponentOf<C[K]> : never
+export type ComponentsOf<C extends Schema[]> = {
+  [K in keyof C]: C[K] extends Schema ? ComponentOf<C[K]> : never
 }
 
 let nextComponentTypeId = 0
@@ -73,15 +70,15 @@ export function createComponentPool<C extends ComponentType>(
 
 const modelConfig = new Map<number, ComponentType>()
 
-export const registerComponentType = (
-  componentType: ComponentType,
+export function registerComponentType(
+  componentType: ComponentType | Schema,
   componentTypeId?: number,
   poolSize = 1000,
-) => {
-  let type: number | undefined = componentType[$componentType]
+): asserts componentType is ComponentType {
+  let type: number | undefined = Reflect.get(componentType, $componentType)
 
   if (type !== undefined) {
-    return type
+    return
   }
 
   type = componentTypeId
@@ -90,26 +87,29 @@ export const registerComponentType = (
     while (modelConfig.has(nextComponentTypeId)) {
       nextComponentTypeId++
     }
-    type = componentType[$componentType] = nextComponentTypeId
+    type = (componentType as ComponentType)[
+      $componentType
+    ] = nextComponentTypeId
   } else if (modelConfig.has(type)) {
     throw new Error(
       "Failed to register component type: a component with same id is already registered",
     )
   }
 
-  componentTypePools.set(type, createComponentPool(componentType, poolSize))
-  modelConfig.set(type, componentType)
+  componentTypePools.set(
+    type,
+    createComponentPool(componentType as ComponentType, poolSize),
+  )
+  modelConfig.set(type, componentType as ComponentType)
 
   setModel(createModel(modelConfig))
-
-  return type
 }
 
-export const component = <C extends ComponentType>(
-  componentType: C,
-): ComponentOf<C> => {
+export const component = <S extends Schema>(
+  componentType: S,
+): ComponentOf<S> => {
   registerComponentType(componentType)
   return (componentTypePools.get(componentType[$componentType]) as StackPool<
-    ComponentOf<C>
+    ComponentOf<S>
   >).retain()
 }

@@ -1,7 +1,7 @@
 const { performance } = require("perf_hooks")
 const {
   createWorld,
-  effTrigger,
+  useTrigger,
   createQuery,
   component,
 } = require("../dist/cjs")
@@ -28,13 +28,13 @@ module.exports.run = () => {
         }
       }
     }
-    effTrigger(A, undefined, entity => {
+    useTrigger(A, undefined, entity => {
       world.detach(entity, B)
       ops++
     })
   }
   const sysDetach = world => {
-    effTrigger(B, entity => {
+    useTrigger(B, entity => {
       world.detach(entity, B)
       ops++
     })

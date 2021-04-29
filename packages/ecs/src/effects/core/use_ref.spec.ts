@@ -1,15 +1,15 @@
-import { effRef } from "./eff_ref"
+import { useRef } from "./use_ref"
 
 jest.mock("../../effect")
 
-describe("effRef", () => {
+describe("useRef", () => {
   beforeEach(() => {
-    ;(effRef as any).reset()
+    ;(useRef as any).reset()
   })
 
   it("wraps initial value", () => {
     const a = {}
-    const { value } = effRef(a)
+    const { value } = useRef(a)
 
     expect(value).toBe(a)
   })
@@ -17,10 +17,10 @@ describe("effRef", () => {
   it("is mutable", () => {
     const a = {}
     const b = {}
-    const r = effRef(a)
+    const r = useRef(a)
 
     r.value = b
 
-    expect(effRef(a).value).toBe(b)
+    expect(useRef(a).value).toBe(b)
   })
 })

@@ -3,27 +3,45 @@ title = "Message Producer"
 weight = 3
 +++
 
-A **message producer** provides the means to build messages over time, prioritize updates to certain component types, and partion messages by size.
+A **message producer** lets you build messages between ticks, prioritize updates to certain component types, and split messages by size.
 
-Below is a simple example of using a message producer to spawn entities that match the `players` query, and destroy them when the no longer match:
+The easiest way to consume a message producer in a system is to wrap an instance in a ref:
 
 ```ts
-const producer = createMessageProducer()
+const useProducer = createRef(() => createMessageProducer())
+```
+
+Below is the simplest example of using a message producer to spawn entities that match a query:
+
+```ts
 const sysNet = () => {
-  effMonitor(
-    qryPlayers,
-    (e, components) => producer.spawn(e, components),
-    e => producer.destroy(e),
-  )
+  const { spawn, destroy, take } = useProducer().value
+  // write spawn/destroy operations for players
+  useMonitor(players, spawn, destroy)
+  // every 50ms
+  if (useInterval(1 / 20) * 1000) {
+    // dequeue and encode a message
+    const encoded = encodeMessage(take())
+    // and send it to each client
+    send(encoded)
+  }
 }
 ```
 
+Below is an extension of the above example that demonstrates how you might write attach/detach operations while an entity continues to match a query:
+
 ```ts
 const sysNet = () => {
-  effTrigger(Body, (e, b) => {
-    if (qryPlayers.test(e)) {
-      producer.attach(e, [b])
-    }
-  })
+  const { spawn, destroy, attach, detach, take } = useProducer().value
+  useMonitor(players, spawn, destroy)
+  useMonitor(
+    Body,
+    (e, b) => attach(e, [b]),
+    (e, b) => detach(e, [b]),
+    players.test, // filter only entities that match `players`
+  )
+  if (useInterval(1 / 20) * 1000) {
+    send(encodeMessage(take()))
+  }
 }
 ```

@@ -11,7 +11,7 @@ The below example demonstrates a worker effect that might perform some expensive
 
 ```ts
 const sysPhysics = () => {
-  const { result, doExpensiveComputation } = effWorker()
+  const { result, doExpensiveComputation } = useWorker()
 
   if (shouldRun && !result) {
     doExpensiveComputation()
@@ -30,7 +30,7 @@ Below is an effect that will return `false` until the provided duration passes:
 ```ts
 import { createEffect } from "@javelin/ecs"
 
-const effTimer = createEffect(world => {
+const useTimer = createEffect(world => {
   // effect closure (state)
   let state = 0
   // effect executor (callback)
@@ -56,8 +56,8 @@ By default, Javelin will create a copy of the effect closure for each effect cal
 
 ```ts
 const sysA = () => {
-  if (effTimer(1000)) console.log("a")
-  if (effTimer(2000)) console.log("b")
+  if (useTimer(1000)) console.log("a")
+  if (useTimer(2000)) console.log("b")
 }
 ```
 
@@ -78,8 +78,8 @@ Local effects are useful if you want to perform a one-off task, like perform an 
 
 ```ts
 const sysQuestUI = () => {
-  const context = effCanvas()
-  const { done, quests } = effFetch("/quests?complete=false")
+  const context = useCanvas()
+  const { done, quests } = useFetch("/quests?complete=false")
 
   if (done) {
     // render quest log
@@ -91,8 +91,8 @@ Although you should strive to have all game state in components, it can be tedio
 
 ```ts
 const sysFibonacci = () => {
-  const a = effRef(0)
-  const b = effRef(1)
+  const a = useRef(0)
+  const b = useRef(1)
   const bPrev = b.value
 
   b.value += a.value
@@ -129,15 +129,15 @@ const effSim = createEffect(world => {
 });
 
 const sysJump = () => {
-  const sim = effSim()
-  queries.jumping.forEach((e, [body, input]) => {
-    sim.applyImpulse(body.simulationId, ...)
+  const { applyImpulse } = useSim()
+  jumping((e, [body, input]) => {
+    applyImpulse(body.simulationId, ...)
   })
 }
 
 const sysMove = () => {
   // references the same simulation as in sysJump
-  const sim = effSim()
+  const sim = useSim()
   ...
 }
 ```
@@ -152,14 +152,14 @@ Some useful effects are included with the core ECS package. A few are outlined b
   </p>
 </aside>
 
-### `effRef<T>(initialValue: T): { value: T }`
+### `useRef<T>(initialValue: T): { value: T }`
 
-`effRef` returns a mutable value that persists between ticks.
+`useRef` returns a mutable value that persists between ticks.
 
 The following example demonstrates a ref which stores the radius of the largest organism in a game. This value is persisted through ticks, so it ultimately references the radius of the largest organism queried across **all ticks**, not just the current tick.
 
 ```ts
-const biggest = effRef<number | null>(null)
+const biggest = useRef<number | null>(null)
 
 organisms.forEach((entity, [circle]) => {
   if (circle.radius > biggest.value) {
@@ -168,26 +168,26 @@ organisms.forEach((entity, [circle]) => {
 })
 ```
 
-### `effInterval(duration: number): boolean`
+### `useInterval(duration: number): boolean`
 
-The `effInterval` effect returns `false` until the specified duration passes, at which point it will begin returning `true`. It will then immediately flip back to false until the duration passes again.
+The `useInterval` effect returns `false` until the specified duration passes, at which point it will begin returning `true`. It will then immediately flip back to false until the duration passes again.
 
-You could use `effInterval` to write a system that sends user input to a server at regular intervals:
+You could use `useInterval` to write a system that sends user input to a server at regular intervals:
 
 ```ts
-const send = effInterval(INPUT_SEND_FREQUENCY)
+const send = useInterval(INPUT_SEND_FREQUENCY)
 ...
 if (send) {
   channel.send(input)
 }
 ```
 
-### `effJson<T>(path: string | null, options: FetchDict, invalidate: boolean): RequestState<T>`
+### `useJson<T>(path: string | null, options: FetchDict, invalidate: boolean): RequestState<T>`
 
-The `effJson` effect initiates an HTTP request and returns an object that describes the state of the request. Passing a `null` URL will cancel any ongoing requests.
+The `useJson` effect initiates an HTTP request and returns an object that describes the state of the request. Passing a `null` URL will cancel any ongoing requests.
 
 ```ts
-const { done, response, error } = effJson(
+const { done, response, error } = useJson(
   player.value
     ? `/players/${player.value.id}/inbox`
     : null
@@ -202,8 +202,8 @@ if (done) {
 
 <script>
   const sysInterval = () => {
-    const ref = Javelin.effRef(0)
-    const log = Javelin.effInterval(4000)
+    const ref = Javelin.useRef(0)
+    const log = Javelin.useInterval(4000)
 
     if (log) {
       console.log("interval", ++ref.value)
@@ -211,10 +211,10 @@ if (done) {
   }
   const sysJson = () => {
     // start request after 1s
-    const timer = Javelin.effTimer(1000)
+    const timer = Javelin.useTimer(1000)
     // cancel request after 5s
-    const cancel = Javelin.effTimer(5000)
-    const request = Javelin.effJson(
+    const cancel = Javelin.useTimer(5000)
+    const request = Javelin.useJson(
       !cancel && timer ? `https://jsonplaceholder.typicode.com/todos/1` : null
     )
 

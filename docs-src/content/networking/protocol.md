@@ -91,7 +91,7 @@ Write a patch operation (derived from [`observer`](/ecs/change-detection)) for t
 
 ```ts
 const sysPatchBodies = () => {
-  const { changesOf } = effObserve()
+  const { changesOf } = useObserve()
   players((entity, [body]) => {
     const message = messageOf(entity)
     patch(message, entity, Body, changesOf(body))
