@@ -1,4 +1,4 @@
-import { assert, ErrorType, mutableEmpty, number, Schema } from "@javelin/model"
+import { assert, ErrorType, mutableEmpty, Schema } from "@javelin/model"
 import { Archetype, ArchetypeTableColumn } from "./archetype"
 import {
   Component,
@@ -6,12 +6,11 @@ import {
   ComponentType,
   registerComponentType,
 } from "./component"
-import { ChangeSet } from "./components"
 import { Entity } from "./entity"
 import { UNSAFE_internals } from "./internal"
 import { $componentType } from "./internal/symbols"
 import { createStackPool } from "./pool"
-import { typeIsSuperset } from "./type"
+import { Type, typeIsSuperset } from "./type"
 import { World } from "./world"
 
 const ERROR_MSG_UNBOUND_QUERY =
@@ -45,13 +44,6 @@ export type QueryIteratee<S extends Selector> = (
 export type Query<S extends Selector = Selector> = ((
   callback: QueryIteratee<S>,
 ) => void) & {
-  layout: number[]
-  signature: number[]
-  filters: {
-    not: ReadonlySet<number>
-  }
-  context: number | null
-
   [Symbol.iterator](): IterableIterator<QueryRecord<S>>
 
   /**
@@ -74,58 +66,49 @@ export type Query<S extends Selector = Selector> = ((
   bind(world: World): Query<S>
 }
 
-export const queryMatchesArchetype = (query: Query, archetype: Archetype) =>
-  typeIsSuperset(archetype.signature, query.signature) &&
-  archetype.signature.every(c => !query.filters.not.has(c))
+type QueryFilters = {
+  not: Set<number>
+}
+
+export const matches = (
+  type: Type,
+  filters: QueryFilters,
+  archetype: Archetype,
+) =>
+  typeIsSuperset(archetype.signature, type) &&
+  archetype.signature.every(c => !filters.not.has(c))
 
 type QueryFactoryOptions<S extends Selector> = {
-  selector: S
-  layout?: SelectorSubset<S>
-  filters: {
+  select: S
+  include?: SelectorSubset<S>
+  filters?: {
     not: Set<number>
   }
+  context?: number
 }
 
 function createQueryInternal<S extends Selector>(
   options: QueryFactoryOptions<S>,
 ) {
-  const length = options.selector.length
-  const layout = (options.layout ?? options.selector).map((schema: Schema) => {
+  const length = options.select.length
+  const filters = options.filters ?? { not: new Set() }
+  const signature = options.select.map(schema => {
     registerComponentType(schema)
     return schema[$componentType]
   })
-  const { filters } = options
-}
-
-/**
- * Create a query that can be used to iterate over entities that match a
- * provided component type selector. Maintains an automatically-updated
- * cache of archetypes, and can be used across multiple worlds.
- * @param selector Query selector
- * @returns Query
- * @example
- * const burning = createQuery(Player, Burn)
- * burning.forEach((entity, [player, burn]) => {
- *   player.health -= burn.damage
- * })
- */
-export function createQuery<S extends Selector>(...selector: S): Query<S> {
-  const length = selector.length
-  const layout = selector.map(schema => {
-    registerComponentType(schema)
-    return schema[$componentType]
-  })
-  const filters = {
-    not: new Set<number>(),
-  }
-  const signature = layout.slice().sort((a, b) => a - b)
+  const layout = (options.include ?? options.select).map(
+    (schema: Schema) => (schema as ComponentType)[$componentType],
+  )
   const recordsIndex = [] as QueryRecord<S>[][]
+
+  let context = options.context
+
   const maybeRegisterArchetype = (
     archetype: Archetype,
     records: QueryRecord<S>[],
   ) => {
-    if (queryMatchesArchetype(query, archetype)) {
-      const columns = query.layout.map(
+    if (matches(signature, filters, archetype)) {
+      const columns = layout.map(
         componentTypeId =>
           archetype.table[archetype.signature.indexOf(componentTypeId)],
       )
@@ -156,15 +139,10 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
     },
     1000,
   )
-
   const forEach = (iteratee: QueryIteratee<S>) => {
-    const context = query.context ?? UNSAFE_internals.__CURRENT_WORLD__
-    assert(
-      context !== null && context !== -1,
-      ERROR_MSG_UNBOUND_QUERY,
-      ErrorType.Query,
-    )
-    const records = recordsIndex[context] || registerWorld(context)
+    const c = context ?? UNSAFE_internals.__CURRENT_WORLD__
+    assert(c !== null && c !== -1, ERROR_MSG_UNBOUND_QUERY, ErrorType.Query)
+    const records = recordsIndex[c] || registerWorld(c)
     const components = pool.retain()
 
     for (let i = 0; i < records.length; i++) {
@@ -179,42 +157,26 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
 
     pool.release(components)
   }
-  const clone = () => {
-    const next = createQuery(...selector)
-    next.filters = { not: new Set(query.filters.not) }
-    next.layout = query.layout
-    return next
-  }
 
   const query = forEach as Query<S>
 
-  query.layout = layout
-  query.signature = signature
-  query.filters = filters
-  query.context = null
-
-  query.not = (...exclude: Selector) => {
-    const next = clone()
-    for (let i = 0; i < exclude.length; i++) {
-      ;(next.filters.not as Set<number>).add(
-        (exclude[i] as ComponentType)[$componentType],
-      )
-    }
-    next.layout = query.layout
-    return next
-  }
-  query.select = <T extends SelectorSubset<S>>(...subset: T) => {
-    const next = clone()
-    next.layout = subset.map(schema => {
-      registerComponentType(schema)
-      return schema[$componentType]
+  query.not = (...exclude: Selector) =>
+    createQueryInternal({
+      ...options,
+      filters: {
+        not: new Set(
+          exclude.map(schema => (schema as ComponentType)[$componentType]),
+        ),
+      },
     })
-    next.filters = query.filters
-    return (next as unknown) as Query<T>
-  }
+  query.select = <T extends SelectorSubset<S>>(...include: T) =>
+    (createQueryInternal({
+      ...options,
+      include,
+    }) as unknown) as Query<T>
   query.get = (entity: Entity, out: SelectorResult<S>) => {
-    const context = query.context ?? UNSAFE_internals.__CURRENT_WORLD__
-    const records = recordsIndex[context]
+    const c = context ?? UNSAFE_internals.__CURRENT_WORLD__
+    const records = recordsIndex[c]
     for (let i = 0; i < records.length; i++) {
       const [, columns, indices] = records[i]
       const index = indices[entity]
@@ -227,14 +189,14 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
     }
     return false
   }
-  query.bind = (world: World) => {
-    const query = createQuery(...selector)
-    query.context = world.id
-    return query
-  }
+  query.bind = (world: World) =>
+    createQueryInternal({
+      ...options,
+      context: world.id,
+    })
   query.test = (entity: Entity) => {
-    const context = query.context ?? UNSAFE_internals.__CURRENT_WORLD__
-    const records = recordsIndex[context]
+    const c = context ?? UNSAFE_internals.__CURRENT_WORLD__
+    const records = recordsIndex[c]
     for (let i = 0; i < records.length; i++) {
       const record = records[i]
       if (record[2][entity] !== undefined) {
@@ -244,15 +206,9 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
     return false
   }
   query[Symbol.iterator] = () => {
-    const context = query.context ?? UNSAFE_internals.__CURRENT_WORLD__
-    assert(
-      context !== null && context !== -1,
-      ERROR_MSG_UNBOUND_QUERY,
-      ErrorType.Query,
-    )
-    const iterator = (recordsIndex[context] || registerWorld(context))[
-      Symbol.iterator
-    ]()
+    const c = context ?? UNSAFE_internals.__CURRENT_WORLD__
+    assert(c !== null && c !== -1, ERROR_MSG_UNBOUND_QUERY, ErrorType.Query)
+    const iterator = (recordsIndex[c] || registerWorld(c))[Symbol.iterator]()
 
     return iterator
   }
@@ -260,12 +216,19 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
   return query
 }
 
-const A = { x: number }
-const B = { y: number }
-
-const q = createQuery(A, B)
-const r = q.select(B)
-
-r((e, [b]) => {
-  b.y
-})
+/**
+ * Create a query that can be used to iterate over entities that match a
+ * provided component type selector. Maintains an automatically-updated
+ * cache of archetypes, and can be used across multiple worlds.
+ * @param selector Query selector
+ * @returns Query
+ * @example
+ * const burning = createQuery(Player, Burn)
+ * burning.forEach((entity, [player, burn]) => {
+ *   player.health -= burn.damage
+ * })
+ */
+export const createQuery = <S extends Selector>(...select: S): Query<S> =>
+  createQueryInternal({
+    select,
+  })
