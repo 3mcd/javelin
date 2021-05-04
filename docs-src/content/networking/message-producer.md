@@ -31,10 +31,12 @@ const sysNet = () => {
 Below is an extension of the above example that demonstrates how you might write attach/detach operations while an entity continues to match a query:
 
 ```ts
+const players = createQuery(Player)
+const playersWBody = createQuery(Player, Body)
 const sysNet = () => {
   const { spawn, destroy, attach, detach, take } = useProducer().value
   useMonitor(players, spawn, destroy)
-  useChanged(players, subQuery, attach, detach)
+  useMonitor(players, playersWBody, attach, detach)
 
   if (useInterval(1 / 20) * 1000) {
     send(encodeMessage(take()))
