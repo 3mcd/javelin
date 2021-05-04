@@ -1,14 +1,9 @@
 import { mutableEmpty } from "@javelin/model"
-import { Component, componentTypePools } from "../../component"
+import { Component } from "../../component"
 import { createEffect } from "../../effect"
 import { Entity } from "../../entity"
 import { createStackPool } from "../../pool"
-import {
-  Query,
-  queryMatchesArchetype,
-  Selector,
-  SelectorResult,
-} from "../../query"
+import { Query, Selector, SelectorResult } from "../../query"
 
 type OnEnterCallback<S extends Selector> = (
   entity: Entity,
@@ -68,9 +63,9 @@ export const useMonitor = createEffect(world => {
       return
     }
 
-    if (queryMatchesArchetype(_query, next)) {
+    if (_query.matches(next)) {
       stagedEnter.push(entity)
-    } else if (queryMatchesArchetype(_query, prev)) {
+    } else if (_query.matches(prev)) {
       stagedExit.push(entity)
     }
   })

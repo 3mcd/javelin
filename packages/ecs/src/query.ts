@@ -47,14 +47,24 @@ export type Query<S extends Selector = Selector> = ((
   [Symbol.iterator](): IterableIterator<QueryRecord<S>>
 
   /**
-   * Exclude entities with components of provided component type(s) from the
-   * query results.
+   * Create a new query that excludes entities with components of provided
+   * component type(s) from this query's results.
    * @param selector
    */
   not(...selector: Selector): Query<S>
 
-  select<T extends SelectorSubset<S>>(...subset: T): Query<T>
+  /**
+   * Create a new query that behaves the same as this query, but yields a
+   * specified subset of components.
+   * @param include
+   */
+  select<T extends SelectorSubset<S>>(...include: T): Query<T>
 
+  /**
+   * Get the results of a query for a specific entity.
+   * @param entity
+   * @param out
+   */
   get(entity: Entity, out: SelectorResult<S>): boolean
 
   /**
@@ -63,18 +73,24 @@ export type Query<S extends Selector = Selector> = ((
    */
   test(entity: Entity): boolean
 
+  /**
+   * Bind the results of this query to a specific world.
+   * @param world
+   */
   bind(world: World): Query<S>
+
+  /**
+   * Determine if a query matches an archetype.
+   * @param archetype
+   */
+  matches(archetype: Archetype): boolean
 }
 
 type QueryFilters = {
   not: Set<number>
 }
 
-export const matches = (
-  type: Type,
-  filters: QueryFilters,
-  archetype: Archetype,
-) =>
+const matches = (type: Type, filters: QueryFilters, archetype: Archetype) =>
   typeIsSuperset(archetype.signature, type) &&
   archetype.signature.every(c => !filters.not.has(c))
 
@@ -205,6 +221,8 @@ function createQueryInternal<S extends Selector>(
     }
     return false
   }
+  query.matches = (archetype: Archetype) =>
+    matches(signature, filters, archetype)
   query[Symbol.iterator] = () => {
     const c = context ?? UNSAFE_internals.__CURRENT_WORLD__
     assert(c !== null && c !== -1, ERROR_MSG_UNBOUND_QUERY, ErrorType.Query)
@@ -228,7 +246,7 @@ function createQueryInternal<S extends Selector>(
  *   player.health -= burn.damage
  * })
  */
-export const createQuery = <S extends Selector>(...select: S): Query<S> =>
+export const createQuery = <S extends Selector>(...selector: S): Query<S> =>
   createQueryInternal({
-    select,
+    select: selector,
   })
