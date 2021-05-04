@@ -70,8 +70,8 @@ and [Effects](https://javelin.games/ecs/effects) for handling async code, third-
 
 ```ts
 const sysRender = () => {
-  const scene = effScene()
-  const model = effLoadGLTF("llama.gltf")
+  const scene = useScene()
+  const model = useLoadGLTF("llama.gltf")
 
   useMonitor(
     qryPlayers,
