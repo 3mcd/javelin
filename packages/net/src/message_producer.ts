@@ -11,12 +11,18 @@ export const createMessageProducer = (
 ): MessageProducer => {
   const changeBuffer = new Map()
   const insert = (message: Message) => {}
+
+  const spawn = () => {}
+  const destroy = () => {}
+  const attach = () => {}
+  const detach = () => {}
   const patch = (
     entity: Entity,
     componentType: ComponentType,
     changes: ObserverChangeSet,
     priority = Infinity,
   ) => {}
+  const take = () => {}
 
-  return {}
+  return { spawn, destroy, attach, detach, patch, take }
 }

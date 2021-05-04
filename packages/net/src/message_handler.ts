@@ -286,13 +286,13 @@ export const createMessageHandler = (world: World) => {
     }
   }
 
-  const effect = createEffect(() => () => state, {
+  const useInfo = createEffect(() => () => state, {
     global: true,
   })
 
   return {
     push,
     system,
-    effect,
+    useInfo,
   }
 }

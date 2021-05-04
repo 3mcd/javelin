@@ -11,7 +11,7 @@ compile_sass = true
 build_search_index = true
 
 highlight_code = true
-highlight_theme = "snow-light"
+# highlight_theme = "snow-light"
 
 
 [extra]

@@ -1,4 +1,4 @@
-import { assert, ErrorType, mutableEmpty } from "@javelin/model"
+import { assert, ErrorType, mutableEmpty, number, Schema } from "@javelin/model"
 import { Archetype, ArchetypeTableColumn } from "./archetype"
 import {
   Component,
@@ -6,6 +6,7 @@ import {
   ComponentType,
   registerComponentType,
 } from "./component"
+import { ChangeSet } from "./components"
 import { Entity } from "./entity"
 import { UNSAFE_internals } from "./internal"
 import { $componentType } from "./internal/symbols"
@@ -16,10 +17,13 @@ import { World } from "./world"
 const ERROR_MSG_UNBOUND_QUERY =
   "a query must be executed within a system or bound to a world using Query.bind()"
 
-export type Selector = ComponentType[]
+export type Selector = Schema[]
 export type SelectorResult<S extends Selector> = {
-  [K in keyof S]: S[K] extends ComponentType ? ComponentOf<S[K]> : Component
+  [K in keyof S]: S[K] extends Schema ? ComponentOf<S[K]> : Component
 }
+export type SelectorSubset<S extends Selector> = (S extends Array<infer _>
+  ? _
+  : never)[]
 
 export type QueryRecord<S extends Selector> = [
   entities: ReadonlyArray<number>,
@@ -57,6 +61,8 @@ export type Query<S extends Selector = Selector> = ((
    */
   not(...selector: Selector): Query<S>
 
+  select<T extends SelectorSubset<S>>(...subset: T): Query<T>
+
   get(entity: Entity, out: SelectorResult<S>): boolean
 
   /**
@@ -72,6 +78,25 @@ export const queryMatchesArchetype = (query: Query, archetype: Archetype) =>
   typeIsSuperset(archetype.signature, query.signature) &&
   archetype.signature.every(c => !query.filters.not.has(c))
 
+type QueryFactoryOptions<S extends Selector> = {
+  selector: S
+  layout?: SelectorSubset<S>
+  filters: {
+    not: Set<number>
+  }
+}
+
+function createQueryInternal<S extends Selector>(
+  options: QueryFactoryOptions<S>,
+) {
+  const length = options.selector.length
+  const layout = (options.layout ?? options.selector).map((schema: Schema) => {
+    registerComponentType(schema)
+    return schema[$componentType]
+  })
+  const { filters } = options
+}
+
 /**
  * Create a query that can be used to iterate over entities that match a
  * provided component type selector. Maintains an automatically-updated
@@ -86,9 +111,9 @@ export const queryMatchesArchetype = (query: Query, archetype: Archetype) =>
  */
 export function createQuery<S extends Selector>(...selector: S): Query<S> {
   const length = selector.length
-  const layout = selector.map(componentType => {
-    registerComponentType(componentType)
-    return componentType[$componentType]
+  const layout = selector.map(schema => {
+    registerComponentType(schema)
+    return schema[$componentType]
   })
   const filters = {
     not: new Set<number>(),
@@ -100,7 +125,7 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
     records: QueryRecord<S>[],
   ) => {
     if (queryMatchesArchetype(query, archetype)) {
-      const columns = layout.map(
+      const columns = query.layout.map(
         componentTypeId =>
           archetype.table[archetype.signature.indexOf(componentTypeId)],
       )
@@ -154,6 +179,12 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
 
     pool.release(components)
   }
+  const clone = () => {
+    const next = createQuery(...selector)
+    next.filters = { not: new Set(query.filters.not) }
+    next.layout = query.layout
+    return next
+  }
 
   const query = forEach as Query<S>
 
@@ -162,11 +193,24 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
   query.filters = filters
   query.context = null
 
-  query.not = (...selector: Selector) => {
-    for (let i = 0; i < selector.length; i++) {
-      filters.not.add(selector[i][$componentType])
+  query.not = (...exclude: Selector) => {
+    const next = clone()
+    for (let i = 0; i < exclude.length; i++) {
+      ;(next.filters.not as Set<number>).add(
+        (exclude[i] as ComponentType)[$componentType],
+      )
     }
-    return query
+    next.layout = query.layout
+    return next
+  }
+  query.select = <T extends SelectorSubset<S>>(...subset: T) => {
+    const next = clone()
+    next.layout = subset.map(schema => {
+      registerComponentType(schema)
+      return schema[$componentType]
+    })
+    next.filters = query.filters
+    return (next as unknown) as Query<T>
   }
   query.get = (entity: Entity, out: SelectorResult<S>) => {
     const context = query.context ?? UNSAFE_internals.__CURRENT_WORLD__
@@ -215,3 +259,13 @@ export function createQuery<S extends Selector>(...selector: S): Query<S> {
 
   return query
 }
+
+const A = { x: number }
+const B = { y: number }
+
+const q = createQuery(A, B)
+const r = q.select(B)
+
+r((e, [b]) => {
+  b.y
+})

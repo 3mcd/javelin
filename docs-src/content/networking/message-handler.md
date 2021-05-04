@@ -3,18 +3,18 @@ title = "Message Handler"
 weight = 4
 +++
 
-A **message handler** enqueues network messages applies their contained operations to a world.
+A **message handler** enqueues network messages received from a remote source and applies their contained operations to a world.
 
 ```ts
 import { createMessageHandler } from "@javelin/net"
 const messageHandler = createMessageHandler()
 ```
 
-A message handler exposes a `push` method for inserting new messages, and a system that, when executed, will drain the message queue and apply the instructions encoded in each message to the world.
+Message handlers expose a `push` method for enqueuing new messages, and a system that drains the message queue and applies the operations encoded in each message to the world.
 
 ```ts
 const world = createWorld({ systems: [messageHandler.system] })
-
+// subscribe to remote messages
 channel.listen(message => messageHandler.push(message))
 ```
 
@@ -26,7 +26,7 @@ const sysNet = () => {
     remote: { tick },
     patched, // entities patched last message
     updated, // entities updated last message
-  } = messageHandler.effect()
+  } = messageHandler.useInfo()
   // ...
 
   qryBodies(e => {
