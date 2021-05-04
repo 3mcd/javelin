@@ -1,10 +1,10 @@
 import {
   Component,
   Entity,
-  UNSAFE_internals,
-  UNSAFE_modelChanged,
   MutArrayMethod,
   ObserverChangeSet,
+  UNSAFE_internals,
+  UNSAFE_modelChanged,
 } from "@javelin/ecs"
 import {
   assert,
@@ -12,7 +12,6 @@ import {
   ErrorType,
   flattenModel,
   Model,
-  ModelFlat,
   ModelNodeKind,
   mutableEmpty,
 } from "@javelin/model"
@@ -25,6 +24,7 @@ import {
   uint8,
   View,
 } from "@javelin/pack"
+import { calcChangeByteLength } from "./message_utils"
 import { decodeSchema, encodeModel } from "./model"
 
 type Indices<T extends { length: number }> = Exclude<
@@ -60,6 +60,8 @@ type Parts = [
 
 export type Message = {
   parts: Parts
+  partsByteLength: number
+  totalByteLength: number
 }
 
 export type DecodeMessageHandlers = {
@@ -354,32 +356,39 @@ export const encodeMessage = (
 export { encodeMessage as encode }
 
 export const createMessage = (): Message => {
+  const parts: Parts = [
+    createPart(),
+    createPart(),
+    createPart(),
+    createPart(),
+    createPart(),
+    { ...createPart(), changesByEntity: new Map() },
+    createPart(),
+    createPart(),
+  ]
   return {
-    parts: [
-      createPart(),
-      createPart(),
-      createPart(),
-      createPart(),
-      createPart(),
-      { ...createPart(), changesByEntity: new Map() },
-      createPart(),
-      createPart(),
-    ],
+    parts,
+    totalByteLength: parts.length * uint16.byteLength,
+    partsByteLength: 0,
   }
 }
 
 export const copy = (from: Message, to: Message): Message => {
   const { parts } = from
+  let copied = 0
   for (let j = 0; j < parts.length; j++) {
     const { type, data, byteLength } = parts[j]
-    const dest = to.parts[j]
-    const { data: dataDest, type: dataType } = dest
+    const part = to.parts[j]
+    const { data: dataDest, type: dataType } = part
     for (let k = 0; k < data.length; k++) {
       dataDest.push(data[k])
       dataType.push(type[k])
     }
-    dest.byteLength += byteLength
+    part.byteLength += byteLength
+    copied += byteLength
   }
+  to.partsByteLength += copied
+  to.totalByteLength += copied
   return to
 }
 
@@ -397,6 +406,8 @@ export const reset = (message: Message) => {
         break
     }
   }
+  message.partsByteLength = 0
+  message.totalByteLength = uint16.byteLength * message.parts.length
 }
 
 export const spawn = (
@@ -414,7 +425,7 @@ export const spawn = (
 export const attach = (
   message: Message,
   entity: Entity,
-  ...components: Component[]
+  components: Component[],
 ) =>
   insertEntityComponents(
     message.parts[3],
@@ -434,72 +445,6 @@ export const update = (
     components,
     UNSAFE_internals.__MODEL__,
   )
-
-const calcChangeByteLength = (
-  changes: ObserverChangeSet,
-  type: ModelFlat[keyof ModelFlat],
-) => {
-  const { object, array } = changes
-
-  // object count + array count
-  let byteLength = uint8.byteLength * 2
-
-  for (const prop in object) {
-    const change = object[prop]
-    if (change.noop) {
-      continue
-    }
-    const {
-      record: { field, traverse },
-    } = change
-    // field + traverse length + traverse keys
-    byteLength +=
-      uint8.byteLength * 2 + uint16.byteLength * (traverse?.length ?? 0)
-    // value
-    const node = type[field]
-    assert(
-      node.kind === ModelNodeKind.Primitive,
-      "Failed to encode change: only primitive field mutations are currently supported",
-    )
-    byteLength += dataTypeToView(node.type).byteLength
-  }
-
-  for (let i = 0; i < array.length; i++) {
-    const change = array[i]
-    const {
-      record: { field, traverse },
-    } = change
-    // field + traverse length + traverse keys
-    byteLength +=
-      uint8.byteLength * 2 + uint16.byteLength * (traverse?.length ?? 0)
-    // array method
-    byteLength += uint8.byteLength
-    if (
-      change.method === MutArrayMethod.Pop ||
-      change.method === MutArrayMethod.Shift
-    ) {
-      continue
-    }
-    // insert length
-    byteLength += uint8.byteLength
-
-    const node = type[field]
-    assert(
-      node.kind === ModelNodeKind.Primitive,
-      "Failed to encode change: only primitive field mutations are currently supported",
-    )
-
-    // insert values
-    byteLength += dataTypeToView(node.type).byteLength * change.values.length
-
-    if (change.method === MutArrayMethod.Splice) {
-      // index + remove
-      byteLength += uint16.byteLength + uint8.byteLength
-    }
-  }
-
-  return byteLength
-}
 
 export const patch = (
   message: Message,
@@ -537,14 +482,14 @@ export const patch = (
 export const detach = (
   message: Message,
   entity: Entity,
-  ...componentTypeIds: number[]
+  components: Component[],
 ) => {
   const part = message.parts[6]
-  const length = componentTypeIds.length
+  const length = components.length
   insert(part, entity, uint32)
   insert(part, length, uint8)
   for (let i = 0; i < length; i++) {
-    insert(part, componentTypeIds[i], uint8)
+    insert(part, components[i].__type__, uint8)
   }
 }
 

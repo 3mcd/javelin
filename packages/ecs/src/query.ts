@@ -68,7 +68,7 @@ export type Query<S extends Selector = Selector> = ((
   get(entity: Entity, out: SelectorResult<S>): boolean
 
   /**
-   * Determine if an entity test the query.
+   * Determine if an entity matches the query.
    * @param entity
    */
   test(entity: Entity): boolean
