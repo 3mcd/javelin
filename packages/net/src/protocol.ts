@@ -437,7 +437,7 @@ export const attach = (
 export const update = (
   message: Message,
   entity: Entity,
-  ...components: Component[]
+  components: Component[],
 ) =>
   insertEntityComponents(
     message.parts[4],

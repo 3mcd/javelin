@@ -48,8 +48,8 @@ describe("protocol", () => {
     tick(message, 999)
     spawn(message, 1, [{ __type__: 1, x: 9 }])
     spawn(message, 2, [{ __type__: 1, x: 9 }])
-    attach(message, 3, { __type__: 1, x: 9 })
-    update(message, 3, { __type__: 1, x: 9 })
+    attach(message, 3, [{ __type__: 1, x: 9 }])
+    update(message, 3, [{ __type__: 1, x: 9 }])
     patch(message, 3, 1, {
       array: [],
       arrayCount: 0,
@@ -74,7 +74,10 @@ describe("protocol", () => {
       },
       objectCount: 1,
     })
-    detach(message, 4, 1, 2, 3)
+    detach(message, 4, [
+      { __type__: 2, x: 9 },
+      { __type__: 3, x: 9 },
+    ])
     destroy(message, 5)
     destroy(message, 6)
 
@@ -169,7 +172,7 @@ describe("protocol", () => {
 
     for (let i = 0; i < attaches.length; i++) {
       const [entity, [component]] = attaches[i]
-      attach(message, entity, component)
+      attach(message, entity, [component])
     }
 
     decodeMessage(encodeMessage(message), handlers, model)
@@ -190,7 +193,7 @@ describe("protocol", () => {
 
     for (let i = 0; i < updates.length; i++) {
       const [entity, [component]] = updates[i]
-      update(message, entity, component)
+      update(message, entity, [component])
     }
 
     decodeMessage(encodeMessage(message), handlers, model)
@@ -200,7 +203,16 @@ describe("protocol", () => {
   it("deserializes detached", () => {
     const model = createModel(new Map())
     const message = createMessage()
-    const detaches: EntityComponentIdsPair[] = [[5, [1, 2, 4]]]
+    const detaches: EntityComponentsPair[] = [
+      [
+        5,
+        [
+          { __type__: 1, x: 9 },
+          { __type__: 2, x: 9 },
+          { __type__: 4, x: 9 },
+        ],
+      ],
+    ]
     const results: EntityComponentIdsPair[] = []
     const handlers = {
       ...baseHandlers,
@@ -209,12 +221,14 @@ describe("protocol", () => {
     setModel(model)
 
     for (let i = 0; i < detaches.length; i++) {
-      const [entity, componentTypeIds] = detaches[i]
-      detach(message, entity, ...componentTypeIds)
+      const [entity, components] = detaches[i]
+      detach(message, entity, components)
     }
 
     decodeMessage(encodeMessage(message), handlers, model)
-    expect(results).toEqual(detaches)
+    expect(results).toEqual([
+      [detaches[0][0], detaches[0][1].map(c => c.__type__)],
+    ])
   })
 
   it("deserializes destroyed", () => {

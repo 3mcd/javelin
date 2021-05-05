@@ -122,9 +122,7 @@ export const createMessageHandler = (world: World) => {
           offset += 1
           const traverseLength = bufferView.getUint8(offset)
           offset += 1
-
           mutableEmpty(tmpTraverse)
-
           for (let i = 0; i < traverseLength; i++) {
             tmpTraverse.push(bufferView.getUint16(offset))
             offset += 2
@@ -186,6 +184,7 @@ export const createMessageHandler = (world: World) => {
             tmpTraverse.push(bufferView.getUint16(offset))
             offset += 2
           }
+
           const arrayMethod = bufferView.getUint8(offset)
           offset += 1
 

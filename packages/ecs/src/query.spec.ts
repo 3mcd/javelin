@@ -11,11 +11,6 @@ describe("createQuery", () => {
   const A = { [$componentType]: 0 }
   const B = { [$componentType]: 1 }
 
-  it("initializes with sorted signature", () => {
-    const q = createQuery(B, A)
-
-    expect(q.signature).toEqual([0, 1])
-  })
   it("queries collections of components", () => {
     const world = createWorld()
     const table = [
