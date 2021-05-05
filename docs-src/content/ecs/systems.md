@@ -163,7 +163,7 @@ const sysStatusEffects = () => {
 }
 ```
 
-Every index of `results` references the same array, which is the tuple of components attached to the entity of the last iteration. If you absolutely need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
+Every index of `results` references the same array, which is the tuple of components attached to the entity of the last iteration. If you absolutely need to store components between queries (e.g. you're optimizing a nested query), you could push the components of interest into a temporary array, e.g.
 
 ```ts
 const results = []

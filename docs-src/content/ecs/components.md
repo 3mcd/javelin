@@ -51,7 +51,7 @@ boolean (default = false)
 arrayOf (default = [])
 ```
 
-When Javelin encounters a component type for the first time, it will automatically assign it a unique integer id. If you need to assign a specific id to a component type (e.g., you are synchronizing your component model in a multiplayer game), you can register the component type manually using `registerComponentType`:
+When Javelin encounters a component type for the first time, it will automatically assign it a unique integer id. If you need to assign a specific id to a component type (e.g., you're synchronizing your component model in a multiplayer game), you can register the component type manually using `registerComponentType`:
 
 ```ts
 import { registerComponentType } from "@javelin/ecs"

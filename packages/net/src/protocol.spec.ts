@@ -1,4 +1,4 @@
-import { Component, Entity, setModel } from "@javelin/ecs"
+import { Entity, EntitySnapshot, setModel } from "@javelin/ecs"
 import { arrayOf, createModel, Model, Schema } from "@javelin/model"
 import { float64, uint32, uint8 } from "@javelin/pack"
 import {
@@ -15,7 +15,6 @@ import {
   update,
 } from "./protocol"
 
-type EntityComponentsPair = [Entity, Component[]]
 type EntityComponentIdsPair = [Entity, number[]]
 
 describe("protocol", () => {
@@ -53,26 +52,26 @@ describe("protocol", () => {
     patch(message, 3, 1, {
       array: [],
       arrayCount: 0,
-      object: {
+      fields: {
         x: {
           value: 10,
           record: { field: 1, path: "x", split: ["x"], traverse: [] },
           noop: false,
         },
       },
-      objectCount: 1,
+      fieldCount: 1,
     })
     patch(message, 3, 1, {
       array: [],
       arrayCount: 0,
-      object: {
+      fields: {
         x: {
           value: 11,
           record: { field: 1, path: "x", split: ["x"], traverse: [] },
           noop: false,
         },
       },
-      objectCount: 1,
+      fieldCount: 1,
     })
     detach(message, 4, [
       { __type__: 2, x: 9 },
@@ -141,11 +140,11 @@ describe("protocol", () => {
   it("deserializes spawned", () => {
     const model = createModel(new Map([[1, baseSchema]]))
     const message = createMessage()
-    const spawns: EntityComponentsPair[] = [[7, [{ __type__: 1, x: 888 }]]]
-    const results: EntityComponentsPair[] = []
+    const spawns: EntitySnapshot[] = [[7, [{ __type__: 1, x: 888 }]]]
+    const results: EntitySnapshot[] = []
     const handlers = {
       ...baseHandlers,
-      onCreate: (...args: EntityComponentsPair) => results.push(args),
+      onCreate: (...args: EntitySnapshot) => results.push(args),
     }
 
     setModel(model)
@@ -161,11 +160,11 @@ describe("protocol", () => {
   it("deserializes attached", () => {
     const model = createModel(new Map([[1, baseSchema]]))
     const message = createMessage()
-    const attaches: EntityComponentsPair[] = [[7, [{ __type__: 1, x: 888 }]]]
-    const results: EntityComponentsPair[] = []
+    const attaches: EntitySnapshot[] = [[7, [{ __type__: 1, x: 888 }]]]
+    const results: EntitySnapshot[] = []
     const handlers = {
       ...baseHandlers,
-      onAttach: (...args: EntityComponentsPair) => results.push(args),
+      onAttach: (...args: EntitySnapshot) => results.push(args),
     }
 
     setModel(model)
@@ -182,11 +181,11 @@ describe("protocol", () => {
   it("deserializes updated", () => {
     const model = createModel(new Map([[1, baseSchema]]))
     const message = createMessage()
-    const updates: EntityComponentsPair[] = [[7, [{ __type__: 1, x: 888 }]]]
-    const results: EntityComponentsPair[] = []
+    const updates: EntitySnapshot[] = [[7, [{ __type__: 1, x: 888 }]]]
+    const results: EntitySnapshot[] = []
     const handlers = {
       ...baseHandlers,
-      onUpdate: (...args: EntityComponentsPair) => results.push(args),
+      onUpdate: (...args: EntitySnapshot) => results.push(args),
     }
 
     setModel(model)
@@ -203,7 +202,7 @@ describe("protocol", () => {
   it("deserializes detached", () => {
     const model = createModel(new Map())
     const message = createMessage()
-    const detaches: EntityComponentsPair[] = [
+    const detaches: EntitySnapshot[] = [
       [
         5,
         [

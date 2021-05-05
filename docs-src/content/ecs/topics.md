@@ -13,25 +13,21 @@ Let's say you want to apply an impulse to a physics body when a player jumps so 
 
 ```ts
 const Impulse = {
-  x: number
-  y: number
+  x: number,
+  y: number,
 }
 ```
 
 When you need to apply a impulse to an entity, you insert an `Impulse` component on the current tick, and remove it on the following tick.
 
 ```ts
-const sysInput = () => {
-  queries.jumping.forEach(entity => {
-    world.attach(entity, component(Impulse))
-  })
-  queries.withImpulse.forEach(entity => {
-    world.detach(entity, impulse)
-  })
+const sysInput = ({ attach, detach }: World) => {
+  qryJumping(entity => attach(entity, component(Impulse)))
+  qryWithImpulse((entity, [impulse]) => detach(entity, impulse))
 }
 
 const sysPhysics = () => {
-  queries.withImpulse((entity, [impulse]) => {
+  qryWithImpulse((entity, [impulse]) => {
     const body = getBodyByEntity(entity)
     physicsEngine.applyImpulseLocal(body, impulse)
   })

@@ -17,9 +17,11 @@ world.attach(entity, ChangeSet)
 Retreive an entity's change set just like any other component type: using queries!
 
 ```ts
-const bodies = createQuery(Position, Velocity, ChangeSet)
+const qryBodiesWChanges = createQuery(Position, Velocity, ChangeSet)
 const sysTrack = () => {
-  bodies((e, [position, velocity, changes]) => {})
+  qryBodiesWChanges((e, [position, velocity, changes]) => {
+    // ...
+  })
 }
 ```
 
@@ -28,7 +30,7 @@ You can write changes to the change set using the `track` function:
 ```ts
 import { track } from "@javelin/ecs"
 
-bodies((e, [position, velocity, changes]) => {
+qryBodiesWChanges((e, [position, velocity, changes]) => {
   track(changes, position, "x", (position.x += velocity.x))
 })
 ```
@@ -42,7 +44,7 @@ bodies((e, [position, velocity, changes]) => {
 You can easily extract this logic to helper functions to make your systems cleaner:
 
 ```ts
-const mutBodyMotion = (
+const applyBodyMotion = (
   changes: ComponentOf<typeof ChangeSet>,
   position: ComponentOf<typeof Position>,
   velocity: ComponentOf<typeof Velocity>,
@@ -69,26 +71,6 @@ track(changes, inventory, "bags.0.1", sword)
 track(changes, inventory, "bags.0.1", bow)
 ```
 
-`ChangeSet` has the following schema:
-
-```ts
-const ChangeSetRecord = {
-  field: number,
-  traverse: arrayOf(string),
-}
-const ChangeSet = {
-  fields: mapOf({
-    value: dynamic,
-    record: ChangeSetRecord,
-  }),
-  array: arrayOf({
-    path: string,
-    method: number,
-    record: ChangeSetRecord,
-  }),
-}
-```
-
 In the above example, the entity's `ChangeSet` component would look like:
 
 ```ts
@@ -112,7 +94,7 @@ TODO
 
 ### Array Mutations
 
-A `ChangeSet` can also track common array mutations, like push, pop, and splice.
+A `ChangeSet` can also track common array mutations, like push and pop:
 
 ```ts
 const { trackPush, trackPop, changesOf } = observer
@@ -142,4 +124,4 @@ trackPop(changes, inventory, "bags.0")
 }
 ```
 
-Other functions include `trackShift` and `trackUnshift`.
+Other functions include `trackSplice`, `trackShift`, and `trackUnshift`.

@@ -1,4 +1,10 @@
-import { assert, ErrorType, mutableEmpty, Schema } from "@javelin/model"
+import {
+  assert,
+  createStackPool,
+  ErrorType,
+  mutableEmpty,
+  Schema,
+} from "@javelin/model"
 import { Archetype, ArchetypeTableColumn } from "./archetype"
 import {
   Component,
@@ -9,7 +15,6 @@ import {
 import { Entity } from "./entity"
 import { UNSAFE_internals } from "./internal"
 import { $componentType } from "./internal/symbols"
-import { createStackPool } from "./pool"
 import { Type, typeIsSuperset } from "./type"
 import { World } from "./world"
 
@@ -19,6 +24,9 @@ const ERROR_MSG_UNBOUND_QUERY =
 export type Selector = Schema[]
 export type SelectorResult<S extends Selector> = {
   [K in keyof S]: S[K] extends Schema ? ComponentOf<S[K]> : Component
+}
+export type SelectorResultSparse<S extends Selector> = {
+  [K in keyof S]: (S[K] extends Schema ? ComponentOf<S[K]> : Component) | null
 }
 export type SelectorSubset<S extends Selector> = (S extends Array<infer _>
   ? _
@@ -65,7 +73,7 @@ export type Query<S extends Selector = Selector> = ((
    * @param entity
    * @param out
    */
-  get(entity: Entity, out: SelectorResult<S>): boolean
+  get(entity: Entity, out?: SelectorResult<S>): SelectorResult<S> | null
 
   /**
    * Determine if an entity matches the query.
@@ -83,7 +91,12 @@ export type Query<S extends Selector = Selector> = ((
    * Determine if a query matches an archetype.
    * @param archetype
    */
-  matches(archetype: Archetype): boolean
+  matchesArchetype(archetype: Archetype): boolean
+
+  match(
+    components: Component[],
+    out?: SelectorResultSparse<S>,
+  ): SelectorResultSparse<S>
 }
 
 type QueryFilters = {
@@ -190,7 +203,10 @@ function createQueryInternal<S extends Selector>(
       ...options,
       include,
     }) as unknown) as Query<T>
-  query.get = (entity: Entity, out: SelectorResult<S>) => {
+  query.get = (
+    entity: Entity,
+    out: SelectorResult<S> = ([] as unknown) as SelectorResult<S>,
+  ) => {
     const c = context ?? UNSAFE_internals.__CURRENT_WORLD__
     const records = recordsIndex[c]
     for (let i = 0; i < records.length; i++) {
@@ -200,10 +216,10 @@ function createQueryInternal<S extends Selector>(
         for (let i = 0; i < columns.length; i++) {
           out[i] = columns[i][index]
         }
-        return true
+        return out
       }
     }
-    return false
+    return null
   }
   query.bind = (world: World) =>
     createQueryInternal({
@@ -221,7 +237,7 @@ function createQueryInternal<S extends Selector>(
     }
     return false
   }
-  query.matches = (archetype: Archetype) =>
+  query.matchesArchetype = (archetype: Archetype) =>
     matches(signature, filters, archetype)
   query[Symbol.iterator] = () => {
     const c = context ?? UNSAFE_internals.__CURRENT_WORLD__
@@ -229,6 +245,22 @@ function createQueryInternal<S extends Selector>(
     const iterator = (recordsIndex[c] || registerWorld(c))[Symbol.iterator]()
 
     return iterator
+  }
+  query.match = (
+    components: Component[],
+    out: SelectorResultSparse<S> = ([] as unknown) as SelectorResultSparse<S>,
+  ): SelectorResultSparse<S> => {
+    for (let i = 0; i < layout.length; i++) {
+      out[i] = null
+    }
+    for (let i = 0; i < components.length; i++) {
+      const component = components[i]
+      const index = layout.indexOf(component.__type__)
+      if (index !== -1) {
+        out[index] = component
+      }
+    }
+    return out as SelectorResultSparse<S>
   }
 
   return query

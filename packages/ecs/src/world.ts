@@ -1,4 +1,4 @@
-import { mutableEmpty } from "@javelin/model"
+import { createStackPool, mutableEmpty } from "@javelin/model"
 import {
   Component,
   ComponentOf,
@@ -9,7 +9,6 @@ import {
 import { Entity } from "./entity"
 import { UNSAFE_internals } from "./internal"
 import { $componentType } from "./internal/symbols"
-import { createStackPool } from "./pool"
 import { createSignal, Signal } from "./signal"
 import { createStorage, Storage, StorageSnapshot } from "./storage"
 import { Topic } from "./topic"

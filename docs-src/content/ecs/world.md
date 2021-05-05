@@ -5,7 +5,7 @@ weight = 2
 
 <aside>
   <p>
-    <strong>Tip</strong> — the following chapters assume that you are familiar with basic ECS concepts discussed in the <a href="/ecs">opening section</a>.
+    <strong>Tip</strong> — the following chapters assume that you're familiar with basic ECS concepts discussed in the <a href="/ecs">opening section</a>.
   </p>
 </aside>
 

@@ -1,8 +1,6 @@
 import {
   Component,
   Entity,
-  MutArrayMethod,
-  ObserverChangeSet,
   UNSAFE_internals,
   UNSAFE_modelChanged,
 } from "@javelin/ecs"
@@ -14,6 +12,7 @@ import {
   Model,
   ModelNodeKind,
   mutableEmpty,
+  InstanceOfSchema,
 } from "@javelin/model"
 import {
   dataTypeToView,
@@ -24,6 +23,7 @@ import {
   uint8,
   View,
 } from "@javelin/pack"
+import { MutArrayMethod, ChangeSet } from "@javelin/track"
 import { calcChangeByteLength } from "./message_utils"
 import { decodeSchema, encodeModel } from "./model"
 
@@ -43,7 +43,7 @@ type PartSpawn = Part
 type PartAttach = Part
 type PartUpdate = Part
 type PartPatch = Part & {
-  changesByEntity: Map<Entity, Map<number, ObserverChangeSet>>
+  changesByEntity: Map<Entity, Map<number, InstanceOfSchema<typeof ChangeSet>>>
 }
 type PartDetach = Part
 type PartDestroy = Part
@@ -110,22 +110,22 @@ const encodeChange = (
   bufferView: DataView,
   offset: number,
   message: Message,
-  changes: ObserverChangeSet,
+  changes: InstanceOfSchema<typeof ChangeSet>,
   componentTypeId: number,
 ) => {
-  const { object, objectCount, array, arrayCount } = changes
+  const { fields, fieldCount, array, arrayCount } = changes
   const type = modelFlat[componentTypeId]
   // component id
   uint8.write(bufferView, offset, componentTypeId)
   offset += uint8.byteLength
-  // object count
-  uint8.write(bufferView, offset, objectCount)
+  // fields count
+  uint8.write(bufferView, offset, fieldCount)
   offset += uint8.byteLength
   // array count
   uint8.write(bufferView, offset, arrayCount)
   offset += uint8.byteLength
-  for (const prop in object) {
-    const { value, record, noop } = object[prop]
+  for (const prop in fields) {
+    const { value, record, noop } = fields[prop]
     if (noop) {
       continue
     }
@@ -450,7 +450,7 @@ export const patch = (
   message: Message,
   entity: Entity,
   componentTypeId: number,
-  changes: ObserverChangeSet,
+  changes: InstanceOfSchema<typeof ChangeSet>,
 ) => {
   const part = message.parts[5]
 

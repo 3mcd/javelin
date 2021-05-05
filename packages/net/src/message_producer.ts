@@ -1,9 +1,6 @@
-import {
-  Component,
-  ComponentType,
-  Entity,
-  ObserverChangeSet,
-} from "@javelin/ecs"
+import { Component, ComponentType, Entity } from "@javelin/ecs"
+import { InstanceOfSchema } from "@javelin/model"
+import { ChangeSet } from "@javelin/track"
 import * as protocol from "./protocol"
 
 export type MessageProducer = {
@@ -14,7 +11,7 @@ export type MessageProducer = {
   patch(
     entity: Entity,
     componentType: ComponentType,
-    changes: ObserverChangeSet,
+    changes: InstanceOfSchema<typeof ChangeSet>,
     priority?: number,
   ): void
   take(): protocol.Message | null
@@ -62,7 +59,7 @@ export const createMessageProducer = (
   const patch = (
     entity: Entity,
     componentType: ComponentType,
-    changes: ObserverChangeSet,
+    changes: InstanceOfSchema<typeof ChangeSet>,
     priority = Infinity,
   ) => {
     throw new Error("Not implemented")

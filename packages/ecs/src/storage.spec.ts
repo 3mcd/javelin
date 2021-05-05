@@ -18,10 +18,15 @@ describe("createStorage", () => {
   it("also removes entity from archetype when removed", () => {
     const storage = createStorage()
     const entity = storage.create(0, [{ __type__: 0 }])
+    const archetype = storage.archetypes[0]
+
+    ;(archetype as any).entities = [0]
+    ;(archetype as any).indices = [0]
+    ;(archetype as any).table = [[{ __type__: 0 }]]
 
     storage.destroy(entity)
 
-    expect(storage.archetypes[0].remove).toHaveBeenCalledWith(entity)
+    expect(archetype.remove).toHaveBeenCalledWith(entity)
   })
   it("moves entities into new archetypes when inserting components", () => {
     const storage = createStorage()

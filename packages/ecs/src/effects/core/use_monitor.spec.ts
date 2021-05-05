@@ -1,5 +1,6 @@
+import { EntitySnapshotSparse } from "@javelin/ecs"
 import { Archetype, createArchetype } from "../../archetype"
-import { Entity } from "../../entity"
+import { Entity, EntitySnapshot } from "../../entity"
 import { $componentType, UNSAFE_internals } from "../../internal"
 import { createQuery } from "../../query"
 import { createWorld, World } from "../../world"
@@ -13,11 +14,14 @@ const A = { [$componentType]: 1 }
 const B = { [$componentType]: 2 }
 const C = { [$componentType]: 3 }
 
-const a = createQuery(A)
 const ab = createQuery(A, B)
 const c = createQuery(C)
 
 const entitySortComparator = (a: Entity, b: Entity) => a - b
+const entitySnapshotSortComparitor = (
+  [ea]: EntitySnapshot | EntitySnapshotSparse,
+  [eb]: EntitySnapshot | EntitySnapshotSparse,
+) => entitySortComparator(ea, eb)
 
 describe("useMonitor", () => {
   let world: World
@@ -34,18 +38,30 @@ describe("useMonitor", () => {
     UNSAFE_internals.__WORLDS__ = []
   })
 
-  it("emits entities that were added prior to the first execution", () => {
-    const results: number[] = []
+  it("emits entity-component pairs that were added prior to the first execution", () => {
+    const results: EntitySnapshotSparse[] = []
     const archetype = {
       ...createArchetype({ signature: [A[$componentType], B[$componentType]] }),
       entities: [2, 4, 6],
     }
     ;(world.storage.archetypes as Archetype[]).push(archetype)
+    archetype.table = [
+      [{ __type__: 1 }, { __type__: 2 }],
+      [{ __type__: 1 }, { __type__: 2 }],
+      [{ __type__: 1 }, { __type__: 2 }],
+    ]
+    archetype.indices = [-1, -1, 0, -1, 1, -1, 2]
 
-    useMonitor(ab, e => results.push(e))
+    useMonitor(ab, (e, components) => results.push([e, components]))
 
-    expect(results.sort(entitySortComparator)).toEqual([2, 4, 6])
+    results.sort(entitySnapshotSortComparitor)
+
+    expect(results[0][0]).toBe(2)
+    expect(results[1][0]).toBe(4)
+    expect(results[2][0]).toBe(6)
   })
+
+  it.todo("emits entity-component pairs")
 
   it("emits entities that were relocated last tick", () => {
     const resultsEnter: number[] = []
@@ -54,12 +70,20 @@ describe("useMonitor", () => {
     const next = createArchetype({
       signature: [A[$componentType], B[$componentType]],
     })
+    ;(world.storage.archetypes as Archetype[]).push(prev)
+    ;(world.storage.archetypes as Archetype[]).push(next)
+    ;(next as any).table = [
+      [{ __type__: 1 }, { __type__: 2 }],
+      [{ __type__: 1 }, { __type__: 2 }],
+      [{ __type__: 1 }, { __type__: 2 }],
+    ]
+    ;(next as any).indices = [-1, 0, 1, 2]
 
     useMonitor(ab)
 
-    world.storage.entityRelocated.dispatch(1, prev, next)
-    world.storage.entityRelocated.dispatch(2, prev, next)
-    world.storage.entityRelocated.dispatch(3, next, prev)
+    world.storage.entityRelocated.dispatch(1, prev, next, [])
+    world.storage.entityRelocated.dispatch(2, prev, next, [])
+    world.storage.entityRelocated.dispatch(3, next, prev, [])
 
     useMonitor(
       ab,
@@ -78,11 +102,14 @@ describe("useMonitor", () => {
       signature: [A[$componentType], B[$componentType]],
     })
     const changed = createArchetype({ signature: [C[$componentType]] })
+    ;(world.storage.archetypes as Archetype[]).push(changed)
+    ;(changed as any).table = [[{ __type__: 1 }, { __type__: 2 }]]
+    ;(changed as any).indices = [-1, -1, -1, -1, 0]
 
     useMonitor(ab)
 
-    world.storage.entityRelocated.dispatch(1, prev, next)
-    world.storage.entityRelocated.dispatch(2, prev, next)
+    world.storage.entityRelocated.dispatch(1, prev, next, [])
+    world.storage.entityRelocated.dispatch(2, prev, next, [])
 
     useMonitor(
       c,
@@ -90,8 +117,8 @@ describe("useMonitor", () => {
       e => resultsExit.push(e),
     )
 
-    world.storage.entityRelocated.dispatch(3, prev, next)
-    world.storage.entityRelocated.dispatch(4, prev, changed)
+    world.storage.entityRelocated.dispatch(3, prev, next, [])
+    world.storage.entityRelocated.dispatch(4, prev, changed, [])
 
     useMonitor(
       c,

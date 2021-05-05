@@ -5,10 +5,10 @@ export const createArchetype = jest.fn(
   ({ signature }): Archetype => {
     return {
       signature,
-      signatureInverse: [0],
-      table: signature.map(() => [{ __type__: 0 }]),
-      indices: [0],
-      entities: [0],
+      signatureInverse: [],
+      table: [],
+      indices: [],
+      entities: [],
       insert: jest.fn(),
       remove: jest.fn(),
       inserted: createSignal(),

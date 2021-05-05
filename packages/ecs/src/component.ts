@@ -1,13 +1,14 @@
 import {
   createModel,
+  createStackPool,
   initialize,
   InstanceOfSchema,
   reset,
   Schema,
+  StackPool,
 } from "@javelin/model"
 import { setModel } from "./internal"
 import { $componentType } from "./internal/symbols"
-import { createStackPool, StackPool } from "./pool"
 
 export type ComponentType<S extends Schema = Schema> = {
   [$componentType]: number

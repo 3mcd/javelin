@@ -1,18 +1,23 @@
-import { MutArrayMethod, ObserverChangeSet } from "@javelin/ecs"
-import { assert, ModelFlat, ModelNodeKind } from "@javelin/model"
+import {
+  assert,
+  InstanceOfSchema,
+  ModelFlat,
+  ModelNodeKind,
+} from "@javelin/model"
 import { dataTypeToView, uint16, uint8 } from "@javelin/pack"
+import { MutArrayMethod, ChangeSet } from "@javelin/track"
 
 export const calcChangeByteLength = (
-  changes: ObserverChangeSet,
+  changes: InstanceOfSchema<typeof ChangeSet>,
   type: ModelFlat[keyof ModelFlat],
 ) => {
-  const { object, array } = changes
+  const { fields, array } = changes
 
-  // object count + array count
+  // fields count + array count
   let byteLength = uint8.byteLength * 2
 
-  for (const prop in object) {
-    const change = object[prop]
+  for (const prop in fields) {
+    const change = fields[prop]
     if (change.noop) {
       continue
     }

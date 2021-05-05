@@ -5,6 +5,8 @@ weight = 3
 
 A **message producer** lets you build messages between ticks, prioritize updates to certain component types, and divide messages based on certain criteria (like a maximum size).
 
+## Producing Messages
+
 The easiest way to consume a message producer in a system is to wrap an instance in a ref:
 
 ```ts
@@ -37,18 +39,14 @@ const players = createQuery(Player)
 const burning = createQuery(Player, Burn)
 const sysNet = () => {
   const { spawn, destroy, attach, detach, take } = useProducer().value
-  // only spawn player on client with Player component
-  useMonitor(
-    players,
-    (e, [p]) => spawn(e, p),
-    (e, [p]) => destroy(e),
-  )
-  // a separate monitor updates clients' players' Burn components since a burn
-  // effect may be attached/detached frequently
+  // spawn newly created players on client
+  useMonitor(players, spawn, destroy)
+  // a burn effect may be attached/detached frequently, so we control the
+  // synchronization with a separate monitor
   useMonitor(
     burning,
-    (e, [, b]) => attach(e, b),
-    (e, [, b]) => detach(e, b),
+    (e, [, b]) => b && attach(e, b),
+    (e, [, b]) => b && detach(e, b),
   )
 
   if (useInterval(1 / 20) * 1000) {
@@ -57,15 +55,10 @@ const sysNet = () => {
 }
 ```
 
-A query's `select` method can be used to clean up the callbacks provided to `useMonitor` by configuring the query to yield only the specified component type(s) in the results:
+## Patching
 
-```ts
-const players = createQuery(Player).select(Player)
-const burning = createQuery(Player, Burn).select(Burn)
-const sysNet = () => {
-  // ...
-  useMonitor(players, spawn, destroy)
-  useMonitor(burning, attach, detach)
-  // ...
-}
-```
+TODO
+
+## Per-Client Filtering
+
+TODO

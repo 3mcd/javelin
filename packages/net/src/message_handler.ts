@@ -1,10 +1,4 @@
-import {
-  Component,
-  createEffect,
-  MutArrayMethod,
-  World,
-  WorldInternal,
-} from "@javelin/ecs"
+import { Component, createEffect, World, WorldInternal } from "@javelin/ecs"
 import {
   assert,
   ErrorType,
@@ -13,6 +7,7 @@ import {
   ModelNodeKind,
   mutableEmpty,
 } from "@javelin/model"
+import { MutArrayMethod } from "@javelin/track"
 import { uint8, View } from "@javelin/pack"
 import { decodeMessage } from "./protocol"
 

@@ -4,7 +4,7 @@ import { terser } from "rollup-plugin-terser"
 export default {
   input: "dist/esm/index.js",
   output: {
-    file: "dist/javelin-ecs.bundle.min.js",
+    file: "dist/javelin-track.bundle.min.js",
     format: "umd",
     name: "Javelin",
   },

@@ -82,7 +82,8 @@ const useMousemove = createMouseEventEffect("mousemove")
 
 const log = createTopic()
 
-const qryWormhole = createQuery(Transform, Wormhole, Velocity)
+const qryTransforms = createQuery(Transform)
+const qryWormholes = createQuery(Transform, Wormhole, Velocity)
 const qryJunk = createQuery(Transform, Velocity, Junk)
 const qryDragging = createQuery(Transform, Wormhole, Dragging)
 
@@ -100,7 +101,7 @@ const sysSpawn = world => {
   const shouldSpawnWormhole = useInterval(3500)
 
   if (mousedown.active) {
-    for (const [entities, [wt, w]] of qryWormhole) {
+    for (const [entities, [wt, w]] of qryWormholes) {
       for (let i = 0; i < entities.length; i++) {
         const { x, y } = wt[i]
         const { r } = w[i]
@@ -155,7 +156,7 @@ const spawnJunk = () => {
 }
 
 const sysAttract = world => {
-  qryWormhole((we, [wt, w, wv]) => {
+  qryWormholes((we, [wt, w, wv]) => {
     if (w.obliterated) {
       return
     }
@@ -194,11 +195,11 @@ const sysRender = () => {
     context.fillRect(Math.floor(x), Math.floor(y), 1, 1)
   })
 
-  qryWormhole((e, [{ x, y }]) => {
+  qryWormholes((e, [{ x, y }]) => {
     let maxPos
     let maxLen = Infinity
 
-    qryWormhole((e2, [pos2]) => {
+    qryWormholes((e2, [pos2]) => {
       if (e === e2) {
         return
       }
@@ -225,7 +226,7 @@ const sysRender = () => {
     }
   })
 
-  qryWormhole((e, [{ x, y }, { r }]) => {
+  qryWormholes((e, [{ x, y }, { r }]) => {
     context.fillStyle = "#fff"
     context.beginPath()
     context.arc(Math.floor(x), Math.floor(y), r / 10, 0, 2 * Math.PI)
@@ -244,15 +245,13 @@ const sysPhysics = () => {
   })
 }
 
-const transforms = createQuery(Transform)
-
 const sysTrigger = () => {
   const shouldLog = useInterval(1000)
   const countAttach = useRef(0)
   const countDetach = useRef(0)
 
   useMonitor(
-    transforms,
+    qryTransforms,
     () => countAttach.value++,
     () => countDetach.value++,
   )
@@ -270,9 +269,15 @@ const sysMonitor = () => {
   const countRemove = useRef(0)
 
   useMonitor(
-    qryWormhole,
+    qryWormholes,
     () => countInsert.value++,
     () => countRemove.value++,
+  )
+
+  useMonitor(
+    qryDragging,
+    (e, c) => console.log(e, "started dragging", c[0], c[1], c[2]),
+    (e, c) => console.log(e, "stopped dragging", c[0], c[1], c[2]),
   )
 
   if (shouldLog) {

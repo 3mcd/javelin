@@ -5,7 +5,7 @@ sort_by = "weight"
 insert_anchor_links = "right"
 +++
 
-This section aims to serve as a quick primer on Entity Component Systems (ECS) and how to think in ECS. The goal is not to belittle other methods of building games or make ECS seem like a panacea, because ECS does come with its own challenges. Juan Linietsky wrote a great article about [why Godot does not use ECS](https://godotengine.org/article/why-isnt-godot-ecs-based-game-engine) that I recommend you read if you are trying to determine whether or not you should use Javelin.
+This section aims to serve as a quick primer on Entity Component Systems (ECS) and how to think in ECS. The goal is not to belittle other methods of building games or make ECS seem like a panacea, because ECS does come with its own challenges. Juan Linietsky wrote a great article about [why Godot does not use ECS](https://godotengine.org/article/why-isnt-godot-ecs-based-game-engine) that I recommend you read if you're trying to determine whether or not you should use Javelin.
 
 <aside>
   <p>
@@ -15,7 +15,7 @@ This section aims to serve as a quick primer on Entity Component Systems (ECS) a
 
 ## Building a Game
 
-A best practice in OOP game development is to favor composition over inheritance when designing game data and behavior. Take the following example, where a `Player` class accepts `RigidBody` and `Input` objects to enhance players with physics properties and input control:
+A best practice in OOP is to favor composition over inheritance. Take the following example, where a `Player` class accepts `RigidBody` and `Input` objects to enhance players with physics properties and input control:
 
 ```ts
 class RigidBody {

@@ -108,7 +108,7 @@ export interface Storage {
   /**
    * Signal dispatched when an entity transitions between archetypes.
    */
-  readonly entityRelocated: Signal<Entity, Archetype, Archetype>
+  readonly entityRelocated: Signal<Entity, Archetype, Archetype, Component[]>
 }
 
 export type StorageOptions = {
@@ -117,7 +117,12 @@ export type StorageOptions = {
 
 export function createStorage(options: StorageOptions = {}): Storage {
   const archetypeCreated = createSignal<Archetype>()
-  const entityRelocated = createSignal<Entity, Archetype, Archetype>()
+  const entityRelocated = createSignal<
+    Entity,
+    Archetype,
+    Archetype,
+    Component[]
+  >()
   const archetypes: Archetype[] = options.snapshot
     ? options.snapshot.archetypes.map(snapshot => createArchetype({ snapshot }))
     : []
@@ -208,6 +213,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     source: Archetype,
     entity: number,
     components: Component[],
+    changed: Component[],
   ) {
     source.remove(entity)
 
@@ -215,7 +221,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
     destination.insert(entity, components)
     archetypeIndicesByEntity[entity] = archetypes.indexOf(destination)
-    entityRelocated.dispatch(entity, source, destination)
+    entityRelocated.dispatch(entity, source, destination, changed)
   }
 
   function insert(entity: number, components: Component[]) {
@@ -236,7 +242,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
       destinationComponents.push(source.table[i][entityIndex]!)
     }
 
-    relocate(source, entity, destinationComponents)
+    relocate(source, entity, destinationComponents, components)
   }
 
   function remove(entity: number, components: Component[]) {
@@ -249,18 +255,20 @@ export function createStorage(options: StorageOptions = {}): Storage {
     const source = getEntityArchetype(entity)
     const entityIndex = source.indices[entity]
 
-    let destinationComponents = []
+    let destinationComponents: Component[] = []
+    let removedComponents: Component[] = []
 
     for (let i = 0; i < source.signature.length; i++) {
       const type = source.signature[i]
       const component = source.table[i][entityIndex]! as Component
 
-      if (!componentTypeIds.includes(type)) {
-        destinationComponents.push(component)
-      }
+      ;(componentTypeIds.includes(type)
+        ? removedComponents
+        : destinationComponents
+      ).push(component)
     }
 
-    relocate(source, entity, destinationComponents)
+    relocate(source, entity, destinationComponents, removedComponents)
   }
 
   function destroy(entity: number) {
