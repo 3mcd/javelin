@@ -66,7 +66,7 @@ function insert(op: MessageOp, data: unknown, view?: View) {
  * @param components
  * @returns MessageOp
  */
-function snapshot(
+export function snapshot(
   model: Model,
   entity: Entity,
   components: Component[],
@@ -75,7 +75,7 @@ function snapshot(
   const count = components.length
   insert(op, entity, uint32)
   insert(op, count, uint8)
-  for (let i = 0; i < length; i++) {
+  for (let i = 0; i < count; i++) {
     const component = components[i]
     const componentTypeId = component.__type__
     const encoded = encode(component, model[componentTypeId])
@@ -199,7 +199,7 @@ export function detach(entity: Entity, componentTypeIds: number[]): MessageOp {
   const count = componentTypeIds.length
   insert(op, entity, uint32)
   insert(op, count, uint8)
-  for (let i = 0; i < length; i++) {
+  for (let i = 0; i < count; i++) {
     insert(op, componentTypeIds[i], uint8)
   }
   return op

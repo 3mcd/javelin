@@ -3,6 +3,7 @@ import {
   InstanceOfSchema,
   InstanceOfSchemaKey,
   isArrayType,
+  isMapType,
   isPrimitiveType,
   Schema,
   SchemaKeyKind,
@@ -19,6 +20,8 @@ export function initialize<S extends Schema>(
       object[prop] = value.create()
     } else if (value.__kind__ === SchemaKeyKind.Array) {
       object[prop] = [] as InstanceOfSchemaKey<any>
+    } else if (value.__kind__ === SchemaKeyKind.Map) {
+      object[prop] = {} as InstanceOfSchemaKey<any>
     } else {
       object[prop] = initialize({}, value as Schema) as InstanceOfSchemaKey<any>
     }
@@ -28,20 +31,24 @@ export function initialize<S extends Schema>(
 }
 
 export function reset<S extends Schema>(
-  component: InstanceOfSchema<S>,
+  object: InstanceOfSchema<S>,
   schema: S,
 ) {
   for (const prop in schema) {
     const value = schema[prop]
 
     if (isPrimitiveType(value)) {
-      value.reset(component, prop, undefined)
+      value.reset(object, prop, undefined)
     } else if (isArrayType(value)) {
-      mutableEmpty((value as unknown) as any[])
+      mutableEmpty(object[prop])
+    } else if (isMapType(value)) {
+      for (const prop in object) {
+        delete object[prop]
+      }
     } else {
-      reset(component[prop], value as Schema)
+      reset(object[prop], value as Schema)
     }
   }
 
-  return component
+  return object
 }

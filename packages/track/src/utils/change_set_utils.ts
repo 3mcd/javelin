@@ -72,7 +72,15 @@ export const track = (
   path: string,
   value: unknown,
 ) => {
-  const changes = changeSet.changes[component.__type__]
+  let changes = changeSet.changes[component.__type__]
+  if (changes === undefined) {
+    changes = changeSet.changes[component.__type__] = {
+      fields: {},
+      array: [],
+      fieldCount: 0,
+      arrayCount: 0,
+    }
+  }
   const change = changes.fields[path]
   if (change !== undefined) {
     if (change.noop) {

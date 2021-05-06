@@ -3,7 +3,7 @@ title = "Effects"
 weight = 5
 +++
 
-You'll often need to interact with some asynchronous code, third-party library, or API that wouldn't fit cleanly into Javelin's synchronous/serializable model. An **effect** is a container for one of these resources.
+You'll often need to interact with some asynchronous code, third-party library, or API that doesn't fit into an ECS model. An **effect** is a container for one of these resources.
 
 ## Handling Side-Effects
 

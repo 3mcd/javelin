@@ -12,6 +12,11 @@ function assertWorldInternal<T>(
   world: World<T>,
 ): asserts world is WorldInternal<T> {}
 
+const ERROR_PATCH_NO_MATCH =
+  "Failed to patch component: reached leaf before finding field"
+const ERROR_PATCH_UNSUPPORTED_TYPE =
+  "Failed to patch component: only primitive types are currently supported"
+
 export const createMessageHandler = (world: World) => {
   assertWorldInternal(world)
   let model: Model
@@ -91,9 +96,7 @@ export const createMessageHandler = (world: World) => {
         }
         switch (node.kind) {
           case ModelNodeKind.Primitive:
-            throw new Error(
-              "Failed to patch component: reached leaf before finding field",
-            )
+            throw new Error(ERROR_PATCH_NO_MATCH)
           case ModelNodeKind.Array:
             key = traverse[traverseIndex++]
             node = node.edge
@@ -108,13 +111,13 @@ export const createMessageHandler = (world: World) => {
               }
             }
           default:
-            throw new Error("Failed to patch component: no possible match")
+            throw new Error(ERROR_PATCH_NO_MATCH)
         }
       }
       assert(key !== null, "", ErrorType.Internal)
       assert(
         node.kind === ModelNodeKind.Primitive,
-        "Failed to patch component: only primitive types are currently supported",
+        ERROR_PATCH_UNSUPPORTED_TYPE,
       )
       ref[key] = value
     },
