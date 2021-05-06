@@ -66,31 +66,41 @@ const getRecord = (component: Component, path: string) => {
   return record
 }
 
-export const track = (
+function getOrCreateChanges(
   changeSet: InstanceOfSchema<typeof ChangeSet>,
-  component: Component,
-  path: string,
-  value: unknown,
-) => {
-  let changes = changeSet.changes[component.__type__]
+  componentTypeId: number,
+) {
+  let changes = changeSet.changes[componentTypeId]
   if (changes === undefined) {
-    changes = changeSet.changes[component.__type__] = {
+    changes = changeSet.changes[componentTypeId] = {
       fields: {},
       array: [],
       fieldCount: 0,
       arrayCount: 0,
     }
   }
+  return changes
+}
+
+export const track = (
+  changeSet: InstanceOfSchema<typeof ChangeSet>,
+  component: Component,
+  path: string,
+  value: unknown,
+) => {
+  const changes = getOrCreateChanges(changeSet, component.__type__)
   const change = changes.fields[path]
   if (change !== undefined) {
     if (change.noop) {
       change.noop = false
       changes.fieldCount++
+      changeSet.length++
     }
     change.value = value
   } else {
     const record = getRecord(component, path)
     changes.fieldCount++
+    changeSet.length++
     changes.fields[path] = { record, value, noop: false }
   }
 }
@@ -100,10 +110,11 @@ export const trackPop = (
   component: Component,
   path: string,
 ) => {
-  const changes = changeSet.changes[component.__type__]
+  const changes = getOrCreateChanges(changeSet, component.__type__)
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Pop
+  changeSet.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
 }
@@ -113,13 +124,14 @@ export function trackPush(
   component: Component,
   path: string,
 ) {
-  const changes = changeSet.changes[component.__type__]
+  const changes = getOrCreateChanges(changeSet, component.__type__)
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Push
   for (let i = 2; i < arguments.length; i++) {
     arrayOp.values.push(arguments[i])
   }
+  changeSet.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
 }
@@ -129,10 +141,11 @@ export const trackShift = (
   component: Component,
   path: string,
 ) => {
-  const changes = changeSet.changes[component.__type__]
+  const changes = getOrCreateChanges(changeSet, component.__type__)
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Shift
+  changeSet.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
 }
@@ -142,13 +155,14 @@ export function trackUnshift(
   component: Component,
   path: string,
 ) {
-  const changes = changeSet.changes[component.__type__]
+  const changes = getOrCreateChanges(changeSet, component.__type__)
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Unshift
   for (let i = 2; i < arguments.length; i++) {
     arrayOp.values.push(arguments[i])
   }
+  changeSet.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
 }
@@ -160,7 +174,7 @@ export function trackSplice(
   index: number,
   remove: number,
 ) {
-  const changes = changeSet.changes[component.__type__]
+  const changes = getOrCreateChanges(changeSet, component.__type__)
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Splice
@@ -169,11 +183,12 @@ export function trackSplice(
   for (let i = 2; i < arguments.length; i++) {
     arrayOp.values.push(arguments[i])
   }
+  changeSet.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
 }
 
-export const reset = (changeSet: InstanceOfSchema<typeof ChangeSet>) => {
+export function reset(changeSet: InstanceOfSchema<typeof ChangeSet>) {
   for (const prop in changeSet.changes) {
     const changes = changeSet.changes[prop]
     const { array, fields } = changes
@@ -187,6 +202,7 @@ export const reset = (changeSet: InstanceOfSchema<typeof ChangeSet>) => {
     changes.fieldCount = 0
     changes.arrayCount = 0
   }
+  changeSet.length = 0
 }
 
 export function copy(
@@ -203,10 +219,12 @@ export function copy(
         fieldCount: 0,
         arrayCount: 0,
       }
-      to.length++
     }
     for (const field in changesFrom.fields) {
       const changeFrom = changesFrom.fields[field]
+      if (changeFrom.noop) {
+        continue
+      }
       let changeTo = changesTo.fields[field]
       if (changeTo === undefined) {
         changeTo = changesTo.fields[field] = {
@@ -215,6 +233,7 @@ export function copy(
           value: changeFrom.value,
         }
         changesTo.fieldCount++
+        to.length++
       } else {
         changeTo.noop = changeFrom.noop
         changeTo.record = changeFrom.record

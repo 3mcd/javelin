@@ -23,21 +23,21 @@ const ERROR_MODEL_NOT_FOUND =
 type EntitySnapshotHandler = (entity: number, components: Component[]) => void
 
 export type DecodeMessageHandlers = {
-  onTick(tick: number): void
-  onModel(model: Model): void
-  onSpawn: EntitySnapshotHandler
-  onAttach: EntitySnapshotHandler
-  onUpdate: EntitySnapshotHandler
-  onDetach(entity: number, componentTypeIds: number[]): void
-  onDestroy(entity: number): void
-  onPatch(
+  onTick?(tick: number): void
+  onModel?(model: Model): void
+  onSpawn?: EntitySnapshotHandler
+  onAttach?: EntitySnapshotHandler
+  onUpdate?: EntitySnapshotHandler
+  onDetach?(entity: number, componentTypeIds: number[]): void
+  onDestroy?(entity: number): void
+  onPatch?(
     entity: number,
     componentTypeId: number,
     field: number,
     traverse: number[],
     value: unknown,
   ): void
-  onArrayMethod(
+  onArrayMethod?(
     entity: number,
     componentTypeId: number,
     method: number,
@@ -92,9 +92,9 @@ function decodePatch(
   while (offset < end) {
     const entity = uint32.read(dataView, offset)
     offset += uint32.byteLength
-    const length = uint8.read(dataView, offset)
+    const count = uint8.read(dataView, offset)
     offset += uint8.byteLength
-    for (let i = 0; i < length; i++) {
+    for (let i = 0; i < count; i++) {
       const componentTypeId = uint8.read(dataView, offset)
       const componentSchema = model[$flat][componentTypeId]
       offset += uint8.byteLength
@@ -120,7 +120,7 @@ function decodePatch(
         const view = dataTypeToView(node.type)
         const value = view.read(dataView, offset)
         offset += view.byteLength
-        onPatch(entity, componentTypeId, field, tmpTraverse, value)
+        onPatch?.(entity, componentTypeId, field, tmpTraverse, value)
       }
       for (let j = 0; j < arrayCount; j++) {
         // TODO: support mutating array methods
@@ -147,7 +147,7 @@ function decodeDetach(
       offset += uint8.byteLength
       componentTypeIds.push(componentTypeId)
     }
-    onDetach(entity, componentTypeIds)
+    onDetach?.(entity, componentTypeIds)
   }
 }
 
@@ -161,7 +161,7 @@ function decodeDestroy(
   while (offset < end) {
     const entity = uint32.read(dataView, offset, 0)
     offset += uint32.byteLength
-    onDestroy(entity)
+    onDestroy?.(entity)
   }
 }
 
@@ -175,7 +175,7 @@ function decodeTick(
   while (offset < end) {
     const tick = uint32.read(dataView, offset, 0)
     offset += uint32.byteLength
-    onTick(tick)
+    onTick?.(tick)
   }
   return offset
 }
@@ -186,7 +186,7 @@ function _decodeModel(
   length: number,
   onModel: DecodeMessageHandlers["onModel"],
 ) {
-  onModel(decodeModel(dataView, offset, length))
+  onModel?.(decodeModel(dataView, offset, length))
 }
 
 function getHandlerByMessagePartKind(
@@ -215,7 +215,7 @@ export function decode(
   const dataView = new DataView(buffer)
   const _onModel = (_model: Model) => {
     model = _model
-    onModel(_model)
+    onModel?.(_model)
   }
 
   let offset = 0

@@ -14,8 +14,8 @@ function encodePart(
   for (let i = 0; i < part.ops.length; i++) {
     const { data, view } = part.ops[i]
     for (let j = 0; j < data.length; j++) {
-      const d = data[i]
-      const v = view[i]
+      const d = data[j]
+      const v = view[j]
       if (v === $buffer) {
         const byteLength = (d as ArrayBuffer).byteLength
         new Uint8Array(dataView.buffer, 0, dataView.buffer.byteLength).set(

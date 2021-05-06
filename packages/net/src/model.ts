@@ -154,12 +154,11 @@ export function decodeModel(
 ) {
   const config = new Map()
   const encoded = new Uint8Array(dataView.buffer, offset, length)
-  const end = offset + length
   let i = 0
-  while (offset < end) {
+  while (i < length) {
     const schema = {}
     const componentTypeId = encoded[i++]
-    offset = decodeSchema(encoded, offset, schema)
+    i = decodeSchema(encoded, i, schema)
     config.set(componentTypeId, schema)
   }
   return createModel(config)
