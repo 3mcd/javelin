@@ -24,12 +24,15 @@ export const ChangeSetArrayOp = {
 }
 
 export const ChangeSet = {
-  fields: mapOf({
-    noop: boolean,
-    value: dynamic,
-    record: ChangeSetRecord,
+  changes: mapOf({
+    fields: mapOf({
+      noop: boolean,
+      value: dynamic,
+      record: ChangeSetRecord,
+    }),
+    array: arrayOf(ChangeSetArrayOp),
+    fieldCount: number,
+    arrayCount: number,
   }),
-  array: arrayOf(ChangeSetArrayOp),
-  fieldCount: number,
-  arrayCount: number,
+  length: number,
 }

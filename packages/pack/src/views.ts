@@ -24,7 +24,7 @@ export const isView = (
 export type View<T = any> = model.DataType<T> & {
   byteLength: number
   read(view: DataView, offset: number, length?: number): T
-  write(view: DataView, bytes: number, data: T): void
+  write(view: DataView, offset: number, data: T): void
 }
 
 function view<T>(
