@@ -32,12 +32,14 @@ export type DecodeMessageHandlers = {
   onDestroy(entity: number): void
   onPatch(
     entity: number,
+    componentTypeId: number,
     field: number,
     traverse: number[],
     value: unknown,
   ): void
   onArrayMethod(
     entity: number,
+    componentTypeId: number,
     method: number,
     field: number,
     traverse: number,
@@ -118,7 +120,7 @@ function decodePatch(
         const view = dataTypeToView(node.type)
         const value = view.read(dataView, offset)
         offset += view.byteLength
-        onPatch(entity, field, tmpTraverse, value)
+        onPatch(entity, componentTypeId, field, tmpTraverse, value)
       }
       for (let j = 0; j < arrayCount; j++) {
         // TODO: support mutating array methods

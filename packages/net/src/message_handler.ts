@@ -1,5 +1,11 @@
 import { Component, createEffect, World, WorldInternal } from "@javelin/ecs"
-import { Model } from "@javelin/model"
+import {
+  assert,
+  ErrorType,
+  Model,
+  ModelNode,
+  ModelNodeKind,
+} from "@javelin/model"
 import { decode, DecodeMessageHandlers } from "./decode"
 
 function assertWorldInternal<T>(
@@ -67,8 +73,61 @@ export const createMessageHandler = (world: World) => {
         entities.delete(entity)
       }
     },
-    onPatch(entity, field, traverse, value) {},
-    onArrayMethod(entity, method, field, traverse, index, remove, values) {},
+    onPatch(entity, componentTypeId, field, traverse, value) {
+      const component = world.storage
+        .getEntityComponents(entity)
+        .find(c => c.__type__ === componentTypeId)
+      if (component === undefined) {
+        return
+      }
+      const type = model[componentTypeId]
+      let traverseIndex = 0
+      let key: string | number | null = null
+      let ref = component
+      let node: ModelNode = type as ModelNode
+      outer: while (node.id !== field) {
+        if (key !== null) {
+          ref = ref[key]
+        }
+        switch (node.kind) {
+          case ModelNodeKind.Primitive:
+            throw new Error(
+              "Failed to patch component: reached leaf before finding field",
+            )
+          case ModelNodeKind.Array:
+            key = traverse[traverseIndex++]
+            node = node.edge
+            continue
+          case ModelNodeKind.Struct:
+            for (let i = 0; i < node.edges.length; i++) {
+              const child = node.edges[i]
+              if (child.lo <= field && child.hi >= field) {
+                key = child.key
+                node = child
+                continue outer
+              }
+            }
+          default:
+            throw new Error("Failed to patch component: no possible match")
+        }
+      }
+      assert(key !== null, "", ErrorType.Internal)
+      assert(
+        node.kind === ModelNodeKind.Primitive,
+        "Failed to patch component: only primitive types are currently supported",
+      )
+      ref[key] = value
+    },
+    onArrayMethod(
+      entity,
+      componentTypeId,
+      method,
+      field,
+      traverse,
+      index,
+      remove,
+      values,
+    ) {},
   }
 
   const push = (message: ArrayBuffer) => messages.unshift(message)
