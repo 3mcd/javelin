@@ -27,7 +27,7 @@ export type MessageOp = {
   byteLength: number
 }
 
-function createOp(): MessageOp {
+export function createOp(): MessageOp {
   return {
     data: [],
     view: [],
@@ -35,7 +35,7 @@ function createOp(): MessageOp {
   }
 }
 
-function resetOp(op: MessageOp): MessageOp {
+export function resetOp(op: MessageOp): MessageOp {
   mutableEmpty(op.data)
   mutableEmpty(op.view)
   op.byteLength = 0
@@ -44,9 +44,9 @@ function resetOp(op: MessageOp): MessageOp {
 
 export const messageOpPool = createStackPool(createOp, resetOp, 1000)
 
-function insert(op: MessageOp, data: ArrayBuffer): MessageOp
-function insert(op: MessageOp, data: unknown, view: View): MessageOp
-function insert(op: MessageOp, data: unknown, view?: View) {
+export function insert(op: MessageOp, data: ArrayBuffer): MessageOp
+export function insert(op: MessageOp, data: unknown, view: View): MessageOp
+export function insert(op: MessageOp, data: unknown, view?: View) {
   op.data.push(data)
   op.view.push(view ?? $buffer)
   op.byteLength += view ? view.byteLength : (data as ArrayBuffer).byteLength

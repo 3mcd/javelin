@@ -37,7 +37,7 @@ export function createMessagePart(kind: MessagePartKind): MessagePart {
   return {
     ops: [],
     kind,
-    byteLength: uint8.byteLength + uint16.byteLength, // kind + length
+    byteLength: 0,
   }
 }
 
@@ -54,7 +54,7 @@ export function getOrSetPart(message: Message, kind: MessagePartKind) {
   if (part === undefined) {
     part = createMessagePart(kind)
     message.parts[kind] = part
-    message.byteLength += part.byteLength
+    message.byteLength += uint8.byteLength + uint16.byteLength // kind + length
   }
   return part
 }
@@ -64,6 +64,9 @@ export function insert(
   kind: MessagePartKind,
   op: Ops.MessageOp,
 ) {
+  if (op.byteLength === 0) {
+    return
+  }
   const part = getOrSetPart(message, kind)
   part.ops.push(op)
   part.byteLength += op.byteLength

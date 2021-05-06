@@ -18,7 +18,7 @@ function encodePart(
       const v = view[i]
       if (v === $buffer) {
         const byteLength = (d as ArrayBuffer).byteLength
-        new Uint8Array(d as ArrayBuffer, 0, byteLength).set(
+        new Uint8Array(dataView.buffer, 0, dataView.buffer.byteLength).set(
           new Uint8Array(d as ArrayBuffer),
           offset,
         )
