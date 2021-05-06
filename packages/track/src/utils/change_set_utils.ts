@@ -67,12 +67,12 @@ const getRecord = (component: Component, path: string) => {
 }
 
 export const track = (
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeSet: InstanceOfSchema<typeof ChangeSet>,
   component: Component,
   path: string,
   value: unknown,
 ) => {
-  const changes = changeset.changes[component.__type__]
+  const changes = changeSet.changes[component.__type__]
   const change = changes.fields[path]
   if (change !== undefined) {
     if (change.noop) {
@@ -88,11 +88,11 @@ export const track = (
 }
 
 export const trackPop = (
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeSet: InstanceOfSchema<typeof ChangeSet>,
   component: Component,
   path: string,
 ) => {
-  const changes = changeset.changes[component.__type__]
+  const changes = changeSet.changes[component.__type__]
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Pop
@@ -101,11 +101,11 @@ export const trackPop = (
 }
 
 export function trackPush(
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeSet: InstanceOfSchema<typeof ChangeSet>,
   component: Component,
   path: string,
 ) {
-  const changes = changeset.changes[component.__type__]
+  const changes = changeSet.changes[component.__type__]
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Push
@@ -117,11 +117,11 @@ export function trackPush(
 }
 
 export const trackShift = (
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeSet: InstanceOfSchema<typeof ChangeSet>,
   component: Component,
   path: string,
 ) => {
-  const changes = changeset.changes[component.__type__]
+  const changes = changeSet.changes[component.__type__]
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Shift
@@ -130,11 +130,11 @@ export const trackShift = (
 }
 
 export function trackUnshift(
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeSet: InstanceOfSchema<typeof ChangeSet>,
   component: Component,
   path: string,
 ) {
-  const changes = changeset.changes[component.__type__]
+  const changes = changeSet.changes[component.__type__]
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Unshift
@@ -146,13 +146,13 @@ export function trackUnshift(
 }
 
 export function trackSplice(
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeSet: InstanceOfSchema<typeof ChangeSet>,
   component: Component,
   path: string,
   index: number,
   remove: number,
 ) {
-  const changes = changeset.changes[component.__type__]
+  const changes = changeSet.changes[component.__type__]
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Splice
@@ -165,9 +165,9 @@ export function trackSplice(
   changes.array.push(arrayOp)
 }
 
-export const reset = (changeset: InstanceOfSchema<typeof ChangeSet>) => {
-  for (const prop in changeset.changes) {
-    const changes = changeset.changes[prop]
+export const reset = (changeSet: InstanceOfSchema<typeof ChangeSet>) => {
+  for (const prop in changeSet.changes) {
+    const changes = changeSet.changes[prop]
     const { array, fields } = changes
     let arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> | undefined
     while ((arrayOp = array.pop())) {
@@ -179,4 +179,40 @@ export const reset = (changeset: InstanceOfSchema<typeof ChangeSet>) => {
     changes.fieldCount = 0
     changes.arrayCount = 0
   }
+}
+
+export function copy(
+  from: InstanceOfSchema<typeof ChangeSet>,
+  to: InstanceOfSchema<typeof ChangeSet>,
+) {
+  for (const prop in from.changes) {
+    const changesFrom = from.changes[prop]
+    let changesTo = to.changes[prop]
+    if (changesTo === undefined) {
+      changesTo = to.changes[prop] = {
+        fields: {},
+        array: [],
+        fieldCount: 0,
+        arrayCount: 0,
+      }
+      to.length++
+    }
+    for (const field in changesFrom.fields) {
+      const changeFrom = changesFrom.fields[field]
+      let changeTo = changesTo.fields[field]
+      if (changeTo === undefined) {
+        changeTo = changesTo.fields[field] = {
+          noop: changeFrom.noop,
+          record: changeFrom.record,
+          value: changeFrom.value,
+        }
+        changesTo.fieldCount++
+      } else {
+        changeTo.noop = changeFrom.noop
+        changeTo.record = changeFrom.record
+        changeTo.value = changeFrom.value
+      }
+    }
+  }
+  return to
 }
