@@ -1,5 +1,7 @@
 import { assert, ErrorType } from "./debug"
 
+export const $flat = Symbol("javelin_model_flat")
+
 export enum SchemaKeyKind {
   Primitive,
   Array,
@@ -158,8 +160,8 @@ export type ModelNode =
   | ModelNodePrimitive
   | ModelNodeDynamic
 
-export type Model = { [typeId: number]: ModelNodeStruct }
 export type ModelFlat = { [typeId: number]: { [field: number]: ModelNode } }
+export type Model = { [typeId: number]: ModelNodeStruct; [$flat]: ModelFlat }
 
 function assertIsModelNodeStructDescendant(
   node: ModelNode,
@@ -288,11 +290,16 @@ const getModelRoot = (): ModelNodeStruct => ({
  * @returns Model
  */
 export const createModel = (config: ModelConfig): Model => {
-  const model: Model = {}
+  const model: Model = { [$flat]: {} }
   config.forEach((schema, typeId) => {
     const root = getModelRoot()
     collate(schema, root)
     model[typeId] = root
+  })
+  Object.defineProperty(model, $flat, {
+    enumerable: false,
+    writable: false,
+    value: flattenModel(model),
   })
   return model
 }

@@ -1,16 +1,10 @@
+import { Component, Entity } from "@javelin/ecs"
 import {
-  Component,
-  Entity,
-  UNSAFE_internals,
-  UNSAFE_modelChanged,
-} from "@javelin/ecs"
-import {
+  $flat,
   assert,
   createStackPool,
-  flattenModel,
   InstanceOfSchema,
   Model,
-  ModelFlat,
   ModelNodeKind,
   mutableEmpty,
 } from "@javelin/model"
@@ -23,6 +17,7 @@ import {
   View,
 } from "@javelin/pack"
 import { ChangeSet } from "@javelin/track"
+import { encodeModel } from "./model"
 
 export const $buffer = Symbol("javelin_array_buffer")
 
@@ -49,17 +44,6 @@ function resetOp(op: MessageOp): MessageOp {
 
 export const messageOpPool = createStackPool(createOp, resetOp, 1000)
 
-let _model: Model
-let _modelFlat: ModelFlat
-
-function updateModel(model: Model) {
-  _model = model
-  _modelFlat = flattenModel(model)
-}
-
-UNSAFE_modelChanged.subscribe(updateModel)
-updateModel(UNSAFE_internals.__MODEL__)
-
 function insert(op: MessageOp, data: ArrayBuffer): MessageOp
 function insert(op: MessageOp, data: unknown, view: View): MessageOp
 function insert(op: MessageOp, data: unknown, view?: View) {
@@ -74,7 +58,11 @@ function insert(op: MessageOp, data: unknown, view?: View) {
  * @param entity
  * @param components
  */
-export function spawn(entity: Entity, components: Component[]): MessageOp {
+function snapshot(
+  model: Model,
+  entity: Entity,
+  components: Component[],
+): MessageOp {
   const op = messageOpPool.retain()
   const length = components.length
   insert(op, entity, uint32)
@@ -82,7 +70,7 @@ export function spawn(entity: Entity, components: Component[]): MessageOp {
   for (let i = 0; i < length; i++) {
     const component = components[i]
     const componentTypeId = component.__type__
-    const componentEncoded = encode(component, _model[componentTypeId])
+    const componentEncoded = encode(component, model[componentTypeId])
     insert(op, componentTypeId, uint8)
     insert(op, componentEncoded.byteLength, uint16)
     insert(op, componentEncoded)
@@ -90,10 +78,12 @@ export function spawn(entity: Entity, components: Component[]): MessageOp {
   return op
 }
 
-export const attach = spawn
-export const update = spawn
+export const spawn = snapshot
+export const attach = snapshot
+export const update = snapshot
 
 export function patch(
+  model: Model,
   entity: Entity,
   changeset: InstanceOfSchema<typeof ChangeSet>,
 ): MessageOp {
@@ -103,21 +93,21 @@ export function patch(
   insert(op, length, uint8)
   for (const prop in changeset.changes) {
     const componentTypeId = +prop
-    const componentSchema = _modelFlat[componentTypeId]
+    const componentSchema = model[$flat][componentTypeId]
     const changes = changeset.changes[prop]
     insert(op, componentTypeId, uint8)
     insert(op, changes.fieldCount, uint8)
     insert(op, changes.arrayCount, uint8)
     for (const prop in changes.fields) {
       const { noop, record, value } = changes.fields[prop]
+      if (noop) {
+        continue
+      }
       const node = componentSchema[record.field]
       assert(
         node.kind === ModelNodeKind.Primitive,
         "Failed to encode patch: only primitive field mutations are currently supported",
       )
-      if (noop) {
-        continue
-      }
       insert(op, record.field, uint8)
       insert(op, record.traverse.length, uint8)
       for (let i = 0; i < record.traverse.length; i++) {
@@ -143,5 +133,17 @@ export function detach(entity: Entity, componentTypeIds: number[]): MessageOp {
 export function destroy(entity: Entity): MessageOp {
   const op = messageOpPool.retain()
   insert(op, entity, uint32)
+  return op
+}
+
+export function tick(tick: number): MessageOp {
+  const op = messageOpPool.retain()
+  insert(op, tick, uint32)
+  return op
+}
+
+export function model(model: Model): MessageOp {
+  const op = messageOpPool.retain()
+  insert(op, encodeModel(model))
   return op
 }

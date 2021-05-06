@@ -1,6 +1,7 @@
 import {
   arrayOf,
   assert,
+  createModel,
   DataType,
   ErrorType,
   Model,
@@ -98,21 +99,16 @@ function encodeModelNode(node: ModelNode, out: number[], offset: number = 0) {
 
 export function encodeModel(model: Model) {
   const flat: number[] = []
-
   let size = 0
-
   for (const prop in model) {
     flat.push(+prop)
     size += encodeModelNode(model[prop], flat) + 1
   }
-
   const buffer = new ArrayBuffer(size)
   const encoded = new Uint8Array(buffer)
-
   for (let i = 0; i < flat.length; i++) {
     encoded[i] = flat[i]
   }
-
   return buffer
 }
 
@@ -148,6 +144,23 @@ export function decodeSchema(
       schema[key] = DATA_TYPE_IDS_LOOKUP[dataTypeId]
     }
   }
-
   return offset
+}
+
+export function decodeModel(
+  dataView: DataView,
+  offset: number,
+  length: number,
+) {
+  const config = new Map()
+  const encoded = new Uint8Array(dataView.buffer, offset, length)
+  const end = offset + length
+  let i = 0
+  while (offset < end) {
+    const schema = {}
+    const componentTypeId = encoded[i++]
+    offset = decodeSchema(encoded, offset, schema)
+    config.set(componentTypeId, schema)
+  }
+  return createModel(config)
 }

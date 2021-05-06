@@ -1,2 +1,5 @@
+export * from "./decode"
+export * from "./encode"
+export * from "./message"
 export * from "./message_handler"
-export * from "./protocol"
+export * from "./message_producer"

@@ -1,4 +1,4 @@
-import { Model } from "@javelin/model"
+import { $flat, Model } from "@javelin/model"
 import { createSignal } from "../signal"
 import { World } from "../world"
 
@@ -9,7 +9,7 @@ export type Internals = {
 }
 
 export const UNSAFE_internals: Internals = {
-  __MODEL__: {},
+  __MODEL__: { [$flat]: {} },
   __WORLDS__: [],
   __CURRENT_WORLD__: -1,
 }

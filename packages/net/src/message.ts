@@ -1,8 +1,8 @@
-import { Component, Entity } from "@javelin/ecs"
+import { Component, Entity, UNSAFE_internals } from "@javelin/ecs"
 import { InstanceOfSchema } from "@javelin/model"
 import { uint16, uint8 } from "@javelin/pack"
 import { ChangeSet } from "@javelin/track"
-import * as MessageOps from "./message_op"
+import * as Ops from "./message_op"
 
 export type Message = {
   parts: MessagePart[]
@@ -10,8 +10,8 @@ export type Message = {
 }
 
 export enum MessagePartKind {
-  Tick,
   Model,
+  Tick,
   Spawn,
   Attach,
   Update,
@@ -21,7 +21,7 @@ export enum MessagePartKind {
 }
 
 export type MessagePart = {
-  ops: MessageOps.MessageOp[]
+  ops: Ops.MessageOp[]
   kind: MessagePartKind
   byteLength: number
 }
@@ -41,6 +41,14 @@ export function createMessagePart(kind: MessagePartKind): MessagePart {
   }
 }
 
+export function clearMessagePart(part: MessagePart) {
+  let op: Ops.MessageOp | undefined
+  while ((op = part.ops.pop())) {
+    Ops.messageOpPool.release(op)
+  }
+  part.byteLength = 0
+}
+
 export function getOrSetPart(message: Message, kind: MessagePartKind) {
   let part = message.parts[kind]
   if (part === undefined) {
@@ -54,7 +62,7 @@ export function getOrSetPart(message: Message, kind: MessagePartKind) {
 export function insert(
   message: Message,
   kind: MessagePartKind,
-  op: MessageOps.MessageOp,
+  op: Ops.MessageOp,
 ) {
   const part = getOrSetPart(message, kind)
   part.ops.push(op)
@@ -62,12 +70,38 @@ export function insert(
   message.byteLength += op.byteLength
 }
 
+export function overwrite(
+  message: Message,
+  kind: MessagePartKind,
+  op: Ops.MessageOp,
+) {
+  const part = getOrSetPart(message, kind)
+  clearMessagePart(part)
+  insert(message, kind, op)
+}
+
+export function tick(message: Message, tick: number) {
+  overwrite(message, MessagePartKind.Tick, Ops.tick(tick))
+}
+
+export function model(message: Message) {
+  overwrite(
+    message,
+    MessagePartKind.Model,
+    Ops.model(UNSAFE_internals.__MODEL__),
+  )
+}
+
 export function spawn(
   message: Message,
   entity: Entity,
   components: Component[],
 ) {
-  insert(message, MessagePartKind.Spawn, MessageOps.spawn(entity, components))
+  insert(
+    message,
+    MessagePartKind.Spawn,
+    Ops.spawn(UNSAFE_internals.__MODEL__, entity, components),
+  )
 }
 
 export function attach(
@@ -75,7 +109,11 @@ export function attach(
   entity: Entity,
   components: Component[],
 ) {
-  insert(message, MessagePartKind.Attach, MessageOps.attach(entity, components))
+  insert(
+    message,
+    MessagePartKind.Attach,
+    Ops.attach(UNSAFE_internals.__MODEL__, entity, components),
+  )
 }
 
 export function update(
@@ -83,7 +121,11 @@ export function update(
   entity: Entity,
   components: Component[],
 ) {
-  insert(message, MessagePartKind.Update, MessageOps.update(entity, components))
+  insert(
+    message,
+    MessagePartKind.Update,
+    Ops.update(UNSAFE_internals.__MODEL__, entity, components),
+  )
 }
 
 export function patch(
@@ -91,7 +133,11 @@ export function patch(
   entity: Entity,
   changeset: InstanceOfSchema<typeof ChangeSet>,
 ) {
-  insert(message, MessagePartKind.Patch, MessageOps.patch(entity, changeset))
+  insert(
+    message,
+    MessagePartKind.Patch,
+    Ops.patch(UNSAFE_internals.__MODEL__, entity, changeset),
+  )
 }
 
 export function detach(
@@ -99,13 +145,9 @@ export function detach(
   entity: Entity,
   componentTypeIds: number[],
 ) {
-  insert(
-    message,
-    MessagePartKind.Destroy,
-    MessageOps.detach(entity, componentTypeIds),
-  )
+  insert(message, MessagePartKind.Destroy, Ops.detach(entity, componentTypeIds))
 }
 
 export function destroy(message: Message, entity: Entity) {
-  insert(message, MessagePartKind.Destroy, MessageOps.destroy(entity))
+  insert(message, MessagePartKind.Destroy, Ops.destroy(entity))
 }

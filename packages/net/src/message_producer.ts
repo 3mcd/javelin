@@ -1,7 +1,7 @@
 import { Component, ComponentType, Entity } from "@javelin/ecs"
 import { InstanceOfSchema } from "@javelin/model"
 import { ChangeSet } from "@javelin/track"
-import * as protocol from "./protocol"
+import * as Message from "./message"
 
 export type MessageProducer = {
   spawn(entity: Entity, components: Component[]): void
@@ -14,7 +14,7 @@ export type MessageProducer = {
     changes: InstanceOfSchema<typeof ChangeSet>,
     priority?: number,
   ): void
-  take(): protocol.Message | null
+  take(): Message.Message | null
 }
 export type MessageProducerOptions = {
   maxByteLength?: number
@@ -24,38 +24,12 @@ export const createMessageProducer = (
   options: MessageProducerOptions = {},
 ): MessageProducer => {
   const { maxByteLength = Infinity } = options
-  const messageQueue: protocol.Message[] = []
+  const messageQueue: Message.Message[] = []
   const changeBuffer = new Map()
-
-  const temp = protocol.createMessage()
-  const maintain = () => {
-    let curr = messageQueue[0]
-    if (
-      curr === undefined ||
-      temp.partsByteLength + curr.totalByteLength > maxByteLength
-    ) {
-      curr = protocol.createMessage()
-      messageQueue.unshift(curr)
-    }
-    protocol.copy(temp, curr)
-    protocol.reset(temp)
-  }
-  const spawn = (entity: Entity, components: Component[]) => {
-    protocol.spawn(temp, entity, components)
-    maintain()
-  }
-  const destroy = (entity: Entity) => {
-    protocol.destroy(temp, entity)
-    maintain()
-  }
-  const attach = (entity: Entity, components: Component[]) => {
-    protocol.attach(temp, entity, components)
-    maintain()
-  }
-  const detach = (entity: Entity, components: Component[]) => {
-    protocol.detach(temp, entity, components)
-    maintain()
-  }
+  const spawn = (entity: Entity, components: Component[]) => {}
+  const destroy = (entity: Entity) => {}
+  const attach = (entity: Entity, components: Component[]) => {}
+  const detach = (entity: Entity, components: Component[]) => {}
   const patch = (
     entity: Entity,
     componentType: ComponentType,
