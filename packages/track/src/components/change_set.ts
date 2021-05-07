@@ -1,11 +1,4 @@
-import {
-  arrayOf,
-  boolean,
-  dynamic,
-  mapOf,
-  number,
-  string,
-} from "@javelin/model"
+import { arrayOf, boolean, dynamic, mapOf, number, string } from "@javelin/core"
 
 export const ChangeSetRecord = {
   path: string,

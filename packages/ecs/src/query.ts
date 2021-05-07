@@ -4,7 +4,7 @@ import {
   ErrorType,
   mutableEmpty,
   Schema,
-} from "@javelin/model"
+} from "@javelin/core"
 import { Archetype, ArchetypeTableColumn } from "./archetype"
 import { Component, ComponentOf, registerSchema } from "./component"
 import { Entity } from "./entity"

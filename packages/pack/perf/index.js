@@ -1,7 +1,7 @@
 const { encode, decode, uint8, string8 } = require("../dist/cjs")
 const msgpack = require("@msgpack/msgpack")
 const { performance } = require("perf_hooks")
-const { arrayOf, createModel } = require("@javelin/model")
+const { arrayOf, createModel } = require("@javelin/core")
 const player = {
   name: "Geralt",
   inventory: {

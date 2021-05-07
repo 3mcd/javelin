@@ -1,4 +1,4 @@
-import { createStackPool, mutableEmpty, Schema } from "@javelin/model"
+import { createStackPool, mutableEmpty, Schema } from "@javelin/core"
 import {
   Component,
   ComponentOf,

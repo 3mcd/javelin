@@ -1,5 +1,5 @@
 import { Component, Entity, UNSAFE_internals } from "@javelin/ecs"
-import { ErrorType, initialize, InstanceOfSchema } from "@javelin/model"
+import { ErrorType, initialize, InstanceOfSchema } from "@javelin/core"
 import { ChangeSet, copy, reset } from "@javelin/track"
 import { assert } from "console"
 import * as Message from "./message"

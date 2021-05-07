@@ -1,4 +1,4 @@
-import { InstanceOfSchema } from "@javelin/model"
+import { InstanceOfSchema } from "@javelin/core"
 import { ChangeSetRecord } from "./components/change_set"
 
 export enum MutArrayMethod {

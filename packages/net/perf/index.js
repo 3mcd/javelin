@@ -1,5 +1,5 @@
 const { int8, float32 } = require("@javelin/pack")
-const { createModel } = require("@javelin/model")
+const { createModel } = require("@javelin/core")
 const { encode, decode } = require("@msgpack/msgpack")
 const { performance } = require("perf_hooks")
 const { MessageBuilder, decodeMessage } = require("../dist/cjs/protocol")

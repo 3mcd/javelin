@@ -5,7 +5,7 @@ import {
   ModelNode,
   ModelNodeKind,
   mutableEmpty,
-} from "@javelin/model"
+} from "@javelin/core"
 import {
   ChangeSet,
   ChangeSetArrayOp,

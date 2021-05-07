@@ -1,3 +1,3 @@
-export { createModel } from "@javelin/model"
+export { createModel } from "@javelin/core"
 export * from "./pack"
 export * from "./views"

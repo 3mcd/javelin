@@ -1,4 +1,4 @@
-import { createStackPool, mutableEmpty } from "@javelin/model"
+import { createStackPool, mutableEmpty } from "@javelin/core"
 import { Component } from "../../component"
 import { createEffect } from "../../effect"
 import { Entity, EntitySnapshotSparse } from "../../entity"

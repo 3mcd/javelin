@@ -1,5 +1,5 @@
-import * as model from "@javelin/model"
-import { DataType } from "@javelin/model"
+import * as model from "@javelin/core"
+import { DataType } from "@javelin/core"
 
 export enum ViewType {
   Uint8 = "uint8",

@@ -5,7 +5,7 @@ import {
   Model,
   ModelNode,
   ModelNodeKind,
-} from "@javelin/model"
+} from "@javelin/core"
 import { decode, DecodeMessageHandlers } from "./decode"
 
 function assertWorldInternal<T>(

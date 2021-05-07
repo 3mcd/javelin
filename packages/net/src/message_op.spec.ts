@@ -5,7 +5,7 @@ import {
   InstanceOfSchema,
   Model,
   Schema,
-} from "@javelin/model"
+} from "@javelin/core"
 import { encode, float64, uint16, uint32, uint8 } from "@javelin/pack"
 import { ChangeSet, track } from "@javelin/track"
 import {

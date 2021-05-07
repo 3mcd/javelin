@@ -7,7 +7,7 @@ import {
   Model,
   ModelNodeKind,
   mutableEmpty,
-} from "@javelin/model"
+} from "@javelin/core"
 import {
   dataTypeToView,
   encode,

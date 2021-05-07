@@ -4,9 +4,9 @@ import { terser } from "rollup-plugin-terser"
 export default {
   input: "dist/esm/index.js",
   output: {
-    file: "dist/javelin-model.bundle.min.js",
+    file: "dist/javelin-core.bundle.min.js",
     format: "umd",
-    name: "JavelinModel",
+    name: "JavelinCore",
   },
   plugins: [nodeResolve(), terser()],
 }

@@ -22,6 +22,6 @@
   ],
   "gitHead": "084d65218a12efbb32ea2b22e0f8e1812acb7d7e",
   "dependencies": {
-    "@javelin/model": "^0.22.0"
+    "@javelin/core": "^0.22.0"
   }
 }

@@ -5,7 +5,7 @@ import {
   InstanceOfSchema,
   Model,
   Schema,
-} from "@javelin/model"
+} from "@javelin/core"
 import { float64 } from "@javelin/pack"
 import { ChangeSet, track } from "@javelin/track"
 import { decode, DecodeMessageHandlers } from "./decode"

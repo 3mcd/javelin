@@ -1,4 +1,4 @@
-export { arrayOf, boolean, mapOf, number, string } from "@javelin/model"
+export { arrayOf, boolean, mapOf, number, string } from "@javelin/core"
 export * from "./archetype"
 export * from "./component"
 export * from "./effect"

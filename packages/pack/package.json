@@ -27,6 +27,6 @@
     "@msgpack/msgpack": "^2.4.1"
   },
   "dependencies": {
-    "@javelin/model": "^0.22.0"
+    "@javelin/core": "^0.22.0"
   }
 }

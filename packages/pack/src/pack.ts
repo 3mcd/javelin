@@ -1,4 +1,4 @@
-import { ModelNode, ModelNodeKind, ModelNodeStruct } from "@javelin/model"
+import { ModelNode, ModelNodeKind, ModelNodeStruct } from "@javelin/core"
 import { dataTypeToView, uint32, View } from "./views"
 
 type Field = View & { length?: number }

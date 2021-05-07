@@ -6,7 +6,7 @@ import {
   reset,
   Schema,
   StackPool,
-} from "@javelin/model"
+} from "@javelin/core"
 import { UNSAFE_internals } from "./internal"
 
 export type ComponentProps = {

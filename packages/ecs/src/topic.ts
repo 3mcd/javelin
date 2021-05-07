@@ -1,4 +1,4 @@
-import { mutableEmpty } from "@javelin/model"
+import { mutableEmpty } from "@javelin/core"
 
 export type Topic<D = unknown> = {
   /**

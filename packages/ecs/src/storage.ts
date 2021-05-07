@@ -1,4 +1,4 @@
-import { assert, mutableEmpty, packSparseArray, Schema } from "@javelin/model"
+import { assert, mutableEmpty, packSparseArray, Schema } from "@javelin/core"
 import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
 import { Component, ComponentOf } from "./component"
 import { Entity } from "./entity"

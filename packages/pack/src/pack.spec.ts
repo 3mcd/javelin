@@ -1,4 +1,4 @@
-import { arrayOf, createModel } from "@javelin/model"
+import { arrayOf, createModel } from "@javelin/core"
 import { decode, encode } from "./pack"
 import { boolean, int8, string, string8, uint16, uint8 } from "./views"
 

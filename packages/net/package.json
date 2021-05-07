@@ -7,12 +7,12 @@
   "license": "MIT",
   "devDependencies": {
     "@javelin/ecs": "0.22.0",
-    "@javelin/model": "0.22.0",
+    "@javelin/core": "0.22.0",
     "@javelin/track": "0.22.0"
   },
   "peerDependencies": {
     "@javelin/ecs": ">=0.0.1",
-    "@javelin/model": ">=0.0.1"
+    "@javelin/core": ">=0.0.1"
   },
   "scripts": {
     "perf": "yarn build && node perf/index.js",

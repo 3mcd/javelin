@@ -9,7 +9,7 @@ import {
   ModelNodeKind,
   Schema,
   SchemaKey,
-} from "@javelin/model"
+} from "@javelin/core"
 import {
   boolean,
   float32,

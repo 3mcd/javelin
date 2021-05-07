@@ -1,4 +1,4 @@
-import { PackedSparseArray, Schema, unpackSparseArray } from "@javelin/model"
+import { PackedSparseArray, Schema, unpackSparseArray } from "@javelin/core"
 import { Component, ComponentOf } from "./component"
 import { createSignal, Signal } from "./signal"
 import { Type } from "./type"

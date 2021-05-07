@@ -1,4 +1,4 @@
-import { mutableRemoveUnordered } from "@javelin/model"
+import { mutableRemoveUnordered } from "@javelin/core"
 
 export type SignalSubscriber<T, T2, T3, T4> = T extends void
   ? () => void

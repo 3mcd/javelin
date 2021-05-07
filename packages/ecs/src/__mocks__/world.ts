@@ -1,4 +1,4 @@
-import { createModel } from "@javelin/model"
+import { createModel } from "@javelin/core"
 import { createSignal } from "../signal"
 import { World } from "../world"
 import { createStorage } from "./storage"

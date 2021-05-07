@@ -1,4 +1,4 @@
-import { $flat, Model, Schema } from "@javelin/model"
+import { $flat, Model, Schema } from "@javelin/core"
 import { World } from "../world"
 
 export type Internals = {

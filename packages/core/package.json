@@ -1,9 +1,9 @@
 {
-  "name": "@javelin/model",
+  "name": "@javelin/core",
   "version": "0.22.0",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
-  "browser": "dist/javelin-model.bundle.js",
+  "browser": "dist/javelin-core.bundle.js",
   "license": "MIT",
   "scripts": {
     "build": "rm -rf dist && tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
