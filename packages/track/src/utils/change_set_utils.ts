@@ -38,7 +38,7 @@ const arrayOpPool = createStackPool<InstanceOfSchema<typeof ChangeSetArrayOp>>(
 
 const getRecord = (component: Component, path: string) => {
   const { __type__: type } = component
-  const root = UNSAFE_internals.__MODEL__[type]
+  const root = UNSAFE_internals.model[type]
   let records = recordLookup[type]
   if (records === undefined) {
     records = recordLookup[type] = {}
@@ -68,11 +68,11 @@ const getRecord = (component: Component, path: string) => {
 
 function getOrCreateChanges(
   changeSet: InstanceOfSchema<typeof ChangeSet>,
-  componentTypeId: number,
+  schemaId: number,
 ) {
-  let changes = changeSet.changes[componentTypeId]
+  let changes = changeSet.changes[schemaId]
   if (changes === undefined) {
-    changes = changeSet.changes[componentTypeId] = {
+    changes = changeSet.changes[schemaId] = {
       fields: {},
       array: [],
       fieldCount: 0,

@@ -1,22 +1,16 @@
-import { $flat, Model } from "@javelin/model"
-import { createSignal } from "../signal"
+import { $flat, Model, Schema } from "@javelin/model"
 import { World } from "../world"
 
 export type Internals = {
-  __MODEL__: Model
-  __WORLDS__: World<unknown>[]
-  __CURRENT_WORLD__: number
+  componentTypeIndex: WeakMap<Schema, number>
+  model: Model
+  worlds: World<unknown>[]
+  currentWorldId: number
 }
 
 export const UNSAFE_internals: Internals = {
-  __MODEL__: { [$flat]: {} },
-  __WORLDS__: [],
-  __CURRENT_WORLD__: -1,
-}
-
-export const UNSAFE_modelChanged = createSignal<Model>()
-
-export const setModel = (model: Model) => {
-  UNSAFE_internals.__MODEL__ = model
-  UNSAFE_modelChanged.dispatch(model)
+  componentTypeIndex: new WeakMap<Schema, number>(),
+  model: { [$flat]: {} },
+  worlds: [],
+  currentWorldId: -1,
 }

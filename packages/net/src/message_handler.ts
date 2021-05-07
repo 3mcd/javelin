@@ -45,7 +45,7 @@ export const createMessageHandler = (world: World) => {
       for (let i = 0; i < components.length; i++) {
         const local = entities.get(entity)!
         const source = components[i]
-        const target = world.storage.findComponentByComponentTypeId(
+        const target = world.storage.findComponentBySchemaId(
           local,
           source.__type__,
         )
@@ -57,13 +57,13 @@ export const createMessageHandler = (world: World) => {
         updated.add(local)
       }
     },
-    onDetach(entity, componentTypeIds) {
+    onDetach(entity, schemaIds) {
       const local = entities.get(entity)!
       const components: Component[] = []
-      for (let i = 0; i < componentTypeIds.length; i++) {
-        const component = world.storage.findComponentByComponentTypeId(
+      for (let i = 0; i < schemaIds.length; i++) {
+        const component = world.storage.findComponentBySchemaId(
           local,
-          componentTypeIds[i],
+          schemaIds[i],
         )
         if (component !== null) {
           components.push(component)
@@ -78,14 +78,14 @@ export const createMessageHandler = (world: World) => {
         entities.delete(entity)
       }
     },
-    onPatch(entity, componentTypeId, field, traverse, value) {
+    onPatch(entity, schemaId, field, traverse, value) {
       const component = world.storage
         .getEntityComponents(entity)
-        .find(c => c.__type__ === componentTypeId)
+        .find(c => c.__type__ === schemaId)
       if (component === undefined) {
         return
       }
-      const type = model[componentTypeId]
+      const type = model[schemaId]
       let traverseIndex = 0
       let key: string | number | null = null
       let ref = component
@@ -123,7 +123,7 @@ export const createMessageHandler = (world: World) => {
     },
     onArrayMethod(
       entity,
-      componentTypeId,
+      schemaId,
       method,
       field,
       traverse,

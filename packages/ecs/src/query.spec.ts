@@ -1,6 +1,6 @@
 import { Archetype, createArchetype } from "./archetype"
-import { Component } from "./component"
-import { $componentType, UNSAFE_internals } from "./internal"
+import { Component, registerSchema } from "./component"
+import { UNSAFE_internals } from "./internal"
 import { createQuery } from "./query"
 import { createWorld } from "./world"
 
@@ -8,8 +8,11 @@ jest.mock("./archetype")
 jest.mock("./world")
 
 describe("createQuery", () => {
-  const A = { [$componentType]: 0 }
-  const B = { [$componentType]: 1 }
+  const A = {}
+  const B = {}
+
+  registerSchema(A, 0)
+  registerSchema(B, 1)
 
   it("queries collections of components", () => {
     const world = createWorld()
@@ -37,8 +40,8 @@ describe("createQuery", () => {
       } as Archetype,
     ]
 
-    UNSAFE_internals.__WORLDS__ = [world]
-    UNSAFE_internals.__CURRENT_WORLD__ = 0
+    UNSAFE_internals.worlds = [world]
+    UNSAFE_internals.currentWorldId = 0
 
     const q = createQuery(A, B)
 

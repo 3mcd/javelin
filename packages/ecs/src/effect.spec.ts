@@ -8,11 +8,11 @@ function flushPromises() {
 
 describe("createEffect", () => {
   const reset = (currentTick = 0, currentWorld = 0, currentSystem = 0) => {
-    UNSAFE_internals.__WORLDS__ = [
+    UNSAFE_internals.worlds = [
       { id: 0, state: { currentTick, currentSystem } } as World,
       { id: 1, state: { currentTick, currentSystem } } as World,
     ]
-    UNSAFE_internals.__CURRENT_WORLD__ = currentWorld
+    UNSAFE_internals.currentWorldId = currentWorld
   }
 
   beforeEach(() => {

@@ -88,11 +88,7 @@ export function tick(message: Message, tick: number) {
 }
 
 export function model(message: Message) {
-  overwrite(
-    message,
-    MessagePartKind.Model,
-    Ops.model(UNSAFE_internals.__MODEL__),
-  )
+  overwrite(message, MessagePartKind.Model, Ops.model(UNSAFE_internals.model))
 }
 
 export function spawn(
@@ -103,7 +99,7 @@ export function spawn(
   insert(
     message,
     MessagePartKind.Spawn,
-    Ops.spawn(UNSAFE_internals.__MODEL__, entity, components),
+    Ops.spawn(UNSAFE_internals.model, entity, components),
   )
 }
 
@@ -115,7 +111,7 @@ export function attach(
   insert(
     message,
     MessagePartKind.Attach,
-    Ops.attach(UNSAFE_internals.__MODEL__, entity, components),
+    Ops.attach(UNSAFE_internals.model, entity, components),
   )
 }
 
@@ -127,7 +123,7 @@ export function update(
   insert(
     message,
     MessagePartKind.Update,
-    Ops.update(UNSAFE_internals.__MODEL__, entity, components),
+    Ops.update(UNSAFE_internals.model, entity, components),
   )
 }
 
@@ -139,16 +135,12 @@ export function patch(
   insert(
     message,
     MessagePartKind.Patch,
-    Ops.patch(UNSAFE_internals.__MODEL__, entity, changeSet),
+    Ops.patch(UNSAFE_internals.model, entity, changeSet),
   )
 }
 
-export function detach(
-  message: Message,
-  entity: Entity,
-  componentTypeIds: number[],
-) {
-  insert(message, MessagePartKind.Destroy, Ops.detach(entity, componentTypeIds))
+export function detach(message: Message, entity: Entity, schemaIds: number[]) {
+  insert(message, MessagePartKind.Destroy, Ops.detach(entity, schemaIds))
 }
 
 export function destroy(message: Message, entity: Entity) {

@@ -1,9 +1,5 @@
-import { encode } from "./encode"
-import { decode, DecodeMessageHandlers } from "./decode"
-import { createMessage, insert, MessagePartKind } from "./message"
-import * as MessageOp from "./message_op"
+import { component, registerSchema } from "@javelin/ecs"
 import {
-  $flat,
   createModel,
   initialize,
   InstanceOfSchema,
@@ -12,10 +8,16 @@ import {
 } from "@javelin/model"
 import { float64 } from "@javelin/pack"
 import { ChangeSet, track } from "@javelin/track"
-import { $componentType, component, ComponentType } from "@javelin/ecs"
+import { decode, DecodeMessageHandlers } from "./decode"
+import { encode } from "./encode"
+import { createMessage, insert, MessagePartKind } from "./message"
+import * as MessageOp from "./message_op"
 
 const Position = { x: float64, y: float64 }
 const Velocity = { x: float64, y: float64 }
+
+registerSchema(Position, 1)
+registerSchema(Velocity, 2)
 
 describe("decode", () => {
   let handlers: DecodeMessageHandlers
@@ -69,8 +71,8 @@ describe("decode", () => {
   })
   it("decodes patch part", () => {
     const config = new Map<number, Schema>([
-      [0, Position],
-      [1, Velocity],
+      [1, Position],
+      [2, Velocity],
     ])
     const position = component(Position)
     const velocity = component(Velocity)
@@ -97,20 +99,8 @@ describe("decode", () => {
       model,
     )
     expect(results).toEqual([
-      [
-        entity,
-        ((Position as unknown) as ComponentType)[$componentType],
-        0,
-        [],
-        -12.6666666,
-      ],
-      [
-        entity,
-        ((Velocity as unknown) as ComponentType)[$componentType],
-        1,
-        [],
-        44,
-      ],
+      [entity, 1, 0, [], -12.6666666],
+      [entity, 2, 1, [], 44],
     ])
   })
 })

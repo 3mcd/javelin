@@ -1,8 +1,8 @@
-import { mutableEmpty, packSparseArray } from "@javelin/model"
+import { assert, mutableEmpty, packSparseArray, Schema } from "@javelin/model"
 import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
-import { Component, ComponentOf, ComponentType } from "./component"
+import { Component, ComponentOf } from "./component"
 import { Entity } from "./entity"
-import { $componentType } from "./internal/symbols"
+import { UNSAFE_internals } from "./internal"
 import { createSignal, Signal } from "./signal"
 
 export type StorageSnapshot = {
@@ -46,9 +46,9 @@ export interface Storage {
   /**
    * Remove components from an entity via component type ids.
    * @param entity Entity to remove components from.
-   * @param componentTypeIds Components to remove.
+   * @param schemaIds Components to remove.
    */
-  removeByTypeIds(entity: number, componentTypeIds: number[]): void
+  removeByTypeIds(entity: number, schemaIds: number[]): void
 
   /**
    * Destroy an entity.
@@ -59,30 +59,27 @@ export interface Storage {
   /**
    * Determine if an entity has a component.
    * @param entity
-   * @param componentType
+   * @param schema
    */
-  hasComponent(entity: number, componentType: ComponentType): boolean
+  hasComponent(entity: number, schema: Schema): boolean
 
   /**
    * Locate an entity's component by component type.
    * @param entity Entity to locate components of.
-   * @param componentType ComponentType of component to retreive.
+   * @param schema Schema of component to retreive.
    */
-  findComponent<T extends ComponentType>(
+  findComponent<S extends Schema>(
     entity: number,
-    componentType: T,
-  ): ComponentOf<T> | null
+    schema: S,
+  ): ComponentOf<S> | null
 
   /**
    * Locate an entity's component by component type id.
    *
    *  @param entity Entity to locate components of.
-   * @param componentType ComponentType id of component to retreive.
+   * @param schema Schema id of component to retreive.
    */
-  findComponentByComponentTypeId<T extends ComponentType>(
-    entity: number,
-    componentTypeId: number,
-  ): Component | null
+  findComponentBySchemaId(entity: number, schemaId: number): Component | null
 
   /**
    * Get all components for an entity.
@@ -231,11 +228,11 @@ export function createStorage(options: StorageOptions = {}): Storage {
     let destinationComponents = components.slice()
 
     for (let i = 0; i < source.signature.length; i++) {
-      const componentTypeId = source.signature[i]
+      const schemaId = source.signature[i]
 
-      if (components.find(c => c.__type__ === componentTypeId)) {
+      if (components.find(c => c.__type__ === schemaId)) {
         throw new Error(
-          `Failed to attach component with type ${componentTypeId}: entity already has component of type`,
+          `Failed to attach component with type ${schemaId}: entity already has component of type`,
         )
       }
 
@@ -251,7 +248,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     removeByTypeIds(entity, typesToRemove)
   }
 
-  function removeByTypeIds(entity: number, componentTypeIds: number[]) {
+  function removeByTypeIds(entity: number, schemaIds: number[]) {
     const source = getEntityArchetype(entity)
     const entityIndex = source.indices[entity]
 
@@ -262,7 +259,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
       const type = source.signature[i]
       const component = source.table[i][entityIndex]! as Component
 
-      ;(componentTypeIds.includes(type)
+      ;(schemaIds.includes(type)
         ? removedComponents
         : destinationComponents
       ).push(component)
@@ -303,27 +300,31 @@ export function createStorage(options: StorageOptions = {}): Storage {
     }
   }
 
-  function hasComponent(entity: number, componentType: ComponentType) {
+  function hasComponent(entity: number, schema: Schema) {
     const archetype = getEntityArchetype(entity)
-    return archetype.signature.includes(componentType[$componentType])
+    const type = UNSAFE_internals.componentTypeIndex.get(schema)
+    assert(
+      type !== undefined,
+      "Failed to locate component: schema not registered.",
+    )
+    return archetype.signature.includes(type)
   }
 
-  function findComponent<T extends ComponentType>(
-    entity: number,
-    componentType: T,
-  ) {
-    return findComponentByComponentTypeId(
-      entity,
-      componentType[$componentType],
-    ) as ComponentOf<T>
+  function findComponent<T extends Schema>(entity: number, schema: T) {
+    const type = UNSAFE_internals.componentTypeIndex.get(schema)
+    assert(
+      type !== undefined,
+      "Failed to locate component: schema not registered.",
+    )
+    return findComponentBySchemaId(entity, type) as ComponentOf<T>
   }
 
-  function findComponentByComponentTypeId<T extends ComponentType>(
+  function findComponentBySchemaId<T extends Schema>(
     entity: number,
-    componentTypeId: number,
+    schemaId: number,
   ) {
     const archetype = getEntityArchetype(entity)
-    const column = archetype.signatureInverse[componentTypeId]
+    const column = archetype.signatureInverse[schemaId]
 
     if (column === undefined) {
       return null
@@ -371,7 +372,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     destroy,
     entityRelocated,
     findComponent,
-    findComponentByComponentTypeId,
+    findComponentBySchemaId,
     getEntityComponents,
     hasComponent,
     insert,

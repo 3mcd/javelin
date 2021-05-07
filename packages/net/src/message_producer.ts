@@ -39,12 +39,12 @@ export const createMessageProducer = (
   }
   const spawn = (entity: Entity, components: Component[]) =>
     _insert(
-      MessageOp.spawn(UNSAFE_internals.__MODEL__, entity, components),
+      MessageOp.spawn(UNSAFE_internals.model, entity, components),
       Message.MessagePartKind.Spawn,
     )
   const attach = (entity: Entity, components: Component[]) =>
     _insert(
-      MessageOp.attach(UNSAFE_internals.__MODEL__, entity, components),
+      MessageOp.attach(UNSAFE_internals.model, entity, components),
       Message.MessagePartKind.Attach,
     )
   const patch = (
@@ -87,11 +87,7 @@ export const createMessageProducer = (
           message = Message.createMessage()
         }
         assert(message !== null, ErrorType.Internal)
-        const op = MessageOp.patch(
-          UNSAFE_internals.__MODEL__,
-          entity,
-          changeSet,
-        )
+        const op = MessageOp.patch(UNSAFE_internals.model, entity, changeSet)
         if (op.byteLength + message?.byteLength < maxByteLength) {
           Message.insert(message, Message.MessagePartKind.Patch, op)
           reset(changeSet)

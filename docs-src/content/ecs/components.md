@@ -19,9 +19,9 @@ const position = { __type__: 0, ... }
 const health = { __type__: 1, ... }
 ```
 
-## Component Types
+## Schemas
 
-A **component type** is an object that defines the structure of a component.
+A **schema** is an object that defines the structure of a component.
 
 ```ts
 import { number } from "@javelin/ecs"
@@ -32,7 +32,7 @@ const Position = {
 }
 ```
 
-Components types may range from flat structures with few (or no) properties, to complex objects containing deeply nested structures.
+Schema may range from flat structures with few (or no) properties, to complex objects containing deeply nested structures.
 
 ```ts
 const Inventory = {
@@ -40,7 +40,7 @@ const Inventory = {
 }
 ```
 
-A component type is used to initialize component instances and reset them when they are detached from an entity.
+A schema is used to initialize component instances and reset them when they are detached from an entity.
 
 The schema currently supports the following data types:
 
@@ -51,12 +51,12 @@ boolean (default = false)
 arrayOf (default = [])
 ```
 
-When Javelin encounters a component type for the first time, it will automatically assign it a unique integer id. If you need to assign a specific id to a component type (e.g., you're synchronizing your component model in a multiplayer game), you can register the component type manually using `registerComponentType`:
+When Javelin encounters a schema for the first time, it will automatically assign it a unique integer id. If you need to assign a specific id to a schema (e.g., you're synchronizing your component model in a multiplayer game), you can register the schema manually using `registerSchema`:
 
 ```ts
-import { registerComponentType } from "@javelin/ecs"
+import { registerSchema } from "@javelin/ecs"
 
-registerComponentType(Position, 4)
+registerSchema(Position, 4)
 ```
 
 ### Creating Components
@@ -69,14 +69,14 @@ import { component } from "@javelin/ecs"
 const position = component(Position)
 ```
 
-Components created using `component()` are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal for singleton or low-volume components. You may specify the pool size for a single component type when registering the it with `registerComponentType`:
+Components created using `component()` are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal for singleton or low-volume components. You may specify the pool size for a single schema when registering the it with `registerSchema`:
 
 ```ts
-registerComponentType(Position, 4, 10000)
+registerSchema(Position, 4, 10000)
 ```
 
 <aside>
   <p>
-    <strong>Tip</strong> — the configured or default pool size will be used if a component type is encountered by <code>component()</code> prior to manual registration.
+    <strong>Tip</strong> — the configured or default pool size will be used if a schema is encountered by <code>component()</code> prior to manual registration.
   </p>
 </aside>

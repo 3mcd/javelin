@@ -7,12 +7,7 @@ import {
   Schema,
   StackPool,
 } from "@javelin/model"
-import { setModel } from "./internal"
-import { $componentType } from "./internal/symbols"
-
-export type ComponentType<S extends Schema = Schema> = {
-  [$componentType]: number
-} & S
+import { UNSAFE_internals } from "./internal"
 
 export type ComponentProps = {
   readonly __type__: number
@@ -25,16 +20,16 @@ export type ComponentsOf<C extends Schema[]> = {
   [K in keyof C]: C[K] extends Schema ? ComponentOf<C[K]> : never
 }
 
-let nextComponentTypeId = 0
+let nextSchemaId = 0
 
-export function createComponentBase<C extends ComponentType>(
-  componentType: C,
-): ComponentOf<C> {
+export function createComponentBase<S extends Schema>(
+  schema: S,
+): ComponentOf<S> {
   return Object.defineProperties(
     {},
     {
       __type__: {
-        value: componentType[$componentType],
+        value: UNSAFE_internals.componentTypeIndex.get(schema),
         writable: false,
         enumerable: true,
       },
@@ -42,75 +37,63 @@ export function createComponentBase<C extends ComponentType>(
   )
 }
 
-export function isComponentOf<T extends ComponentType>(
+export function isComponentOf<S extends Schema>(
   component: Component,
-  componentTypeId: T,
-): component is ComponentOf<T> {
-  return component.__type__ === componentTypeId[$componentType]
+  schema: S,
+): component is ComponentOf<S> {
+  return component.__type__ === UNSAFE_internals.componentTypeIndex.get(schema)
 }
 
 export const componentTypePools = new Map<number, StackPool<Component>>()
 
-export function createComponentPool<C extends ComponentType>(
-  componentType: C,
+export function createComponentPool<S extends Schema>(
+  Schema: S,
   poolSize: number,
 ) {
-  const componentPool = createStackPool<ComponentOf<C>>(
+  const componentPool = createStackPool<ComponentOf<S>>(
     () =>
       initialize(
-        createComponentBase(componentType) as InstanceOfSchema<C>,
-        componentType,
-      ) as ComponentOf<C>,
+        createComponentBase(Schema) as InstanceOfSchema<S>,
+        Schema,
+      ) as ComponentOf<S>,
     component =>
-      reset(component as InstanceOfSchema<C>, componentType) as ComponentOf<C>,
+      reset(component as InstanceOfSchema<S>, Schema) as ComponentOf<S>,
     poolSize,
   )
 
   return componentPool
 }
 
-const modelConfig = new Map<number, ComponentType>()
+const modelConfig = new Map<number, Schema>()
 
-export function registerComponentType(
-  componentType: ComponentType | Schema,
-  componentTypeId?: number,
+export function registerSchema(
+  schema: Schema,
+  schemaId?: number,
   poolSize = 1000,
-): asserts componentType is ComponentType {
-  let type: number | undefined = Reflect.get(componentType, $componentType)
-
+) {
+  let type: number | undefined = UNSAFE_internals.componentTypeIndex.get(schema)
   if (type !== undefined) {
-    return
+    return type
   }
-
-  type = componentTypeId
-
+  type = schemaId
   if (type === undefined) {
-    while (modelConfig.has(nextComponentTypeId)) {
-      nextComponentTypeId++
+    while (modelConfig.has(nextSchemaId)) {
+      nextSchemaId++
     }
-    type = (componentType as ComponentType)[
-      $componentType
-    ] = nextComponentTypeId
+    type = nextSchemaId
   } else if (modelConfig.has(type)) {
     throw new Error(
       "Failed to register component type: a component with same id is already registered",
     )
   }
-
-  componentTypePools.set(
-    type,
-    createComponentPool(componentType as ComponentType, poolSize),
-  )
-  modelConfig.set(type, componentType as ComponentType)
-
-  setModel(createModel(modelConfig))
+  componentTypePools.set(type, createComponentPool(schema, poolSize))
+  modelConfig.set(type, schema)
+  UNSAFE_internals.componentTypeIndex.set(schema, type)
+  UNSAFE_internals.model = createModel(modelConfig)
+  return type
 }
 
-export const component = <S extends Schema>(
-  componentType: S,
-): ComponentOf<S> => {
-  registerComponentType(componentType)
-  return (componentTypePools.get(componentType[$componentType]) as StackPool<
-    ComponentOf<S>
-  >).retain()
+export const component = <S extends Schema>(schema: S): ComponentOf<S> => {
+  const type = registerSchema(schema)
+  return (componentTypePools.get(type) as StackPool<ComponentOf<S>>).retain()
 }

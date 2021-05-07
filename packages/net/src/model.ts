@@ -157,9 +157,9 @@ export function decodeModel(
   let i = 0
   while (i < length) {
     const schema = {}
-    const componentTypeId = encoded[i++]
+    const schemaId = encoded[i++]
     i = decodeSchema(encoded, i, schema)
-    config.set(componentTypeId, schema)
+    config.set(schemaId, schema)
   }
   return createModel(config)
 }

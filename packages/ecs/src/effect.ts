@@ -45,9 +45,9 @@ export function createEffect<S = unknown, A extends any[] = []>(
   let cellCount: number = -1
 
   return function effect(...args: A) {
-    currentWorld = UNSAFE_internals.__CURRENT_WORLD__
+    currentWorld = UNSAFE_internals.currentWorldId
 
-    const world = UNSAFE_internals.__WORLDS__[currentWorld]
+    const world = UNSAFE_internals.worlds[currentWorld]
     const currentTick = world.state.currentTick
 
     currentSystem = global ? 0 : world.state.currentSystem

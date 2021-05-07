@@ -54,7 +54,7 @@ function runSnapshotOpTest(snapshotOpFactory: typeof snapshot, model: Model) {
       components.reduce(
         (a, c, i) =>
           a +
-          uint8.byteLength + // componentTypeId
+          uint8.byteLength + // schemaId
           uint16.byteLength + // length
           componentsEncoded[i].byteLength, // encoded
         0,
@@ -97,11 +97,9 @@ describe("message_op", () => {
     expect(op.view[1]).toBe(uint8)
     let j = 2
     for (const prop in changeSet.changes) {
-      const componentTypeId = +prop
-      const { fields, fieldCount, arrayCount } = changeSet.changes[
-        componentTypeId
-      ]
-      expect(op.data[j]).toBe(componentTypeId)
+      const schemaId = +prop
+      const { fields, fieldCount, arrayCount } = changeSet.changes[schemaId]
+      expect(op.data[j]).toBe(schemaId)
       expect(op.view[j]).toBe(uint8)
       j++
       expect(op.data[j]).toBe(fieldCount)
@@ -134,14 +132,14 @@ describe("message_op", () => {
   })
   it("creates detach ops", () => {
     const entity = 0
-    const componentTypeIds = [0, 1, 2]
-    const op = detach(entity, componentTypeIds)
+    const schemaIds = [0, 1, 2]
+    const op = detach(entity, schemaIds)
     expect(op.data[0]).toBe(entity)
     expect(op.view[0]).toBe(uint32)
-    expect(op.data[1]).toBe(componentTypeIds.length)
+    expect(op.data[1]).toBe(schemaIds.length)
     expect(op.view[1]).toBe(uint8)
-    for (let i = 0; i < componentTypeIds.length; i++) {
-      expect(op.data[i + 2]).toBe(componentTypeIds[i])
+    for (let i = 0; i < schemaIds.length; i++) {
+      expect(op.data[i + 2]).toBe(schemaIds[i])
       expect(op.view[i + 2]).toBe(uint8)
     }
   })

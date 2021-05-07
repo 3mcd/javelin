@@ -85,7 +85,7 @@ Write an attach operation for an entity and one or more components.
 
 Write an update operation for an entity and one or more of its components.
 
-### `patch(message: Message, entity: Entity, componentType: ComponentType, changes: InstanceOfSchema<typeof ChangeSet>): void`
+### `patch(message: Message, entity: Entity, schema: Schema, changes: InstanceOfSchema<typeof ChangeSet>): void`
 
 Write a patch operation (derived from [`observer`](/ecs/change-detection)) for the component type of an entity. The following example demonstrates writing changes made to players' `Body` components to a message:
 

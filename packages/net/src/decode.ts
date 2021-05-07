@@ -28,18 +28,18 @@ export type DecodeMessageHandlers = {
   onSpawn?: EntitySnapshotHandler
   onAttach?: EntitySnapshotHandler
   onUpdate?: EntitySnapshotHandler
-  onDetach?(entity: number, componentTypeIds: number[]): void
+  onDetach?(entity: number, schemaIds: number[]): void
   onDestroy?(entity: number): void
   onPatch?(
     entity: number,
-    componentTypeId: number,
+    schemaId: number,
     field: number,
     traverse: number[],
     value: unknown,
   ): void
   onArrayMethod?(
     entity: number,
-    componentTypeId: number,
+    schemaId: number,
     method: number,
     field: number,
     traverse: number,
@@ -95,8 +95,8 @@ function decodePatch(
     const count = uint8.read(dataView, offset)
     offset += uint8.byteLength
     for (let i = 0; i < count; i++) {
-      const componentTypeId = uint8.read(dataView, offset)
-      const componentSchema = model[$flat][componentTypeId]
+      const schemaId = uint8.read(dataView, offset)
+      const componentSchema = model[$flat][schemaId]
       offset += uint8.byteLength
       const fieldCount = uint8.read(dataView, offset)
       offset += uint8.byteLength
@@ -120,7 +120,7 @@ function decodePatch(
         const view = dataTypeToView(node.type)
         const value = view.read(dataView, offset)
         offset += view.byteLength
-        onPatch?.(entity, componentTypeId, field, tmpTraverse, value)
+        onPatch?.(entity, schemaId, field, tmpTraverse, value)
       }
       for (let j = 0; j < arrayCount; j++) {
         // TODO: support mutating array methods
@@ -137,17 +137,17 @@ function decodeDetach(
 ) {
   const end = offset + length
   while (offset < end) {
-    const componentTypeIds = []
+    const schemaIds = []
     const entity = uint32.read(dataView, offset, 0)
     offset += uint32.byteLength
-    const componentTypeIdsLength = uint8.read(dataView, offset, 0)
+    const schemaIdsLength = uint8.read(dataView, offset, 0)
     offset += uint8.byteLength
-    for (let i = 0; i < componentTypeIdsLength; i++) {
-      const componentTypeId = uint8.read(dataView, offset, 0)
+    for (let i = 0; i < schemaIdsLength; i++) {
+      const schemaId = uint8.read(dataView, offset, 0)
       offset += uint8.byteLength
-      componentTypeIds.push(componentTypeId)
+      schemaIds.push(schemaId)
     }
-    onDetach?.(entity, componentTypeIds)
+    onDetach?.(entity, schemaIds)
   }
 }
 

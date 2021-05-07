@@ -60,7 +60,7 @@ export function insert(op: MessageOp, data: unknown, view?: View) {
  * [
  *   entity: uint32,
  *   count: uint8,
- *   components: [componentTypeId: uint8, length: uint16, encoded: *][],
+ *   components: [schemaId: uint8, length: uint16, encoded: *][],
  * ]
  * @param entity
  * @param components
@@ -77,9 +77,9 @@ export function snapshot(
   insert(op, count, uint8)
   for (let i = 0; i < count; i++) {
     const component = components[i]
-    const componentTypeId = component.__type__
-    const encoded = encode(component, model[componentTypeId])
-    insert(op, componentTypeId, uint8)
+    const schemaId = component.__type__
+    const encoded = encode(component, model[schemaId])
+    insert(op, schemaId, uint8)
     insert(op, encoded.byteLength, uint16)
     insert(op, encoded)
   }
@@ -92,7 +92,7 @@ export function snapshot(
  * [
  *   entity: uint32,
  *   count: uint8,
- *   components: [componentTypeId: uint8, length: uint16, encoded: *][],
+ *   components: [schemaId: uint8, length: uint16, encoded: *][],
  * ]
  * @param entity
  * @param components
@@ -105,7 +105,7 @@ export const spawn = snapshot
  * [
  *   entity: uint32,
  *   count: uint8,
- *   components: [componentTypeId: uint8, length: uint16, encoded: *][],
+ *   components: [schemaId: uint8, length: uint16, encoded: *][],
  * ]
  * @param entity
  * @param components
@@ -118,7 +118,7 @@ export const attach = snapshot
  * [
  *   entity: uint32,
  *   count: uint8,
- *   components: [componentTypeId: uint8, length: uint16, encoded: *][],
+ *   components: [schemaId: uint8, length: uint16, encoded: *][],
  * ]
  * @param entity
  * @param components
@@ -133,7 +133,7 @@ export const update = snapshot
  *   entity: uint32,
  *   count: uint8,
  *   changes: [
- *     componentTypeId: uint8,
+ *     schemaId: uint8,
  *     fieldCount: uint8,
  *     arrayCount: uint8,
  *     fields: [field: uint8, traverseLength: uint8, (key: uint16), value: *][],
@@ -155,10 +155,10 @@ export function patch(
   insert(op, entity, uint32)
   insert(op, count, uint8)
   for (const prop in changeSet.changes) {
-    const componentTypeId = +prop
-    const componentSchema = model[$flat][componentTypeId]
+    const schemaId = +prop
+    const componentSchema = model[$flat][schemaId]
     const changes = changeSet.changes[prop]
-    insert(op, componentTypeId, uint8)
+    insert(op, schemaId, uint8)
     insert(op, changes.fieldCount, uint8)
     insert(op, changes.arrayCount, uint8)
     for (const prop in changes.fields) {
@@ -188,19 +188,19 @@ export function patch(
  * [
  *   entity: uint32,
  *   count: uint8,
- *   componentTypeIds: uint8[],
+ *   schemaIds: uint8[],
  * ]
  * @param entity
- * @param componentTypeIds
+ * @param schemaIds
  * @returns MessageOp
  */
-export function detach(entity: Entity, componentTypeIds: number[]): MessageOp {
+export function detach(entity: Entity, schemaIds: number[]): MessageOp {
   const op = messageOpPool.retain()
-  const count = componentTypeIds.length
+  const count = schemaIds.length
   insert(op, entity, uint32)
   insert(op, count, uint8)
   for (let i = 0; i < count; i++) {
-    insert(op, componentTypeIds[i], uint8)
+    insert(op, schemaIds[i], uint8)
   }
   return op
 }

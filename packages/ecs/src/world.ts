@@ -1,14 +1,12 @@
-import { createStackPool, mutableEmpty } from "@javelin/model"
+import { createStackPool, mutableEmpty, Schema } from "@javelin/model"
 import {
   Component,
   ComponentOf,
-  ComponentType,
   componentTypePools,
-  registerComponentType,
+  registerSchema,
 } from "./component"
 import { Entity } from "./entity"
 import { UNSAFE_internals } from "./internal"
-import { $componentType } from "./internal/symbols"
 import { createSignal, Signal } from "./signal"
 import { createStorage, Storage, StorageSnapshot } from "./storage"
 import { Topic } from "./topic"
@@ -86,7 +84,7 @@ export interface World<T = any> {
    */
   detach(
     entity: number,
-    ...components: ReadonlyArray<Component> | ComponentType[]
+    ...components: ReadonlyArray<Component> | Schema[]
   ): void
 
   /**
@@ -102,7 +100,7 @@ export interface World<T = any> {
    * @param entity
    * @param componentType
    */
-  get<T extends ComponentType>(entity: number, componentType: T): ComponentOf<T>
+  get<T extends Schema>(entity: number, componentType: T): ComponentOf<T>
 
   /**
    * Retrieve a component by type for an entity, or null if a component is not found.
@@ -110,7 +108,7 @@ export interface World<T = any> {
    * @param entity
    * @param componentType
    */
-  tryGet<T extends ComponentType>(
+  tryGet<T extends Schema>(
     entity: number,
     componentType: T,
   ): ComponentOf<T> | null
@@ -122,7 +120,7 @@ export interface World<T = any> {
    * @param entity
    * @param componentType
    */
-  has(entity: number, componentType: ComponentType): boolean
+  has(entity: number, componentType: Schema): boolean
 
   /**
    * Apply world ops to this world.
@@ -232,7 +230,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     },
     1000,
   )
-  const seenComponentTypes = new Set<ComponentType>()
   const attached = createSignal<number, ReadonlyArray<Component>>()
   const detached = createSignal<number, ReadonlyArray<Component>>()
   const spawned = createSignal<number>()
@@ -243,7 +240,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   let state: WorldState<T> = getInitialWorldState()
   let prevEntity = 0
   let nextSystem = 0
-  let nextComponentTypeId = 0
 
   options.systems?.forEach(addSystem)
 
@@ -327,38 +323,30 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function tick(data: T) {
-    let prevWorld = UNSAFE_internals.__CURRENT_WORLD__
-    UNSAFE_internals.__CURRENT_WORLD__ = id
-
+    let prevWorld = UNSAFE_internals.currentWorldId
+    UNSAFE_internals.currentWorldId = id
     state.currentTickData = data
-
     // Clear world op history
     while (worldOpsPrevious.length > 0) {
       worldOpPool.release(worldOpsPrevious.pop()!)
     }
-
     for (let i = 0; i < worldOps.length; i++) {
       applyWorldOp(worldOps[i])
     }
-
     mutableEmpty(worldOps)
-
+    // flush topics
     for (let i = 0; i < topics.length; i++) {
       topics[i].flush()
     }
-
     // Execute systems
     for (let i = 0; i < systems.length; i++) {
       const system = systems[i]
       world.state.currentSystem = system.__JAVELIN_SYSTEM_ID__!
       system(world)
     }
-
     destroying.clear()
-
     state.currentTick++
-
-    UNSAFE_internals.__CURRENT_WORLD__ = prevWorld
+    UNSAFE_internals.currentWorldId = prevWorld
   }
 
   function addSystem(system: System<T>) {
@@ -403,14 +391,14 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
   function detach(
     entity: number,
-    ...components: ReadonlyArray<Component> | ComponentType[]
+    ...components: ReadonlyArray<Component> | Schema[]
   ) {
     if (components.length === 0) {
       return
     }
 
-    if ($componentType in components[0]) {
-      components = (components as ComponentType[]).map(ct => get(entity, ct))
+    if (UNSAFE_internals.componentTypeIndex.has(components[0])) {
+      components = (components as Schema[]).map(ct => get(entity, ct))
     }
 
     worldOps.push(
@@ -436,16 +424,16 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     }
   }
 
-  function has(entity: number, componentType: ComponentType) {
-    registerComponentType(componentType)
+  function has(entity: number, componentType: Schema) {
+    registerSchema(componentType)
     return storage.hasComponent(entity, componentType)
   }
 
-  function get<T extends ComponentType>(
+  function get<T extends Schema>(
     entity: number,
     componentType: T,
   ): ComponentOf<T> {
-    registerComponentType(componentType)
+    registerSchema(componentType)
     const component = storage.findComponent(entity, componentType)
 
     if (component === null) {
@@ -455,11 +443,11 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     return component
   }
 
-  function tryGet<T extends ComponentType>(
+  function tryGet<T extends Schema>(
     entity: number,
     componentType: T,
   ): ComponentOf<T> | null {
-    registerComponentType(componentType)
+    registerSchema(componentType)
     return storage.findComponent(entity, componentType)
   }
 
@@ -543,7 +531,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     internalDestroy,
   }
 
-  let id = (world.id = UNSAFE_internals.__WORLDS__.push(world) - 1)
+  let id = (world.id = UNSAFE_internals.worlds.push(world) - 1)
 
   return world
 }
