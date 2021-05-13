@@ -6,7 +6,7 @@
   "browser": "dist/javelin-track.bundle.js",
   "license": "MIT",
   "scripts": {
-    "perf": "yarn build && node perf/index.js",
+    "perf": "node perf/index.js",
     "build": "tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
     "prepare": "yarn build"
   },

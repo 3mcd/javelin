@@ -7,7 +7,8 @@
   "license": "MIT",
   "scripts": {
     "build": "rm -rf dist && tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
-    "prepare": "yarn build"
+    "prepare": "yarn build",
+    "perf": "node perf/index.js"
   },
   "files": [
     "dist"
