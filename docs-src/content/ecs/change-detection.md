@@ -69,7 +69,10 @@ In the above example, the entity's `ChangeSet` component would look like:
 
 ### Resetting Changes
 
-TODO
+```ts
+import { reset } from "@javelin/track"
+reset(changes)
+```
 
 ### Array Mutations
 

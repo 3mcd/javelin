@@ -9,14 +9,14 @@ The Javelin protocol is slim by design. It's fundamentally a collection of funct
 
 The protcol is has a single message type with multiple parts. A message may contain the following information:
 
-- `T` current tick number
-- `M` component model (excluded by default)
-- `S` spawned entities
-- `A` attached components
-- `U` updated components (full)
-- `P` patched components (partial)
-- `D` detached components
-- `X` destroyed entities
+- current tick number
+- component model (excluded by default)
+- spawned entities
+- attached components
+- updated components (full)
+- patched components (deltas)
+- detached components
+- destroyed entities
 
 <aside>
   <p>
@@ -24,7 +24,7 @@ The protcol is has a single message type with multiple parts. A message may cont
   </p>
 </aside>
 
-### First Contact
+### Building Messages
 
 Messages are created using `createMessage`:
 
@@ -51,7 +51,8 @@ A message can be serialized into an `ArrayBuffer` using `encodeMessage`. Message
 ```ts
 import { encodeMessage } from "@javelin/net"
 
-channel.send(encodeMessage(message))
+const encoded = encodeMessage(message)
+channel.send(encoded)
 
 // ... somewhere on the client:
 import { decodeMessage } from "@javelin/net"
@@ -85,18 +86,16 @@ Write an attach operation for an entity and one or more components.
 
 Write an update operation for an entity and one or more of its components.
 
-### `patch(message: Message, entity: Entity, schema: Schema, changes: InstanceOfSchema<typeof ChangeSet>): void`
+### `patch(message: Message, entity: Entity, changes: InstanceOfSchema<typeof ChangeSet>): void`
 
-Write a patch operation (derived from [`observer`](/ecs/change-detection)) for the component type of an entity. The following example demonstrates writing changes made to players' `Body` components to a message:
+Write the changes stored in a [`ChangeSet`](/ecs/change-detection) for an entity.
 
 ```ts
-const sysPatchBodies = () => {
-  const { changesOf } = useObserve()
-  players((entity, [body]) => {
-    const message = messageOf(entity)
-    patch(message, entity, Body, changesOf(body))
+const sysPatchBodies = () =>
+  players((entity, [body, changes]) => {
+    const message = getEntityMessage(entity)
+    patch(message, entity, changes)
   })
-}
 ```
 
 ### `detach(message: Message, entity: Entity, components: Component[]): void`

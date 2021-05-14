@@ -119,6 +119,8 @@ const sysPhysics = () =>
   </p>
 </aside>
 
+### Binding Queries
+
 By default, queries will resolve entities and components of the world that is currently mid-tick. If you need to run a query against a specific world (i.e., outside of a system), you can bind a query to a specific world using the `bind` method:
 
 ```ts
@@ -130,9 +132,10 @@ qryBodiesBound(e => {})
 You can use a query's `test` method to check if an entity would match that query.
 
 ```ts
-// within a system
-qryBodies.test(e)
+qryBodies.test(e) // -> true
 ```
+
+### Result Ordering
 
 The order of component types in the query's selector will match the order of components in the query's results. That is, `createQuery(Position, Player)` will always yield tuples of components `(Position, Player)`:
 
