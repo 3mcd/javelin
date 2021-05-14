@@ -8,67 +8,46 @@ Change detection is often useful, but very difficult to do performantly. Javelin
 Fortunately for us, a change cache can be represented as a component! You can attach a component to an entity that stores changes using the built-in `ChangeSet` component type:
 
 ```ts
-import { ChangeSet } from "@javelin/ecs"
+import { ChangeSet } from "@javelin/track"
 world.attach(entity, ChangeSet)
 ```
 
 ## Tracking Changes
 
-Retreive an entity's change set just like any other component type: using queries!
+Retreive an entity's change set just like any other component type: using queries.
 
 ```ts
-const qryBodiesWChanges = createQuery(Position, Velocity, ChangeSet)
+const qryTrackedBodies = createQuery(Position, Velocity, ChangeSet)
 const sysTrack = () => {
-  qryBodiesWChanges((e, [position, velocity, changes]) => {
+  qryTrackedBodies((e, [p, v, changes]) => {
     // ...
   })
 }
 ```
 
-You can write changes to the change set using the `track` function:
+`@javelin/track` exports functions that correspond to various object mutations, like `set` for property assignment:
 
 ```ts
-import { track } from "@javelin/ecs"
-
-qryBodiesWChanges((e, [position, velocity, changes]) => {
-  track(changes, position, "x", (position.x += velocity.x))
+import { track } from "@javelin/track"
+qryTrackedBodies((e, [p, v, changes]) => {
+  set(p, changes, "x", p.x + v.x)
+  set(p, changes, "y", p.y + v.y)
 })
 ```
 
-<aside>
-  <p>
-    <strong>Tip</strong> — each call to `track` writes an operation to the cache. However, `track` doesn't actually perform the specified mutation. This means you must mutate your component directly, then write the updated state to the change set component.
-  </p>
-</aside>
-
-You can easily extract this logic to helper functions to make your systems cleaner:
-
-```ts
-const applyBodyMotion = (
-  changes: ComponentOf<typeof ChangeSet>,
-  position: ComponentOf<typeof Position>,
-  velocity: ComponentOf<typeof Velocity>,
-) => {
-  track(changes, position, "x", (position.x += velocity.x))
-  track(changes, position, "y", (position.y += velocity.y))
-}
-```
-
-### Nested Changes
-
-`track` also handles paths to deeply nested properties.
+These functions both perform the specified operation and record the change to the `ChangeSet` component. They also handle paths to deeply nested properties.
 
 ```ts
 const sword = 55
-track(changes, inventory, "bags.0.1", sword)
+set(inventory, changes, "bags.0.1", sword)
 ```
 
-`track` will overwrite previous changes made to the same key. In this way, they only hold onto the most recent changes made to a component.
+`set` overwrites the previous changes made to the same key. This means they only hold onto the most recent changes made to a component.
 
 ```ts
 const bow = 56
-track(changes, inventory, "bags.0.1", sword)
-track(changes, inventory, "bags.0.1", bow)
+set(inventory, changes, "bags.0.1", sword)
+set(inventory, changes, "bags.0.1", bow)
 ```
 
 In the above example, the entity's `ChangeSet` component would look like:
@@ -97,9 +76,9 @@ TODO
 A `ChangeSet` can also track common array mutations, like push and pop:
 
 ```ts
-const { trackPush, trackPop, changesOf } = observer
-trackPush(changes, inventory, "bags.0", sword)
-trackPop(changes, inventory, "bags.0")
+import { push, pop } from "@javelin/track"
+push(inventory, changes, "bags.0", sword)
+pop(inventory, changes, "bags.0")
 ```
 
 ```ts
@@ -124,4 +103,4 @@ trackPop(changes, inventory, "bags.0")
 }
 ```
 
-Other functions include `trackSplice`, `trackShift`, and `trackUnshift`.
+Other functions include `splice`, `shift`, and `unshift` for arrays, `add` and `delete` for sets and maps.

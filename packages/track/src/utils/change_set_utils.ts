@@ -1,11 +1,12 @@
-import { Component, ComponentOf, UNSAFE_internals } from "@javelin/ecs"
 import {
+  $struct,
   createStackPool,
   InstanceOfSchema,
   ModelNode,
-  ModelNodeKind,
   mutableEmpty,
+  SchemaKeyKind,
 } from "@javelin/core"
+import { Component, UNSAFE_internals } from "@javelin/ecs"
 import {
   ChangeSet,
   ChangeSetArrayOp,
@@ -21,7 +22,7 @@ const recordLookup: Record<
 const arrayOpPool = createStackPool<InstanceOfSchema<typeof ChangeSetArrayOp>>(
   () => ({
     method: -1,
-    record: (null as unknown) as InstanceOfSchema<typeof ChangeSetRecord>,
+    record: null as unknown as InstanceOfSchema<typeof ChangeSetRecord>,
     values: [],
     index: -1,
     insert: -1,
@@ -29,7 +30,7 @@ const arrayOpPool = createStackPool<InstanceOfSchema<typeof ChangeSetArrayOp>>(
   }),
   op => {
     op.method = -1
-    op.record = (null as unknown) as InstanceOfSchema<typeof ChangeSetRecord>
+    op.record = null as unknown as InstanceOfSchema<typeof ChangeSetRecord>
     mutableEmpty(op.values)
     return op
   },
@@ -50,12 +51,12 @@ const getRecord = (component: Component, path: string) => {
     for (let i = 0; i < split.length; i++) {
       const sub = split[i]
       switch (node.kind) {
-        case ModelNodeKind.Array:
-        case ModelNodeKind.Map:
+        case SchemaKeyKind.Array:
+        case SchemaKeyKind.Object:
           node = node.edge
           traverse.push(sub)
           break
-        case ModelNodeKind.Struct:
+        case $struct:
           node = node.keys[sub]
           break
       }
@@ -267,10 +268,8 @@ export function push(
 ) {
   const record = getRecord(component, path)
   const { split } = record
-  const end = split.length
-  let i: number
   let o: any = component
-  for (i = 0; i < end; i++) {
+  for (let i = 0, end = split.length; i < end; i++) {
     o = o[split[i]]
   }
   const changes = getOrCreateChanges(changeset, component.__type__)
@@ -281,7 +280,7 @@ export function push(
     index: -1,
     remove: 0,
   }
-  for (let i = 2; i < arguments.length; i++) {
+  for (let i = 3; i < arguments.length; i++) {
     const value = arguments[i]
     o.push(value)
     arrayOp.values.push(value)

@@ -1,11 +1,12 @@
-import { Component, createEffect, World, WorldInternal } from "@javelin/ecs"
 import {
+  $struct,
   assert,
   ErrorType,
   Model,
   ModelNode,
-  ModelNodeKind,
+  SchemaKeyKind,
 } from "@javelin/core"
+import { Component, createEffect, World, WorldInternal } from "@javelin/ecs"
 import { decode, DecodeMessageHandlers } from "./decode"
 
 function assertWorldInternal<T>(
@@ -95,13 +96,16 @@ export const createMessageHandler = (world: World) => {
           ref = ref[key]
         }
         switch (node.kind) {
-          case ModelNodeKind.Primitive:
+          case SchemaKeyKind.Primitive:
             throw new Error(ERROR_PATCH_NO_MATCH)
-          case ModelNodeKind.Array:
+          case SchemaKeyKind.Array:
+          case SchemaKeyKind.Object:
+          case SchemaKeyKind.Set:
+          case SchemaKeyKind.Map:
             key = traverse[traverseIndex++]
             node = node.edge
             continue
-          case ModelNodeKind.Struct:
+          case $struct:
             for (let i = 0; i < node.edges.length; i++) {
               const child = node.edges[i]
               if (child.lo <= field && child.hi >= field) {
@@ -116,7 +120,7 @@ export const createMessageHandler = (world: World) => {
       }
       assert(key !== null, "", ErrorType.Internal)
       assert(
-        node.kind === ModelNodeKind.Primitive,
+        node.kind === SchemaKeyKind.Primitive,
         ERROR_PATCH_UNSUPPORTED_TYPE,
       )
       ref[key] = value

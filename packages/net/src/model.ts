@@ -1,4 +1,5 @@
 import {
+  $struct,
   arrayOf,
   assert,
   createModel,
@@ -6,9 +7,9 @@ import {
   ErrorType,
   Model,
   ModelNode,
-  ModelNodeKind,
   Schema,
   SchemaKey,
+  SchemaKeyKind,
 } from "@javelin/core"
 import {
   boolean,
@@ -63,19 +64,25 @@ function getDataTypeId(field: DataType) {
 
 function encodeModelNode(node: ModelNode, out: number[], offset: number = 0) {
   switch (node.kind) {
-    case ModelNodeKind.Primitive:
+    case SchemaKeyKind.Primitive:
       out.push(getDataTypeId(node.type))
       offset++
       break
-    case ModelNodeKind.Array:
+    case SchemaKeyKind.Array:
       out.push(ARRAY)
       offset++
       offset = encodeModelNode(node.edge, out, offset)
       break
-    // TODO: support map
-    case ModelNodeKind.Map:
+    // TODO: support object
+    case SchemaKeyKind.Object:
       break
-    case ModelNodeKind.Struct: {
+    // TODO: support set
+    case SchemaKeyKind.Set:
+      break
+    // TODO: support map
+    case SchemaKeyKind.Map:
+      break
+    case $struct: {
       const length = node.edges.length
       out.push(length | SCHEMA_MASK)
       offset++

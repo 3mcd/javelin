@@ -1,4 +1,9 @@
-import { ModelNode, ModelNodeKind, ModelNodeStruct } from "@javelin/core"
+import {
+  $struct,
+  ModelNode,
+  ModelNodeStruct,
+  SchemaKeyKind,
+} from "@javelin/core"
 import { dataTypeToView, uint32, View } from "./views"
 
 type Field = View & { length?: number }
@@ -35,20 +40,20 @@ export function serialize(
   offset = 0,
 ) {
   switch (node.kind) {
-    case ModelNodeKind.Primitive:
+    case SchemaKeyKind.Primitive:
       offset += pushBufferField(out, dataTypeToView(node.type), object)
       break
-    case ModelNodeKind.Array: {
+    case SchemaKeyKind.Array: {
       offset += pushArrayLengthField(out, object.length)
       for (let i = 0; i < object.length; i++) {
         offset = serialize(out, node.edge, object[i], offset)
       }
       break
     }
-    case ModelNodeKind.Map:
+    case SchemaKeyKind.Object:
       // TODO: support map
       break
-    case ModelNodeKind.Struct:
+    case $struct:
       for (let i = 0; i < node.edges.length; i++) {
         const edge = node.edges[i]
         offset = serialize(out, edge, object[edge.key], offset)
@@ -97,7 +102,7 @@ const deserialize = (
   let child: any
 
   switch (node.kind) {
-    case ModelNodeKind.Primitive:
+    case SchemaKeyKind.Primitive:
       offset = decodeProperty(
         object,
         key,
@@ -106,7 +111,7 @@ const deserialize = (
         offset,
       )
       break
-    case ModelNodeKind.Array: {
+    case SchemaKeyKind.Array: {
       const length = uint32.read(bufferView, offset, 0)
       offset += uint32.byteLength
       child = [] as any[]
@@ -116,9 +121,9 @@ const deserialize = (
       break
     }
     // TODO: support map
-    case ModelNodeKind.Map:
+    case SchemaKeyKind.Object:
       break
-    case ModelNodeKind.Struct: {
+    case $struct: {
       child = {}
       for (let i = 0; i < node.edges.length; i++) {
         const edge = node.edges[i]

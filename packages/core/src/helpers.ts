@@ -20,7 +20,7 @@ export function initialize<S extends Schema>(
       object[prop] = value.create()
     } else if (value.__kind__ === SchemaKeyKind.Array) {
       object[prop] = [] as InstanceOfSchemaKey<any>
-    } else if (value.__kind__ === SchemaKeyKind.Map) {
+    } else if (value.__kind__ === SchemaKeyKind.Object) {
       object[prop] = {} as InstanceOfSchemaKey<any>
     } else {
       object[prop] = initialize({}, value as Schema) as InstanceOfSchemaKey<any>

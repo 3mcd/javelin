@@ -1,13 +1,13 @@
-import { Component, Entity } from "@javelin/ecs"
 import {
   $flat,
   assert,
   createStackPool,
   InstanceOfSchema,
   Model,
-  ModelNodeKind,
   mutableEmpty,
+  SchemaKeyKind,
 } from "@javelin/core"
+import { Component, Entity } from "@javelin/ecs"
 import {
   dataTypeToView,
   encode,
@@ -168,7 +168,7 @@ export function patch(
       }
       const node = componentSchema[record.field]
       assert(
-        node.kind === ModelNodeKind.Primitive,
+        node.kind === SchemaKeyKind.Primitive,
         "Failed to encode patch: only primitive field mutations are currently supported",
       )
       insert(op, record.field, uint8)

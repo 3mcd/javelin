@@ -1,12 +1,12 @@
-import { Component } from "@javelin/ecs"
 import {
   $flat,
   assert,
   ErrorType,
   Model,
-  ModelNodeKind,
   mutableEmpty,
+  SchemaKeyKind,
 } from "@javelin/core"
+import { Component } from "@javelin/ecs"
 import {
   dataTypeToView,
   decode as decodePack,
@@ -114,7 +114,7 @@ function decodePatch(
         }
         const node = componentSchema[field]
         assert(
-          node.kind === ModelNodeKind.Primitive,
+          node.kind === SchemaKeyKind.Primitive,
           "Failed to decode patch: only primitive field mutations are currently supported",
         )
         const view = dataTypeToView(node.type)

@@ -1,10 +1,13 @@
 import { assert, ErrorType } from "./debug"
 
 export const $flat = Symbol("javelin_model_flat")
+export const $struct = Symbol("javelin_model_struct")
 
 export enum SchemaKeyKind {
   Primitive,
   Array,
+  Object,
+  Set,
   Map,
   Dynamic,
 }
@@ -25,12 +28,22 @@ export type ArrayType<E extends SchemaKey = SchemaKey> = {
   __kind__: SchemaKeyKind.Array
   __type__: E
 }
+export type ObjectType<E extends SchemaKey = SchemaKey> = {
+  __kind__: SchemaKeyKind.Object
+  __type__: E
+}
+export type SetType<E extends SchemaKey = SchemaKey> = {
+  __kind__: SchemaKeyKind.Set
+  __type__: E
+}
 export type MapType<E extends SchemaKey = SchemaKey> = {
   __kind__: SchemaKeyKind.Map
   __type__: E
+  __key__: DataTypeNumber | DataTypeString
 }
 export type DynamicType = {
   __kind__: SchemaKeyKind.Dynamic
+  __type__: SchemaKey
 }
 export type DataTypeNumber = DataType<number>
 export type DataTypeString = DataType<string>
@@ -61,21 +74,37 @@ export const boolean: DataTypeBoolean = {
 
 export const dynamic: DynamicType = {
   __kind__: SchemaKeyKind.Dynamic,
+  __type__: boolean,
 }
 
 export const arrayOf = <E extends SchemaKey>(element: E): ArrayType<E> => ({
   __kind__: SchemaKeyKind.Array,
   __type__: element,
 })
-export const mapOf = <E extends SchemaKey>(element: E): MapType<E> => ({
+export const objectOf = <E extends SchemaKey>(element: E): ObjectType<E> => ({
+  __kind__: SchemaKeyKind.Object,
+  __type__: element,
+})
+export const mapOf = <
+  E extends SchemaKey,
+  K extends DataTypeNumber | DataTypeString,
+>(
+  element: E,
+  key: K,
+): MapType<E> => ({
   __kind__: SchemaKeyKind.Map,
+  __type__: element,
+  __key__: key,
+})
+export const setOf = <E extends SchemaKey>(element: E) => ({
+  __kind__: SchemaKeyKind.Set,
   __type__: element,
 })
 
 export type SchemaKey =
   | DataType
   | ArrayType<any>
-  | MapType<any>
+  | ObjectType<any>
   | DynamicType
   | Schema
 export type Schema = {
@@ -86,7 +115,7 @@ export type InstanceOfSchemaKey<K extends SchemaKey> = K extends ArrayType<
   infer T
 >
   ? ExtractSchemaKeyType<T>[]
-  : K extends MapType<infer T>
+  : K extends ObjectType<infer T>
   ? Record<string, ExtractSchemaKeyType<T>>
   : ExtractSchemaKeyType<K> // everything else
 
@@ -107,6 +136,11 @@ export const isPrimitiveType = (object: object): object is DataType =>
   (object as DataType).__kind__ === SchemaKeyKind.Primitive
 export const isArrayType = (object: object): object is ArrayType =>
   "__kind__" in object && (object as ArrayType).__kind__ === SchemaKeyKind.Array
+export const isObjectType = (object: object): object is ObjectType =>
+  "__kind__" in object &&
+  (object as ObjectType).__kind__ === SchemaKeyKind.Object
+export const isSetType = (object: object): object is SetType =>
+  "__kind__" in object && (object as SetType).__kind__ === SchemaKeyKind.Set
 export const isMapType = (object: object): object is MapType =>
   "__kind__" in object && (object as MapType).__kind__ === SchemaKeyKind.Map
 export const isDynamicType = (object: object): object is DynamicType =>
@@ -114,18 +148,11 @@ export const isDynamicType = (object: object): object is DynamicType =>
   (object as DynamicType).__kind__ === SchemaKeyKind.Dynamic
 
 export type ModelConfig = Map<number, Schema>
-export enum ModelNodeKind {
-  Primitive,
-  Struct,
-  Array,
-  Map,
-  Dynamic,
-}
 export type ModelNodeBase = {
   id: number
   lo: number
   hi: number
-  kind: ModelNodeKind
+  kind: SchemaKeyKind | typeof $struct
   inCollection: boolean
 }
 export type ModelNodeStructDescendant = ModelNode & {
@@ -135,29 +162,38 @@ export type ModelNodeCollection = ModelNodeBase & {
   edge: ModelNode
 }
 export type ModelNodeArray = ModelNodeCollection & {
-  kind: ModelNodeKind.Array
+  kind: SchemaKeyKind.Array
+}
+export type ModelNodeObject = ModelNodeCollection & {
+  kind: SchemaKeyKind.Object
+}
+export type ModelNodeSet = ModelNodeCollection & {
+  kind: SchemaKeyKind.Set
 }
 export type ModelNodeMap = ModelNodeCollection & {
-  kind: ModelNodeKind.Map
+  key: DataTypeNumber | DataTypeString
+  kind: SchemaKeyKind.Map
 }
 export type ModelNodeStruct = ModelNodeBase & {
   edges: ModelNodeStructDescendant[]
   idsByKey: { [key: string]: number }
   keys: { [key: string]: ModelNodeStructDescendant }
-  kind: ModelNodeKind.Struct
+  kind: typeof $struct
 }
 export type ModelNodePrimitive = ModelNodeBase & {
   type: DataType
-  kind: ModelNodeKind.Primitive
+  kind: SchemaKeyKind.Primitive
 }
 export type ModelNodeDynamic = ModelNodeBase & {
-  kind: ModelNodeKind.Dynamic
+  kind: SchemaKeyKind.Dynamic
 }
 export type ModelNode =
+  | ModelNodePrimitive
   | ModelNodeArray
+  | ModelNodeObject
+  | ModelNodeSet
   | ModelNodeMap
   | ModelNodeStruct
-  | ModelNodePrimitive
   | ModelNodeDynamic
 
 export type ModelFlat = { [typeId: number]: { [field: number]: ModelNode } }
@@ -178,58 +214,37 @@ export const insertNode = (
   key?: string,
 ) => {
   const id = ++ids
-
-  let kind: ModelNodeKind
-  switch (type.__kind__) {
-    case SchemaKeyKind.Array:
-      kind = ModelNodeKind.Array
-      break
-    case SchemaKeyKind.Map:
-      kind = ModelNodeKind.Map
-      break
-    case SchemaKeyKind.Primitive:
-      kind = ModelNodeKind.Primitive
-      break
-    case SchemaKeyKind.Dynamic:
-      kind = ModelNodeKind.Dynamic
-      break
-    default:
-      kind = ModelNodeKind.Struct
-      break
-  }
-
+  const kind = "__kind__" in type ? (type.__kind__ as SchemaKeyKind) : $struct
   const base: ModelNodeBase = {
     id,
     lo: id,
     hi: -1,
     inCollection:
       target.inCollection ||
-      target.kind === ModelNodeKind.Array ||
-      target.kind === ModelNodeKind.Map,
+      target.kind === SchemaKeyKind.Array ||
+      target.kind === SchemaKeyKind.Object ||
+      target.kind === SchemaKeyKind.Set ||
+      target.kind === SchemaKeyKind.Map,
     kind,
   }
 
-  let node: ModelNode | ModelNodeStructDescendant
+  let node: ModelNode
 
-  if (isPrimitiveType(type)) {
-    node = { ...base, kind: ModelNodeKind.Primitive, type }
-  } else if (isArrayType(type)) {
-    node = { ...base, kind: ModelNodeKind.Array } as ModelNodeArray
-    ids = insertNode(node, type.__type__, ids)
-  } else if (isMapType(type)) {
-    node = { ...base, kind: ModelNodeKind.Map } as ModelNodeMap
-    ids = insertNode(node, type.__type__, ids)
-  } else if (isDynamicType(type)) {
-    node = { ...base, kind: ModelNodeKind.Dynamic }
-  } else {
+  if (kind === $struct) {
     node = {
       ...base,
-      kind: ModelNodeKind.Struct,
       edges: [],
       keys: {},
       idsByKey: {},
-    }
+    } as ModelNodeStruct
     ids = collate(type as Schema, node, ids)
+  } else {
+    if (isPrimitiveType(type)) {
+      node = { ...base, type } as ModelNode
+    } else {
+      node = { ...base } as ModelNode
+      ids = insertNode(node, type.__type__, ids)
+    }
   }
 
   node.hi = ids
@@ -237,7 +252,7 @@ export const insertNode = (
   if (key) {
     ;(node as ModelNodeStructDescendant).key = key
     assert(
-      target.kind === ModelNodeKind.Struct,
+      target.kind === $struct,
       "expected target node to be struct",
       ErrorType.Internal,
     )
@@ -247,7 +262,10 @@ export const insertNode = (
     target.idsByKey[node.key] = id
   } else {
     assert(
-      target.kind === ModelNodeKind.Array || target.kind === ModelNodeKind.Map,
+      target.kind === SchemaKeyKind.Array ||
+        target.kind === SchemaKeyKind.Object ||
+        target.kind === SchemaKeyKind.Set ||
+        target.kind === SchemaKeyKind.Map,
       "expected target node to be collection",
       ErrorType.Internal,
     )
@@ -279,7 +297,7 @@ const getModelRoot = (): ModelNodeStruct => ({
   idsByKey: {},
   inCollection: false,
   keys: {},
-  kind: ModelNodeKind.Struct,
+  kind: $struct,
 })
 
 /**
@@ -310,11 +328,13 @@ export const flattenModelNode = (
 ) => {
   flat[node.id] = node
   switch (node.kind) {
-    case ModelNodeKind.Array:
-    case ModelNodeKind.Map:
+    case SchemaKeyKind.Array:
+    case SchemaKeyKind.Object:
+    case SchemaKeyKind.Set:
+    case SchemaKeyKind.Map:
       flattenModelNode(node.edge, flat)
       break
-    case ModelNodeKind.Struct:
+    case $struct:
       for (let i = 0; i < node.edges.length; i++) {
         flattenModelNode(node.edges[i], flat)
       }
