@@ -24,9 +24,9 @@ const arrayOpPool = createStackPool<InstanceOfSchema<typeof ChangeSetArrayOp>>(
     method: -1,
     record: null as unknown as InstanceOfSchema<typeof ChangeSetRecord>,
     values: [],
-    index: -1,
+    start: -1,
     insert: -1,
-    remove: -1,
+    deleteCount: -1,
   }),
   op => {
     op.method = -1
@@ -179,8 +179,8 @@ export function trackSplice(
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Splice
-  arrayOp.index = index
-  arrayOp.remove = remove
+  arrayOp.start = index
+  arrayOp.deleteCount = remove
   for (let i = 2; i < arguments.length; i++) {
     arrayOp.values.push(arguments[i])
   }
@@ -277,8 +277,8 @@ export function push(
     values: [],
     record,
     method: MutArrayMethod.Push,
-    index: -1,
-    remove: 0,
+    start: -1,
+    deleteCount: 0,
   }
   for (let i = 3; i < arguments.length; i++) {
     const value = arguments[i]
@@ -306,8 +306,8 @@ export function pop(
     values: [],
     record,
     method: MutArrayMethod.Pop,
-    index: -1,
-    remove: 0,
+    start: -1,
+    deleteCount: 0,
   }
   ;(o as unknown[]).pop()
   changeset.length++
@@ -331,8 +331,8 @@ export function unshift(
     values: [],
     record,
     method: MutArrayMethod.Unshift,
-    index: -1,
-    remove: 0,
+    start: -1,
+    deleteCount: 0,
   }
   for (let i = 3; i < arguments.length; i++) {
     const value = arguments[i]
@@ -360,8 +360,8 @@ export function shift(
     values: [],
     record,
     method: MutArrayMethod.Shift,
-    index: -1,
-    remove: 0,
+    start: -1,
+    deleteCount: 0,
   }
   ;(o as unknown[]).shift()
   changeset.length++
@@ -387,8 +387,8 @@ export function splice(
     values: [],
     record,
     method: MutArrayMethod.Splice,
-    index: start,
-    remove: deleteCount,
+    start,
+    deleteCount,
   }
   for (let i = 5; i < arguments.length; i++) {
     arrayOp.values.push(arguments[i])

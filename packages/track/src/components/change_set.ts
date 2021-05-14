@@ -18,8 +18,8 @@ export const ChangeSetArrayOp = {
   method: number,
   record: ChangeSetRecord,
   values: arrayOf(dynamic),
-  index: number,
-  remove: number,
+  start: number,
+  deleteCount: number,
 }
 
 export const ChangeSet = {
