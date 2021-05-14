@@ -77,7 +77,7 @@ describe("message_op", () => {
   it("creates update ops", () => runSnapshotOpTest(update, model))
   it("creates patch ops", () => {
     const entity = 0
-    const changeSet = initialize(
+    const changeset = initialize(
       {} as InstanceOfSchema<typeof ChangeSet>,
       ChangeSet,
     )
@@ -89,16 +89,16 @@ describe("message_op", () => {
       [velocity, "x", 3.3333333],
       [velocity, "y", 1.1],
     ]
-    tracks.forEach(args => track(changeSet, ...args))
-    const op = patch(model, entity, changeSet)
+    tracks.forEach(args => track(changeset, ...args))
+    const op = patch(model, entity, changeset)
     expect(op.data[0]).toBe(entity)
     expect(op.view[0]).toBe(uint32)
-    expect(op.data[1]).toBe(changeSet.length)
+    expect(op.data[1]).toBe(changeset.length)
     expect(op.view[1]).toBe(uint8)
     let j = 2
-    for (const prop in changeSet.changes) {
+    for (const prop in changeset.changes) {
       const schemaId = +prop
-      const { fields, fieldCount, arrayCount } = changeSet.changes[schemaId]
+      const { fields, fieldCount, arrayCount } = changeset.changes[schemaId]
       expect(op.data[j]).toBe(schemaId)
       expect(op.view[j]).toBe(uint8)
       j++

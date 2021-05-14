@@ -38,14 +38,13 @@ const arrayOpPool = createStackPool<InstanceOfSchema<typeof ChangeSetArrayOp>>(
 
 const getRecord = (component: Component, path: string) => {
   const { __type__: type } = component
-  const root = UNSAFE_internals.model[type]
   let records = recordLookup[type]
   if (records === undefined) {
     records = recordLookup[type] = {}
   }
   let record = records[path]
   if (record === undefined) {
-    let node: ModelNode = root
+    let node: ModelNode = UNSAFE_internals.model[type]
     const traverse: string[] = []
     const split = path.split(PATH_DELIMITER)
     for (let i = 0; i < split.length; i++) {
@@ -67,12 +66,12 @@ const getRecord = (component: Component, path: string) => {
 }
 
 function getOrCreateChanges(
-  changeSet: InstanceOfSchema<typeof ChangeSet>,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
   schemaId: number,
 ) {
-  let changes = changeSet.changes[schemaId]
+  let changes = changeset.changes[schemaId]
   if (changes === undefined) {
-    changes = changeSet.changes[schemaId] = {
+    changes = changeset.changes[schemaId] = {
       fields: {},
       array: [],
       fieldCount: 0,
@@ -83,98 +82,99 @@ function getOrCreateChanges(
 }
 
 export const track = (
-  changeSet: InstanceOfSchema<typeof ChangeSet>,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
   component: Component,
   path: string,
   value: unknown,
 ) => {
-  const changes = getOrCreateChanges(changeSet, component.__type__)
+  const changes = getOrCreateChanges(changeset, component.__type__)
   const change = changes.fields[path]
+  const record = getRecord(component, path)
   if (change !== undefined) {
     if (change.noop) {
       change.noop = false
       changes.fieldCount++
-      changeSet.length++
+      changeset.length++
     }
     change.value = value
   } else {
-    const record = getRecord(component, path)
     changes.fieldCount++
-    changeSet.length++
+    changeset.length++
     changes.fields[path] = { record, value, noop: false }
   }
+  return record
 }
 
 export const trackPop = (
-  changeSet: InstanceOfSchema<typeof ChangeSet>,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
   component: Component,
   path: string,
 ) => {
-  const changes = getOrCreateChanges(changeSet, component.__type__)
+  const changes = getOrCreateChanges(changeset, component.__type__)
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Pop
-  changeSet.length++
+  changeset.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
 }
 
 export function trackPush(
-  changeSet: InstanceOfSchema<typeof ChangeSet>,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
   component: Component,
   path: string,
 ) {
-  const changes = getOrCreateChanges(changeSet, component.__type__)
+  const changes = getOrCreateChanges(changeset, component.__type__)
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Push
   for (let i = 2; i < arguments.length; i++) {
     arrayOp.values.push(arguments[i])
   }
-  changeSet.length++
+  changeset.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
 }
 
 export const trackShift = (
-  changeSet: InstanceOfSchema<typeof ChangeSet>,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
   component: Component,
   path: string,
 ) => {
-  const changes = getOrCreateChanges(changeSet, component.__type__)
+  const changes = getOrCreateChanges(changeset, component.__type__)
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Shift
-  changeSet.length++
+  changeset.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
 }
 
 export function trackUnshift(
-  changeSet: InstanceOfSchema<typeof ChangeSet>,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
   component: Component,
   path: string,
 ) {
-  const changes = getOrCreateChanges(changeSet, component.__type__)
+  const changes = getOrCreateChanges(changeset, component.__type__)
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Unshift
   for (let i = 2; i < arguments.length; i++) {
     arrayOp.values.push(arguments[i])
   }
-  changeSet.length++
+  changeset.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
 }
 
 export function trackSplice(
-  changeSet: InstanceOfSchema<typeof ChangeSet>,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
   component: Component,
   path: string,
   index: number,
   remove: number,
 ) {
-  const changes = getOrCreateChanges(changeSet, component.__type__)
+  const changes = getOrCreateChanges(changeset, component.__type__)
   const arrayOp = arrayOpPool.retain()
   arrayOp.record = getRecord(component, path)
   arrayOp.method = MutArrayMethod.Splice
@@ -183,14 +183,14 @@ export function trackSplice(
   for (let i = 2; i < arguments.length; i++) {
     arrayOp.values.push(arguments[i])
   }
-  changeSet.length++
+  changeset.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
 }
 
-export function reset(changeSet: InstanceOfSchema<typeof ChangeSet>) {
-  for (const prop in changeSet.changes) {
-    const changes = changeSet.changes[prop]
+export function reset(changeset: InstanceOfSchema<typeof ChangeSet>) {
+  for (const prop in changeset.changes) {
+    const changes = changeset.changes[prop]
     const { array, fields } = changes
     let arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> | undefined
     while ((arrayOp = array.pop())) {
@@ -202,7 +202,7 @@ export function reset(changeSet: InstanceOfSchema<typeof ChangeSet>) {
     changes.fieldCount = 0
     changes.arrayCount = 0
   }
-  changeSet.length = 0
+  changeset.length = 0
 }
 
 export function copy(
@@ -242,4 +242,51 @@ export function copy(
     }
   }
   return to
+}
+
+export function set(
+  component: Component,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
+  path: string,
+  value: unknown,
+) {
+  const { split } = track(changeset, component, path, value)
+  const end = split.length - 1
+  let i: number
+  let o: any = component
+  for (i = 0; i < end; i++) {
+    o = o[split[i]]
+  }
+  o[split[i]] = value
+}
+
+export function push(
+  component: Component,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
+  path: string,
+) {
+  const record = getRecord(component, path)
+  const { split } = record
+  const end = split.length
+  let i: number
+  let o: any = component
+  for (i = 0; i < end; i++) {
+    o = o[split[i]]
+  }
+  const changes = getOrCreateChanges(changeset, component.__type__)
+  const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
+    values: [],
+    record,
+    method: MutArrayMethod.Push,
+    index: -1,
+    remove: 0,
+  }
+  for (let i = 2; i < arguments.length; i++) {
+    const value = arguments[i]
+    o.push(value)
+    arrayOp.values.push(value)
+  }
+  changeset.length++
+  changes.arrayCount++
+  changes.array.push(arrayOp)
 }

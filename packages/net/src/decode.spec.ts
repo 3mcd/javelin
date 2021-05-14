@@ -79,13 +79,13 @@ describe("decode", () => {
     const model = createModel(config)
     const message = createMessage()
     const entity = 0
-    const changeSet = initialize(
+    const changeset = initialize(
       {} as InstanceOfSchema<typeof ChangeSet>,
       ChangeSet,
     )
-    track(changeSet, position, "x", -12.6666666)
-    track(changeSet, velocity, "y", 44)
-    const op = MessageOp.patch(model, entity, changeSet)
+    track(changeset, position, "x", -12.6666666)
+    track(changeset, velocity, "y", 44)
+    const op = MessageOp.patch(model, entity, changeset)
     insert(message, MessagePartKind.Patch, op)
     const encoded = encode(message)
     const results: Parameters<Required<DecodeMessageHandlers>["onPatch"]>[] = []

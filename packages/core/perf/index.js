@@ -46,10 +46,10 @@ while (i++ < n) {
   observed.y = instance.y + 1
   //   observed.inventory[0].stats.speed = 10
   //   observed.inventory[1].name = "hi"
-  //   observed.inventory.push({
-  //     name: "spaghetti",
-  //     stats: { damage: 1000, speed: 0 },
-  //   })
+  observed.inventory.push({
+    name: "spaghetti",
+    stats: { damage: 1000, speed: 0 },
+  })
   //   observed.inventory.splice(0, 1)
 }
 

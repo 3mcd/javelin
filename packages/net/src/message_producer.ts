@@ -52,15 +52,15 @@ export const createMessageProducer = (
     nextChangeSet: InstanceOfSchema<typeof ChangeSet>,
     priority = Infinity,
   ) => {
-    let changeSet = entityChangeSets.get(entity)
-    if (changeSet === undefined) {
-      changeSet = initialize(
+    let changeset = entityChangeSets.get(entity)
+    if (changeset === undefined) {
+      changeset = initialize(
         {} as InstanceOfSchema<typeof ChangeSet>,
         ChangeSet,
       )
-      entityChangeSets.set(entity, changeSet)
+      entityChangeSets.set(entity, changeset)
     }
-    copy(nextChangeSet, changeSet)
+    copy(nextChangeSet, changeset)
     entityPriorities.set(entity, (entityPriorities.get(entity) ?? 0) + priority)
   }
   const detach = (entity: Entity, components: Component[]) =>
@@ -81,16 +81,16 @@ export const createMessageProducer = (
     )
     for (let i = 0; i < prioritized.length; i++) {
       const entity = prioritized[i]
-      const changeSet = entityChangeSets.get(entity)
-      if (changeSet !== undefined && changeSet.length > 0) {
+      const changeset = entityChangeSets.get(entity)
+      if (changeset !== undefined && changeset.length > 0) {
         if (message === null) {
           message = Message.createMessage()
         }
         assert(message !== null, ErrorType.Internal)
-        const op = MessageOp.patch(UNSAFE_internals.model, entity, changeSet)
+        const op = MessageOp.patch(UNSAFE_internals.model, entity, changeset)
         if (op.byteLength + message?.byteLength < maxByteLength) {
           Message.insert(message, Message.MessagePartKind.Patch, op)
-          reset(changeSet)
+          reset(changeset)
           entityPriorities.set(entity, 0)
         }
       }

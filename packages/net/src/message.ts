@@ -130,12 +130,12 @@ export function update(
 export function patch(
   message: Message,
   entity: Entity,
-  changeSet: InstanceOfSchema<typeof ChangeSet>,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
 ) {
   insert(
     message,
     MessagePartKind.Patch,
-    Ops.patch(UNSAFE_internals.model, entity, changeSet),
+    Ops.patch(UNSAFE_internals.model, entity, changeset),
   )
 }
 

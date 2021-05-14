@@ -142,22 +142,22 @@ export const update = snapshot
  * ]
  * @param model
  * @param entity
- * @param changeSet
+ * @param changeset
  * @returns MessageOp
  */
 export function patch(
   model: Model,
   entity: Entity,
-  changeSet: InstanceOfSchema<typeof ChangeSet>,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
 ): MessageOp {
   const op = messageOpPool.retain()
-  const count = changeSet.length
+  const count = changeset.length
   insert(op, entity, uint32)
   insert(op, count, uint8)
-  for (const prop in changeSet.changes) {
+  for (const prop in changeset.changes) {
     const schemaId = +prop
     const componentSchema = model[$flat][schemaId]
-    const changes = changeSet.changes[prop]
+    const changes = changeset.changes[prop]
     insert(op, schemaId, uint8)
     insert(op, changes.fieldCount, uint8)
     insert(op, changes.arrayCount, uint8)

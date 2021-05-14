@@ -12,7 +12,6 @@ export const ChangeSetArrayOp = {
   record: ChangeSetRecord,
   values: arrayOf(dynamic),
   index: number,
-  insert: number,
   remove: number,
 }
 
