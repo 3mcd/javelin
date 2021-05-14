@@ -282,9 +282,118 @@ export function push(
   }
   for (let i = 3; i < arguments.length; i++) {
     const value = arguments[i]
-    o.push(value)
+    ;(o as unknown[]).push(value)
     arrayOp.values.push(value)
   }
+  changeset.length++
+  changes.arrayCount++
+  changes.array.push(arrayOp)
+}
+
+export function pop(
+  component: Component,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
+  path: string,
+) {
+  const record = getRecord(component, path)
+  const { split } = record
+  let o: any = component
+  for (let i = 0, end = split.length; i < end; i++) {
+    o = o[split[i]]
+  }
+  const changes = getOrCreateChanges(changeset, component.__type__)
+  const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
+    values: [],
+    record,
+    method: MutArrayMethod.Pop,
+    index: -1,
+    remove: 0,
+  }
+  ;(o as unknown[]).pop()
+  changeset.length++
+  changes.arrayCount++
+  changes.array.push(arrayOp)
+}
+
+export function unshift(
+  component: Component,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
+  path: string,
+) {
+  const record = getRecord(component, path)
+  const { split } = record
+  let o: any = component
+  for (let i = 0, end = split.length; i < end; i++) {
+    o = o[split[i]]
+  }
+  const changes = getOrCreateChanges(changeset, component.__type__)
+  const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
+    values: [],
+    record,
+    method: MutArrayMethod.Unshift,
+    index: -1,
+    remove: 0,
+  }
+  for (let i = 3; i < arguments.length; i++) {
+    const value = arguments[i]
+    ;(o as unknown[]).unshift(value)
+    arrayOp.values.push(value)
+  }
+  changeset.length++
+  changes.arrayCount++
+  changes.array.push(arrayOp)
+}
+
+export function shift(
+  component: Component,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
+  path: string,
+) {
+  const record = getRecord(component, path)
+  const { split } = record
+  let o: any = component
+  for (let i = 0, end = split.length; i < end; i++) {
+    o = o[split[i]]
+  }
+  const changes = getOrCreateChanges(changeset, component.__type__)
+  const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
+    values: [],
+    record,
+    method: MutArrayMethod.Shift,
+    index: -1,
+    remove: 0,
+  }
+  ;(o as unknown[]).shift()
+  changeset.length++
+  changes.arrayCount++
+  changes.array.push(arrayOp)
+}
+
+export function splice(
+  component: Component,
+  changeset: InstanceOfSchema<typeof ChangeSet>,
+  path: string,
+  start: number,
+  deleteCount: number,
+) {
+  const record = getRecord(component, path)
+  const { split } = record
+  let o: any = component
+  for (let i = 0, end = split.length; i < end; i++) {
+    o = o[split[i]]
+  }
+  const changes = getOrCreateChanges(changeset, component.__type__)
+  const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
+    values: [],
+    record,
+    method: MutArrayMethod.Splice,
+    index: start,
+    remove: deleteCount,
+  }
+  for (let i = 5; i < arguments.length; i++) {
+    arrayOp.values.push(arguments[i])
+  }
+  ;(o as unknown[]).splice(start, deleteCount, ...arrayOp.values)
   changeset.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
