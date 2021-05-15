@@ -1,7 +1,7 @@
 import {
   $struct,
   ModelNode,
-  ModelNodeStruct,
+  ModelNodeSchema,
   SchemaKeyKind,
 } from "@javelin/core"
 import { dataTypeToView, uint32, View } from "./views"
@@ -64,7 +64,7 @@ export function serialize(
   return offset
 }
 
-export function encode(object: any, type: ModelNodeStruct): ArrayBuffer {
+export function encode(object: any, type: ModelNodeSchema): ArrayBuffer {
   const bufferFields: BufferField[] = []
   const bufferSize = serialize(bufferFields, type, object)
   const buffer = new ArrayBuffer(bufferSize)
@@ -140,7 +140,7 @@ const deserialize = (
   return offset
 }
 
-export function decode<T>(buffer: ArrayBuffer, type: ModelNodeStruct): T {
+export function decode<T>(buffer: ArrayBuffer, type: ModelNodeSchema): T {
   const bufferView = new DataView(buffer)
   const root = {}
 

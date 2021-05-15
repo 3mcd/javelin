@@ -92,39 +92,35 @@ function decodePatch(
   while (offset < end) {
     const entity = uint32.read(dataView, offset)
     offset += uint32.byteLength
-    const count = uint8.read(dataView, offset)
+    const schemaId = uint8.read(dataView, offset)
+    const componentSchema = model[$flat][schemaId]
     offset += uint8.byteLength
-    for (let i = 0; i < count; i++) {
-      const schemaId = uint8.read(dataView, offset)
-      const componentSchema = model[$flat][schemaId]
+    const fieldCount = uint8.read(dataView, offset)
+    offset += uint8.byteLength
+    const arrayCount = uint8.read(dataView, offset)
+    offset += uint8.byteLength
+    for (let j = 0; j < fieldCount; j++) {
+      const field = uint8.read(dataView, offset)
       offset += uint8.byteLength
-      const fieldCount = uint8.read(dataView, offset)
+      const traverseLength = uint8.read(dataView, offset)
       offset += uint8.byteLength
-      const arrayCount = uint8.read(dataView, offset)
-      offset += uint8.byteLength
-      for (let j = 0; j < fieldCount; j++) {
-        const field = uint8.read(dataView, offset)
-        offset += uint8.byteLength
-        const traverseLength = uint8.read(dataView, offset)
-        offset += uint8.byteLength
-        mutableEmpty(tmpTraverse)
-        for (let k = 0; k < traverseLength; k++) {
-          tmpTraverse.push(uint16.read(dataView, offset))
-          offset += uint16.byteLength
-        }
-        const node = componentSchema[field]
-        assert(
-          node.kind === SchemaKeyKind.Primitive,
-          "Failed to decode patch: only primitive field mutations are currently supported",
-        )
-        const view = dataTypeToView(node.type)
-        const value = view.read(dataView, offset)
-        offset += view.byteLength
-        onPatch?.(entity, schemaId, field, tmpTraverse, value)
+      mutableEmpty(tmpTraverse)
+      for (let k = 0; k < traverseLength; k++) {
+        tmpTraverse.push(uint16.read(dataView, offset))
+        offset += uint16.byteLength
       }
-      for (let j = 0; j < arrayCount; j++) {
-        // TODO: support mutating array methods
-      }
+      const node = componentSchema[field]
+      assert(
+        node.kind === SchemaKeyKind.Primitive,
+        "Failed to decode patch: only primitive field mutations are currently supported",
+      )
+      const view = dataTypeToView(node.type)
+      const value = view.read(dataView, offset)
+      offset += view.byteLength
+      onPatch?.(entity, schemaId, field, tmpTraverse, value)
+    }
+    for (let j = 0; j < arrayCount; j++) {
+      // TODO: support mutating array methods
     }
   }
 }
@@ -197,12 +193,14 @@ function getHandlerByMessagePartKind(
   switch (kind) {
     case MessagePartKind.Spawn:
       handler = handlers.onSpawn
-    case MessagePartKind.Spawn:
-      handler = handlers.onSpawn
-    case MessagePartKind.Spawn:
-      handler = handlers.onSpawn
+      break
+    case MessagePartKind.Attach:
+      handler = handlers.onAttach
+      break
+    case MessagePartKind.Update:
+      handler = handlers.onUpdate
+      break
   }
-  assert(handler !== undefined, "", ErrorType.Internal)
   return handler
 }
 
@@ -235,13 +233,10 @@ export function decode(
       case MessagePartKind.Attach:
       case MessagePartKind.Update:
         assert(model !== undefined, ERROR_MODEL_NOT_FOUND)
-        decodeEntitySnapshot(
-          dataView,
-          offset,
-          length,
-          model,
-          getHandlerByMessagePartKind(handlers, kind),
-        )
+        const handler = getHandlerByMessagePartKind(handlers, kind)
+        if (handler !== undefined) {
+          decodeEntitySnapshot(dataView, offset, length, model, handler)
+        }
         break
       case MessagePartKind.Patch:
         assert(model !== undefined, ERROR_MODEL_NOT_FOUND)

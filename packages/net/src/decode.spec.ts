@@ -1,13 +1,14 @@
-import { component, registerSchema } from "@javelin/ecs"
 import {
   createModel,
+  dynamic,
   initialize,
   InstanceOfSchema,
   Model,
   Schema,
 } from "@javelin/core"
-import { float64 } from "@javelin/pack"
-import { ChangeSet, track } from "@javelin/track"
+import { component, registerSchema } from "@javelin/ecs"
+import { float64, int8, uint32 } from "@javelin/pack"
+import { ChangeSet, set } from "@javelin/track"
 import { decode, DecodeMessageHandlers } from "./decode"
 import { encode } from "./encode"
 import { createMessage, insert, MessagePartKind } from "./message"
@@ -15,6 +16,8 @@ import * as MessageOp from "./message_op"
 
 const Position = { x: float64, y: float64 }
 const Velocity = { x: float64, y: float64 }
+const A = { value: int8 }
+const B = { value: uint32 }
 
 registerSchema(Position, 1)
 registerSchema(Velocity, 2)
@@ -51,10 +54,12 @@ describe("decode", () => {
     decode(encoded, handlers)
     expect(handlers.onTick).toHaveBeenCalledWith(123)
   })
-  it("decodes model part", () => {
+  it.only("decodes model part", () => {
     const config = new Map<number, Schema>([
       [0, Position],
       [1, Velocity],
+      [2, A],
+      [3, B],
     ])
     const model = createModel(config)
     const message = createMessage()
@@ -83,8 +88,8 @@ describe("decode", () => {
       {} as InstanceOfSchema<typeof ChangeSet>,
       ChangeSet,
     )
-    track(changeset, position, "x", -12.6666666)
-    track(changeset, velocity, "y", 44)
+    set(position, changeset, "x", -12.6666666)
+    set(velocity, changeset, "y", 44)
     const op = MessageOp.patch(model, entity, changeset)
     insert(message, MessagePartKind.Patch, op)
     const encoded = encode(message)

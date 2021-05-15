@@ -9,13 +9,13 @@ export enum SchemaKeyKind {
   Object,
   Set,
   Map,
-  Dynamic,
 }
 
 export enum DataTypeId {
   Number = "number",
   Boolean = "boolean",
   String = "string",
+  Dynamic = "dynamic",
 }
 
 export type DataType<D = any> = {
@@ -41,17 +41,15 @@ export type MapType<E extends SchemaKey = SchemaKey> = {
   __type__: E
   __key__: DataTypeNumber | DataTypeString
 }
-export type DynamicType = {
-  __kind__: SchemaKeyKind.Dynamic
-  __type__: SchemaKey
-}
 export type DataTypeNumber = DataType<number>
 export type DataTypeString = DataType<string>
 export type DataTypeBoolean = DataType<boolean>
+export type DataTypeDynamic = DataType<unknown>
 export type DataTypePrimitive =
   | DataTypeNumber
   | DataTypeString
   | DataTypeBoolean
+  | DataTypeDynamic
 
 export const number: DataTypeNumber = {
   __kind__: SchemaKeyKind.Primitive,
@@ -71,10 +69,11 @@ export const boolean: DataTypeBoolean = {
   create: () => false,
   reset: (object, key) => (object[key] = 0),
 }
-
-export const dynamic: DynamicType = {
-  __kind__: SchemaKeyKind.Dynamic,
-  __type__: boolean,
+export const dynamic: DataTypeDynamic = {
+  __kind__: SchemaKeyKind.Primitive,
+  __type__: DataTypeId.Dynamic,
+  create: () => null,
+  reset: (object, key) => (object[key] = null),
 }
 
 export const arrayOf = <E extends SchemaKey>(element: E): ArrayType<E> => ({
@@ -87,7 +86,7 @@ export const objectOf = <E extends SchemaKey>(element: E): ObjectType<E> => ({
 })
 export const mapOf = <
   E extends SchemaKey,
-  K extends DataTypeNumber | DataTypeString,
+  K extends DataTypeNumber | DataTypeString
 >(
   element: E,
   key: K,
@@ -101,12 +100,7 @@ export const setOf = <E extends SchemaKey>(element: E) => ({
   __type__: element,
 })
 
-export type SchemaKey =
-  | DataType
-  | ArrayType<any>
-  | ObjectType<any>
-  | DynamicType
-  | Schema
+export type SchemaKey = DataType | ArrayType<any> | ObjectType<any> | Schema
 export type Schema = {
   [key: string]: SchemaKey
 }
@@ -123,9 +117,9 @@ export type InstanceOfSchema<S extends Schema> = {
   [K in keyof S]: InstanceOfSchemaKey<S[K]>
 }
 
-export type ExtractSchemaKeyType<K extends SchemaKey> = K extends DynamicType
-  ? unknown
-  : K extends DataTypePrimitive
+export type ExtractSchemaKeyType<
+  K extends SchemaKey
+> = K extends DataTypePrimitive
   ? ReturnType<K["create"]>
   : K extends Schema
   ? InstanceOfSchema<K>
@@ -143,9 +137,6 @@ export const isSetType = (object: object): object is SetType =>
   "__kind__" in object && (object as SetType).__kind__ === SchemaKeyKind.Set
 export const isMapType = (object: object): object is MapType =>
   "__kind__" in object && (object as MapType).__kind__ === SchemaKeyKind.Map
-export const isDynamicType = (object: object): object is DynamicType =>
-  "__kind__" in object &&
-  (object as DynamicType).__kind__ === SchemaKeyKind.Dynamic
 
 export type ModelConfig = Map<number, Schema>
 export type ModelNodeBase = {
@@ -155,7 +146,7 @@ export type ModelNodeBase = {
   kind: SchemaKeyKind | typeof $struct
   inCollection: boolean
 }
-export type ModelNodeStructDescendant = ModelNode & {
+export type ModelNodeSchemaDescendant = ModelNode & {
   key: string
 }
 export type ModelNodeCollection = ModelNodeBase & {
@@ -174,18 +165,15 @@ export type ModelNodeMap = ModelNodeCollection & {
   key: DataTypeNumber | DataTypeString
   kind: SchemaKeyKind.Map
 }
-export type ModelNodeStruct = ModelNodeBase & {
-  edges: ModelNodeStructDescendant[]
+export type ModelNodeSchema = ModelNodeBase & {
+  edges: ModelNodeSchemaDescendant[]
   idsByKey: { [key: string]: number }
-  keys: { [key: string]: ModelNodeStructDescendant }
+  keys: { [key: string]: ModelNodeSchemaDescendant }
   kind: typeof $struct
 }
 export type ModelNodePrimitive = ModelNodeBase & {
   type: DataType
   kind: SchemaKeyKind.Primitive
-}
-export type ModelNodeDynamic = ModelNodeBase & {
-  kind: SchemaKeyKind.Dynamic
 }
 export type ModelNode =
   | ModelNodePrimitive
@@ -193,15 +181,14 @@ export type ModelNode =
   | ModelNodeObject
   | ModelNodeSet
   | ModelNodeMap
-  | ModelNodeStruct
-  | ModelNodeDynamic
+  | ModelNodeSchema
 
 export type ModelFlat = { [typeId: number]: { [field: number]: ModelNode } }
-export type Model = { [typeId: number]: ModelNodeStruct; [$flat]: ModelFlat }
+export type Model = { [typeId: number]: ModelNodeSchema; [$flat]: ModelFlat }
 
-function assertIsModelNodeStructDescendant(
+function assertIsModelNodeSchemaDescendant(
   node: ModelNode,
-): asserts node is ModelNodeStructDescendant {
+): asserts node is ModelNodeSchemaDescendant {
   assert("key" in node, "", ErrorType.Internal)
 }
 
@@ -236,7 +223,7 @@ export const insertNode = (
       edges: [],
       keys: {},
       idsByKey: {},
-    } as ModelNodeStruct
+    } as ModelNodeSchema
     ids = collate(type as Schema, node, ids)
   } else {
     if (isPrimitiveType(type)) {
@@ -250,13 +237,13 @@ export const insertNode = (
   node.hi = ids
 
   if (key) {
-    ;(node as ModelNodeStructDescendant).key = key
+    ;(node as ModelNodeSchemaDescendant).key = key
     assert(
       target.kind === $struct,
       "expected target node to be struct",
       ErrorType.Internal,
     )
-    assertIsModelNodeStructDescendant(node)
+    assertIsModelNodeSchemaDescendant(node)
     target.edges.push(node)
     target.keys[node.key] = node
     target.idsByKey[node.key] = id
@@ -266,7 +253,7 @@ export const insertNode = (
         target.kind === SchemaKeyKind.Object ||
         target.kind === SchemaKeyKind.Set ||
         target.kind === SchemaKeyKind.Map,
-      "expected target node to be collection",
+      `expected target node to be collection but got ${String(target.kind)}`,
       ErrorType.Internal,
     )
     target.edge = node
@@ -275,13 +262,13 @@ export const insertNode = (
   return ids
 }
 
-export const collate = (schema: Schema, target: ModelNodeStruct, ids = -1) => {
+export const collate = (schema: Schema, target: ModelNodeSchema, ids = -1) => {
   const keys = Object.keys(schema).sort(localeCompare)
 
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i]
-    const value = schema[key]
-    ids = insertNode(target, value, ids, key)
+    const type = schema[key]
+    ids = insertNode(target, type, ids, key)
   }
 
   target.hi = ids
@@ -289,7 +276,7 @@ export const collate = (schema: Schema, target: ModelNodeStruct, ids = -1) => {
   return ids
 }
 
-const getModelRoot = (): ModelNodeStruct => ({
+const getModelRoot = (): ModelNodeSchema => ({
   edges: [],
   hi: Infinity,
   lo: -1,

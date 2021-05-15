@@ -2,8 +2,8 @@ import {
   arrayOf,
   boolean,
   dynamic,
-  objectOf,
   number,
+  objectOf,
   string,
 } from "@javelin/core"
 
@@ -33,5 +33,5 @@ export const ChangeSet = {
     fieldCount: number,
     arrayCount: number,
   }),
-  length: number,
+  touched: boolean,
 }

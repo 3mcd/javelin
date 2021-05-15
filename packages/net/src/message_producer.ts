@@ -1,7 +1,6 @@
+import { assert, ErrorType, initialize, InstanceOfSchema } from "@javelin/core"
 import { Component, Entity, UNSAFE_internals } from "@javelin/ecs"
-import { ErrorType, initialize, InstanceOfSchema } from "@javelin/core"
 import { ChangeSet, copy, reset } from "@javelin/track"
-import { assert } from "console"
 import * as Message from "./message"
 import * as MessageOp from "./message_op"
 
@@ -10,6 +9,7 @@ export type MessageProducer = {
   destroy(entity: Entity): void
   attach(entity: Entity, components: Component[]): void
   detach(entity: Entity, components: Component[]): void
+  update(entity: Entity, components: Component[]): void
   patch(
     entity: Entity,
     changes: InstanceOfSchema<typeof ChangeSet>,
@@ -30,7 +30,10 @@ export const createMessageProducer = (
   const entityChangeSets = new Map<Entity, InstanceOfSchema<typeof ChangeSet>>()
   const _insert = (op: MessageOp.MessageOp, kind: Message.MessagePartKind) => {
     let message = messageQueue[0]
-    if (op.byteLength + message.byteLength > maxByteLength) {
+    if (
+      message === undefined ||
+      op.byteLength + message.byteLength > maxByteLength
+    ) {
       message = Message.createMessage()
       messageQueue.unshift(message)
     }
@@ -47,9 +50,14 @@ export const createMessageProducer = (
       MessageOp.attach(UNSAFE_internals.model, entity, components),
       Message.MessagePartKind.Attach,
     )
+  const update = (entity: Entity, components: Component[]) =>
+    _insert(
+      MessageOp.update(UNSAFE_internals.model, entity, components),
+      Message.MessagePartKind.Update,
+    )
   const patch = (
     entity: Entity,
-    nextChangeSet: InstanceOfSchema<typeof ChangeSet>,
+    changes: InstanceOfSchema<typeof ChangeSet>,
     priority = Infinity,
   ) => {
     let changeset = entityChangeSets.get(entity)
@@ -60,7 +68,7 @@ export const createMessageProducer = (
       )
       entityChangeSets.set(entity, changeset)
     }
-    copy(nextChangeSet, changeset)
+    copy(changes, changeset)
     entityPriorities.set(entity, (entityPriorities.get(entity) ?? 0) + priority)
   }
   const detach = (entity: Entity, components: Component[]) =>
@@ -73,7 +81,7 @@ export const createMessageProducer = (
     )
   const destroy = (entity: Entity) =>
     _insert(MessageOp.destroy(entity), Message.MessagePartKind.Destroy)
-  const take = () => {
+  const take = (includeModel = false) => {
     let message = messageQueue.pop() || null
     const entities = entityPriorities.keys()
     const prioritized = Array.from(entities).sort(
@@ -82,11 +90,11 @@ export const createMessageProducer = (
     for (let i = 0; i < prioritized.length; i++) {
       const entity = prioritized[i]
       const changeset = entityChangeSets.get(entity)
-      if (changeset !== undefined && changeset.length > 0) {
+      if (changeset !== undefined && changeset.touched) {
         if (message === null) {
           message = Message.createMessage()
         }
-        assert(message !== null, ErrorType.Internal)
+        assert(message !== null, "", ErrorType.Internal)
         const op = MessageOp.patch(UNSAFE_internals.model, entity, changeset)
         if (op.byteLength + message?.byteLength < maxByteLength) {
           Message.insert(message, Message.MessagePartKind.Patch, op)
@@ -95,8 +103,11 @@ export const createMessageProducer = (
         }
       }
     }
+    if (message && includeModel) {
+      Message.model(message)
+    }
     return message
   }
 
-  return { spawn, destroy, attach, detach, patch, take }
+  return { spawn, destroy, attach, detach, update, patch, take }
 }

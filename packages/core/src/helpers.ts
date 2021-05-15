@@ -1,13 +1,13 @@
-import { mutableEmpty } from "./utils"
 import {
   InstanceOfSchema,
   InstanceOfSchemaKey,
   isArrayType,
-  isMapType,
+  isObjectType,
   isPrimitiveType,
   Schema,
   SchemaKeyKind,
 } from "./model"
+import { mutableEmpty } from "./utils"
 
 export function initialize<S extends Schema>(
   object: InstanceOfSchema<S>,
@@ -41,9 +41,10 @@ export function reset<S extends Schema>(
       value.reset(object, prop, undefined)
     } else if (isArrayType(value)) {
       mutableEmpty(object[prop])
-    } else if (isMapType(value)) {
-      for (const prop in object) {
-        delete object[prop]
+    } else if (isObjectType(value)) {
+      const child = object[prop]
+      for (const childProp in child) {
+        delete object[childProp]
       }
     } else {
       reset(object[prop], value as Schema)

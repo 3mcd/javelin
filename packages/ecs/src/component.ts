@@ -93,7 +93,16 @@ export function registerSchema(
   return type
 }
 
-export const component = <S extends Schema>(schema: S): ComponentOf<S> => {
+export const component = <S extends Schema>(
+  schema: S,
+  props?: Partial<InstanceOfSchema<S>>,
+): ComponentOf<S> => {
   const type = registerSchema(schema)
-  return (componentTypePools.get(type) as StackPool<ComponentOf<S>>).retain()
+  const instance = (componentTypePools.get(type) as StackPool<
+    ComponentOf<S>
+  >).retain()
+  if (props !== undefined) {
+    Object.assign(instance, props)
+  }
+  return instance
 }

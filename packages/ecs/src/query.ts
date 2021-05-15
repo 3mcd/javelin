@@ -113,7 +113,9 @@ function createQueryInternal<S extends Selector>(
 ) {
   const length = options.select.length
   const filters = options.filters ?? { not: new Set() }
-  const signature = options.select.map(schema => registerSchema(schema))
+  const signature = options.select
+    .map(schema => registerSchema(schema))
+    .sort((a, b) => a - b)
   const layout = (options.include ?? options.select).map((schema: Schema) =>
     registerSchema(schema),
   )

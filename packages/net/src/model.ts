@@ -4,15 +4,18 @@ import {
   assert,
   createModel,
   DataType,
+  dynamic,
   ErrorType,
   Model,
   ModelNode,
+  objectOf,
   Schema,
   SchemaKey,
   SchemaKeyKind,
 } from "@javelin/core"
 import {
   boolean,
+  dataTypeToView,
   float32,
   float64,
   int16,
@@ -37,6 +40,7 @@ const DATA_TYPE_IDS: { [key: string]: number } = {
   [string8.__type__]: 8,
   [string16.__type__]: 9,
   [boolean.__type__]: 10,
+  [dynamic.__type__]: 11,
 }
 
 const DATA_TYPE_IDS_LOOKUP = [
@@ -51,14 +55,20 @@ const DATA_TYPE_IDS_LOOKUP = [
   string8,
   string16,
   boolean,
+  dynamic,
 ]
 
 const SCHEMA_MASK = 1 << 7
 const ARRAY = DATA_TYPE_IDS_LOOKUP.length
+const OBJECT = ARRAY + 1
 
 function getDataTypeId(field: DataType) {
-  const id = DATA_TYPE_IDS[field.__type__]
-  assert(id !== undefined, "", ErrorType.Internal)
+  const id = DATA_TYPE_IDS[dataTypeToView(field).__type__]
+  assert(
+    id !== undefined,
+    `invalid data type ${field.__type__}`,
+    ErrorType.Internal,
+  )
   return id
 }
 
@@ -73,14 +83,18 @@ function encodeModelNode(node: ModelNode, out: number[], offset: number = 0) {
       offset++
       offset = encodeModelNode(node.edge, out, offset)
       break
-    // TODO: support object
     case SchemaKeyKind.Object:
+      out.push(OBJECT)
+      offset++
+      offset = encodeModelNode(node.edge, out, offset)
       break
     // TODO: support set
     case SchemaKeyKind.Set:
+      offset++
       break
     // TODO: support map
     case SchemaKeyKind.Map:
+      offset++
       break
     case $struct: {
       const length = node.edges.length
@@ -124,8 +138,8 @@ export function decodeSchema(
   offset: number,
   schema: Schema,
 ) {
-  let length = encoded[offset++] & ~SCHEMA_MASK
-  while (length-- > 0) {
+  let count = encoded[offset++] & ~SCHEMA_MASK
+  while (count-- > 0) {
     let keySize = encoded[offset++]
     let key = ""
     while (keySize-- > 0) {
@@ -134,6 +148,17 @@ export function decodeSchema(
     const dataTypeId = encoded[offset++]
     if (dataTypeId === ARRAY) {
       const collection = arrayOf<SchemaKey>(uint8)
+      const elementType = encoded[offset++]
+      if ((elementType & SCHEMA_MASK) !== 0) {
+        const elementSchema = {}
+        offset = decodeSchema(encoded, offset - 1, elementSchema)
+        collection.__type__ = elementSchema
+      } else {
+        collection.__type__ = DATA_TYPE_IDS_LOOKUP[elementType]
+      }
+      schema[key] = collection
+    } else if (dataTypeId === OBJECT) {
+      const collection = objectOf<SchemaKey>(uint8)
       const elementType = encoded[offset++]
       if ((elementType & SCHEMA_MASK) !== 0) {
         const elementSchema = {}

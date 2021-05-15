@@ -1,4 +1,4 @@
-import * as model from "@javelin/core"
+import * as Model from "@javelin/core"
 import { DataType } from "@javelin/core"
 
 export enum ViewType {
@@ -21,7 +21,7 @@ export const isView = (
   return "byteLength" in dataType
 }
 
-export type View<T = any> = model.DataType<T> & {
+export type View<T = any> = Model.DataType<T> & {
   byteLength: number
   read(view: DataView, offset: number, length?: number): T
   write(view: DataView, offset: number, data: T): void
@@ -29,7 +29,7 @@ export type View<T = any> = model.DataType<T> & {
 
 function view<T>(
   dataTypeId: string,
-  dataTypeBase: model.DataType,
+  dataTypeBase: Model.DataType,
   byteLength: number,
   read: (view: DataView, offset: number, length?: number) => T,
   write: (view: DataView, offset: number, data: T) => void,
@@ -45,63 +45,63 @@ function view<T>(
 
 export const uint8 = view(
   ViewType.Uint8,
-  model.number,
+  Model.number,
   1,
   (view, offset) => view.getUint8(offset),
   (view, offset, data: number) => view.setUint8(offset, data),
 )
 export const uint16 = view(
   ViewType.Uint16,
-  model.number,
+  Model.number,
   2,
   (view, offset) => view.getUint16(offset),
   (view, offset, data: number) => view.setUint16(offset, data),
 )
 export const uint32 = view(
   ViewType.Uint32,
-  model.number,
+  Model.number,
   4,
   (view, offset) => view.getUint32(offset),
   (view, offset, data: number) => view.setUint32(offset, data),
 )
 export const int8 = view(
   ViewType.Int8,
-  model.number,
+  Model.number,
   1,
   (view, offset) => view.getInt8(offset),
   (view, offset, data: number) => view.setInt8(offset, data),
 )
 export const int16 = view(
   ViewType.Int16,
-  model.number,
+  Model.number,
   2,
   (view, offset) => view.getInt16(offset),
   (view, offset, data: number) => view.setInt16(offset, data),
 )
 export const int32 = view(
   ViewType.Int32,
-  model.number,
+  Model.number,
   4,
   (view, offset) => view.getInt32(offset),
   (view, offset, data: number) => view.setInt32(offset, data),
 )
 export const float32 = view(
   ViewType.Float32,
-  model.number,
+  Model.number,
   4,
   (view, offset) => view.getFloat32(offset),
   (view, offset, data: number) => view.setFloat32(offset, data),
 )
 export const float64 = view(
   ViewType.Float64,
-  model.number,
+  Model.number,
   8,
   (view, offset) => view.getFloat64(offset),
   (view, offset, data: number) => view.setFloat64(offset, data),
 )
 export const string8 = view(
   ViewType.String8,
-  model.string,
+  Model.string,
   1,
   (view, offset, length = 0) => {
     let value = ""
@@ -128,7 +128,7 @@ export const string8 = view(
 )
 export const string16 = view(
   ViewType.String16,
-  model.string,
+  Model.string,
   1,
   (view, offset, length = 0) => {
     let value = ""
@@ -156,7 +156,7 @@ export const string16 = view(
 
 export const boolean = view(
   ViewType.Boolean,
-  model.boolean,
+  Model.boolean,
   uint8.byteLength,
   (view: DataView, offset: number) => !!uint8.read(view, offset, length),
   (view: DataView, offset: number, value: boolean) =>
@@ -166,16 +166,17 @@ export const boolean = view(
 export const number = float64
 export const string = string8
 
-export const dataTypeToView = (dataType: model.DataType) => {
+export const dataTypeToView = (dataType: Model.DataType) => {
   if ("byteLength" in dataType) {
     return dataType as View
   }
   switch (dataType) {
-    case model.number:
+    case Model.number:
+    case Model.dynamic:
       return number
-    case model.string:
+    case Model.string:
       return string
-    case model.boolean:
+    case Model.boolean:
       return boolean
   }
   throw new Error(

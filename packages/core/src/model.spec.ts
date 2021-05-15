@@ -1,22 +1,23 @@
 import {
+  $struct,
   arrayOf,
   createModel,
   DataTypeNumber,
   ModelConfig,
   ModelNode,
   ModelNodeArray,
-  ModelNodeKind,
   ModelNodePrimitive,
-  ModelNodeStruct,
+  ModelNodeSchema,
   number,
   Schema,
+  SchemaKeyKind,
   string,
 } from "./model"
 
-function assertIsModelNodeStruct(
+function assertIsModelNodeSchema(
   node: ModelNode,
-): asserts node is ModelNodeStruct {
-  if (node.kind !== ModelNodeKind.Struct) {
+): asserts node is ModelNodeSchema {
+  if (node.kind !== $struct) {
     throw new Error()
   }
 }
@@ -24,7 +25,7 @@ function assertIsModelNodeStruct(
 function assertIsModelNodeArray(
   node: ModelNode,
 ): asserts node is ModelNodeArray {
-  if (node.kind !== ModelNodeKind.Array) {
+  if (node.kind !== SchemaKeyKind.Array) {
     throw new Error()
   }
 }
@@ -59,7 +60,7 @@ describe("model", () => {
     const model = createModel(config)
     const { [0]: a, [1]: b } = model
 
-    assertIsModelNodeStruct(a)
+    assertIsModelNodeSchema(a)
     expect(a.id).toBe(-1)
     const [buffer, x, y] = a.edges
     expect(buffer.id).toBe(0)
@@ -73,21 +74,21 @@ describe("model", () => {
     expect(y.id).toBe(3)
     expect((y as ModelNodePrimitive).type as DataTypeNumber).toBe(number)
 
-    assertIsModelNodeStruct(b)
+    assertIsModelNodeSchema(b)
     expect(b.id).toBe(-1)
     const [inventory] = b.edges
     assertIsModelNodeArray(inventory)
     expect(inventory.id).toBe(0)
-    expect(inventory.kind).toBe(ModelNodeKind.Array)
+    expect(inventory.kind).toBe(SchemaKeyKind.Array)
     const item = inventory.edge
     expect(item.id).toBe(1)
     expect(item.inCollection).toBe(true)
-    assertIsModelNodeStruct(item)
+    assertIsModelNodeSchema(item)
     const [name, stats] = item.edges
     expect(name.id).toBe(2)
     expect((name as ModelNodePrimitive).type).toBe(string)
     expect(stats.id).toBe(3)
-    assertIsModelNodeStruct(stats)
+    assertIsModelNodeSchema(stats)
     const [damage, speed] = stats.edges
     expect(damage.id).toBe(4)
     expect((damage as ModelNodePrimitive).type).toBe(number)

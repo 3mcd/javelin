@@ -43,8 +43,12 @@ export const createMessageHandler = (world: World) => {
       world.internalAttach(entities.get(entity)!, components)
     },
     onUpdate(entity, components) {
+      const local = entities.get(entity)
+      assert(
+        local !== undefined,
+        "Failed to apply update: no local entity found",
+      )
       for (let i = 0; i < components.length; i++) {
-        const local = entities.get(entity)!
         const source = components[i]
         const target = world.storage.findComponentBySchemaId(
           local,
@@ -54,9 +58,8 @@ export const createMessageHandler = (world: World) => {
         if (target) {
           Object.assign(target, source)
         }
-
-        updated.add(local)
       }
+      updated.add(local)
     },
     onDetach(entity, schemaIds) {
       const local = entities.get(entity)!
@@ -80,10 +83,12 @@ export const createMessageHandler = (world: World) => {
       }
     },
     onPatch(entity, schemaId, field, traverse, value) {
-      const component = world.storage
-        .getEntityComponents(entity)
-        .find(c => c.__type__ === schemaId)
-      if (component === undefined) {
+      const local = entities.get(entity)
+      if (local === undefined) {
+        return
+      }
+      const component = world.storage.findComponentBySchemaId(local, schemaId)
+      if (component === null) {
         return
       }
       const type = model[schemaId]
@@ -124,6 +129,7 @@ export const createMessageHandler = (world: World) => {
         ERROR_PATCH_UNSUPPORTED_TYPE,
       )
       ref[key] = value
+      patched.add(local)
     },
     onArrayMethod(
       entity,

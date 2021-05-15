@@ -22,7 +22,7 @@ const recordLookup: Record<
 const arrayOpPool = createStackPool<InstanceOfSchema<typeof ChangeSetArrayOp>>(
   () => ({
     method: -1,
-    record: null as unknown as InstanceOfSchema<typeof ChangeSetRecord>,
+    record: (null as unknown) as InstanceOfSchema<typeof ChangeSetRecord>,
     values: [],
     start: -1,
     insert: -1,
@@ -30,7 +30,7 @@ const arrayOpPool = createStackPool<InstanceOfSchema<typeof ChangeSetArrayOp>>(
   }),
   op => {
     op.method = -1
-    op.record = null as unknown as InstanceOfSchema<typeof ChangeSetRecord>
+    op.record = (null as unknown) as InstanceOfSchema<typeof ChangeSetRecord>
     mutableEmpty(op.values)
     return op
   },
@@ -82,113 +82,6 @@ function getOrCreateChanges(
   return changes
 }
 
-export const track = (
-  changeset: InstanceOfSchema<typeof ChangeSet>,
-  component: Component,
-  path: string,
-  value: unknown,
-) => {
-  const changes = getOrCreateChanges(changeset, component.__type__)
-  const change = changes.fields[path]
-  const record = getRecord(component, path)
-  if (change !== undefined) {
-    if (change.noop) {
-      change.noop = false
-      changes.fieldCount++
-      changeset.length++
-    }
-    change.value = value
-  } else {
-    changes.fieldCount++
-    changeset.length++
-    changes.fields[path] = { record, value, noop: false }
-  }
-  return record
-}
-
-export const trackPop = (
-  changeset: InstanceOfSchema<typeof ChangeSet>,
-  component: Component,
-  path: string,
-) => {
-  const changes = getOrCreateChanges(changeset, component.__type__)
-  const arrayOp = arrayOpPool.retain()
-  arrayOp.record = getRecord(component, path)
-  arrayOp.method = MutArrayMethod.Pop
-  changeset.length++
-  changes.arrayCount++
-  changes.array.push(arrayOp)
-}
-
-export function trackPush(
-  changeset: InstanceOfSchema<typeof ChangeSet>,
-  component: Component,
-  path: string,
-) {
-  const changes = getOrCreateChanges(changeset, component.__type__)
-  const arrayOp = arrayOpPool.retain()
-  arrayOp.record = getRecord(component, path)
-  arrayOp.method = MutArrayMethod.Push
-  for (let i = 2; i < arguments.length; i++) {
-    arrayOp.values.push(arguments[i])
-  }
-  changeset.length++
-  changes.arrayCount++
-  changes.array.push(arrayOp)
-}
-
-export const trackShift = (
-  changeset: InstanceOfSchema<typeof ChangeSet>,
-  component: Component,
-  path: string,
-) => {
-  const changes = getOrCreateChanges(changeset, component.__type__)
-  const arrayOp = arrayOpPool.retain()
-  arrayOp.record = getRecord(component, path)
-  arrayOp.method = MutArrayMethod.Shift
-  changeset.length++
-  changes.arrayCount++
-  changes.array.push(arrayOp)
-}
-
-export function trackUnshift(
-  changeset: InstanceOfSchema<typeof ChangeSet>,
-  component: Component,
-  path: string,
-) {
-  const changes = getOrCreateChanges(changeset, component.__type__)
-  const arrayOp = arrayOpPool.retain()
-  arrayOp.record = getRecord(component, path)
-  arrayOp.method = MutArrayMethod.Unshift
-  for (let i = 2; i < arguments.length; i++) {
-    arrayOp.values.push(arguments[i])
-  }
-  changeset.length++
-  changes.arrayCount++
-  changes.array.push(arrayOp)
-}
-
-export function trackSplice(
-  changeset: InstanceOfSchema<typeof ChangeSet>,
-  component: Component,
-  path: string,
-  index: number,
-  remove: number,
-) {
-  const changes = getOrCreateChanges(changeset, component.__type__)
-  const arrayOp = arrayOpPool.retain()
-  arrayOp.record = getRecord(component, path)
-  arrayOp.method = MutArrayMethod.Splice
-  arrayOp.start = index
-  arrayOp.deleteCount = remove
-  for (let i = 2; i < arguments.length; i++) {
-    arrayOp.values.push(arguments[i])
-  }
-  changeset.length++
-  changes.arrayCount++
-  changes.array.push(arrayOp)
-}
-
 export function reset(changeset: InstanceOfSchema<typeof ChangeSet>) {
   for (const prop in changeset.changes) {
     const changes = changeset.changes[prop]
@@ -203,13 +96,17 @@ export function reset(changeset: InstanceOfSchema<typeof ChangeSet>) {
     changes.fieldCount = 0
     changes.arrayCount = 0
   }
-  changeset.length = 0
+  changeset.touched = false
 }
 
 export function copy(
   from: InstanceOfSchema<typeof ChangeSet>,
   to: InstanceOfSchema<typeof ChangeSet>,
 ) {
+  if (from.touched === false) {
+    return
+  }
+  to.touched = true
   for (const prop in from.changes) {
     const changesFrom = from.changes[prop]
     let changesTo = to.changes[prop]
@@ -234,8 +131,10 @@ export function copy(
           value: changeFrom.value,
         }
         changesTo.fieldCount++
-        to.length++
       } else {
+        if (changeTo.noop) {
+          changesTo.fieldCount++
+        }
         changeTo.noop = changeFrom.noop
         changeTo.record = changeFrom.record
         changeTo.value = changeFrom.value
@@ -251,7 +150,20 @@ export function set(
   path: string,
   value: unknown,
 ) {
-  const { split } = track(changeset, component, path, value)
+  const changes = getOrCreateChanges(changeset, component.__type__)
+  const change = changes.fields[path]
+  const record = getRecord(component, path)
+  if (change !== undefined) {
+    if (change.noop) {
+      change.noop = false
+      changes.fieldCount++
+    }
+    change.value = value
+  } else {
+    changes.fieldCount++
+    changes.fields[path] = { record, value, noop: false }
+  }
+  const { split } = record
   const end = split.length - 1
   let i: number
   let o: any = component
@@ -259,6 +171,7 @@ export function set(
     o = o[split[i]]
   }
   o[split[i]] = value
+  changeset.touched = true
 }
 
 export function push(
@@ -285,9 +198,9 @@ export function push(
     ;(o as unknown[]).push(value)
     arrayOp.values.push(value)
   }
-  changeset.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
+  changeset.touched = true
 }
 
 export function pop(
@@ -310,9 +223,9 @@ export function pop(
     deleteCount: 0,
   }
   ;(o as unknown[]).pop()
-  changeset.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
+  changeset.touched = true
 }
 
 export function unshift(
@@ -339,9 +252,9 @@ export function unshift(
     ;(o as unknown[]).unshift(value)
     arrayOp.values.push(value)
   }
-  changeset.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
+  changeset.touched = true
 }
 
 export function shift(
@@ -364,9 +277,9 @@ export function shift(
     deleteCount: 0,
   }
   ;(o as unknown[]).shift()
-  changeset.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
+  changeset.touched = true
 }
 
 export function splice(
@@ -394,7 +307,7 @@ export function splice(
     arrayOp.values.push(arguments[i])
   }
   ;(o as unknown[]).splice(start, deleteCount, ...arrayOp.values)
-  changeset.length++
   changes.arrayCount++
   changes.array.push(arrayOp)
+  changeset.touched = true
 }

@@ -7,7 +7,7 @@ import {
   Schema,
 } from "@javelin/core"
 import { encode, float64, uint16, uint32, uint8 } from "@javelin/pack"
-import { ChangeSet, track } from "@javelin/track"
+import { ChangeSet, set } from "@javelin/track"
 import {
   $buffer,
   attach,
@@ -83,19 +83,22 @@ describe("message_op", () => {
     )
     const position = component(Position)
     const velocity = component(Velocity)
-    const tracks: [Component, string, unknown][] = [
-      [position, "x", 99],
-      [position, "y", 100],
-      [velocity, "x", 3.3333333],
-      [velocity, "y", 1.1],
+    const tracks: [
+      Component,
+      InstanceOfSchema<typeof ChangeSet>,
+      string,
+      unknown,
+    ][] = [
+      [position, changeset, "x", 99],
+      [position, changeset, "y", 100],
+      [velocity, changeset, "x", 3.3333333],
+      [velocity, changeset, "y", 1.1],
     ]
-    tracks.forEach(args => track(changeset, ...args))
+    tracks.forEach(args => set(...args))
     const op = patch(model, entity, changeset)
     expect(op.data[0]).toBe(entity)
     expect(op.view[0]).toBe(uint32)
-    expect(op.data[1]).toBe(changeset.length)
-    expect(op.view[1]).toBe(uint8)
-    let j = 2
+    let j = 1
     for (const prop in changeset.changes) {
       const schemaId = +prop
       const { fields, fieldCount, arrayCount } = changeset.changes[schemaId]
