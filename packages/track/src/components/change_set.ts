@@ -33,5 +33,6 @@ export const ChangeSet = {
     fieldCount: number,
     arrayCount: number,
   }),
+  size: number,
   touched: boolean,
 }

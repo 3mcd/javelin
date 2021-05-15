@@ -54,7 +54,7 @@ describe("decode", () => {
     decode(encoded, handlers)
     expect(handlers.onTick).toHaveBeenCalledWith(123)
   })
-  it.only("decodes model part", () => {
+  it("decodes model part", () => {
     const config = new Map<number, Schema>([
       [0, Position],
       [1, Velocity],
@@ -74,7 +74,7 @@ describe("decode", () => {
     })
     expect(JSON.stringify(result)).toBe(JSON.stringify(model))
   })
-  it("decodes patch part", () => {
+  it.only("decodes patch part", () => {
     const config = new Map<number, Schema>([
       [1, Position],
       [2, Velocity],

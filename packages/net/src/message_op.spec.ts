@@ -96,9 +96,13 @@ describe("message_op", () => {
     ]
     tracks.forEach(args => set(...args))
     const op = patch(model, entity, changeset)
+    // entity
     expect(op.data[0]).toBe(entity)
     expect(op.view[0]).toBe(uint32)
-    let j = 1
+    // size
+    expect(op.data[1]).toBe(changeset.size)
+    expect(op.view[1]).toBe(uint8)
+    let j = 2
     for (const prop in changeset.changes) {
       const schemaId = +prop
       const { fields, fieldCount, arrayCount } = changeset.changes[schemaId]

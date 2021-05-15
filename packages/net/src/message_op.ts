@@ -152,6 +152,7 @@ export function patch(
 ): MessageOp {
   const op = messageOpPool.retain()
   insert(op, entity, uint32)
+  insert(op, changeset.size, uint8)
   for (const prop in changeset.changes) {
     const schemaId = +prop
     const componentSchema = model[$flat][schemaId]

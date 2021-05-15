@@ -92,35 +92,39 @@ function decodePatch(
   while (offset < end) {
     const entity = uint32.read(dataView, offset)
     offset += uint32.byteLength
-    const schemaId = uint8.read(dataView, offset)
-    const componentSchema = model[$flat][schemaId]
+    const size = uint8.read(dataView, offset)
     offset += uint8.byteLength
-    const fieldCount = uint8.read(dataView, offset)
-    offset += uint8.byteLength
-    const arrayCount = uint8.read(dataView, offset)
-    offset += uint8.byteLength
-    for (let j = 0; j < fieldCount; j++) {
-      const field = uint8.read(dataView, offset)
+    for (let i = 0; i < size; i++) {
+      const schemaId = uint8.read(dataView, offset)
+      const componentSchema = model[$flat][schemaId]
       offset += uint8.byteLength
-      const traverseLength = uint8.read(dataView, offset)
+      const fieldCount = uint8.read(dataView, offset)
       offset += uint8.byteLength
-      mutableEmpty(tmpTraverse)
-      for (let k = 0; k < traverseLength; k++) {
-        tmpTraverse.push(uint16.read(dataView, offset))
-        offset += uint16.byteLength
+      const arrayCount = uint8.read(dataView, offset)
+      offset += uint8.byteLength
+      for (let j = 0; j < fieldCount; j++) {
+        const field = uint8.read(dataView, offset)
+        offset += uint8.byteLength
+        const traverseLength = uint8.read(dataView, offset)
+        offset += uint8.byteLength
+        mutableEmpty(tmpTraverse)
+        for (let k = 0; k < traverseLength; k++) {
+          tmpTraverse.push(uint16.read(dataView, offset))
+          offset += uint16.byteLength
+        }
+        const node = componentSchema[field]
+        assert(
+          node.kind === SchemaKeyKind.Primitive,
+          "Failed to decode patch: only primitive field mutations are currently supported",
+        )
+        const view = dataTypeToView(node.type)
+        const value = view.read(dataView, offset)
+        offset += view.byteLength
+        onPatch?.(entity, schemaId, field, tmpTraverse, value)
       }
-      const node = componentSchema[field]
-      assert(
-        node.kind === SchemaKeyKind.Primitive,
-        "Failed to decode patch: only primitive field mutations are currently supported",
-      )
-      const view = dataTypeToView(node.type)
-      const value = view.read(dataView, offset)
-      offset += view.byteLength
-      onPatch?.(entity, schemaId, field, tmpTraverse, value)
-    }
-    for (let j = 0; j < arrayCount; j++) {
-      // TODO: support mutating array methods
+      for (let j = 0; j < arrayCount; j++) {
+        // TODO: support mutating array methods
+      }
     }
   }
 }

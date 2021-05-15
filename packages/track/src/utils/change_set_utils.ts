@@ -96,6 +96,7 @@ export function reset(changeset: InstanceOfSchema<typeof ChangeSet>) {
     changes.fieldCount = 0
     changes.arrayCount = 0
   }
+  changeset.size = 0
   changeset.touched = false
 }
 
@@ -131,9 +132,11 @@ export function copy(
           value: changeFrom.value,
         }
         changesTo.fieldCount++
+        to.size++
       } else {
         if (changeTo.noop) {
           changesTo.fieldCount++
+          to.size++
         }
         changeTo.noop = changeFrom.noop
         changeTo.record = changeFrom.record
@@ -172,6 +175,7 @@ export function set(
   }
   o[split[i]] = value
   changeset.touched = true
+  changeset.size++
 }
 
 export function push(
@@ -201,6 +205,7 @@ export function push(
   changes.arrayCount++
   changes.array.push(arrayOp)
   changeset.touched = true
+  changeset.size++
 }
 
 export function pop(
@@ -226,6 +231,7 @@ export function pop(
   changes.arrayCount++
   changes.array.push(arrayOp)
   changeset.touched = true
+  changeset.size++
 }
 
 export function unshift(
@@ -255,6 +261,7 @@ export function unshift(
   changes.arrayCount++
   changes.array.push(arrayOp)
   changeset.touched = true
+  changeset.size++
 }
 
 export function shift(
@@ -280,6 +287,7 @@ export function shift(
   changes.arrayCount++
   changes.array.push(arrayOp)
   changeset.touched = true
+  changeset.size++
 }
 
 export function splice(
@@ -310,4 +318,5 @@ export function splice(
   changes.arrayCount++
   changes.array.push(arrayOp)
   changeset.touched = true
+  changeset.size++
 }
