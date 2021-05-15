@@ -1,0 +1,19 @@
+{
+  "name": "@javelin/examples-sanity",
+  "version": "0.0.1",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@javelin/ecs": "^0.22.0",
+    "@javelin/hrtime-loop": "^0.22.0",
+    "@javelin/net": "^0.22.0",
+    "@javelin/pack": "^0.22.0",
+    "@javelin/track": "^0.22.0",
+    "@types/react": "^17.0.5",
+    "@types/react-dom": "^17.0.5",
+    "@web-udp/client": "^4.2.1",
+    "@web-udp/server": "^4.2.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  }
+}
