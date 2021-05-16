@@ -5,7 +5,7 @@
   "useWorkspaces": true,
   "command": {
     "version": {
-      "allowBranch": "master",
+      "allowBranch": ["master", "next"],
       "conventionalCommits": true,
       "exact": true
     }
