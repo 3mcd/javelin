@@ -102,16 +102,18 @@ export const useMonitor = createEffect(world => {
 
     const matchEnter = _query.matchesArchetype(next)
     const matchExit = _query.matchesArchetype(prev)
+
+    // entity matched previously and was destroyed
     if (matchExit && next === rootArchetype) {
-      // entity matched and unmatched during the same
       const index = stagedEnter.findIndex(([e]) => e === entity)
+      // entity matched and unmatched during the same tick
       if (index !== -1) {
         stagedEnter.splice(index, 1)
       }
     }
 
     if (
-      // xor
+      // (xor) entity transitioned into, or out of, query signature
       matchEnter !== matchExit
     ) {
       const snapshot = snapshots.retain()
