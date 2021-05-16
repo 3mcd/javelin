@@ -7,15 +7,34 @@ A **message producer** lets you build messages between ticks, prioritize updates
 
 ## Producing Messages
 
+Message producers maintain a queue of messages. New messages are enqueued when the most current message reaches a maximum byte length (default `Infinity`). The maxmum byte length is specified using the `options` argument to `createMessageProducer`.
+
 The easiest way to consume a message producer in a system is to wrap an instance in a ref:
 
 ```ts
-const useProducer = createRef(() =>
-  createMessageProducer({ maxByteLength: 1000 }),
+const useProducer = createRef(
+  () => createMessageProducer({ maxByteLength: 1000 }), // limit each message to 1kb
 )
 ```
 
-Below is the simplest example of using a message producer to spawn entities that match a query:
+Message producers expose methods that correspond to each of the operations described in the [Javelin protocol](./networking/../protocol.md).
+
+```ts
+const producer = useProducer()
+producer.spawn(e, [a, b])
+producer.attach(e, [c])
+producer.update(e, [c])
+producer.detach(e, [b])
+producer.destroy(e)
+```
+
+The `take` method will dequeue a message, or null, if no changes were written.
+
+```ts
+const message = producer.take() // Message | null
+```
+
+`useMonitor` can be used to conveniently write spawn and destroy operations.
 
 ```ts
 const sysNet = () => {
@@ -32,7 +51,23 @@ const sysNet = () => {
 }
 ```
 
-Below is an extension of the above example that demonstrates how you might write attach/detach operations while an entity continues to match a query:
+### Component Model
+
+`take` accepts a single boolean parameter that instructs the message producer to include a serialized component model in the next message. This must be done at least once, usually in the first message sent to a client. For example:
+
+```ts
+const getInitialMessage = () => {
+  producer.spawn(...)
+  // ...
+  return producer.take(true) // include component model
+}
+```
+
+The component model does not have to be included with each message. `MessageHandler` will re-use the last encountered component model if a message is not self-describing.
+
+### Sending Entity Changes
+
+Below is example that demonstrates how you might write attach/detach operations while an entity continues to match a query:
 
 ```ts
 const players = createQuery(Player)
@@ -55,10 +90,36 @@ const sysNet = () => {
 }
 ```
 
-## Patching
+## Updating Components
 
-TODO
+### Update
 
-## Per-Client Filtering
+Two strategies exist for synchronizing component state: updates and patches. Updates send the entire component state, which is simple to implement but uses more bandwidth.
 
-TODO
+```ts
+qryTransforms((e, [t]) => producer.update(e, [t]))
+```
+
+`MessageHandler` simply uses `Object.assign` to apply component updates in a message to their local counterparts.
+
+### Patch
+
+A patch operation effeciently serializes fields contained in a [`ChangeSet`](./ecs/change-detection.md) component.
+
+```ts
+import { set } from "@javelin/track"
+qryTransformsWithChanges((e, [t, changes]) => {
+  set(t, changes, "x", 3)
+  set(t, changes, "y", 4)
+})
+```
+
+A patch operation can then be written to a message producer `patch`:
+
+```ts
+import { reset } from "@javelin/track"
+qryTransformsWithChanges((e, [t, changes]) => {
+  producer.patch(e, changes)
+  reset(changes)
+})
+```

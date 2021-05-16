@@ -88,11 +88,11 @@ module.exports.run = function run() {
 
   world.reset()
 
-  console.log(`entity_count         | ${components.length}`)
+  console.log(`entity_count         | ${components.length.toLocaleString()}`)
   console.log(`component_type_count | ${componentTypes.length}`)
   console.log(`query_count          | ${queries.length}`)
-  console.log(`tick_count           | ${n}`)
+  console.log(`tick_count           | ${n.toLocaleString()}`)
   console.log(`tick_time_avg        | ${(runEnd - runStart) / n}ms`)
-  console.log(`iters_per_tick       | ${c / n}`)
-  console.log(`iters_total          | ${c}`)
+  console.log(`iters_per_tick       | ${(c / n).toLocaleString()}`)
+  console.log(`iters_total          | ${c.toLocaleString()}`)
 }
