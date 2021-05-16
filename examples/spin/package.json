@@ -1,6 +1,7 @@
 {
   "name": "@javelin/spin",
   "version": "0.0.0",
+  "private": true,
   "scripts": {
     "start": "vite --config client/vite.config.ts & ts-node server/index.ts",
     "start:server": "ts-node server/index.ts"
