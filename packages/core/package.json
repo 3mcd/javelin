@@ -1,6 +1,6 @@
 {
   "name": "@javelin/core",
-  "version": "0.22.0",
+  "version": "1.0.0-alpha.0",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "browser": "dist/javelin-core.bundle.js",
@@ -20,6 +20,5 @@
     "mog",
     "multiplayer",
     "networking"
-  ],
-  "dependencies": {}
+  ]
 }
