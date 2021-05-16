@@ -40,10 +40,10 @@ export const eff_message = createEffect(() => {
 
     if (update) {
       qry_transforms_w_changes((e, [t, c]) => {
-        // producer.patch(e, c, 1)
+        producer.patch(e, c, 1)
         // Uncomment this line to perform a full sync instead of sending only
         // changed properties
-        producer.update(e, [t])
+        // producer.update(e, [t])
         reset(c)
       })
     }

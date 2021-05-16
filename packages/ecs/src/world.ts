@@ -188,7 +188,7 @@ export interface World<T = any> {
 export type WorldInternal<T> = World<T> & {
   internalSpawn(entity: Entity): void
   internalAttach(entity: Entity, components: Component[]): void
-  internalDetach(entity: Entity, components: Component[]): void
+  internalDetach(entity: Entity, schemaIds: number[]): void
   internalDestroy(entity: Entity): void
 }
 

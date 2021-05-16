@@ -19,7 +19,7 @@ const createPointsAroundCircle = (r: number, n: number) => {
   return out
 }
 
-createPointsAroundCircle(50, 100).map(([x, y], i) => {
+createPointsAroundCircle(50, 250).map(([x, y], i) => {
   const components: Component[] = [
     component(Transform, { position: [x, y] }),
     component(Shell, { value: (i % 6) + 1 }),
