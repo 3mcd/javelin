@@ -1,6 +1,6 @@
 import { createQuery } from "@javelin/ecs"
 // @ts-ignore
-import { Shell, Transform } from "../../../server/components.mjs"
+import { Shell, Transform } from "../../../server/components"
 import { Interpolate } from "./components"
 
 export const qry_transforms = createQuery(Transform)

@@ -1,16 +1,12 @@
-import { useMonitor, component } from "@javelin/ecs"
-// @ts-ignore
-import { Transform } from "../../../server/components.mjs"
+import { component, useMonitor } from "@javelin/ecs"
 import { interpBufferInsert, interpBufferPool, Interpolate } from "./components"
 import { eff_net } from "./eff_net"
 import { qry_interpolate, qry_transforms } from "./queries"
 import { world } from "./world"
 
-const SEND_RATE = 10
-
 export const sys_interpolate = () => {
   const { patched, updated } = eff_net()
-  const renderTime = performance.now() - 1000 / SEND_RATE
+  const test = performance.now() - 1000
 
   useMonitor(qry_transforms, (e, [t]) => {
     t &&
@@ -31,7 +27,10 @@ export const sys_interpolate = () => {
 
       if (patched.has(e) || updated.has(e)) {
         interpBufferInsert(x, y, ip)
+        const now = performance.now()
+        ip.adaptiveSendRate = (now - test) / 1000
       }
+      const renderTime = test / ip.adaptiveSendRate
 
       while (buffer.length >= 2 && buffer[1][0] <= renderTime) {
         const item = buffer.shift()

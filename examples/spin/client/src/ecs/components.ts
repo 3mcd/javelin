@@ -10,6 +10,8 @@ export const Interpolate = {
   x: number,
   y: number,
   buffer: arrayOf(arrayOf(number)),
+  adaptiveSendRate: number,
+  lastUpdateTime: number,
 }
 
 export const interpBufferPool = createStackPool<number[]>(

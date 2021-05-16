@@ -1,8 +1,8 @@
-import { component, useInterval } from "@javelin/ecs"
-import { Big, Shell, Transform, Changes } from "./components.mjs"
-import { qry_transforms } from "./queries.mjs"
+import { component, useInterval, World } from "@javelin/ecs"
+import { Big, Changes, Shell, Transform } from "./components"
+import { qry_transforms } from "./queries"
 
-export const sys_swap = world => {
+export const sys_swap = (world: World) => {
   const swap = useInterval(1000)
 
   if (!swap) {

@@ -37,18 +37,11 @@ export interface Storage {
   upsert(entity: number, components: Component[]): void
 
   /**
-   * Remove components from an entity.
-   * @param entity Entity to remove components from.
-   * @param components Components to remove.
-   */
-  remove(entity: number, components: Component[]): void
-
-  /**
    * Remove components from an entity via component type ids.
    * @param entity Entity to remove components from.
    * @param schemaIds Components to remove.
    */
-  removeByTypeIds(entity: number, schemaIds: number[]): void
+  remove(entity: number, schemaIds: number[]): void
 
   /**
    * Destroy an entity.
@@ -196,11 +189,11 @@ export function createStorage(options: StorageOptions = {}): Storage {
     const location = archetypeIndicesByEntity[entity]
 
     if (location === undefined) {
-      throw new Error(`Failed to locate entity. Entity does not exist.`)
+      throw new Error(`Failed to locate entity: entity has not been created`)
     }
 
     if (location === null) {
-      throw new Error(`Failed to locate entity. Entity has been removed.`)
+      throw new Error(`Failed to locate entity: entity has been removed`)
     }
 
     return archetypes[location]
@@ -242,13 +235,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     relocate(source, entity, destinationComponents, components)
   }
 
-  function remove(entity: number, components: Component[]) {
-    const typesToRemove = components.map(component => component.__type__)
-
-    removeByTypeIds(entity, typesToRemove)
-  }
-
-  function removeByTypeIds(entity: number, schemaIds: number[]) {
+  function remove(entity: number, schemaIds: number[]) {
     const source = getEntityArchetype(entity)
     const entityIndex = source.indices[entity]
 
@@ -269,7 +256,8 @@ export function createStorage(options: StorageOptions = {}): Storage {
   }
 
   function destroy(entity: number) {
-    remove(entity, getEntityComponents(entity))
+    const archetype = getEntityArchetype(entity)
+    remove(entity, archetype.signature)
     archetypeIndicesByEntity[entity] = null
   }
 
@@ -302,7 +290,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
   function hasComponent(entity: number, schema: Schema) {
     const archetype = getEntityArchetype(entity)
-    const type = UNSAFE_internals.componentTypeIndex.get(schema)
+    const type = UNSAFE_internals.schemaIndex.get(schema)
     assert(
       type !== undefined,
       "Failed to locate component: schema not registered.",
@@ -311,7 +299,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
   }
 
   function findComponent<T extends Schema>(entity: number, schema: T) {
-    const type = UNSAFE_internals.componentTypeIndex.get(schema)
+    const type = UNSAFE_internals.schemaIndex.get(schema)
     assert(
       type !== undefined,
       "Failed to locate component: schema not registered.",
@@ -377,7 +365,6 @@ export function createStorage(options: StorageOptions = {}): Storage {
     hasComponent,
     insert,
     remove,
-    removeByTypeIds,
     snapshot,
     upsert,
   }

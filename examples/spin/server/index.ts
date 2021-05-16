@@ -1,4 +1,4 @@
-import { component } from "@javelin/ecs"
+import { Component, component } from "@javelin/ecs"
 import { createHrtimeLoop } from "@javelin/hrtime-loop"
 import { Big, Changes, Shell, Transform } from "./components"
 import { TICK_RATE } from "./env"
@@ -19,8 +19,8 @@ const createPointsAroundCircle = (r: number, n: number) => {
   return out
 }
 
-createPointsAroundCircle(50, 500).map(([x, y], i) => {
-  const components = [
+createPointsAroundCircle(50, 100).map(([x, y], i) => {
+  const components: Component[] = [
     component(Transform, { position: [x, y] }),
     component(Shell, { value: (i % 6) + 1 }),
     component(Changes),

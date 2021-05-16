@@ -14,7 +14,7 @@ export const eff_clients = createEffect(({ spawn, destroy }) => {
     })
   })
 
-  const send_u = (entity: Entity, data: unknown) =>
+  const send_u = (entity: Entity, data: ArrayBuffer) =>
     clients.get(entity).send(data)
   const api = { send_u }
 

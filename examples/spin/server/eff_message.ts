@@ -23,18 +23,13 @@ export const getInitialMessage = (world: World) => {
   return producer.take(true)
 }
 
-export const eff_message = createEffect(world => {
-  const producer = createMessageProducer()
+export const eff_message = createEffect(() => {
+  const producer = createMessageProducer({ maxByteLength: 1250 })
 
   return function eff_message(update = false) {
     useMonitor(
       qry_transforms_w_shell,
-      e => {
-        const components = qry_transforms_w_shell.get(e)
-        if (components) {
-          producer.spawn(e, components)
-        }
-      },
+      e => producer.spawn(e, qry_transforms_w_shell.get(e)),
       e => producer.destroy(e),
     )
     useMonitor(
@@ -45,10 +40,10 @@ export const eff_message = createEffect(world => {
 
     if (update) {
       qry_transforms_w_changes((e, [t, c]) => {
-        producer.patch(e, c)
+        // producer.patch(e, c, 1)
         // Uncomment this line to perform a full sync instead of sending only
         // changed properties
-        // producer.update(e, [t])
+        producer.update(e, [t])
         reset(c)
       })
     }

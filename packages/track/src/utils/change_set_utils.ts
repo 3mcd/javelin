@@ -108,17 +108,27 @@ export function copy(
     return
   }
   to.touched = true
-  for (const prop in from.changes) {
-    const changesFrom = from.changes[prop]
-    let changesTo = to.changes[prop]
+  for (const schemaId in from.changes) {
+    const changesFrom = from.changes[schemaId]
+
+    if (changesFrom.fieldCount === 0) {
+      continue
+    }
+
+    let changesTo = to.changes[schemaId]
     if (changesTo === undefined) {
-      changesTo = to.changes[prop] = {
+      changesTo = to.changes[schemaId] = {
         fields: {},
         array: [],
         fieldCount: 0,
         arrayCount: 0,
       }
     }
+
+    if (changesTo.fieldCount === 0) {
+      to.size++
+    }
+
     for (const field in changesFrom.fields) {
       const changeFrom = changesFrom.fields[field]
       if (changeFrom.noop) {
@@ -132,11 +142,9 @@ export function copy(
           value: changeFrom.value,
         }
         changesTo.fieldCount++
-        to.size++
       } else {
         if (changeTo.noop) {
           changesTo.fieldCount++
-          to.size++
         }
         changeTo.noop = changeFrom.noop
         changeTo.record = changeFrom.record
@@ -154,6 +162,10 @@ export function set(
   value: unknown,
 ) {
   const changes = getOrCreateChanges(changeset, component.__type__)
+  if (changes.fieldCount === 0) {
+    changeset.size++
+  }
+  changeset.touched = true
   const change = changes.fields[path]
   const record = getRecord(component, path)
   if (change !== undefined) {
@@ -174,8 +186,6 @@ export function set(
     o = o[split[i]]
   }
   o[split[i]] = value
-  changeset.touched = true
-  changeset.size++
 }
 
 export function push(
@@ -190,6 +200,9 @@ export function push(
     o = o[split[i]]
   }
   const changes = getOrCreateChanges(changeset, component.__type__)
+  if (changes.arrayCount === 0) {
+    changeset.size++
+  }
   const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
     values: [],
     record,
@@ -220,6 +233,9 @@ export function pop(
     o = o[split[i]]
   }
   const changes = getOrCreateChanges(changeset, component.__type__)
+  if (changes.arrayCount === 0) {
+    changeset.size++
+  }
   const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
     values: [],
     record,
@@ -246,6 +262,9 @@ export function unshift(
     o = o[split[i]]
   }
   const changes = getOrCreateChanges(changeset, component.__type__)
+  if (changes.arrayCount === 0) {
+    changeset.size++
+  }
   const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
     values: [],
     record,
@@ -276,6 +295,9 @@ export function shift(
     o = o[split[i]]
   }
   const changes = getOrCreateChanges(changeset, component.__type__)
+  if (changes.arrayCount === 0) {
+    changeset.size++
+  }
   const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
     values: [],
     record,
@@ -304,6 +326,9 @@ export function splice(
     o = o[split[i]]
   }
   const changes = getOrCreateChanges(changeset, component.__type__)
+  if (changes.arrayCount === 0) {
+    changeset.size++
+  }
   const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
     values: [],
     record,

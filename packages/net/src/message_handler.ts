@@ -34,20 +34,22 @@ export const createMessageHandler = (world: World) => {
       model = m
     },
     onSpawn(entity, components) {
-      const local = world.reserve()
-      world.internalSpawn(local)
-      world.internalAttach(local, components)
+      // const local = world.reserve()
+      const local = world.spawn(...components)
       entities.set(entity, local)
     },
     onAttach(entity, components) {
-      world.internalAttach(entities.get(entity)!, components)
+      const local = entities.get(entity)
+      if (local === undefined) {
+        return
+      }
+      world.attach(local, ...components)
     },
     onUpdate(entity, components) {
       const local = entities.get(entity)
-      assert(
-        local !== undefined,
-        "Failed to apply update: no local entity found",
-      )
+      if (local === undefined) {
+        return
+      }
       for (let i = 0; i < components.length; i++) {
         const source = components[i]
         const target = world.storage.findComponentBySchemaId(
@@ -62,74 +64,70 @@ export const createMessageHandler = (world: World) => {
       updated.add(local)
     },
     onDetach(entity, schemaIds) {
-      const local = entities.get(entity)!
-      const components: Component[] = []
-      for (let i = 0; i < schemaIds.length; i++) {
-        const component = world.storage.findComponentBySchemaId(
-          local,
-          schemaIds[i],
-        )
-        if (component !== null) {
-          components.push(component)
-        }
-      }
-      world.internalDetach(local, components)
-    },
-    onDestroy(entity) {
-      const local = entities.get(entity)
-      if (local !== undefined) {
-        world.internalDestroy(local)
-        entities.delete(entity)
-      }
-    },
-    onPatch(entity, schemaId, field, traverse, value) {
       const local = entities.get(entity)
       if (local === undefined) {
         return
       }
-      const component = world.storage.findComponentBySchemaId(local, schemaId)
-      if (component === null) {
+      world.detach(local, ...schemaIds)
+    },
+    onDestroy(entity) {
+      const local = entities.get(entity)
+      if (local === undefined) {
         return
       }
-      const type = model[schemaId]
-      let traverseIndex = 0
-      let key: string | number | null = null
-      let ref = component
-      let node: ModelNode = type as ModelNode
-      outer: while (node.id !== field) {
-        if (key !== null) {
-          ref = ref[key]
+      world.destroy(local)
+      entities.delete(entity)
+    },
+    onPatch(entity, schemaId, field, traverse, value) {
+      try {
+        const local = entities.get(entity)
+        if (local === undefined) {
+          return
         }
-        switch (node.kind) {
-          case SchemaKeyKind.Primitive:
-            throw new Error(ERROR_PATCH_NO_MATCH)
-          case SchemaKeyKind.Array:
-          case SchemaKeyKind.Object:
-          case SchemaKeyKind.Set:
-          case SchemaKeyKind.Map:
-            key = traverse[traverseIndex++]
-            node = node.edge
-            continue
-          case $struct:
-            for (let i = 0; i < node.edges.length; i++) {
-              const child = node.edges[i]
-              if (child.lo <= field && child.hi >= field) {
-                key = child.key
-                node = child
-                continue outer
+        const component = world.storage.findComponentBySchemaId(local, schemaId)
+        if (component === null) {
+          return
+        }
+        const type = model[schemaId]
+        let traverseIndex = 0
+        let key: string | number | null = null
+        let ref = component
+        let node: ModelNode = type as ModelNode
+        outer: while (node.id !== field) {
+          if (key !== null) {
+            ref = ref[key]
+          }
+          switch (node.kind) {
+            case SchemaKeyKind.Primitive:
+              throw new Error(ERROR_PATCH_NO_MATCH)
+            case SchemaKeyKind.Array:
+            case SchemaKeyKind.Object:
+            case SchemaKeyKind.Set:
+            case SchemaKeyKind.Map:
+              key = traverse[traverseIndex++]
+              node = node.edge
+              continue
+            case $struct:
+              for (let i = 0; i < node.edges.length; i++) {
+                const child = node.edges[i]
+                if (child.lo <= field && child.hi >= field) {
+                  key = child.key
+                  node = child
+                  continue outer
+                }
               }
-            }
-          default:
-            throw new Error(ERROR_PATCH_NO_MATCH)
+            default:
+              throw new Error(ERROR_PATCH_NO_MATCH)
+          }
         }
-      }
-      assert(key !== null, "", ErrorType.Internal)
-      assert(
-        node.kind === SchemaKeyKind.Primitive,
-        ERROR_PATCH_UNSUPPORTED_TYPE,
-      )
-      ref[key] = value
-      patched.add(local)
+        assert(key !== null, "", ErrorType.Internal)
+        assert(
+          node.kind === SchemaKeyKind.Primitive,
+          ERROR_PATCH_UNSUPPORTED_TYPE,
+        )
+        ref[key] = value
+        patched.add(local)
+      } catch (err) {}
     },
     onArrayMethod(
       entity,
@@ -152,6 +150,11 @@ export const createMessageHandler = (world: World) => {
     while ((message = messages.pop())) {
       decode(message, handlers, model)
     }
+
+    // const message = messages.pop()
+    // if (message !== undefined) {
+    //   decode(message, handlers, model)
+    // }
   }
 
   const useInfo = createEffect(() => () => state, {

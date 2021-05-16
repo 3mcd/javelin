@@ -1,5 +1,5 @@
 import { createQuery } from "@javelin/ecs"
-import { Big, Changes, Player, Shell, Transform } from "./components.mjs"
+import { Big, Changes, Player, Shell, Transform } from "./components"
 
 export const qry_players = createQuery(Player)
 export const qry_transforms = createQuery(Transform)

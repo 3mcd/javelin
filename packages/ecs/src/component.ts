@@ -29,7 +29,7 @@ export function createComponentBase<S extends Schema>(
     {},
     {
       __type__: {
-        value: UNSAFE_internals.componentTypeIndex.get(schema),
+        value: UNSAFE_internals.schemaIndex.get(schema),
         writable: false,
         enumerable: true,
       },
@@ -41,7 +41,7 @@ export function isComponentOf<S extends Schema>(
   component: Component,
   schema: S,
 ): component is ComponentOf<S> {
-  return component.__type__ === UNSAFE_internals.componentTypeIndex.get(schema)
+  return component.__type__ === UNSAFE_internals.schemaIndex.get(schema)
 }
 
 export const componentTypePools = new Map<number, StackPool<Component>>()
@@ -71,7 +71,7 @@ export function registerSchema(
   schemaId?: number,
   poolSize = 1000,
 ) {
-  let type: number | undefined = UNSAFE_internals.componentTypeIndex.get(schema)
+  let type: number | undefined = UNSAFE_internals.schemaIndex.get(schema)
   if (type !== undefined) {
     return type
   }
@@ -88,7 +88,7 @@ export function registerSchema(
   }
   componentTypePools.set(type, createComponentPool(schema, poolSize))
   modelConfig.set(type, schema)
-  UNSAFE_internals.componentTypeIndex.set(schema, type)
+  UNSAFE_internals.schemaIndex.set(schema, type)
   UNSAFE_internals.model = createModel(modelConfig)
   return type
 }

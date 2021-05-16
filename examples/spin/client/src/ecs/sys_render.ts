@@ -1,7 +1,7 @@
 import { useInterval, useRef, World } from "@javelin/ecs"
 import { Entity } from "@javelin/ecs/dist/cjs/entity"
 // @ts-ignore
-import { Big } from "../../../server/components.mjs"
+import { Big } from "../../../server/components"
 import { CanvasRef } from "../Canvas"
 import { Camera } from "./components"
 import { eff_net } from "./eff_net"

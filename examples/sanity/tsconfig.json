@@ -1,8 +1,0 @@
-{
-  "extends": "../tsconfig.json",
-  "compilerOptions": {
-    "downlevelIteration": true,
-    "esModuleInterop": true,
-    "jsx": "react",
-  }
-}

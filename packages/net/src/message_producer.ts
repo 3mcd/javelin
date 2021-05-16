@@ -15,7 +15,7 @@ export type MessageProducer = {
     changes: InstanceOfSchema<typeof ChangeSet>,
     priority?: number,
   ): void
-  take(): Message.Message | null
+  take(includeModel?: boolean): Message.Message | null
 }
 export type MessageProducerOptions = {
   maxByteLength?: number
@@ -85,7 +85,7 @@ export const createMessageProducer = (
     let message = messageQueue.pop() || null
     const entities = entityPriorities.keys()
     const prioritized = Array.from(entities).sort(
-      (a, b) => (entityPriorities.get(a) ?? 0) - (entityPriorities.get(b) ?? 0),
+      (a, b) => (entityPriorities.get(b) ?? 0) - (entityPriorities.get(a) ?? 0),
     )
     for (let i = 0; i < prioritized.length; i++) {
       const entity = prioritized[i]

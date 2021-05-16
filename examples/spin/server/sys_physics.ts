@@ -1,5 +1,5 @@
 import { set } from "@javelin/track"
-import { qry_transforms_w_shell } from "./queries.mjs"
+import { qry_transforms_w_shell } from "./queries"
 
 export const sys_physics = () => {
   for (const [

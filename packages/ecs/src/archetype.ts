@@ -140,9 +140,9 @@ export function createArchetype<T extends Schema[]>(
   function insert(entity: number, components: Component[]) {
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const componentTypeIndex = signatureInverse[component.__type__]
+      const schemaIndex = signatureInverse[component.__type__]
 
-      table[componentTypeIndex].push(component)
+      table[schemaIndex].push(component)
     }
 
     indices[entity] = entities.push(entity) - 1

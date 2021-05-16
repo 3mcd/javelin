@@ -1,11 +1,11 @@
-import { useInterval } from "@javelin/ecs"
+import { useInterval, World } from "@javelin/ecs"
 import { encode } from "@javelin/net"
-import { eff_clients } from "./eff_clients.mjs"
-import { eff_message, getInitialMessage } from "./eff_message.mjs"
-import { SEND_RATE } from "./env.mjs"
-import { qry_players } from "./queries.mjs"
+import { eff_clients } from "./eff_clients"
+import { eff_message, getInitialMessage } from "./eff_message"
+import { SEND_RATE } from "./env"
+import { qry_players } from "./queries"
 
-export const sys_net = world => {
+export const sys_net = (world: World) => {
   const send = useInterval((1 / SEND_RATE) * 1000)
   const clients = eff_clients()
   const producer = eff_message(send)

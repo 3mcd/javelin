@@ -65,7 +65,7 @@ export type Query<S extends Selector = Selector> = ((
    * @param entity
    * @param out
    */
-  get(entity: Entity, out?: SelectorResult<S>): SelectorResult<S> | null
+  get(entity: Entity, out?: SelectorResult<S>): SelectorResult<S>
 
   /**
    * Determine if an entity matches the query.
@@ -185,7 +185,7 @@ function createQueryInternal<S extends Selector>(
       filters: {
         not: new Set(
           exclude
-            .map(schema => UNSAFE_internals.componentTypeIndex.get(schema))
+            .map(schema => UNSAFE_internals.schemaIndex.get(schema))
             .filter((x): x is number => typeof x === "number"),
         ),
       },
@@ -211,7 +211,9 @@ function createQueryInternal<S extends Selector>(
         return out
       }
     }
-    return null
+    throw new Error(
+      "Failed to get components of query: entity does not match query",
+    )
   }
   query.bind = (world: World) =>
     createQueryInternal({
