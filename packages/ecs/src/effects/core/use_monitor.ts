@@ -58,7 +58,10 @@ const snapshots = createStackPool<EntitySnapshotSparse>(
  */
 export const useMonitor = createEffect(world => {
   const {
-    storage: { entityRelocated },
+    storage: {
+      entityRelocated,
+      archetypes: [rootArchetype],
+    },
   } = world
 
   let stagedEnter: EntitySnapshotSparse[] = []
@@ -97,24 +100,20 @@ export const useMonitor = createEffect(world => {
       return
     }
 
-    // TODO: this is very slow – need a better way of excluding entities
-    // were added/removed the same tick
-    if (next === world.storage.archetypes[0]) {
-      const stagedEnterIndex = stagedEnter.findIndex(([e]) => e === entity)
-      if (stagedEnterIndex !== -1) {
-        stagedEnter.splice(stagedEnterIndex, 1)
-      }
-      const stagedExitIndex = stagedExit.findIndex(([e]) => e === entity)
-      if (stagedExitIndex !== -1) {
-        stagedExit.splice(stagedExitIndex, 1)
+    const matchEnter = _query.matchesArchetype(next)
+    const matchExit = _query.matchesArchetype(prev)
+    if (matchExit && next === rootArchetype) {
+      // entity matched and unmatched during the same
+      const index = stagedEnter.findIndex(([e]) => e === entity)
+      if (index !== -1) {
+        stagedEnter.splice(index, 1)
       }
     }
 
-    const matchEnter = _query.matchesArchetype(next)
-    const matchExit = _query.matchesArchetype(prev)
-
-    // xor
-    if (matchEnter !== matchExit) {
+    if (
+      // xor
+      matchEnter !== matchExit
+    ) {
       const snapshot = snapshots.retain()
       snapshot[0] = entity
       _query.match(changed, snapshot[1])
