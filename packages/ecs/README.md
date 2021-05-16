@@ -13,15 +13,39 @@ Visit https://javelin.games for documentation, examples, and external resources.
 ## Features
 
 ### Fast
+
 Entities are organized by their component makeup into Archetypes for quick lookups and iteration. In a small app (10 component types, 10 archetypes, 10 queries), Javelin can iterate ~2.5 million entities per 16ms on a 2GHz Intel i5 processor.
 
-### Intuitive
-Game data is stored in plain old JavaScript objects. Iterate over game state using familiar syntax:
+### Ergonomic
+
+Define your game's data model using simple syntax.
 
 ```ts
-bodies.forEach((entity, [v, p]) => {
-  p.x += v.x
-})
+const Transform = {
+  x: float64,
+  y: float64,
+}
+const Inventory = {
+  bags: arrayOf(arrayOf(uint32)),
+}
+const world = createWorld()
+const entity = world.spawn(
+  component(Transform), // => { x: 0, y: 0 }
+  component(Inventory), // => { bags: [] }
+)
+```
+
+### Intuitive
+
+Query game state using simple syntax.
+
+```ts
+const qryBodies = createQuery(Transform, Velocity)
+const sysPhysics = () =>
+  qryBodies((e, [t, v]) => {
+    t.x += v.x
+    t.y += v.y
+  })
 ```
 
 ### Powerful
@@ -29,27 +53,30 @@ bodies.forEach((entity, [v, p]) => {
 Best practices are built-in with tools like [Topics](https://javelin.games/ecs/topics) for inter-system messaging:
 
 ```ts
-const sys_movement = () => {
-  queries.input.forEach((entity, [input]) => {
-    if (input.jump)
-      topics.physics.push(impulse(entity, ...))
+const sysMovement = () =>
+  qryInput((e, [input]) => {
+    if (input.jump) {
+      topPhysics.push(impulse(e, 0, 10))
+    }
   })
-}
-const sys_physics = () => {
-  for (const message of topics.physics)
-    ...
+const sysPhysics = () => {
+  for (const message of topPhysics) {
+    // ...
+  }
 }
 ```
 
-and [Effects](https://javelin.games/ecs/effects) for handling async code and third-party dependencies
+and [Effects](https://javelin.games/ecs/effects) for handling async code, third-party dependencies, and events:
 
 ```ts
-const sys_render = () => {
-  const scene = effects.scene()
-  const model = effects.gltf("llama.gltf")
+const sysRender = () => {
+  const scene = useScene()
+  const model = useLoadGLTF("llama.gltf")
 
-  queries.players.forEach((entity, [player, position]) => {
-    scene.insert(model, position)
-  })
+  useMonitor(
+    qryPlayers,
+    e => scene.insert(e, model, world.get(e, Transform)),
+    e => scene.destroy(e),
+  )
 }
 ```

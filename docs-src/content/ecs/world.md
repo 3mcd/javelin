@@ -5,7 +5,7 @@ weight = 2
 
 <aside>
   <p>
-    <strong>Tip</strong> — the following chapters assume that you are familiar with basic ECS concepts discussed in the <a href="/ecs">opening section</a>.
+    <strong>Tip</strong> — the following chapters assume that you're familiar with basic ECS concepts discussed in the <a href="/ecs">opening section</a>.
   </p>
 </aside>
 
@@ -58,16 +58,13 @@ world.get(entity, Position)
 
 ### Snapshots
 
-You can take a snapshot of a world using `world.snapshot()` and create a new world from it later:
+`world.snapshot()` takes a snapshot of a world's entities and components. You can use the snapshot to seed a new world with entities later:
 
 ```ts
-const world = createWorld({ snapshot: JSON.parse(localStorage.getItem("world")) })
-...
-const snapshot = world.snapshot()
-localStorage.setItem("world", JSON.stringify(world.snapshot))
+const snapshot = worldA.snapshot()
+const worldB = createWorld({ snapshot })
 ```
 
 ### Reset
 
 Use `world.reset()` to completely reset a world. This method will clear all entity and component data, releasing pooled components along the way.
-

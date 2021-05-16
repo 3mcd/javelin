@@ -1,58 +1,57 @@
 const { performance } = require("perf_hooks")
 const {
   createWorld,
-  onAttach,
-  onDetach,
-  query,
-  createComponentType,
+  useTrigger,
+  createQuery,
+  component,
 } = require("../dist/cjs")
 
-const A = createComponentType({
-  type: 0,
-  schema: {},
-})
-const B = createComponentType({
-  type: 1,
-  schema: {},
-})
+const A = {}
+const B = {}
 
 module.exports.run = () => {
-  let i = 0
+  const n = 10000
+  const t = 100
 
-  const qa = query(A)
+  console.log(`swapping component A-B of ${n} entities for ${t} ticks`)
 
-  const sys_attach = world => {
+  let ops = 0
+
+  const qa = createQuery(A)
+
+  const sysAttach = world => {
     for (const [entities] of qa) {
       for (let i = 0; i < entities.length; i++) {
         const entity = entities[i]
         if (!world.has(entity, B)) {
-          world.attach(entity, world.component(B))
+          world.attach(entity, component(B))
         }
       }
     }
-    onDetach(A).forEach(entity => {
+    useTrigger(A, undefined, entity => {
       world.detach(entity, B)
-      i++
+      ops++
     })
   }
-  const sys_detach = world => {
-    onAttach(B).forEach(entity => {
+  const sysDetach = world => {
+    useTrigger(B, entity => {
       world.detach(entity, B)
-      i++
+      ops++
     })
   }
 
-  const world = createWorld({ systems: [sys_attach, sys_detach] })
+  const world = createWorld({ systems: [sysAttach, sysDetach] })
 
-  for (let i = 0; i < 1000000; i++) {
-    world.spawn(world.component(A))
+  for (let i = 0; i < n; i++) {
+    world.spawn(component(A))
   }
 
   const start = performance.now()
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < t; i++) {
     world.tick()
   }
   const time = performance.now() - start
-  console.log(time / 100)
-  console.log(i)
+  console.log(`tick_count     | ${t}`)
+  console.log(`tick_time_avg  | ${time / t} ms`)
+  console.log(`ops_per_tick   | ${ops / t}`)
 }

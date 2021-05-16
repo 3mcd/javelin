@@ -3,109 +3,80 @@ title = "Components"
 weight = 3
 +++
 
-Most data within a game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `_tid` — short for type id, a unique integer that is shared between all components of the same kind.
+Most data within a game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `__type__`, a unique integer that is shared between all components of the same kind.
 
-The `_tid` field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example.
-
-```ts
-const position = { _tid: 0, x: 2, y: 2 }
-const health = { _tid: 0, value: 100 }
-```
-
-Using the same `_tid` for components with a different shape could result in catastrophic behavior! Just make the types unique:
+The `__type__` field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example:
 
 ```ts
-const position = { _tid: 0, ... }
-const health = { _tid: 1, ... }
+const position = { __type__: 0, x: 2, y: 2 }
+const health = { __type__: 0, value: 100 }
 ```
 
-## Component Types
-
-The `createComponentType` helper is used to define the types of components in your game. Component types make it easy to initialize components from a schema, and components created with a component type are automatically pooled.
+Although the two objects represent different state, Javelin won't be able to tell the difference between the two because they share the same identifier. Using the same `__type__` for components with a different shape could result in catastrophic behavior in your game! Just make the types unique:
 
 ```ts
-import { createComponentType, number } from "@javelin/ecs"
-
-const Position = createComponentType({
-  type: 1,
-  schema: {
-    x: number,
-    y: number,
-  },
-})
+const position = { __type__: 0, ... }
+const health = { __type__: 1, ... }
 ```
 
-A component type has, at minimum, a type and **schema**, which is discussed below.
+## Schemas
 
-### Schema
+A **schema** is an object that defines the structure of a component.
 
-A component type's schema defines the field names and data types that make up the shape of the component. The schema is used to initialize component instances and reset them when they are detached from an entity.
+```ts
+import { number } from "@javelin/ecs"
+
+const Position = {
+  x: number,
+  y: number,
+}
+```
+
+Schema may range from flat structures with few (or no) properties, to complex objects containing deeply nested structures.
+
+```ts
+const Inventory = {
+  bags: arrayOf({ items: arrayOf(number) }),
+}
+```
+
+A schema is used to initialize component instances and reset them when they are detached from an entity.
 
 The schema currently supports the following data types:
 
-
 ```
 number  (default = 0)
-boolean (default = false)
 string  (default = "")
-array   (default = [])
+boolean (default = false)
+arrayOf (default = [])
 ```
 
-A default value for a data type can be specified in the schema by wrapping the data type in an object:
+When Javelin encounters a schema for the first time, it will automatically assign it a unique integer id. If you need to assign a specific id to a schema (e.g., you're synchronizing your component model in a multiplayer game), you can register the schema manually using `registerSchema`:
 
 ```ts
-schema: {
-  x: { type: number, defaultValue: -1 }
-}
+import { registerSchema } from "@javelin/ecs"
+
+registerSchema(Position, 4)
 ```
 
 ### Creating Components
 
-A component is initialized from a component type using `world.component`:
+Components are created using the `component()` function.
 
 ```ts
-const position = world.component(Position)
+import { component } from "@javelin/ecs"
 
-position.x // 0
-position.y // 0
+const position = component(Position)
 ```
 
-You may also specify an initializer function for a component type to make component creation easier.
+Components created using `component()` are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal for singleton or low-volume components. You may specify the pool size for a single schema when registering the it with `registerSchema`:
 
 ```ts
-const Position = createComponentType({
-  ...
-  initialize(position, x = 0, y = 0) {
-    position.x = x
-    position.y = y
-  },
-})
-
-const position = world.component(
-  Position,
-  10, // x
-  20, // y
-)
-```
-
-### Object Pooling
-
-Components created via a component type are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal, especially for singleton or low-volume components. You can modify the default pool size of all component types by setting the `componentPoolSize` option on the config object passed to `createWorld()`:
-
-```ts
-const world = createWorld({
-  componentPoolSize: 100,
-})
-```
-
-Or, you can specify the pool size for a single component type when registering the it with `world.registerComponentType`:
-
-```ts
-world.registerComponentType(Position, 10000)
+registerSchema(Position, 4, 10000)
 ```
 
 <aside>
   <p>
-    <strong>Tip</strong> — the configured or default pool size will be used if a component type is encountered by <code>world.component()</code> prior to manual registration.
+    <strong>Tip</strong> — the configured or default pool size will be used if a schema is encountered by <code>component()</code> prior to manual registration.
   </p>
 </aside>

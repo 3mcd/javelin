@@ -11,12 +11,12 @@ compile_sass = true
 build_search_index = true
 
 highlight_code = true
-highlight_theme = "snow-light"
+# highlight_theme = "snow-light"
 
 
 [extra]
 # Put all your custom variables here
 theme = "book"
 book_numbered_chapters = true
-library_version = "0.21.0"
+library_version = "1.0.0"
 repo_url = "https://github.com/3mcd/javelin"

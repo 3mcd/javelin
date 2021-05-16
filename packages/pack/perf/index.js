@@ -1,6 +1,7 @@
-const { encode, decode, uint8, string8, field } = require("../dist/cjs")
+const { encode, decode, uint8, string8 } = require("../dist/cjs")
 const msgpack = require("@msgpack/msgpack")
 const { performance } = require("perf_hooks")
+const { arrayOf, createModel } = require("@javelin/core")
 const player = {
   name: "Geralt",
   inventory: {
@@ -17,51 +18,56 @@ const player = {
     ],
   },
 }
-const schema = {
-  name: field({
-    type: string8,
-    length: 6,
-  }),
-  inventory: {
-    order: [field(uint8)],
-    items: [
+const model = createModel(
+  new Map([
+    [
+      0,
       {
-        name: field({
-          type: string8,
+        name: {
+          ...string8,
           length: 6,
-        }),
-        weight: field(uint8),
-        attributes: [
-          {
-            name: field({
-              type: string8,
-              length: 6,
-            }),
-            value: field({
-              type: uint8,
-            }),
-          },
-        ],
+        },
+        inventory: {
+          order: arrayOf(uint8),
+          items: [
+            {
+              name: {
+                ...string8,
+                length: 6,
+              },
+              weight: uint8,
+              attributes: [
+                {
+                  name: {
+                    ...string8,
+                    length: 6,
+                  },
+                  value: uint8,
+                },
+              ],
+            },
+          ],
+        },
       },
     ],
-  },
-}
+  ]),
+)
 
 const COUNT = 1000000
 
 // @javelin/pack
 
-const javelinPackEncoded = encode(player, schema)
+const javelinPackEncoded = encode(player, model[0])
 
 const javelinPackEncodeStart = performance.now()
 for (let i = 0; i < COUNT; i++) {
-  encode(player, schema)
+  encode(player, model[0])
 }
 const javelinPackEncodeTime = performance.now() - javelinPackEncodeStart
 
 const javelinPackDeserializeStart = performance.now()
 for (let i = 0; i < COUNT; i++) {
-  decode(javelinPackEncoded, schema)
+  decode(javelinPackEncoded, model[0])
 }
 const javelinPackDeserializeTime =
   performance.now() - javelinPackDeserializeStart

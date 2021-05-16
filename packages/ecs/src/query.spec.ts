@@ -1,34 +1,31 @@
 import { Archetype, createArchetype } from "./archetype"
-import { Component } from "./component"
-import { createComponentType } from "./helpers"
-import { globals } from "./internal/globals"
-import { query } from "./query"
+import { Component, registerSchema } from "./component"
+import { UNSAFE_internals } from "./internal"
+import { createQuery } from "./query"
 import { createWorld } from "./world"
 
 jest.mock("./archetype")
 jest.mock("./world")
 
-describe("query", () => {
-  const A = createComponentType({ type: 0, schema: {} })
-  const B = createComponentType({ type: 1, schema: {} })
+describe("createQuery", () => {
+  const A = {}
+  const B = {}
 
-  it("initializes with sorted signature", () => {
-    const q = query(B, A)
+  registerSchema(A, 0)
+  registerSchema(B, 1)
 
-    expect(q.signature).toEqual([0, 1])
-  })
   it("queries collections of components", () => {
     const world = createWorld()
     const table = [
       [
-        { _tid: 0, foo: 4 },
-        { _tid: 0, foo: 5 },
-        { _tid: 0, foo: 6 },
+        { __type__: 0, foo: 4 },
+        { __type__: 0, foo: 5 },
+        { __type__: 0, foo: 6 },
       ],
       [
-        { _tid: 1, foo: 1 },
-        { _tid: 1, foo: 2 },
-        { _tid: 1, foo: 3 },
+        { __type__: 1, foo: 1 },
+        { __type__: 1, foo: 2 },
+        { __type__: 1, foo: 3 },
       ],
     ]
 
@@ -43,15 +40,15 @@ describe("query", () => {
       } as Archetype,
     ]
 
-    globals.__WORLDS__ = [world]
-    globals.__CURRENT_WORLD__ = 0
+    UNSAFE_internals.worlds = [world]
+    UNSAFE_internals.currentWorldId = 0
 
-    const q = query(A, B)
+    const q = createQuery(A, B)
 
     let resultsA: Component[] = []
     let resultsB: Component[] = []
 
-    q.forEach((e, [a, b]) => {
+    q((e, [a, b]) => {
       resultsA.push(a)
       resultsB.push(b)
     })

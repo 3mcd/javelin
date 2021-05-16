@@ -191,7 +191,7 @@
 </span></code></pre>
 <p>When you need to apply a impulse to an entity, you insert an <code>Impulse</code> component on the current tick, and remove it on the following tick.</p>
 <pre style="background-color:#f6f8f8;">
-<code><span style="color:#388282;">const </span><span style="color:#555c64;">sys_input </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+<code><span style="color:#388282;">const </span><span style="color:#555c64;">sysInput </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   queries.jumping.forEach(</span><span style="color:#8a6c3c;">entity </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
     world.attach(entity, world.component(Impulse))
   })
@@ -200,7 +200,7 @@
   })
 }
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">sys_physics </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">sysPhysics </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   queries.withImpulse((</span><span style="color:#8a6c3c;">entity</span><span style="color:#555c64;">, [</span><span style="color:#8a6c3c;">impulse</span><span style="color:#555c64;">]) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
     </span><span style="color:#388282;">const </span><span style="color:#555c64;">body </span><span style="color:#388282;">= </span><span style="color:#555c64;">getBodyByEntity(entity)
     physicsEngine.applyImpulseLocal(body, impulse)
@@ -221,11 +221,7 @@
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">import </span><span style="color:#555c64;">{ createTopic } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;@javelin/ecs&quot;
 
-</span><span style="color:#388282;">type </span><span style="color:#555c64;">ImpulseCommand </span><span style="color:#388282;">= </span><span style="color:#555c64;">[
-  type</span><span style="color:#388282;">: </span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">,
-  entity</span><span style="color:#388282;">: </span><span style="color:#88669e;">number</span><span style="color:#555c64;">,
-  force</span><span style="color:#388282;">: </span><span style="color:#555c64;">[</span><span style="color:#88669e;">number</span><span style="color:#555c64;">, </span><span style="color:#88669e;">number</span><span style="color:#555c64;">],
-]
+</span><span style="color:#388282;">type </span><span style="color:#555c64;">ImpulseCommand </span><span style="color:#388282;">= </span><span style="color:#555c64;">[type</span><span style="color:#388282;">: </span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">, entity</span><span style="color:#388282;">: </span><span style="color:#88669e;">number</span><span style="color:#555c64;">, force</span><span style="color:#388282;">: </span><span style="color:#555c64;">[</span><span style="color:#88669e;">number</span><span style="color:#555c64;">, </span><span style="color:#88669e;">number</span><span style="color:#555c64;">]]
 
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">physicsTopic </span><span style="color:#388282;">= </span><span style="color:#555c64;">createTopic&lt;ImpulseCommand&gt;()
 </span></code></pre>
@@ -245,7 +241,7 @@ physicsTopic.push(message)
 <pre style="background-color:#f6f8f8;">
 <code><span style="color:#388282;">import </span><span style="color:#555c64;">{ physicsTopic } </span><span style="color:#388282;">from </span><span style="color:#4179ad;">&quot;./physics_topic&quot;
 
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">sys_physics </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">sysPhysics </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   </span><span style="color:#388282;">for </span><span style="color:#555c64;">(</span><span style="color:#388282;">const </span><span style="color:#555c64;">command </span><span style="color:#388282;">of </span><span style="color:#555c64;">physicsTopic) {
     </span><span style="color:#388282;">if </span><span style="color:#555c64;">(command[</span><span style="color:#4179ad;">0</span><span style="color:#555c64;">] </span><span style="color:#388282;">=== </span><span style="color:#4179ad;">&quot;impulse&quot;</span><span style="color:#555c64;">) {
       </span><span style="color:#388282;">const </span><span style="color:#555c64;">body </span><span style="color:#388282;">= </span><span style="color:#555c64;">getBodyByEntity(command[</span><span style="color:#4179ad;">1</span><span style="color:#555c64;">])

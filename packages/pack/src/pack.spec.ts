@@ -1,20 +1,28 @@
-import { decode, encode, field } from "."
+import { arrayOf, createModel } from "@javelin/core"
+import { decode, encode } from "./pack"
 import { boolean, int8, string, string8, uint16, uint8 } from "./views"
 
 describe("pack", () => {
   it("encodes and decodes nested schema", () => {
-    const schema = {
-      x: field(int8),
-      y: field(int8),
-      name: field(string, 10),
-      enabled: field(boolean),
-      a: {
-        b: field(int8),
-        c: {
-          d: field(uint16),
-        },
-      },
-    }
+    const model = createModel(
+      new Map([
+        [
+          0,
+          {
+            x: int8,
+            y: int8,
+            name: { ...string, length: 10 },
+            enabled: boolean,
+            a: {
+              b: int8,
+              c: {
+                d: uint16,
+              },
+            },
+          },
+        ],
+      ]),
+    )
     const object = {
       x: -1,
       y: 12,
@@ -23,24 +31,28 @@ describe("pack", () => {
       a: { b: 1, c: { d: 999 } },
     }
 
-    const result = decode(encode(object as any, schema), schema)
-
+    const result = decode(encode(object, model[0]), model[0])
     expect(result).toEqual(object)
   })
 
   it("handles arrays", () => {
-    const schema = {
-      order: [field(uint8)],
-      items: [
-        {
-          name: field(string8, 25),
-          weight: field(uint16),
-          attributes: {
-            damage: field(uint16),
+    const model = createModel(
+      new Map([
+        [
+          0,
+          {
+            order: arrayOf(uint8),
+            items: arrayOf({
+              name: { ...string8, length: 25 },
+              weight: uint16,
+              attributes: {
+                damage: uint16,
+              },
+            }),
           },
-        },
-      ],
-    }
+        ],
+      ]),
+    )
     const object = {
       order: [1, 2, 3],
       items: [
@@ -49,8 +61,34 @@ describe("pack", () => {
       ],
     }
 
-    const result = decode(encode(object as any, schema), schema)
+    const result = decode(encode(object, model[0]), model[0])
+    expect(object).toEqual(result)
+  })
 
+  it("handles nested arrays", () => {
+    const model = createModel(
+      new Map([
+        [
+          0,
+          {
+            pairs: arrayOf(
+              arrayOf({
+                x: uint8,
+              }),
+            ),
+          },
+        ],
+      ]),
+    )
+    const object = {
+      pairs: [
+        [{ x: 1 }, { x: 2 }],
+        [{ x: 3 }, { x: 4 }],
+        [{ x: 5 }, { x: 6 }],
+      ],
+    }
+
+    const result = decode(encode(object, model[0]), model[0])
     expect(object).toEqual(result)
   })
 })

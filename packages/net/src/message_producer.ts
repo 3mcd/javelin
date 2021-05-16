@@ -1,299 +1,113 @@
-import {
-  AttachOp,
-  Component,
-  ComponentType,
-  DetachOp,
-  mutableEmpty,
-  SpawnOp,
-  World,
-  WorldOp,
-  WorldOpType,
-} from "@javelin/ecs"
-import { createEntityMap } from "./entity_map"
-import {
-  JavelinMessage,
-  protocol,
-  UpdatePayload,
-  UpdateUnreliable,
-  UpdateUnreliablePayload,
-} from "./protocol"
-
-export type QueryConfig = {
-  type: ComponentType
-  priority?: number
-}
+import { assert, ErrorType, initialize, InstanceOfSchema } from "@javelin/core"
+import { Component, Entity, UNSAFE_internals } from "@javelin/ecs"
+import { ChangeSet, copy, reset } from "@javelin/track"
+import * as Message from "./message"
+import * as MessageOp from "./message_op"
 
 export type MessageProducer = {
-  getInitialMessages(world: World): JavelinMessage[]
-  getReliableMessages(world: World): JavelinMessage[]
-  getUnreliableMessages(world: World): UpdateUnreliable[]
+  spawn(entity: Entity, components: Component[]): void
+  destroy(entity: Entity): void
+  attach(entity: Entity, components: Component[]): void
+  detach(entity: Entity, components: Component[]): void
+  update(entity: Entity, components: Component[]): void
+  patch(
+    entity: Entity,
+    changes: InstanceOfSchema<typeof ChangeSet>,
+    priority?: number,
+  ): void
+  take(includeModel?: boolean): Message.Message | null
 }
-
 export type MessageProducerOptions = {
-  components: QueryConfig[]
-  updateInterval: number
-  updateSize: number
-  isLocal?: boolean
+  maxByteLength?: number
 }
 
-function getRelevantIndices<T>(a: ReadonlyArray<T>, b: ReadonlyArray<T>) {
-  const result = []
-
-  for (let i = 0; i < a.length; i++) {
-    if (b.includes(a[i])) {
-      result.push(i)
+export const createMessageProducer = (
+  options: MessageProducerOptions = {},
+): MessageProducer => {
+  const { maxByteLength = Infinity } = options
+  const messageQueue: Message.Message[] = [Message.createMessage()]
+  const entityPriorities = new Map<Entity, number>()
+  const entityChangeSets = new Map<Entity, InstanceOfSchema<typeof ChangeSet>>()
+  const _insert = (op: MessageOp.MessageOp, kind: Message.MessagePartKind) => {
+    let message = messageQueue[0]
+    if (
+      message === undefined ||
+      op.byteLength + message.byteLength > maxByteLength
+    ) {
+      message = Message.createMessage()
+      messageQueue.unshift(message)
     }
+    Message.insert(message, kind, op)
+    return message
   }
-  return result
-}
-
-const entityMapArrayInitializer = (entity: number, value?: any[]) => {
-  if (Array.isArray(value)) {
-    mutableEmpty(value)
-  } else {
-    return []
-  }
-
-  return value
-}
-
-export function createMessageProducer(
-  options: MessageProducerOptions,
-): MessageProducer {
-  const { isLocal = false } = options
-  const allComponentTypeIds = options.components.map(config => config.type.type)
-  const priorities = new WeakMap<Component, number>()
-  const tmpSortedByPriority: Component[] = []
-  const tmpEntityMutations = createEntityMap<unknown[]>(
-    entityMapArrayInitializer,
-  )
-  const tmpComponentsByEntity = createEntityMap<Component[]>(
-    entityMapArrayInitializer,
-  )
-  const tmpComponentEntities = new WeakMap<Component, number>()
-  const tmpUpdatePayload: UpdatePayload = []
-  const tmpUpdateUnreliablePayload: UpdateUnreliablePayload = []
-
-  let previousUnreliableSendTime = 0
-
-  function getInitialMessages(world: World) {
-    const messages = []
-    const ops: (SpawnOp | AttachOp)[] = []
-    const {
-      storage: { archetypes },
-    } = world
-
-    for (let i = 0; i < archetypes.length; i++) {
-      const { signature, entities, table, indices } = archetypes[i]
-      const componentIndices = getRelevantIndices(
-        signature,
-        allComponentTypeIds,
+  const spawn = (entity: Entity, components: Component[]) =>
+    _insert(
+      MessageOp.spawn(UNSAFE_internals.model, entity, components),
+      Message.MessagePartKind.Spawn,
+    )
+  const attach = (entity: Entity, components: Component[]) =>
+    _insert(
+      MessageOp.attach(UNSAFE_internals.model, entity, components),
+      Message.MessagePartKind.Attach,
+    )
+  const update = (entity: Entity, components: Component[]) =>
+    _insert(
+      MessageOp.update(UNSAFE_internals.model, entity, components),
+      Message.MessagePartKind.Update,
+    )
+  const patch = (
+    entity: Entity,
+    changes: InstanceOfSchema<typeof ChangeSet>,
+    priority = Infinity,
+  ) => {
+    let changeset = entityChangeSets.get(entity)
+    if (changeset === undefined) {
+      changeset = initialize(
+        {} as InstanceOfSchema<typeof ChangeSet>,
+        ChangeSet,
       )
-
-      if (componentIndices.length === 0) {
-        continue
-      }
-
-      for (let j = 0; j < entities.length; j++) {
-        const entity = entities[j]
-        const entityIndex = indices[entity]
-        const components: Component[] = []
-        const spawn: SpawnOp = [WorldOpType.Spawn, entity]
-        const attach: AttachOp = [WorldOpType.Attach, entity, components]
-
-        for (let k = 0; k < componentIndices.length; k++) {
-          const componentIndex = componentIndices[k]
-          const component = table[componentIndex][entityIndex]!
-          components.push(component)
+      entityChangeSets.set(entity, changeset)
+    }
+    copy(changes, changeset)
+    entityPriorities.set(entity, (entityPriorities.get(entity) ?? 0) + priority)
+  }
+  const detach = (entity: Entity, components: Component[]) =>
+    _insert(
+      MessageOp.detach(
+        entity,
+        components.map(c => c.__type__),
+      ),
+      Message.MessagePartKind.Detach,
+    )
+  const destroy = (entity: Entity) =>
+    _insert(MessageOp.destroy(entity), Message.MessagePartKind.Destroy)
+  const take = (includeModel = false) => {
+    let message = messageQueue.pop() || null
+    const entities = entityPriorities.keys()
+    const prioritized = Array.from(entities).sort(
+      (a, b) => (entityPriorities.get(b) ?? 0) - (entityPriorities.get(a) ?? 0),
+    )
+    for (let i = 0; i < prioritized.length; i++) {
+      const entity = prioritized[i]
+      const changeset = entityChangeSets.get(entity)
+      if (changeset !== undefined && changeset.touched) {
+        if (message === null) {
+          message = Message.createMessage()
         }
-
-        ops.push(spawn, attach)
+        assert(message !== null, "", ErrorType.Internal)
+        const op = MessageOp.patch(UNSAFE_internals.model, entity, changeset)
+        if (op.byteLength + message?.byteLength < maxByteLength) {
+          Message.insert(message, Message.MessagePartKind.Patch, op)
+          reset(changeset)
+          entityPriorities.set(entity, 0)
+        }
       }
     }
-
-    if (ops.length > 0) {
-      messages.push(protocol.ops(ops, isLocal))
+    if (message && includeModel) {
+      Message.model(message)
     }
-
-    return messages
+    return message
   }
 
-  function getReliableMessages(world: World) {
-    const storage = world.storage
-    const { archetypes } = storage
-    const messages: JavelinMessage[] = []
-
-    mutableEmpty(tmpUpdatePayload)
-
-    tmpEntityMutations.clear()
-
-    if (world.ops.length > 0) {
-      const filteredOps: WorldOp[] = []
-
-      for (let i = 0; i < world.ops.length; i++) {
-        let op = world.ops[i]
-
-        switch (op[0]) {
-          case WorldOpType.Attach: {
-            const components = op[2].filter(c =>
-              allComponentTypeIds.includes(c._tid),
-            )
-
-            if (components.length > 0) {
-              filteredOps.push([op[0], op[1], components] as WorldOp)
-            }
-
-            break
-          }
-          case WorldOpType.Detach: {
-            const componentTypeIds = op[2].filter(component =>
-              allComponentTypeIds.includes(component._tid),
-            )
-
-            if (componentTypeIds.length > 0) {
-              filteredOps.push([op[0], op[1], componentTypeIds] as DetachOp)
-            }
-            break
-          }
-          case WorldOpType.Spawn:
-            filteredOps.push(op)
-            break
-          case WorldOpType.Destroy:
-            filteredOps.push(op)
-            break
-        }
-      }
-
-      if (filteredOps.length > 0) {
-        messages.push(protocol.ops(filteredOps, isLocal))
-      }
-    }
-
-    for (let i = 0; i < archetypes.length; i++) {
-      const archetype = archetypes[i]
-
-      for (let j = 0; j < options.components.length; j++) {
-        const config = options.components[j]
-        const { type } = config.type
-        const row = archetype.signature.indexOf(type)
-
-        // Not a valid archetype match or unreliable
-        if (row === -1 || typeof config.priority === "number") {
-          continue
-        }
-
-        const components = archetype.table[row]
-
-        for (let k = 0; k < archetype.entities.length; k++) {
-          const entity = archetype.entities[k]
-          const component = components[archetype.indices[entity]]!
-
-          if (world.isComponentChanged(component)) {
-            const entityMutations = tmpEntityMutations[entity]
-            const mutations = storage.getComponentMutations(component)
-
-            for (let i = 0; i < mutations.length; i++) {
-              entityMutations.push(mutations[i] as any)
-            }
-          }
-        }
-      }
-    }
-
-    tmpEntityMutations.forEach((entity, value) => {
-      tmpUpdatePayload.push(entity)
-
-      for (let i = 0; i < value.length; i++) {
-        tmpUpdatePayload.push(value[i])
-      }
-    })
-
-    if (tmpUpdatePayload.length > 0) {
-      messages.push(protocol.update(tmpUpdatePayload))
-    }
-
-    return messages
-  }
-
-  function getUnreliableMessages(world: World): UpdateUnreliable[] {
-    const time = Date.now()
-    const {
-      storage: { archetypes },
-    } = world
-
-    if (time - previousUnreliableSendTime < options.updateInterval) {
-      return []
-    }
-
-    previousUnreliableSendTime = time
-
-    tmpComponentsByEntity.clear()
-
-    mutableEmpty(tmpUpdateUnreliablePayload)
-    mutableEmpty(tmpSortedByPriority)
-
-    for (let i = 0; i < archetypes.length; i++) {
-      const archetype = archetypes[i]
-
-      for (let j = 0; j < options.components.length; j++) {
-        const config = options.components[j]
-        const { type } = config.type
-
-        // Skip reliable components
-        if (typeof config.priority !== "number") {
-          continue
-        }
-
-        const row = archetype.signature.indexOf(type)
-
-        // Not a valid archetype match
-        if (row === -1) {
-          continue
-        }
-
-        const components = archetype.table[row]
-
-        for (let k = 0; k < archetype.entities.length; k++) {
-          const entity = archetype.entities[k]
-          const component = components[archetype.indices[entity]]
-          tmpComponentEntities.set(component, entity)
-          tmpSortedByPriority.push(component)
-        }
-      }
-    }
-
-    tmpSortedByPriority.sort((a, b) => priorities.get(a)! - priorities.get(b)!)
-
-    for (let i = tmpSortedByPriority.length - 1; i >= 0; i--) {
-      if (i > options.updateSize) {
-        tmpSortedByPriority.pop()
-      } else {
-        priorities.delete(tmpSortedByPriority[i])
-      }
-    }
-
-    for (let i = 0; i < tmpSortedByPriority.length; i++) {
-      const component = tmpSortedByPriority[i]
-      const entity = tmpComponentEntities.get(component)!
-      const entityComponents = tmpComponentsByEntity[entity]
-
-      entityComponents.push(component)
-    }
-
-    tmpComponentsByEntity.forEach((entity, components) => {
-      tmpUpdateUnreliablePayload.push(entity)
-
-      for (let i = 0; i < components.length; i++) {
-        tmpUpdateUnreliablePayload.push(components[i])
-      }
-    })
-
-    return [protocol.updateUnreliable(tmpUpdateUnreliablePayload)]
-  }
-
-  return {
-    getInitialMessages,
-    getReliableMessages,
-    getUnreliableMessages,
-  }
+  return { spawn, destroy, attach, detach, update, patch, take }
 }

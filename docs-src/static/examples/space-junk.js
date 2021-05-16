@@ -1,18 +1,18 @@
 const {
+  arrayOf,
   boolean,
-  createComponentType,
+  component,
   createEffect,
+  createQuery,
   createTopic,
   createWorld,
-  interval,
+  each,
+  useInterval,
+  useMonitor,
+  useRef,
+  useTimer,
+  useTrigger,
   number,
-  onAttach,
-  onDetach,
-  onInsert,
-  onRemove,
-  query,
-  ref,
-  timer,
 } = Javelin
 
 function relMouseCoords(canvas, event) {
@@ -39,48 +39,23 @@ context.imageSmoothingEnabled = false
 canvas.width = 800
 canvas.height = 300
 
-const Transform = createComponentType({
-  type: 1,
-  schema: {
-    x: number,
-    y: number,
-  },
-  initialize: (t, x = 0, y = 0) => {
-    t.x = x
-    t.y = y
-  },
-})
-const Velocity = createComponentType({
-  type: 2,
-  schema: {
-    x: number,
-    y: number,
-  },
-  initialize: (v, x = 0, y = 0) => {
-    v.x = x
-    v.y = y
-  },
-})
-const Junk = createComponentType({
-  type: 3,
-  schema: {
-    influenced: boolean,
-  },
-})
-const Wormhole = createComponentType({
-  type: 4,
-  schema: {
-    r: number,
-    obliterated: boolean,
-  },
-  initialize: (w, r = 0.5) => {
-    w.r = r
-    w.obliterated = false
-  },
-})
-const Dragging = createComponentType({
-  type: 5,
-})
+const Transform = {
+  x: number,
+  y: number,
+}
+const Velocity = {
+  x: number,
+  y: number,
+}
+const Junk = {
+  influenced: boolean,
+  buffer: arrayOf(arrayOf(number)),
+}
+const Wormhole = {
+  r: number,
+  obliterated: boolean,
+}
+const Dragging = {}
 
 const createMouseEventEffect = name =>
   createEffect(() => {
@@ -101,21 +76,16 @@ const createMouseEventEffect = name =>
     }
   })
 
-const effects = {
-  mouseup: createMouseEventEffect("mouseup"),
-  mousedown: createMouseEventEffect("mousedown"),
-  mousemove: createMouseEventEffect("mousemove"),
-}
+const useMouseup = createMouseEventEffect("mouseup")
+const useMousedown = createMouseEventEffect("mousedown")
+const useMousemove = createMouseEventEffect("mousemove")
 
-const topics = {
-  log: createTopic(),
-}
+const log = createTopic()
 
-const queries = {
-  wormholes: query(Transform, Wormhole, Velocity),
-  junk: query(Transform, Velocity, Junk),
-  dragging: query(Transform, Wormhole, Dragging),
-}
+const qryTransforms = createQuery(Transform)
+const qryWormholes = createQuery(Transform, Wormhole, Velocity)
+const qryJunk = createQuery(Transform, Velocity, Junk)
+const qryDragging = createQuery(Transform, Wormhole, Dragging)
 
 function inside(a, b, x, y, r) {
   const dist = (a - x) * (a - x) + (b - y) * (b - y)
@@ -123,20 +93,20 @@ function inside(a, b, x, y, r) {
   return dist < r
 }
 
-const spawn = world => {
-  const mouseup = effects.mouseup()
-  const mousedown = effects.mousedown()
-  const mousemove = effects.mousemove()
-  const hasClickedOnce = ref(false)
-  const shouldSpawnWormhole = interval(3500)
+const sysSpawn = world => {
+  const mouseup = useMouseup()
+  const mousedown = useMousedown()
+  const mousemove = useMousemove()
+  const hasClickedOnce = useRef(false)
+  const shouldSpawnWormhole = useInterval(3500)
 
   if (mousedown.active) {
-    for (const [entities, [wt, w]] of queries.wormholes) {
+    for (const [entities, [wt, w]] of qryWormholes) {
       for (let i = 0; i < entities.length; i++) {
         const { x, y } = wt[i]
         const { r } = w[i]
         if (inside(mousedown.coords.x, mousedown.coords.y, x, y, r / 10)) {
-          world.attach(entities[i], world.component(Dragging))
+          world.attach(entities[i], component(Dragging))
         }
       }
     }
@@ -144,7 +114,7 @@ const spawn = world => {
 
   if (mouseup.active) {
     let isDragging = false
-    for (const [entities] of queries.dragging) {
+    for (const [entities] of qryDragging) {
       for (let i = 0; i < entities.length; i++) {
         world.detach(entities[i], Dragging)
         isDragging = true
@@ -157,7 +127,7 @@ const spawn = world => {
   }
 
   if (mousemove.active) {
-    queries.dragging.forEach((entity, [t, w]) => {
+    qryDragging((entity, [t]) => {
       t.x = mousemove.coords.x
       t.y = mousemove.coords.y
     })
@@ -169,51 +139,44 @@ const spawn = world => {
 }
 
 const spawnJunk = () => {
-  const shouldSpawnJunk = ref(true)
+  const shouldSpawnJunk = useRef(true)
 
   if (shouldSpawnJunk.value) {
     for (let i = 0; i < 10000; i++) {
       const x = Math.random() * (canvas.width * 1.5) - 0.25 * canvas.width
       const y = Math.random() * (canvas.height * 1.5) - 0.25 * canvas.height
-      world.spawn(
-        world.component(Transform, x, y),
-        world.component(Velocity),
-        world.component(Junk),
-      )
+      const t = component(Transform)
+      t.x = x
+      t.y = y
+      world.spawn(t, component(Velocity), component(Junk))
     }
 
     shouldSpawnJunk.value = false
   }
 }
 
-const attract = world => {
-  queries.wormholes.forEach((we, [wt, w, wv]) => {
+const sysAttract = world => {
+  qryWormholes((we, [wt, w, wv]) => {
     if (w.obliterated) {
       return
     }
     wv.x *= 0.95
     wv.y *= 0.95
-    queries.junk.forEach((je, [jt, jv, j]) => {
+    qryJunk((je, [jt, jv, j]) => {
       if (we === je) {
         return
       }
-
       const dx = wt.x - jt.x
       const dy = wt.y - jt.y
       const len = Math.sqrt(dx * dx + dy * dy)
-
       if (len <= w.r) {
         j.influenced = true
-
         if (len < w.r / 10) {
           const jw = world.tryGet(je, Wormhole)
-
           if (jw) {
             jw.obliterated = true
           }
-
           w.r += jw?.r || 0.1
-
           world.destroy(je)
         } else {
           jv.x += dx / len / 200
@@ -224,19 +187,19 @@ const attract = world => {
   })
 }
 
-const render = () => {
+const sysRender = () => {
   context.clearRect(0, 0, 800, 300)
 
-  queries.junk.forEach((e, [{ x, y }, t, { influenced }]) => {
+  qryJunk((e, [{ x, y }, t, { influenced }]) => {
     context.fillStyle = influenced ? "#fff" : "#99c7c7"
     context.fillRect(Math.floor(x), Math.floor(y), 1, 1)
   })
 
-  queries.wormholes.forEach((e, [{ x, y }, { r }]) => {
+  qryWormholes((e, [{ x, y }]) => {
     let maxPos
     let maxLen = Infinity
 
-    queries.wormholes.forEach((e2, [pos2]) => {
+    qryWormholes((e2, [pos2]) => {
       if (e === e2) {
         return
       }
@@ -263,7 +226,7 @@ const render = () => {
     }
   })
 
-  queries.wormholes.forEach((e, [{ x, y }, { r }]) => {
+  qryWormholes((e, [{ x, y }, { r }]) => {
     context.fillStyle = "#fff"
     context.beginPath()
     context.arc(Math.floor(x), Math.floor(y), r / 10, 0, 2 * Math.PI)
@@ -271,41 +234,54 @@ const render = () => {
   })
 }
 
-const physics = () => {
-  queries.junk.forEach((_, [t, { x, y }]) => {
-    t.x += x
-    t.y += y
+const sysPhysics = () => {
+  // const { track, trackPop } = useObserve()
+  qryJunk((e, [t, v, j]) => {
+    t.x += v.x
+    t.y += v.y
+    // track(t, "x", (t.x += v.x))
+    // track(t, "y", (t.y += v.y))
+    // trackPop(j, "buffer.3", 1, 0, 1200)
   })
 }
 
-const triggers = () => {
-  const shouldLog = interval(1000)
-  const countAttach = ref(0)
-  const countDetach = ref(0)
+const sysTrigger = () => {
+  const shouldLog = useInterval(1000)
+  const countAttach = useRef(0)
+  const countDetach = useRef(0)
 
-  for (const [] of onAttach(Transform)) {
-    countAttach.value++
-  }
-
-  onDetach(Transform).forEach(() => countDetach.value++)
+  useMonitor(
+    qryTransforms,
+    () => countAttach.value++,
+    () => countDetach.value++,
+  )
 
   if (shouldLog) {
-    topics.log.pushImmediate(`(t) +${countAttach.value} -${countDetach.value}`)
+    log.pushImmediate(`(t) +${countAttach.value} -${countDetach.value}`)
     countAttach.value = 0
     countDetach.value = 0
   }
 }
 
-const monitors = () => {
-  const shouldLog = interval(1000)
-  const countInsert = ref(0)
-  const countRemove = ref(0)
+const sysMonitor = () => {
+  const shouldLog = useInterval(1000)
+  const countInsert = useRef(0)
+  const countRemove = useRef(0)
 
-  onInsert(queries.wormholes).forEach(() => countInsert.value++)
-  onRemove(queries.wormholes).forEach(() => countRemove.value++)
+  useMonitor(
+    qryWormholes,
+    () => countInsert.value++,
+    () => countRemove.value++,
+  )
+
+  useMonitor(
+    qryDragging,
+    (e, c) => console.log(e, "started dragging", c[0], c[1], c[2]),
+    (e, c) => console.log(e, "stopped dragging", c[0], c[1], c[2]),
+  )
 
   if (shouldLog) {
-    topics.log.pushImmediate(`(w) +${countInsert.value} -${countRemove.value}`)
+    log.pushImmediate(`(w) +${countInsert.value} -${countRemove.value}`)
     countInsert.value = 0
     countRemove.value = 0
   }
@@ -319,9 +295,9 @@ const rightPad = (str, n) => {
   return out
 }
 
-const log = () => {
+const sysLog = () => {
   const messages = []
-  for (const message of topics.log) {
+  for (const message of log) {
     messages.push(message)
   }
   if (messages.length > 0) {
@@ -336,16 +312,16 @@ const log = () => {
 
 const world = createWorld({
   systems: [
-    spawn,
+    sysSpawn,
     spawnJunk,
-    physics,
-    attract,
-    render,
-    triggers,
-    monitors,
-    log,
+    sysPhysics,
+    sysAttract,
+    sysRender,
+    sysTrigger,
+    sysMonitor,
+    sysLog,
   ],
-  topics: [topics.log],
+  topics: [log],
 })
 
 function spawnWormhole(
@@ -353,12 +329,12 @@ function spawnWormhole(
   y = Math.random() * canvas.height,
   r = Math.max(10, Math.random() * 60),
 ) {
-  world.spawn(
-    world.component(Transform, x, y),
-    world.component(Wormhole, r),
-    world.component(Velocity),
-    world.component(Junk),
-  )
+  const t = component(Transform)
+  const w = component(Wormhole)
+  t.x = x
+  t.y = y
+  w.r = r
+  world.spawn(t, w, component(Velocity), component(Junk))
 }
 
 spawnWormhole()

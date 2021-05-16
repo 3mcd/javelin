@@ -11,36 +11,35 @@ Each system should implement some subset of your game's logic. Ideally a system 
 
 Below is an example set of systems that could be found in a top-down ARPG.
 
-| System            | Description                                                  |
-|-------------------|--------------------------------------------------------------|
-| `sys_ai_enemy`      | Enemy AI logic                                               |
-| `sys_ai_companions` | Companion AI logic                                           |
-| `sys_input`         | Sample mouse/keyboard input                                  |
-| `sys_combat`        | Transform controller input to combat actions                 |
-| `sys_movement`      | Transform controller input to movement actions               |
-| `sys_physics`       | Apply forces and step physics simulation                     |
-| `sys_pickups`       | Detect collisions with items and update player inventory     |
-| `sys_render`        | Render game                                                  |
-| `sys_render_ui`     | Render user interface                                        |
-| ...               |                                                              |
+| System           | Description                                              |
+| ---------------- | -------------------------------------------------------- |
+| `sysAiEnemy`     | Enemy AI logic                                           |
+| `sysAiCompanion` | Companion AI logic                                       |
+| `sysInput`       | Sample mouse/keyboard input                              |
+| `sysCombat`      | Transform controller input to combat actions             |
+| `sysMovement`    | Transform controller input to movement actions           |
+| `sysPhysics`     | Apply forces and step physics simulation                 |
+| `sysPickups`     | Detect collisions with items and update player inventory |
+| `sysRender`      | Render game                                              |
+| `sysRenderUI`    | Render user interface                                    |
+| ...              |                                                          |
 
 ### Registering a System
-
 
 A system is a void function that accepts a `World` instance as its only parameter:
 
 ```ts
-const sys_ai_enemy = (world: World) => {}
+const sysAiEnemy = (world: World) => {}
 ```
 
 Systems are registered with the world via the options passed to `createWorld`, or the `world.addSystem` method.
 
 ```ts
-const sys_physics = () => ...
-const sys_render = () => ...
-const world = createWorld({ systems: [sys_physics] })
+const sysPhysics = () => ...
+const sysRender = () => ...
+const world = createWorld({ systems: [sysPhysics] })
 
-world.addSystem(sys_render)
+world.addSystem(sysRender)
 ```
 
 When `world.tick()` is called, each system is executed in the order that it was registered.
@@ -50,8 +49,9 @@ Systems have a signature of `(world: World<T>) => void`, where the first argumen
 The following is a world that will log the time elapsed since the last tick at around 60Hz:
 
 ```ts
+const sysPrint = world => console.log(world.state.currentTickData)
 const world = createWorld<number>({
-  systems: [world => console.log(world.state.currentTickData)],
+  systems: [sysPrint],
 })
 
 let previousTime = Date.now()
@@ -59,12 +59,11 @@ let previousTime = Date.now()
 setInterval(() => {
   const currentTime = Date.now()
   const delta = currentTime - previousTime
-
   world.tick(delta)
-
   previousTime = currentTime
 }, 1000 / 60)
 ```
+
 ```
 > 16.66666666
 > 16.66666666
@@ -79,56 +78,76 @@ setInterval(() => {
 
 ## Querying and Iteration
 
-Systems query collections of entities and operate on their data to yield the next game state. These iterable collections are created using **queries** that specify a set of component types to query.
+Systems query collections of entities and operate on their data to yield the next game state. These iterable collections are called **queries**.
 
 Depending on its archetype, an entity may be eligible for iteration by a system one tick, and ineligible the next. This is the cornerstone of ECS: modifying component makeup also modifies game behavior. In addition, the isolation of game logic into systems makes your game world easier to debug and provides a clear target for performance and unit tests.
 
-Queries are created with the `query` function, which takes a **selector** of component types.
+Queries are created with the `createQuery` function, which accepts a **selector** of component types.
 
 ```ts
-import { query } from "@javelin/ecs"
+import { createQuery } from "@javelin/ecs"
 
-const players = query(Position, Velocity)
+const qryBodies = createQuery(Position, Velocity)
 ```
 
-A query is an iterable object that produces tuples of `(entity, Component[])` for entities that meet the selector's criteria.
-
-There are two ways to iterate a query. The first (and fastest) way is to iterate the query directly with a `for..of` loop:
+A query is an iterable object that produces tuples of `(entity, Component[])` for entities that meet the selector's criteria. There are two ways to iterate a query. The first (and fastest) way is to iterate the query directly with a `for..of` loop:
 
 ```ts
-for (const [entities, [position, velocity]] of players) {
-  for (let i = 0; i < entities.length; i++) {
-    position[i].x += velocity[i].x
-    position[i].y += velocity[i].y
+const sysPhysics = () => {
+  for (const [entities, [positions, velocities]] of qryBodies) {
+    for (let i = 0; i < entities.length; i++) {
+      positions[i].x += velocities[i].x
+      positions[i].y += velocities[i].y
+    }
   }
 }
 ```
 
-This method of iteration leaks the implementation details of how components are stored in archetypes. An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. If your game doesn't reach high entity counts (10^5) and you don't mind a 2-3x iteration performance hit, consider using `forEach`. This method executes a callback for each entity that matches the query:
+This method of iteration leaks the implementation details of how components are stored in archetypes. An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. If your game doesn't reach extremely high entity counts and you don't mind a 2-3x iteration performance hit, consider using the function form of a query:
 
 ```ts
-players.forEach((entity, [position, velocity]) => {
-  position.x += velocity.x
-  position.y += velocity.y
-})
+const sysPhysics = () =>
+  qryBodies((e, [p, v]) => {
+    p.x += v.x
+    p.y += v.y
+  })
 ```
 
 <aside>
   <p>
-    <strong>Tip</strong> — most examples in the Javelin docs use <code>forEach</code> since it's a bit easier to read, but stick to the <code>for..of</code> approach if your game has many entities.
+    <strong>Tip</strong> — most examples in the Javelin docs iterate queries using <code>query(iteratee)</code> syntax since it's a bit easier to read, but stick to the <code>for..of</code> approach if your game world holds many entities.
   </p>
 </aside>
 
-The order of component types in the query's selector will match the order of components in the query's results. That is, `query(Position, Player)` will always yield tuples of components `(Position, Player)`:
+### Binding Queries
+
+By default, queries will resolve entities and components of the world that is currently mid-tick. If you need to run a query against a specific world (i.e., outside of a system), you can bind a query to a specific world using the `bind` method:
 
 ```ts
-world.spawn(world.component(Player), world.component(Position))
-world.spawn(world.component(Position), world.component(Player))
+const qryBodiesBound = qryBodies.bind(world)
+// Always executes against `world`
+qryBodiesBound(e => {})
+```
 
-const sys_render = () => {
-  players.forEach((entity, [position, player]) => {
+You can use a query's `test` method to check if an entity would match that query.
+
+```ts
+qryBodies.test(e) // -> true
+```
+
+### Result Ordering
+
+The order of component types in the query's selector will match the order of components in the query's results. That is, `createQuery(Position, Player)` will always yield tuples of components `(Position, Player)`:
+
+```ts
+world.spawn(component(Player), component(Position))
+world.spawn(component(Position), component(Player))
+
+const sysRender = () => {
+  qryPlayers((e, [{ x, y }, { name }]) => {
     // render each player with a name tag
-    draw(sprites.player, position, player.name)
+    drawSprite(sprites.player, x, y)
+    drawText(name, x, y)
   })
 }
 ```
@@ -138,20 +157,20 @@ const sys_render = () => {
 The tuple of components yielded by queries is re-used each iteration. This means that you shouldn't store the results of a query for use later like this:
 
 ```ts
-const sys_status_effects = () => {
+const sysStatusEffects = () => {
   const results = []
-  shocked.forEach((e, components) => {
+  qryShocked((e, components) => {
     results.push(components)
   })
   ...
 }
 ```
 
-Every index of `results` corresponds to the same array, which is the tuple of components attached to the entity of the last iteration. If you absolutely need to store components between queries (e.g. you are optimizing a nested query), you could push the components of interest into a temporary array, e.g.
+Every index of `results` references the same array, which is the tuple of components attached to the entity of the last iteration. If you absolutely need to store components between queries (e.g. you're optimizing a nested query), you could push the components of interest into a temporary array, e.g.
 
 ```ts
 const results = []
-shocked.forEach((e, [a, b]) => {
+qryShocked((e, [a, b]) => {
   results.push([a, b])
 })
 ```
