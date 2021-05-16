@@ -4,8 +4,8 @@ import { Entity } from "@javelin/ecs/dist/cjs/entity"
 import { Big } from "../../../server/components"
 import { CanvasRef } from "../Canvas"
 import { Camera } from "./components"
-import { eff_net } from "./eff_net"
-import { qry_shells } from "./queries"
+import { effNet } from "./eff_net"
+import { qryShells } from "./queries"
 
 const getShellColor = (s: number) => {
   const v = (16 - s * 2).toString(16)
@@ -23,8 +23,8 @@ export const createRenderSystem = (
     throw new Error("Failed loading canvas.")
   }
 
-  return function sys_render() {
-    const net = eff_net()
+  return function sysRender() {
+    const net = effNet()
     const rate = useRef(0)
     const update = useInterval(1000)
     const c = world.get(camera, Camera)
@@ -40,7 +40,7 @@ export const createRenderSystem = (
     context.font = "12px SF Mono, Consolas, Courier New, monospace"
     context.clearRect(0, 0, canvas.width, canvas.height)
 
-    for (const [entities, [shells, interpolates]] of qry_shells) {
+    for (const [entities, [shells, interpolates]] of qryShells) {
       for (let i = 0; i < entities.length; i++) {
         const { x, y } = interpolates[i]
         const entity = entities[i]

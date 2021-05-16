@@ -2,7 +2,7 @@ import { component, createEffect, Entity } from "@javelin/ecs"
 import { Player } from "./components"
 import { udp } from "./net"
 
-export const eff_clients = createEffect(({ spawn, destroy }) => {
+export const effClients = createEffect(({ spawn, destroy }) => {
   const clients = new Map()
 
   udp.connections.subscribe(connection => {
@@ -18,7 +18,7 @@ export const eff_clients = createEffect(({ spawn, destroy }) => {
     clients.get(entity).send(data)
   const api = { send_u }
 
-  return function eff_clients() {
+  return function effClients() {
     return api
   }
 })

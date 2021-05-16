@@ -34,9 +34,9 @@ Visit https://javelin.games
 
 ## Examples
 
-| Example                             | Description                                               |
-| ----------------------------------- | --------------------------------------------------------- |
-| [networking](./examples/networking) | Entity/component synchronization over WebRTC datachannels |
+| Example                 | Description                                               |
+| ----------------------- | --------------------------------------------------------- |
+| [spin](./examples/spin) | Entity/component synchronization over WebRTC datachannels |
 
 ## Scripts
 

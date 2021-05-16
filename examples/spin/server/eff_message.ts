@@ -3,15 +3,15 @@ import { createMessageProducer } from "@javelin/net"
 import { reset } from "@javelin/track"
 import { Big } from "./components"
 import {
-  qry_transforms_w_big,
-  qry_transforms_w_changes,
-  qry_transforms_w_shell,
+  qryTransformsWBig,
+  qryTransformsWChanges,
+  qryTransformsWShell,
 } from "./queries"
 
 export const getInitialMessage = (world: World) => {
   const producer = createMessageProducer()
 
-  for (const [entities, [transforms, shells]] of qry_transforms_w_shell) {
+  for (const [entities, [transforms, shells]] of qryTransformsWShell) {
     for (let i = 0; i < entities.length; i++) {
       const e = entities[i]
       const t = transforms[i]
@@ -28,18 +28,18 @@ export const eff_message = createEffect(() => {
 
   return function eff_message(update = false) {
     useMonitor(
-      qry_transforms_w_shell,
-      e => producer.spawn(e, qry_transforms_w_shell.get(e)),
+      qryTransformsWShell,
+      e => producer.spawn(e, qryTransformsWShell.get(e)),
       e => producer.destroy(e),
     )
     useMonitor(
-      qry_transforms_w_big,
+      qryTransformsWBig,
       (e, [, b]) => b && producer.attach(e, [b]),
       (e, [, b]) => b && producer.detach(e, [b]),
     )
 
     if (update) {
-      qry_transforms_w_changes((e, [t, c]) => {
+      qryTransformsWChanges((e, [t, c]) => {
         producer.patch(e, c, 1)
         // Uncomment this line to perform a full sync instead of sending only
         // changed properties

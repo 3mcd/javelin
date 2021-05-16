@@ -1,11 +1,11 @@
 import { set } from "@javelin/track"
-import { qry_transforms_w_shell } from "./queries"
+import { qryTransformsWShell } from "./queries"
 
 export const sys_physics = () => {
   for (const [
     entities,
     [transforms, shells, changesets],
-  ] of qry_transforms_w_shell) {
+  ] of qryTransformsWShell) {
     for (let i = 0; i < entities.length; i++) {
       const s = shells[i]
       const t = transforms[i]

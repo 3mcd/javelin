@@ -3,7 +3,7 @@ import { createMessageHandler } from "@javelin/net"
 import { Client } from "@web-udp/client"
 import { world } from "./world"
 
-export const eff_net = createEffect(
+export const effNet = createEffect(
   () => {
     const state = {
       bytes: 0,

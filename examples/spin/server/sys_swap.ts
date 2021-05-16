@@ -1,8 +1,8 @@
 import { component, useInterval, World } from "@javelin/ecs"
 import { Big, Changes, Shell, Transform } from "./components"
-import { qry_transforms } from "./queries"
+import { qryTransforms } from "./queries"
 
-export const sys_swap = (world: World) => {
+export const sysSwap = (world: World) => {
   const swap = useInterval(1000)
 
   if (!swap) {
@@ -11,7 +11,7 @@ export const sys_swap = (world: World) => {
 
   let count = 0
 
-  for (const [entities] of qry_transforms) {
+  for (const [entities] of qryTransforms) {
     for (let i = 0; i < entities.length; i++) {
       const e = entities[i]
       const random = Math.random()

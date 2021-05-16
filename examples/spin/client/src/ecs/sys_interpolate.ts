@@ -1,14 +1,14 @@
 import { component, useMonitor } from "@javelin/ecs"
 import { interpBufferInsert, interpBufferPool, Interpolate } from "./components"
-import { eff_net } from "./eff_net"
-import { qry_interpolate, qry_transforms } from "./queries"
+import { effNet } from "./eff_net"
+import { qryInterpolate, qryTransforms } from "./queries"
 import { world } from "./world"
 
-export const sys_interpolate = () => {
-  const { patched, updated } = eff_net()
+export const sysInterpolate = () => {
+  const { patched, updated } = effNet()
   const test = performance.now() - 1000
 
-  useMonitor(qry_transforms, (e, [t]) => {
+  useMonitor(qryTransforms, (e, [t]) => {
     t &&
       world.attach(
         e,
@@ -16,7 +16,7 @@ export const sys_interpolate = () => {
       )
   })
 
-  for (const [entities, [transforms, interpolates]] of qry_interpolate) {
+  for (const [entities, [transforms, interpolates]] of qryInterpolate) {
     for (let i = 0; i < entities.length; i++) {
       const e = entities[i]
       const {
