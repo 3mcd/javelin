@@ -115,7 +115,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
   >()
   const archetypes: Archetype[] = options.snapshot
     ? options.snapshot.archetypes.map(snapshot => createArchetype({ snapshot }))
-    : []
+    : [createArchetype({ signature: [] })]
   // Array where the index corresponds to an entity and the value corresponds
   // to the index of the entity's archetype within the `archetypes` array. When
   // mutating or reading components, we always assume the location is valid
@@ -177,11 +177,9 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
   function create(entity: number, components: Component[]) {
     const archetype = findOrCreateArchetype(components)
-
     archetype.insert(entity, components)
-
     archetypeIndicesByEntity[entity] = archetypes.indexOf(archetype)
-
+    entityRelocated.dispatch(entity, archetypes[0], archetype, components)
     return entity
   }
 
@@ -206,9 +204,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     changed: Component[],
   ) {
     source.remove(entity)
-
     const destination = findOrCreateArchetype(components)
-
     destination.insert(entity, components)
     archetypeIndicesByEntity[entity] = archetypes.indexOf(destination)
     entityRelocated.dispatch(entity, source, destination, changed)
@@ -216,43 +212,38 @@ export function createStorage(options: StorageOptions = {}): Storage {
 
   function insert(entity: number, components: Component[]) {
     const source = getEntityArchetype(entity)
-    const entityIndex = source.indices[entity]
-
-    let destinationComponents = components.slice()
+    const index = source.indices[entity]
+    const final = components.slice()
 
     for (let i = 0; i < source.signature.length; i++) {
       const schemaId = source.signature[i]
 
       if (components.find(c => c.__type__ === schemaId)) {
-        throw new Error(
-          `Failed to attach component with type ${schemaId}: entity already has component of type`,
-        )
+        // take inserted component
+        continue
       }
 
-      destinationComponents.push(source.table[i][entityIndex]!)
+      final.push(source.table[i][index]!)
     }
 
-    relocate(source, entity, destinationComponents, components)
+    relocate(source, entity, final, components)
   }
 
   function remove(entity: number, schemaIds: number[]) {
     const source = getEntityArchetype(entity)
     const entityIndex = source.indices[entity]
 
-    let destinationComponents: Component[] = []
+    let final: Component[] = []
     let removedComponents: Component[] = []
 
     for (let i = 0; i < source.signature.length; i++) {
       const type = source.signature[i]
       const component = source.table[i][entityIndex]! as Component
 
-      ;(schemaIds.includes(type)
-        ? removedComponents
-        : destinationComponents
-      ).push(component)
+      ;(schemaIds.includes(type) ? removedComponents : final).push(component)
     }
 
-    relocate(source, entity, destinationComponents, removedComponents)
+    relocate(source, entity, final, removedComponents)
   }
 
   function destroy(entity: number) {

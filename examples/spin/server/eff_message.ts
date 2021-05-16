@@ -24,7 +24,7 @@ export const getInitialMessage = (world: World) => {
 }
 
 export const eff_message = createEffect(() => {
-  const producer = createMessageProducer({ maxByteLength: 1250 })
+  const producer = createMessageProducer()
 
   return function eff_message(update = false) {
     useMonitor(

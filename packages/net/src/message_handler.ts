@@ -35,9 +35,7 @@ export const createMessageHandler = (world: World) => {
     },
     onSpawn(entity, components) {
       const local = world.reserve()
-      world.internalSpawn(local)
-      world.internalAttach(local, components)
-      // const local = world.spawn(...components)
+      world.internalSpawn(local, components)
       entities.set(entity, local)
     },
     onAttach(entity, components) {
@@ -45,7 +43,6 @@ export const createMessageHandler = (world: World) => {
       if (local === undefined) {
         return
       }
-      // world.attach(local, ...components)
       world.internalAttach(local, components)
     },
     onUpdate(entity, components) {
@@ -72,7 +69,6 @@ export const createMessageHandler = (world: World) => {
         return
       }
       world.internalDetach(local, schemaIds)
-      // world.detach(local, ...schemaIds)
     },
     onDestroy(entity) {
       const local = entities.get(entity)
@@ -80,7 +76,6 @@ export const createMessageHandler = (world: World) => {
         return
       }
       world.internalDestroy(local)
-      // world.destroy(local)
       entities.delete(entity)
     },
     onPatch(entity, schemaId, field, traverse, value) {

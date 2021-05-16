@@ -186,7 +186,7 @@ export interface World<T = any> {
 }
 
 export type WorldInternal<T> = World<T> & {
-  internalSpawn(entity: Entity): void
+  internalSpawn(entity: Entity, components: Component[]): void
   internalAttach(entity: Entity, components: Component[]): void
   internalDetach(entity: Entity, schemaIds: number[]): void
   internalDestroy(entity: Entity): void
@@ -261,8 +261,8 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     return deferred
   }
 
-  function internalSpawn(entity: Entity) {
-    storage.create(entity, [])
+  function internalSpawn(entity: Entity, components: Component[]) {
+    storage.create(entity, components)
     spawned.dispatch(entity)
   }
 
@@ -286,13 +286,12 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
   function applySpawnOp(op: Spawn) {
     const [, entity, components] = op
-    internalSpawn(entity)
-    internalAttach(entity, components)
+    internalSpawn(entity, components)
   }
 
   function applyAttachOp(op: Attach) {
     const [, entity, components] = op
-    internalAttach(entity, components as Component[])
+    internalAttach(entity, components)
   }
 
   function applyDetachOp(op: Detach) {
