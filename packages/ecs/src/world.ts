@@ -74,6 +74,7 @@ export interface World<T = any> {
    * @param components The new entity's components
    */
   spawn(...components: ReadonlyArray<Component>): number
+  spawnImmediate(entity: Entity, components: Component[]): void
 
   /**
    * Attach new components to an entity.
@@ -82,6 +83,7 @@ export interface World<T = any> {
    * @param components Components to insert
    */
   attach(entity: number, ...components: ReadonlyArray<Component>): void
+  attachImmediate(entity: Entity, components: Component[]): void
 
   /**
    * Remove existing components from an entity.
@@ -90,6 +92,7 @@ export interface World<T = any> {
    * @param components Components to insert
    */
   detach(entity: number, ...components: (Schema | Component | number)[]): void
+  detachImmediate(entity: Entity, schemaIds: number[]): void
 
   /**
    * Destroy an entity and de-reference its components.
@@ -97,6 +100,7 @@ export interface World<T = any> {
    * @param entity Subject entity
    */
   destroy(entity: number): void
+  destroyImmediate(entity: Entity): void
 
   /**
    * Retrieve a component by type for an entity. Throws an error if component is not found.
@@ -127,13 +131,6 @@ export interface World<T = any> {
   has(entity: number, componentType: Schema): boolean
 
   /**
-   * Apply world ops to this world.
-   *
-   * @param ops WorldOps to apply
-   */
-  applyOps(ops: WorldOp[]): void
-
-  /**
    * Reserve an entity identifier.
    */
   reserve(): number
@@ -153,11 +150,6 @@ export interface World<T = any> {
    * Entity-component storage.
    */
   readonly storage: Storage
-
-  /**
-   * Set of WorldOps that were processed last tick.
-   */
-  readonly ops: ReadonlyArray<WorldOp>
 
   /**
    * Current world state including current tick number and tick data.
@@ -185,13 +177,6 @@ export interface World<T = any> {
   readonly destroyed: Signal<number>
 }
 
-export type WorldInternal<T> = World<T> & {
-  internalSpawn(entity: Entity, components: Component[]): void
-  internalAttach(entity: Entity, components: Component[]): void
-  internalDetach(entity: Entity, schemaIds: number[]): void
-  internalDestroy(entity: Entity): void
-}
-
 export type WorldSnapshot = {
   storage: StorageSnapshot
 }
@@ -215,7 +200,7 @@ export type WorldState<T = unknown> = {
 
 function getInitialWorldState<T>() {
   return {
-    currentTickData: (null as unknown) as T,
+    currentTickData: null as unknown as T,
     currentTick: 0,
     currentSystem: 0,
   }
@@ -225,9 +210,8 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   const { topics = [] } = options
   const systems: System<T>[] = []
   const deferredOps: WorldOp[] = []
-  const deferredOpsPrev: WorldOp[] = []
   const deferredPool = createStackPool<WorldOp>(
-    () => ([] as any) as WorldOp,
+    () => [] as any as WorldOp,
     op => {
       mutableEmpty(op)
       return op
@@ -261,17 +245,17 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     return deferred
   }
 
-  function internalSpawn(entity: Entity, components: Component[]) {
+  function spawnImmediate(entity: Entity, components: Component[]) {
     storage.create(entity, components)
     spawned.dispatch(entity)
   }
 
-  function internalAttach(entity: Entity, components: Component[]) {
+  function attachImmediate(entity: Entity, components: Component[]) {
     storage.insert(entity, components)
     attached.dispatch(entity, components)
   }
 
-  function internalDetach(entity: Entity, schemaIds: number[]) {
+  function detachImmediate(entity: Entity, schemaIds: number[]) {
     const components = schemaIds
       .map(schemaId => storage.findComponentBySchemaId(entity, schemaId))
       .filter((x): x is Component => Boolean(x))
@@ -279,46 +263,47 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     detached.dispatch(entity, components)
   }
 
-  function internalDestroy(entity: Entity) {
+  function destroyImmediate(entity: Entity) {
     storage.destroy(entity)
     destroyed.dispatch(entity)
   }
 
   function applySpawnOp(op: Spawn) {
     const [, entity, components] = op
-    internalSpawn(entity, components)
+    spawnImmediate(entity, components)
   }
 
   function applyAttachOp(op: Attach) {
     const [, entity, components] = op
-    internalAttach(entity, components)
+    attachImmediate(entity, components)
   }
 
   function applyDetachOp(op: Detach) {
     const [, entity, schemaIds] = op
-    internalDetach(entity, schemaIds)
+    detachImmediate(entity, schemaIds)
   }
 
   function applyDestroyOp(op: Destroy) {
     const [, entity] = op
-    internalDestroy(entity)
+    destroyImmediate(entity)
   }
 
-  function applyDeferredOp(deferred: WorldOp, record = true) {
-    if (record === true) {
-      deferredOpsPrev.push(deferred)
-    }
-
+  function applyDeferredOp(deferred: WorldOp) {
     switch (deferred[0]) {
       case DeferredOpType.Spawn:
-        return applySpawnOp(deferred)
+        applySpawnOp(deferred)
+        break
       case DeferredOpType.Attach:
-        return applyAttachOp(deferred)
+        applyAttachOp(deferred)
+        break
       case DeferredOpType.Detach:
-        return applyDetachOp(deferred)
+        applyDetachOp(deferred)
+        break
       case DeferredOpType.Destroy:
-        return applyDestroyOp(deferred)
+        applyDestroyOp(deferred)
+        break
     }
+    deferredPool.release(deferred)
   }
 
   function maybeReleaseComponent(component: Component) {
@@ -333,10 +318,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     let prevWorld = UNSAFE_internals.currentWorldId
     UNSAFE_internals.currentWorldId = id
     state.currentTickData = data
-    // Clear world op history
-    while (deferredOpsPrev.length > 0) {
-      deferredPool.release(deferredOpsPrev.pop()!)
-    }
     for (let i = 0; i < deferredOps.length; i++) {
       applyDeferredOp(deferredOps[i])
     }
@@ -402,9 +383,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     const schemaIds = components.map(c =>
       typeof c === "number"
         ? c
-        : UNSAFE_internals.schemaIndex.has(c)
-        ? UNSAFE_internals.schemaIndex.get(c)!
-        : (c as Component).__type__,
+        : UNSAFE_internals.schemaIndex.get(c) ?? (c as Component).__type__,
     )
 
     deferredOps.push(createDeferredOp(DeferredOpType.Detach, entity, schemaIds))
@@ -416,12 +395,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     }
     deferredOps.push(createDeferredOp(DeferredOpType.Destroy, entity))
     destroying.add(entity)
-  }
-
-  function applyOps(ops: WorldOp[]) {
-    for (let i = 0; i < ops.length; i++) {
-      applyDeferredOp(ops[i], false)
-    }
   }
 
   function has(entity: number, componentType: Schema) {
@@ -457,7 +430,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
   function reset() {
     mutableEmpty(deferredOps)
-    mutableEmpty(deferredOpsPrev)
     mutableEmpty(systems)
 
     destroying.clear()
@@ -468,10 +440,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
     while (deferredOps.length > 0) {
       deferredPool.release(deferredOps.pop()!)
-    }
-
-    while (deferredOpsPrev.length > 0) {
-      deferredPool.release(deferredOpsPrev.pop()!)
     }
 
     // release components
@@ -501,20 +469,22 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   const world = {
     addSystem,
     addTopic,
-    applyOps,
     attach,
+    attachImmediate,
     destroy,
+    destroyImmediate,
     detach,
+    detachImmediate,
     get,
     has,
     id: -1,
-    ops: deferredOpsPrev,
     removeSystem,
     removeTopic,
     reserve,
     reset,
     snapshot,
     spawn,
+    spawnImmediate,
     state,
     storage,
     tick,
@@ -524,11 +494,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     detached,
     spawned,
     destroyed,
-    // internal
-    internalSpawn,
-    internalAttach,
-    internalDetach,
-    internalDestroy,
   }
 
   let id = (world.id = UNSAFE_internals.worlds.push(world) - 1)

@@ -87,23 +87,28 @@ export const useMonitor = createEffect(world => {
     }
   }
 
-  entityRelocated.subscribe((entity, prev, next, changed) => {
+  entityRelocated.subscribe(function detectMonitorMatch(
+    entity,
+    prev,
+    next,
+    changed,
+  ) {
     if (_query === null) {
       return
     }
 
-    // TODO: this is very slow – need a better way of excluding entities
-    // were added/removed the same tick
-    if (next === world.storage.archetypes[0]) {
-      const stagedEnterIndex = stagedEnter.findIndex(([e]) => e === entity)
-      if (stagedEnterIndex !== -1) {
-        stagedEnter.splice(stagedEnterIndex, 1)
-      }
-      const stagedExitIndex = stagedExit.findIndex(([e]) => e === entity)
-      if (stagedExitIndex !== -1) {
-        stagedExit.splice(stagedExitIndex, 1)
-      }
-    }
+    // // TODO: this is very slow – need a better way of excluding entities
+    // // were added/removed the same tick
+    // if (next === world.storage.archetypes[0]) {
+    //   const stagedEnterIndex = stagedEnter.findIndex(([e]) => e === entity)
+    //   if (stagedEnterIndex !== -1) {
+    //     stagedEnter.splice(stagedEnterIndex, 1)
+    //   }
+    //   const stagedExitIndex = stagedExit.findIndex(([e]) => e === entity)
+    //   if (stagedExitIndex !== -1) {
+    //     stagedExit.splice(stagedExitIndex, 1)
+    //   }
+    // }
 
     const matchEnter = _query.matchesArchetype(next)
     const matchExit = _query.matchesArchetype(prev)

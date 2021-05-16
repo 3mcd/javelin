@@ -6,12 +6,8 @@ import {
   ModelNode,
   SchemaKeyKind,
 } from "@javelin/core"
-import { Component, createEffect, World, WorldInternal } from "@javelin/ecs"
+import { createEffect, World } from "@javelin/ecs"
 import { decode, DecodeMessageHandlers } from "./decode"
-
-function assertWorldInternal<T>(
-  world: World<T>,
-): asserts world is WorldInternal<T> {}
 
 const ERROR_PATCH_NO_MATCH =
   "Failed to patch component: reached leaf before finding field"
@@ -19,7 +15,6 @@ const ERROR_PATCH_UNSUPPORTED_TYPE =
   "Failed to patch component: only primitive types are currently supported"
 
 export const createMessageHandler = (world: World) => {
-  assertWorldInternal(world)
   let model: Model
   const patched = new Set<number>()
   const updated = new Set<number>()
@@ -35,7 +30,7 @@ export const createMessageHandler = (world: World) => {
     },
     onSpawn(entity, components) {
       const local = world.reserve()
-      world.internalSpawn(local, components)
+      world.spawnImmediate(local, components)
       entities.set(entity, local)
     },
     onAttach(entity, components) {
@@ -43,7 +38,7 @@ export const createMessageHandler = (world: World) => {
       if (local === undefined) {
         return
       }
-      world.internalAttach(local, components)
+      world.attachImmediate(local, components)
     },
     onUpdate(entity, components) {
       const local = entities.get(entity)
@@ -68,14 +63,14 @@ export const createMessageHandler = (world: World) => {
       if (local === undefined) {
         return
       }
-      world.internalDetach(local, schemaIds)
+      world.detachImmediate(local, schemaIds)
     },
     onDestroy(entity) {
       const local = entities.get(entity)
       if (local === undefined) {
         return
       }
-      world.internalDestroy(local)
+      world.destroyImmediate(local)
       entities.delete(entity)
     },
     onPatch(entity, schemaId, field, traverse, value) {
