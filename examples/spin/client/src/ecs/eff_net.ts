@@ -8,7 +8,7 @@ export const effNet = createEffect(
     const state = {
       bytes: 0,
     }
-    const remote = createMessageHandler(world)
+    const handler = createMessageHandler(world)
     const client = new Client({
       url: `${window.location.hostname}:8000`,
     })
@@ -16,13 +16,13 @@ export const effNet = createEffect(
     client.connect().then(c =>
       c.messages.subscribe(message => {
         state.bytes += message.byteLength
-        remote.push(message)
+        handler.push(message)
       }),
     )
 
     return () => {
-      remote.system()
-      return Object.assign(state, remote.useInfo())
+      handler.system()
+      return Object.assign(state, handler.useInfo())
     }
   },
   { global: true },

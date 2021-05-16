@@ -1,9 +1,10 @@
 import { component, useInterval, World } from "@javelin/ecs"
 import { Big, Changes, Shell, Transform } from "./components"
+import { SWAP_INTERVAL } from "./env"
 import { qryTransforms } from "./queries"
 
 export const sysSwap = (world: World) => {
-  const swap = useInterval(1000)
+  const swap = useInterval(SWAP_INTERVAL)
 
   if (!swap) {
     return

@@ -2,6 +2,7 @@ import { createEffect, useMonitor, World } from "@javelin/ecs"
 import { createMessageProducer } from "@javelin/net"
 import { reset } from "@javelin/track"
 import { Big } from "./components"
+import { BIG_PRIORITY, MESSAGE_MAX_BYTE_LENGTH, SMALL_PRIORITY } from "./env"
 import {
   qryTransformsWBig,
   qryTransformsWChanges,
@@ -23,8 +24,10 @@ export const getInitialMessage = (world: World) => {
   return producer.take(true)
 }
 
-export const eff_message = createEffect(() => {
-  const producer = createMessageProducer({ maxByteLength: 1250 })
+export const eff_message = createEffect(({ has }) => {
+  const producer = createMessageProducer({
+    maxByteLength: MESSAGE_MAX_BYTE_LENGTH,
+  })
 
   return function eff_message(update = false) {
     useMonitor(
@@ -40,10 +43,8 @@ export const eff_message = createEffect(() => {
 
     if (update) {
       qryTransformsWChanges((e, [t, c]) => {
-        producer.patch(e, c, 1)
-        // Uncomment this line to perform a full sync instead of sending only
-        // changed properties
-        // producer.update(e, [t])
+        const priority = has(e, Big) ? BIG_PRIORITY : SMALL_PRIORITY
+        producer.patch(e, c, priority)
         reset(c)
       })
     }

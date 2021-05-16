@@ -1,5 +1,5 @@
 const { createWorld, createQuery, number } = require("../dist/cjs")
-const { createArray } = require("../../model/dist/cjs")
+const { createArray } = require("../../core/dist/cjs")
 
 module.exports.run = function run() {
   let n = 1000
