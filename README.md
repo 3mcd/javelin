@@ -25,7 +25,7 @@ Visit https://javelin.games
 
 | Package                                        | Description                                        |
 | ---------------------------------------------- | -------------------------------------------------- |
-| [@javelin/model](./packages/model)             | Core types, utilities, and data model              |
+| [@javelin/core](./packages/core)             | Core types, utilities, and data model              |
 | [@javelin/ecs](./packages/ecs)                 | Build games using the ECS pattern                  |
 | [@javelin/net](./packages/net)                 | Synchronize ECS worlds                             |
 | [@javelin/pack](./packages/pack)               | Convert objects to and from binary arrays          |
