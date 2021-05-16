@@ -1,10 +1,9 @@
+import { assert, mutableEmpty, packSparseArray, Schema } from "@javelin/core"
 import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
-import { Component, ComponentOf, ComponentType } from "./component"
-import { assert } from "./debug"
+import { Component, ComponentOf } from "./component"
 import { Entity } from "./entity"
-import { applyMutation, createMutationCache } from "./mutation_cache"
+import { UNSAFE_internals } from "./internal"
 import { createSignal, Signal } from "./signal"
-import { mutableEmpty, packSparseArray } from "./util"
 
 export type StorageSnapshot = {
   archetypes: ArchetypeSnapshot[]
@@ -31,17 +30,6 @@ export interface Storage {
   insert(entity: number, components: Component[]): void
 
   /**
-   * Update the value at a given path for a component.
-   * @param component Latest copy of the component
-   */
-  patch(
-    entity: number,
-    componentType: number,
-    path: string,
-    value: unknown,
-  ): void
-
-  /**
    * Insert or update a component (e.g. from a remote source).
    * @param entity Entity to insert components into.
    * @param components Components to either insert or update.
@@ -49,18 +37,11 @@ export interface Storage {
   upsert(entity: number, components: Component[]): void
 
   /**
-   * Remove components from an entity.
+   * Remove components from an entity via schema ids.
    * @param entity Entity to remove components from.
-   * @param components Components to remove.
+   * @param schemaIds Components to remove.
    */
-  remove(entity: number, components: Component[]): void
-
-  /**
-   * Remove components from an entity via component type ids.
-   * @param entity Entity to remove components from.
-   * @param componentTypeIds Components to remove.
-   */
-  removeByTypeIds(entity: number, componentTypeIds: number[]): void
+  remove(entity: number, schemaIds: number[]): void
 
   /**
    * Destroy an entity.
@@ -71,63 +52,33 @@ export interface Storage {
   /**
    * Determine if an entity has a component.
    * @param entity
-   * @param componentType
+   * @param schema
    */
-  hasComponent(entity: number, componentType: ComponentType): boolean
+  hasComponent(entity: number, schema: Schema): boolean
 
   /**
-   * Locate an entity's component by component type.
+   * Locate an entity's component by schema.
    * @param entity Entity to locate components of.
-   * @param componentType ComponentType of component to retreive.
+   * @param schema Schema of component to retreive.
    */
-  findComponent<T extends ComponentType>(
+  findComponent<S extends Schema>(
     entity: number,
-    componentType: T,
-  ): ComponentOf<T> | null
+    schema: S,
+  ): ComponentOf<S> | null
 
   /**
-   * Locate an entity's component by component type id.
+   * Locate an entity's component by schema id.
    *
    *  @param entity Entity to locate components of.
-   * @param componentType ComponentType id of component to retreive.
+   * @param schema Schema id of component to retreive.
    */
-  findComponentByComponentTypeId<T extends ComponentType>(
-    entity: number,
-    componentTypeId: number,
-  ): Component | null
+  findComponentBySchemaId(entity: number, schemaId: number): Component | null
 
   /**
    * Get all components for an entity.
    * @param entity Entity
    */
   getEntityComponents(entity: number): Component[]
-
-  /**
-   * Clear all component mutations.
-   */
-  clearMutations(): void
-
-  /**
-   * Retreive an observed copy of a component. Changes made to this component
-   * can be retreived using getComponentMutations() and are cleared when
-   * clearMutations() is called.
-   * @param component Component
-   */
-  getObservedComponent<C extends Component>(component: C): C
-
-  /**
-   * Get the mutations made to a component. Mutations are currently stored in
-   * a one-dimensional array with alternating key/value pairs.
-   * @param component Component
-   */
-  getComponentMutations(component: Component): unknown[]
-
-  /**
-   * Determine a component has been changed since the last clearMutations()
-   * call.
-   * @param component Component to determine has been changed.
-   */
-  isComponentChanged(component: Component): boolean
 
   /**
    * Clear all storage data, including archetype data and component mutations.
@@ -144,42 +95,39 @@ export interface Storage {
    */
   readonly archetypeCreated: Signal<Archetype>
 
-  readonly entityRelocated: Signal<Entity, Archetype, Archetype>
+  /**
+   * Signal dispatched when an entity transitions between archetypes.
+   */
+  readonly entityRelocated: Signal<Entity, Archetype, Archetype, Component[]>
 }
 
 export type StorageOptions = {
   snapshot?: StorageSnapshot
 }
 
+const ERROR_ENTITY_NOT_CREATED =
+  "Failed to locate entity: entity has not been created"
+const ERROR_ALREADY_DESTROYED =
+  "Failed to locate entity: entity has been destroyed"
+const ERROR_NO_SCHEMA = "Failed to locate component: schema not registered"
+
 export function createStorage(options: StorageOptions = {}): Storage {
   const archetypeCreated = createSignal<Archetype>()
-  const entityRelocated = createSignal<Entity, Archetype, Archetype>()
-  const mutationCache = createMutationCache({
-    onChange(component: Component, target, path, value, mutArrayMethodType) {
-      let changes = mutations.get(component)
-
-      if (!changes) {
-        changes = []
-        mutations.set(component, changes)
-      }
-
-      if (mutArrayMethodType) {
-        changes.push(path, value, mutArrayMethodType)
-      } else {
-        changes.push(path, value)
-      }
-    },
-  })
-  const mutations = new Map<Component, unknown[]>()
+  const entityRelocated = createSignal<
+    Entity,
+    Archetype,
+    Archetype,
+    Component[]
+  >()
   const archetypes: Archetype[] = options.snapshot
     ? options.snapshot.archetypes.map(snapshot => createArchetype({ snapshot }))
-    : []
+    : [createArchetype({ signature: [] })]
   // Array where the index corresponds to an entity and the value corresponds
   // to the index of the entity's archetype within the `archetypes` array. When
   // mutating or reading components, we always assume the location is valid
   // since it is kept in sync with the entity's archetype via the `create`,
   // `insert`, and `remove` methods.
-  const archetypeIndicesByEntity: (number | null)[] = []
+  const entityIndex: (Archetype | null)[] = []
 
   /**
    * Locate an archetype which matches the signature of a collection of
@@ -187,31 +135,20 @@ export function createStorage(options: StorageOptions = {}): Storage {
    * @param components Components that archetype would contain
    */
   function findArchetype(components: Component[]) {
-    const componentsLength = components.length
-
-    for (let i = 0; i < archetypes.length; i++) {
+    const length = components.length
+    outer: for (let i = 0; i < archetypes.length; i++) {
       const archetype = archetypes[i]
-      const { signature } = archetype
-
-      // Verify archetype has same number of components as predicate.
-      if (signature.length !== componentsLength) {
+      const { signature, signatureInverse } = archetype
+      if (signature.length !== length) {
         continue
       }
-
-      let match = true
-
-      for (let j = 0; j < componentsLength; j++) {
-        if (signature.indexOf(components[j]._tid) === -1) {
-          match = false
-          break
+      for (let j = 0; j < length; j++) {
+        if (signatureInverse[components[j].__type__] === undefined) {
+          continue outer
         }
       }
-
-      if (match) {
-        return archetype
-      }
+      return archetype
     }
-
     return null
   }
 
@@ -221,190 +158,124 @@ export function createStorage(options: StorageOptions = {}): Storage {
    */
   function findOrCreateArchetype(components: Component[]) {
     let archetype = findArchetype(components)
-
-    if (!archetype) {
+    if (archetype === null) {
       archetype = createArchetype({
-        signature: components.map(c => c._tid),
+        signature: components.map(c => c.__type__),
       })
       archetypes.push(archetype)
       archetypeCreated.dispatch(archetype)
     }
-
     return archetype
   }
 
   function create(entity: number, components: Component[]) {
     const archetype = findOrCreateArchetype(components)
-
     archetype.insert(entity, components)
-
-    archetypeIndicesByEntity[entity] = archetypes.indexOf(archetype)
-
+    entityIndex[entity] = archetype
+    entityRelocated.dispatch(entity, archetypes[0], archetype, components)
     return entity
   }
 
   function getEntityArchetype(entity: number) {
-    const location = archetypeIndicesByEntity[entity]
-
-    if (location === undefined) {
-      throw new Error(`Failed to locate entity. Entity does not exist.`)
-    }
-
-    if (location === null) {
-      throw new Error(`Failed to locate entity. Entity has been removed.`)
-    }
-
-    return archetypes[location]
+    const archetype = entityIndex[entity]
+    assert(archetype !== undefined, ERROR_ENTITY_NOT_CREATED)
+    assert(archetype !== null, ERROR_ALREADY_DESTROYED)
+    return archetype
   }
 
   function relocate(
     source: Archetype,
     entity: number,
     components: Component[],
+    changed: Component[],
   ) {
+    const dest = findOrCreateArchetype(components)
     source.remove(entity)
-
-    const destination = findOrCreateArchetype(components)
-
-    destination.insert(entity, components)
-    archetypeIndicesByEntity[entity] = archetypes.indexOf(destination)
-    entityRelocated.dispatch(entity, source, destination)
+    dest.insert(entity, components)
+    entityIndex[entity] = dest
+    entityRelocated.dispatch(entity, source, dest, changed)
   }
 
   function insert(entity: number, components: Component[]) {
     const source = getEntityArchetype(entity)
-    const entityIndex = source.indices[entity]
-
-    let destinationComponents = components.slice()
-
+    const index = source.indices[entity]
+    const final = components.slice()
     for (let i = 0; i < source.signature.length; i++) {
-      const componentTypeId = source.signature[i]
-
-      if (components.find(c => c._tid === componentTypeId)) {
-        throw new Error(
-          `Cannot attach component with type ${componentTypeId} — entity already has component of type.`,
-        )
+      const schemaId = source.signature[i]
+      if (components.find(c => c.__type__ === schemaId)) {
+        // take inserted component
+        continue
       }
-
-      destinationComponents.push(source.table[i][entityIndex]!)
+      final.push(source.table[i][index])
     }
-
-    relocate(source, entity, destinationComponents)
+    relocate(source, entity, final, components)
   }
 
-  function remove(entity: number, components: Component[]) {
-    const typesToRemove = components.map(component => component._tid)
-
-    removeByTypeIds(entity, typesToRemove)
-  }
-
-  function removeByTypeIds(entity: number, componentTypeIds: number[]) {
+  function remove(entity: number, schemaIds: number[]) {
     const source = getEntityArchetype(entity)
-    const entityIndex = source.indices[entity]
-
-    let destinationComponents = []
-
+    const index = source.indices[entity]
+    const final: Component[] = []
+    const removed: Component[] = []
     for (let i = 0; i < source.signature.length; i++) {
       const type = source.signature[i]
-      const component = source.table[i][entityIndex]! as Component
-
-      if (!componentTypeIds.includes(type)) {
-        destinationComponents.push(component)
-      } else {
-        mutationCache.revoke(component)
-        mutations.delete(component)
-      }
+      const component = source.table[i][index]! as Component
+      ;(schemaIds.includes(type) ? removed : final).push(component)
     }
-
-    relocate(source, entity, destinationComponents)
+    relocate(source, entity, final, removed)
   }
 
   function destroy(entity: number) {
-    remove(entity, getEntityComponents(entity))
-    archetypeIndicesByEntity[entity] = null
-  }
-
-  function patch(
-    entity: number,
-    componentTypeId: number,
-    path: string,
-    value: unknown,
-  ) {
     const archetype = getEntityArchetype(entity)
-    const entityIndex = archetype.indices[entity]
-    const column = archetype.signatureInverse[componentTypeId]
-
-    if (column === undefined) {
-      return
-    }
-
-    const component = archetype.table[column][entityIndex]
-    assert(
-      component !== undefined,
-      "Failed to patch component: entity does not exist in archetype",
-    )
-
-    applyMutation(getObservedComponent(component), path, value)
+    remove(entity, archetype.signature)
+    entityIndex[entity] = null
   }
 
   const tmpComponentsToInsert: Component[] = []
 
   function upsert(entity: number, components: Component[]) {
     const archetype = getEntityArchetype(entity)
-    const entityIndex = archetype.indices[entity]
-
+    const index = archetype.indices[entity]
     mutableEmpty(tmpComponentsToInsert)
-
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const column = archetype.signatureInverse[component._tid]
-
+      const column = archetype.signatureInverse[component.__type__]
       if (column === undefined) {
         // Entity component makeup does not match patch component, insert the new
         // component.
         tmpComponentsToInsert.push(component)
       } else {
-        const target = getObservedComponent(
-          archetype.table[column][entityIndex]!,
-        )
         // Apply patch to component.
-        Object.assign(target, component)
+        Object.assign(archetype.table[column][index], component)
       }
     }
-
     if (tmpComponentsToInsert.length > 0) {
       insert(entity, tmpComponentsToInsert)
     }
   }
 
-  function hasComponent(entity: number, componentType: ComponentType) {
+  function hasComponent(entity: number, schema: Schema) {
     const archetype = getEntityArchetype(entity)
-    return archetype.signature.includes(componentType.type)
+    const type = UNSAFE_internals.schemaIndex.get(schema)
+    assert(type !== undefined, ERROR_NO_SCHEMA)
+    return archetype.signature.includes(type)
   }
 
-  function findComponent<T extends ComponentType>(
-    entity: number,
-    componentType: T,
-  ) {
-    return findComponentByComponentTypeId(
-      entity,
-      componentType.type,
-    ) as ComponentOf<T>
+  function findComponent<T extends Schema>(entity: number, schema: T) {
+    const type = UNSAFE_internals.schemaIndex.get(schema)
+    assert(type !== undefined, ERROR_NO_SCHEMA)
+    return findComponentBySchemaId(entity, type) as ComponentOf<T>
   }
 
-  function findComponentByComponentTypeId<T extends ComponentType>(
+  function findComponentBySchemaId<T extends Schema>(
     entity: number,
-    componentTypeId: number,
+    schemaId: number,
   ) {
     const archetype = getEntityArchetype(entity)
-    const column = archetype.signatureInverse[componentTypeId]
-
+    const column = archetype.signatureInverse[schemaId]
     if (column === undefined) {
       return null
     }
-
     const entityIndex = archetype.indices[entity]
-
     return archetype.table[column][entityIndex]! as ComponentOf<T>
   }
 
@@ -412,41 +283,15 @@ export function createStorage(options: StorageOptions = {}): Storage {
     const archetype = getEntityArchetype(entity)
     const entityIndex = archetype.indices[entity]
     const result: Component[] = []
-
     for (let i = 0; i < archetype.table.length; i++) {
       result.push(archetype.table[i][entityIndex]!)
     }
-
     return result
   }
 
-  function clearMutations() {
-    mutations.forEach(mutableEmpty)
-  }
-
-  function getComponentMutations(component: Component) {
-    const changeSet = mutations.get(component)
-
-    if (!changeSet) {
-      throw new Error("ChangeSet does not exist for component.")
-    }
-
-    return changeSet
-  }
-
-  function getObservedComponent<C extends Component>(component: C) {
-    return mutationCache.proxy(component) as C
-  }
-
-  function isComponentChanged(component: Component) {
-    const changeSet = mutations.get(component)
-    return changeSet ? changeSet.length > 0 : false
-  }
-
   function clear() {
-    mutations.clear()
     mutableEmpty(archetypes)
-    mutableEmpty(archetypeIndicesByEntity)
+    mutableEmpty(entityIndex)
   }
 
   function snapshot() {
@@ -465,21 +310,15 @@ export function createStorage(options: StorageOptions = {}): Storage {
     archetypeCreated,
     archetypes,
     clear,
-    clearMutations,
     create,
     destroy,
     entityRelocated,
     findComponent,
-    findComponentByComponentTypeId,
-    getComponentMutations,
+    findComponentBySchemaId,
     getEntityComponents,
-    getObservedComponent,
     hasComponent,
     insert,
-    isComponentChanged,
-    patch,
     remove,
-    removeByTypeIds,
     snapshot,
     upsert,
   }

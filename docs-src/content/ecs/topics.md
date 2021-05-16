@@ -12,26 +12,22 @@ Systems are typically **pure**, as they only read/modify the components of queri
 Let's say you want to apply an impulse to a physics body when a player jumps so it gains some momentum in a direction. One way of doing this is to model the operation as a component.
 
 ```ts
-type Impulse = {
-  x: number
-  y: number
+const Impulse = {
+  x: number,
+  y: number,
 }
 ```
 
 When you need to apply a impulse to an entity, you insert an `Impulse` component on the current tick, and remove it on the following tick.
 
 ```ts
-const sys_input = () => {
-  queries.jumping.forEach(entity => {
-    world.attach(entity, world.component(Impulse))
-  })
-  queries.withImpulse.forEach(entity => {
-    world.detach(entity, impulse)
-  })
+const sysInput = ({ attach, detach }: World) => {
+  qryJumping(entity => attach(entity, component(Impulse)))
+  qryWithImpulse((entity, [impulse]) => detach(entity, impulse))
 }
 
-const sys_physics = () => {
-  queries.withImpulse((entity, [impulse]) => {
+const sysPhysics = () => {
+  qryWithImpulse((entity, [impulse]) => {
     const body = getBodyByEntity(entity)
     physicsEngine.applyImpulseLocal(body, impulse)
   })
@@ -39,6 +35,7 @@ const sys_physics = () => {
 ```
 
 This will work fine for a small game; however, there are a couple of problems with this approach as you scale to more complex games:
+
 1. Adding and removing components in an archetypal ECS is slow
 2. Your physics system must wait until the next tick to detect the newly attached impluse component
 
@@ -51,11 +48,7 @@ Topics are created using the `createTopic<T>()` function, where `T` is the type 
 ```ts
 import { createTopic } from "@javelin/ecs"
 
-type ImpulseCommand = [
-  type: "impulse",
-  entity: number,
-  force: [number, number],
-]
+type ImpulseCommand = [type: "impulse", entity: number, force: [number, number]]
 
 const physicsTopic = createTopic<ImpulseCommand>()
 ```
@@ -81,7 +74,7 @@ Messages can then be read using a for..of loop.
 ```ts
 import { physicsTopic } from "./physics_topic"
 
-const sys_physics = () => {
+const sysPhysics = () => {
   for (const command of physicsTopic) {
     if (command[0] === "impulse") {
       const body = getBodyByEntity(command[1])

@@ -1,261 +1,162 @@
 import {
-  Component,
-  mutableEmpty,
-  System,
-  World,
-  WorldOp,
-  WorldOpType,
-} from "@javelin/ecs"
-import {
-  JavelinMessage,
-  JavelinMessageType,
-  Update,
-  UpdateUnreliable,
-} from "./protocol"
+  $struct,
+  assert,
+  ErrorType,
+  Model,
+  ModelNode,
+  SchemaKeyKind,
+} from "@javelin/core"
+import { createEffect, World } from "@javelin/ecs"
+import { decode, DecodeMessageHandlers } from "./decode"
 
-export type MessageHandler = {
-  handleUnreliableUpdate(message: UpdateUnreliable, world: World): void
-  getLocalEntity(remoteEntity: number): number
-  messages: ReadonlyArray<JavelinMessage>
-  push(message: JavelinMessage): void
-  system: System<unknown>
-  tryGetLocalEntity(remoteEntity: number): number | null
-}
+const ERROR_PATCH_NO_MATCH =
+  "Failed to patch component: reached leaf before finding field"
+const ERROR_PATCH_UNSUPPORTED_TYPE =
+  "Failed to patch component: only primitive types are currently supported"
 
-export type MessageHandlerOptions = {
-  processUnreliableUpdates?(updates: UpdateUnreliable[], world: World): unknown
-}
-
-export function createMessageHandler(
-  options: MessageHandlerOptions = {},
-): MessageHandler {
-  const messagesReliable: JavelinMessage[] = []
-  const messagesUnreliable: UpdateUnreliable[] = []
-  const remoteToLocal = new Map<number, number>()
-  const toStopTracking = new Set<number>()
-
-  function handleOps(ops: WorldOp[], isLocal: boolean, world: World) {
-    if (!isLocal) {
-      let i = 0
-
-      while (i < ops.length) {
-        const op = ops[i]
-
-        let local: number
-
-        if (op[0] === WorldOpType.Spawn) {
-          local = world.reserve()
-          remoteToLocal.set(op[1], local)
-        } else {
-          const remote = op[1]
-          local = getLocalEntity(remote)
-
-          if (op[0] === WorldOpType.Destroy) {
-            toStopTracking.add(remote)
-          }
-        }
-
-        i++
-
-        op[1] = local
+export const createMessageHandler = (world: World) => {
+  let model: Model
+  const patched = new Set<number>()
+  const updated = new Set<number>()
+  const state = { remote: { tick: -1 }, patched, updated }
+  const entities = new Map<number, number>()
+  const messages: ArrayBuffer[] = []
+  const handlers: DecodeMessageHandlers = {
+    onTick(tick) {
+      state.remote.tick = tick
+    },
+    onModel(m) {
+      model = m
+    },
+    onSpawn(entity, components) {
+      const local = world.reserve()
+      world.spawnImmediate(local, components)
+      entities.set(entity, local)
+    },
+    onAttach(entity, components) {
+      const local = entities.get(entity)
+      if (local === undefined) {
+        return
       }
-    }
-
-    toStopTracking.forEach(entity => remoteToLocal.delete(entity))
-    toStopTracking.clear()
-
-    world.applyOps(ops)
-  }
-
-  const tmpComponentsToUpsert: Component[] = []
-
-  function handleUnreliableUpdate(update: UpdateUnreliable, world: World) {
-    const { storage } = world
-    const [, isLocal] = update
-
-    let entity: number | null = null
-
-    for (let i = 3; i < update.length; i++) {
-      const value = update[i]
-      const valueIsEntity = typeof value === "number"
-      const valueIsFinalComponent = i === update.length - 1
-
-      if (!valueIsEntity) {
-        tmpComponentsToUpsert.push(value as Component)
+      world.attachImmediate(local, components)
+    },
+    onUpdate(entity, components) {
+      const local = entities.get(entity)
+      if (local === undefined) {
+        return
       }
+      for (let i = 0; i < components.length; i++) {
+        const source = components[i]
+        const target = world.storage.findComponentBySchemaId(
+          local,
+          source.__type__,
+        )
 
-      if (
-        // We are visiting a local entity.
-        entity !== null &&
-        // We are at the last component in the update.
-        (valueIsFinalComponent ||
-          // We are visiting a new entity.
-          valueIsEntity)
-      ) {
-        try {
-          storage.upsert(entity, tmpComponentsToUpsert)
-        } catch (err) {
-          // Update failed, potentially due to a race condition between reliable
-          // and unreliable channels.
-        }
-
-        mutableEmpty(tmpComponentsToUpsert)
-      }
-
-      if (valueIsEntity) {
-        // Attempt to locate local counterpart of remote entity.
-        entity = isLocal
-          ? (value as number)
-          : tryGetLocalEntity(value as number)
-      }
-    }
-  }
-
-  function handleReliableUpdate(update: Update, world: World) {
-    const [, isLocal] = update
-    let i = 5
-    let entity: undefined | number = isLocal
-      ? (update[3] as number)
-      : (remoteToLocal.get(update[3] as number) as number)
-    let componentType: null | number = update[4] as number
-
-    if (typeof entity !== "number") {
-      return
-    }
-
-    while (true) {
-      if (entity !== undefined && componentType !== null) {
-        const path = update[i] as string
-        const value = update[i + 1] as unknown
-
-        try {
-          world.patch(entity, componentType, path, value)
-        } catch {
-          // Entity does not exist.
+        if (target) {
+          Object.assign(target, source)
         }
       }
-
-      const maybeNextEntity = update[i + 2]
-      const maybeNextComponentType = update[i + 3]
-
-      if (
-        typeof maybeNextEntity === "number" &&
-        typeof maybeNextComponentType === "number"
-      ) {
-        const local = isLocal
-          ? maybeNextEntity
-          : remoteToLocal.get(maybeNextEntity)
-
-        if (local === undefined) {
-          entity = undefined
-          componentType = null
-          // move forward 2 indices to begin the skip
-          i += 2
-        } else {
-          entity = local
-          componentType = maybeNextComponentType
-          // move forward 4 indices since we have already captured the entity and component type
-          i += 4
+      updated.add(local)
+    },
+    onDetach(entity, schemaIds) {
+      const local = entities.get(entity)
+      if (local === undefined) {
+        return
+      }
+      world.detachImmediate(local, schemaIds)
+    },
+    onDestroy(entity) {
+      const local = entities.get(entity)
+      if (local === undefined) {
+        return
+      }
+      world.destroyImmediate(local)
+      entities.delete(entity)
+    },
+    onPatch(entity, schemaId, field, traverse, value) {
+      const local = entities.get(entity)
+      if (local === undefined) {
+        return
+      }
+      const component = world.storage.findComponentBySchemaId(local, schemaId)
+      if (component === null) {
+        return
+      }
+      const type = model[schemaId]
+      let traverseIndex = 0
+      let key: string | number | null = null
+      let ref = component
+      let node: ModelNode = type as ModelNode
+      outer: while (node.id !== field) {
+        if (key !== null) {
+          ref = ref[key]
         }
-
-        continue
+        switch (node.kind) {
+          case SchemaKeyKind.Primitive:
+            throw new Error(ERROR_PATCH_NO_MATCH)
+          case SchemaKeyKind.Array:
+          case SchemaKeyKind.Object:
+          case SchemaKeyKind.Set:
+          case SchemaKeyKind.Map:
+            key = traverse[traverseIndex++]
+            node = node.edge
+            continue
+          case $struct:
+            for (let i = 0; i < node.edges.length; i++) {
+              const child = node.edges[i]
+              if (child.lo <= field && child.hi >= field) {
+                key = child.key
+                node = child
+                continue outer
+              }
+            }
+          default:
+            throw new Error(ERROR_PATCH_NO_MATCH)
+        }
       }
-
-      if (
-        maybeNextEntity === undefined ||
-        maybeNextComponentType === undefined
-      ) {
-        break
-      }
-
-      i += 2
-    }
-  }
-
-  function getLocalEntity(opOrComponent: WorldOp | Component | number) {
-    let remote: number
-
-    if (typeof opOrComponent === "number") {
-      remote = opOrComponent
-    } else {
-      remote = Array.isArray(opOrComponent)
-        ? opOrComponent[1]
-        : opOrComponent._tid
-    }
-
-    const local = remoteToLocal.get(remote)
-
-    if (typeof local !== "number") {
-      throw new Error(
-        `Could not find local counterpart for remote entity ${remote}.`,
+      assert(key !== null, "", ErrorType.Internal)
+      assert(
+        node.kind === SchemaKeyKind.Primitive,
+        ERROR_PATCH_UNSUPPORTED_TYPE,
       )
+      ref[key] = value
+      patched.add(local)
+    },
+    onArrayMethod(
+      entity,
+      schemaId,
+      method,
+      field,
+      traverse,
+      index,
+      remove,
+      values,
+    ) {},
+  }
+
+  const push = (message: ArrayBuffer) => messages.unshift(message)
+
+  const system = () => {
+    let message: ArrayBuffer | undefined
+    patched.clear()
+    updated.clear()
+    while ((message = messages.pop())) {
+      decode(message, handlers, model)
     }
 
-    return local
+    // const message = messages.pop()
+    // if (message !== undefined) {
+    //   decode(message, handlers, model)
+    // }
   }
 
-  function tryGetLocalEntity(opOrComponent: WorldOp | Component | number) {
-    try {
-      return getLocalEntity(opOrComponent)
-    } catch {
-      return null
-    }
-  }
-
-  function handleSpawn(components: Component[], world: World) {
-    world.spawn(...components)
-  }
-
-  function applyMessage(message: JavelinMessage, world: World) {
-    switch (message[0]) {
-      case JavelinMessageType.Ops:
-        handleOps(message[1], message[2], world)
-        break
-      case JavelinMessageType.Update:
-        handleReliableUpdate(message, world)
-        break
-      case JavelinMessageType.Spawn:
-        handleSpawn(message[1], world)
-        break
-    }
-  }
-
-  const defaultProcessUnreliableUpdates = (
-    messagesUnreliable: UpdateUnreliable[],
-    world: World,
-  ) => {
-    for (let i = 0; i < messagesUnreliable.length; i++) {
-      handleUnreliableUpdate(messagesUnreliable[i], world)
-    }
-  }
-
-  const processUnreliableUpdates =
-    options.processUnreliableUpdates || defaultProcessUnreliableUpdates
-
-  function push(message: JavelinMessage) {
-    ;(message[0] === JavelinMessageType.UpdateUnreliable
-      ? messagesUnreliable
-      : messagesReliable
-    ).push(message)
-  }
-
-  function system(world: World) {
-    for (let i = 0; i < messagesReliable.length; i++) {
-      applyMessage(messagesReliable[i], world)
-    }
-
-    processUnreliableUpdates(messagesUnreliable, world)
-
-    mutableEmpty(messagesReliable)
-    mutableEmpty(messagesUnreliable)
-  }
+  const useInfo = createEffect(() => () => state, {
+    global: true,
+  })
 
   return {
-    handleUnreliableUpdate,
-    getLocalEntity,
-    messages: messagesReliable,
     push,
     system,
-    tryGetLocalEntity,
+    useInfo,
   }
 }

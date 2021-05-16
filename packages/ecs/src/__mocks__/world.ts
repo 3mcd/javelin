@@ -1,3 +1,4 @@
+import { createModel } from "@javelin/core"
 import { createSignal } from "../signal"
 import { World } from "../world"
 import { createStorage } from "./storage"
@@ -8,25 +9,22 @@ export const createWorld = jest.fn(
     return {
       addSystem: jest.fn(),
       addTopic: jest.fn(),
-      applyOps: jest.fn(),
       attach: jest.fn(),
-      component: jest.fn(),
-      componentTypes: [],
+      attachImmediate: jest.fn(),
       destroy: jest.fn(),
+      destroyImmediate: jest.fn(),
       detach: jest.fn(),
+      detachImmediate: jest.fn(),
       get: jest.fn(),
-      getObserved: jest.fn(),
       has: jest.fn(),
       id: 1,
-      isComponentChanged: jest.fn(),
-      ops: [],
-      patch: jest.fn(),
       removeSystem: jest.fn(),
       removeTopic: jest.fn(),
       reserve: jest.fn(() => e++),
       reset: jest.fn(),
       snapshot: jest.fn(),
       spawn: jest.fn(() => e++),
+      spawnImmediate: jest.fn(() => e++),
       state: {
         currentTick: 0,
         currentTickData: null,
@@ -43,4 +41,4 @@ export const createWorld = jest.fn(
   },
 )
 
-export let __CURRENT_WORLD__ = null
+export let currentWorldId = null

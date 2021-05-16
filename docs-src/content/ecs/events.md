@@ -36,8 +36,6 @@ world.destroyed.subscribe(entity => {
 })
 ```
 
-
-
 A function is returned from `signal.subscribe()` that can be used to remove the subscriber.
 
 ```ts
@@ -45,52 +43,24 @@ const unsubscribe = world.attached.subscribe(...)
 unsubscribe()
 ```
 
-## Triggers
-
-Subscribing to events within systems is tricky since a system is just a function that runs each tick. Javelin has a couple of built-in effects called **triggers** that register event handlers behind the scenes, exposing changed entitites with an iterable API.
-
-### `onAttach`
-
-The `onAttach` trigger accepts a component type and returns an object that can be iterated with `for..of` or `forEach` to get entity-component pairs where the component of the specified type was detached last tick.
-
-```ts
-import { onAttach } from "@javelin/ecs"
-
-const sys_physics = () => {
-  onAttach(Body).forEach((entity, body) => {
-    ...
-  })
-}
-```
-
-### `onDetach`
-
-`onDetach` is similar to `onAttach`, but it returns entity-component pairs whose matching component was detached last tick.
-
-```ts
-import { onDetach } from "@javelin/ecs"
-
-const sys_physics = (world: World) => {
-  onDetach(Body).forEach((entity, body) => ...)
-}
-```
-
 ## Monitors
 
-Sometimes you need to go a bit further and detect when an entity matches or no longer matches a complex query. A **monitor** is an effect that accepts a query and yields entities that meet one of these conditions. Like triggers, monitors can be iterated with `forEach` or `for..of`.
+The easiest way to detect when an entity matches or no longer matches a query is with a **monitor**. `useMonitor` is an effect that accepts a query and executes callbacks when an entity meets or no longer meets the query's criteria.
 
-An entity is only included in a monitor's results **once** while it continues to match the query. An entity is eligible again only if it is excluded (i.e. due to a change in its type) and re-included.
-
-### `onInsert`
-
-The `onInsert` monitor yields entities who will match a specific query for the first time this tick.
+`useMonitor` accepts `onEnter` and `onExit` callback functions. An entity is only included in a monitor's results **once** while it continues to match the query. An entity is eligible again only if it is excluded (i.e. due to a change in its type) and re-included.
 
 ```ts
-const spooky = query(Enemy, Ghost)
-onInsert(spooky).forEach(entity => ...)
+const spooky = createQuery(Enemy, Ghost)
+const controlAi = () => {
+  useMonitor(
+    spooky,
+    e => {}, // entity matches query `spooky`
+    e => {}, // entity no longer matches query `spooky`
+  )
+}
 ```
 
-`forEach` executes the provided callback for entities whose component changes last tick caused it to match the query's criteria. In the above example, the `entity` variable would correspond to an entity who made one of the following type transitions last tick:
+In the above example, the entity passed to the `onEnter` callback is an entity who made one of the following type transitions last tick:
 
 ```
 from    | to
@@ -100,7 +70,7 @@ from    | to
 (Ghost) | (Enemy, Ghost)
 ```
 
- Below is an example of an entity transitioning between multiple types, and whether or not that transition would result in the entity being included in `onInsert`'s results:
+Below is an example of an entity transitioning between multiple archetypes, and whether or not that transition would result in the entity being passed to the `onEnter` callback:
 
 ```
 (Enemy)                  -> excluded
@@ -110,28 +80,15 @@ from    | to
 (Enemy, Ghost)           -> included
 ```
 
-### `onRemove`
-
-`onRemove` is simply the inverse of `onInsert`. It will yield entities whose type no longer matches the query's criteria.
+Monitors can also be used to detect when a single component is added or removed from an entity by using a query with a single component type.
 
 ```ts
-onRemove(spooky).forEach(entity => ...)
-```
-
-```
-(Enemy)                  -> excluded
-(Enemy, Ghost)           -> excluded
-(Enemy, Ghost, Confused) -> excluded
-(Ghost, Confused)        -> included
-(Enemy, Ghost)           -> excluded
-```
-
-## Changes
-
-A world tracks changes made to all its components. The `isComponentChanged` method accepts a component and will return true if the component was changed last tick, otherwise it returns false.
-
-```ts
-if (world.isComponentChanged(body)) {
-  simulation.sync(body)
+const bodies = createQuery(Body)
+const simulate = () => {
+  useMonitor(
+    bodies,
+    e => {}, // Body component attached to entity
+    e => {}, // Body component detached from entity
+  )
 }
 ```

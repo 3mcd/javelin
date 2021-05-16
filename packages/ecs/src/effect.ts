@@ -1,4 +1,4 @@
-import { globals } from "./internal/globals"
+import { UNSAFE_internals } from "./internal"
 import { World } from "./world"
 
 export type EffectApi<S, A extends any[]> = (
@@ -45,9 +45,9 @@ export function createEffect<S = unknown, A extends any[] = []>(
   let cellCount: number = -1
 
   return function effect(...args: A) {
-    currentWorld = globals.__CURRENT_WORLD__
+    currentWorld = UNSAFE_internals.currentWorldId
 
-    const world = globals.__WORLDS__[currentWorld]
+    const world = UNSAFE_internals.worlds[currentWorld]
     const currentTick = world.state.currentTick
 
     currentSystem = global ? 0 : world.state.currentSystem

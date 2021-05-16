@@ -1,16 +1,16 @@
-import { Component, ComponentOf, ComponentType } from "./component"
+import { PackedSparseArray, Schema, unpackSparseArray } from "@javelin/core"
+import { Component, ComponentOf } from "./component"
 import { createSignal, Signal } from "./signal"
 import { Type } from "./type"
-import { PackedSparseArray, unpackSparseArray } from "./util"
 
-export type ArchetypeTableColumn<T extends ComponentType> = ComponentOf<T>[]
-export type ArchetypeTable<T extends ComponentType[]> = {
-  readonly [K in keyof T]: ArchetypeTableColumn<
-    T[K] extends ComponentType ? T[K] : never
+export type ArchetypeTableColumn<S extends Schema> = ComponentOf<S>[]
+export type ArchetypeTable<S extends Schema[]> = {
+  readonly [K in keyof S]: ArchetypeTableColumn<
+    S[K] extends Schema ? S[K] : never
   >
 }
 
-export interface ArchetypeData<T extends ComponentType[]> {
+export interface ArchetypeData<T extends Schema[]> {
   /**
    * Two-dimensional array of component type->component[] where each index
    * (column) of the component array corresponds to an entity.
@@ -32,7 +32,7 @@ export interface ArchetypeData<T extends ComponentType[]> {
 }
 
 export type ArchetypeSnapshot<
-  T extends ComponentType[] = ComponentType[]
+  T extends Schema[] = Schema[]
 > = ArchetypeData<T> & {
   indices: PackedSparseArray<number>
 }
@@ -41,7 +41,7 @@ export type ArchetypeSnapshot<
  * An Archetype is a collection of entities that share components of the same
  * type.
  */
-export interface Archetype<T extends ComponentType[] = ComponentType[]>
+export interface Archetype<T extends Schema[] = Schema[]>
   extends ArchetypeData<T> {
   /**
    * Insert an entity into the Archetype.
@@ -87,7 +87,7 @@ export interface Archetype<T extends ComponentType[] = ComponentType[]>
   readonly removed: Signal<number>
 }
 
-export type ArchetypeOptions<T extends ComponentType[]> =
+export type ArchetypeOptions<T extends Schema[]> =
   | {
       signature: number[]
     }
@@ -95,7 +95,7 @@ export type ArchetypeOptions<T extends ComponentType[]> =
       snapshot: ArchetypeSnapshot<T>
     }
 
-function createArchetypeState<T extends ComponentType[]>(
+function createArchetypeState<T extends Schema[]>(
   options: ArchetypeOptions<T>,
 ) {
   const snapshot = "snapshot" in options ? options.snapshot : null
@@ -124,7 +124,7 @@ function createArchetypeState<T extends ComponentType[]>(
  * @param signature Array of component types that make up the archetype
  * @param table  Initial component data
  */
-export function createArchetype<T extends ComponentType[]>(
+export function createArchetype<T extends Schema[]>(
   options: ArchetypeOptions<T>,
 ): Archetype<T> {
   const {
@@ -140,9 +140,9 @@ export function createArchetype<T extends ComponentType[]>(
   function insert(entity: number, components: Component[]) {
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const componentTypeIndex = signatureInverse[component._tid]
+      const schemaIndex = signatureInverse[component.__type__]
 
-      table[componentTypeIndex].push(component)
+      table[schemaIndex].push(component)
     }
 
     indices[entity] = entities.push(entity) - 1

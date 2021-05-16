@@ -1,10 +1,11 @@
+import { $type } from "../internal/symbols"
 import { Selector } from "../query"
 
 export const query = <S extends Selector>(...selector: S) => {
   return {
-    layout: selector.map(c => c.type),
+    layout: selector.map(c => c[$type]),
     length: selector.length,
-    signature: selector.map(c => c.type).sort((a, b) => a - b),
+    signature: selector.map(c => c[$type]).sort((a, b) => a - b),
     filters: {
       not: new Set(),
     },

@@ -1,36 +1,45 @@
-const { number, createWorld, query, arrayOf } = require("../dist/cjs")
+const { createWorld, createQuery, number } = require("../dist/cjs")
+const { createArray } = require("../../core/dist/cjs")
 
 module.exports.run = function run() {
   let n = 1000
   const world = createWorld()
   const componentTypes = [
-    { schema: { value: number }, type: 1 },
-    { schema: { value: number }, type: 2 },
-    { schema: { value: number }, type: 3 },
-    { schema: { value: number }, type: 4 },
-    { schema: { value: number }, type: 5 },
-    { schema: { value: number }, type: 6 },
-    { schema: { value: number }, type: 7 },
-    { schema: { value: number }, type: 8 },
-    { schema: { value: number }, type: 9 },
-    { schema: { value: number }, type: 10 },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
+    { x: number },
   ]
   const components = [
-    ...arrayOf(175000, () => [{ _tid: 1 }]),
-    ...arrayOf(175000, () => [{ _tid: 1 }, { _tid: 3 }]),
-    ...arrayOf(175000, () => [{ _tid: 2 }]),
-    ...arrayOf(175000, () => [{ _tid: 1 }, { _tid: 2 }, { _tid: 3 }]),
-    ...arrayOf(175000, () => [{ _tid: 4 }]),
-    ...arrayOf(175000, () => [{ _tid: 2 }, { _tid: 4 }]),
-    ...arrayOf(175000, () => [{ _tid: 2 }, { _tid: 5 }, { _tid: 8 }]),
-    ...arrayOf(175000, () => [
-      { _tid: 5 },
-      { _tid: 6 },
-      { _tid: 7 },
-      { _tid: 9 },
+    ...createArray(175000, () => [{ __type__: 1 }]),
+    ...createArray(175000, () => [{ __type__: 1 }, { __type__: 3 }]),
+    ...createArray(175000, () => [{ __type__: 2 }]),
+    ...createArray(175000, () => [
+      { __type__: 1 },
+      { __type__: 2 },
+      { __type__: 3 },
     ]),
-    ...arrayOf(175000, () => [{ _tid: 7 }]),
-    ...arrayOf(175000, () => [{ _tid: 7 }, { _tid: 9 }]),
+    ...createArray(175000, () => [{ __type__: 4 }]),
+    ...createArray(175000, () => [{ __type__: 2 }, { __type__: 4 }]),
+    ...createArray(175000, () => [
+      { __type__: 2 },
+      { __type__: 5 },
+      { __type__: 8 },
+    ]),
+    ...createArray(175000, () => [
+      { __type__: 5 },
+      { __type__: 6 },
+      { __type__: 7 },
+      { __type__: 9 },
+    ]),
+    ...createArray(175000, () => [{ __type__: 7 }]),
+    ...createArray(175000, () => [{ __type__: 7 }, { __type__: 9 }]),
   ]
   const queries = [
     [componentTypes[0]],
@@ -43,11 +52,9 @@ module.exports.run = function run() {
     [componentTypes[1], componentTypes[3]],
     [componentTypes[7]],
     [componentTypes[8], componentTypes[9]],
-  ].map(c => query(...c))
+  ].map(c => createQuery(...c))
 
-  console.time("create")
   const entities = components.map(c => world.spawn(...c))
-  console.timeEnd("create")
 
   let i = n
   let c = 0
@@ -58,18 +65,10 @@ module.exports.run = function run() {
     for (let j = 0; j < queries.length; j++) {
       for (const [entities, [a]] of queries[j]) {
         for (let i = 0; i < entities.length; i++) {
-          a[i].value
+          a[i].x
           c++
         }
       }
-      // for (const [entity, first] of queries[j]) {
-      //   first.value
-      //   c++
-      // }
-      // queries[j].forEach((entity, [first]) => {
-      //   first.value
-      //   c++
-      // })
     }
   })
 
@@ -81,23 +80,19 @@ module.exports.run = function run() {
 
   const runEnd = Date.now()
 
-  console.time("destroy")
   for (let i = 0; i < entities.length; i++) {
     world.destroy(entities[i])
   }
-  console.timeEnd("destroy")
 
   components.forEach(c => world.spawn(...c))
 
-  console.time("reset")
   world.reset()
-  console.timeEnd("reset")
 
-  console.log(`entities      | ${components.length}`)
-  console.log(`components    | ${componentTypes.length}`)
-  console.log(`queries       | ${queries.length}`)
-  console.log(`ticks         | ${n}`)
-  console.log(`iter_tick     | ${c / n}`)
-  console.log(`iter_total    | ${c}`)
-  console.log(`avg_tick      | ${(runEnd - runStart) / n}ms`)
+  console.log(`entity_count         | ${components.length.toLocaleString()}`)
+  console.log(`component_type_count | ${componentTypes.length}`)
+  console.log(`query_count          | ${queries.length}`)
+  console.log(`tick_count           | ${n.toLocaleString()}`)
+  console.log(`tick_time_avg        | ${(runEnd - runStart) / n}ms`)
+  console.log(`iters_per_tick       | ${(c / n).toLocaleString()}`)
+  console.log(`iters_total          | ${c.toLocaleString()}`)
 }

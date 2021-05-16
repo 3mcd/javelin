@@ -117,3 +117,4 @@ dist
 
 .DS_Store
 zola
+docs-src/public

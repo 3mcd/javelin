@@ -1,16 +1,22 @@
 {
   "name": "@javelin/net",
   "version": "0.22.0",
-  "main": "dist/index.js",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "browser": "dist/javelin-net.bundle.js",
   "license": "MIT",
   "devDependencies": {
-    "@javelin/ecs": "0.22.0"
+    "@javelin/ecs": "0.22.0",
+    "@javelin/core": "0.22.0",
+    "@javelin/track": "0.22.0"
   },
   "peerDependencies": {
-    "@javelin/ecs": ">=0.0.1"
+    "@javelin/ecs": ">=0.0.1",
+    "@javelin/core": ">=0.0.1"
   },
   "scripts": {
-    "build": "tsc",
+    "perf": "yarn build && node perf/index.js",
+    "build": "tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
     "prepare": "yarn build"
   },
   "files": [

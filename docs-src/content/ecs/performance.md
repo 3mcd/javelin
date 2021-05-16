@@ -9,7 +9,7 @@ Iteration performance and memory usage are two major concerns of an ECS. This se
 
 ## Iteration
 
-Javelin stores components in objects called **archetypes**. An archetype contains components of entities that share the exact same composition. An array of archetypes acts as an index that lets a query skip entire swathes of entities that don't match its selector. For example, when querying for entities with components `(A, B)`, we can skip iteration of entities within all archetypes that aren't superset of `(A, B)`.
+Javelin stores components in objects called **archetypes**. An archetype contains components of entities that share the exact same composition. An array of archetypes acts as an index that lets a query skip entire swathes of entities that don't match its selector. For example, when querying for entities with components `(A, B)`, we can skip entities of all archetypes that aren't superset of `(A, B)`.
 
 In [a simple benchmark](https://github.com/3mcd/javelin/blob/master/packages/ecs/perf/perf.js) of 10 component types, 10 archetypes, and 10 queries, Javelin achieves (at 60Hz):
 
@@ -57,16 +57,13 @@ Example `yarn perf` output:
 
 ```
 ========================================
-perf_storage
+perf
 ========================================
-create: 424.487ms
-run: 16.624s
-destroy: 103.358ms
-entities      | 855000
-components    | 4
-queries       | 4
-ticks         | 1000
-iter          | 997500000
-iter_tick     | 997500
-avg_tick      | 17.015ms
+entity_count         | 1,750,000
+component_type_count | 10
+query_count          | 10
+tick_count           | 1,000
+tick_time_avg        | 16.483ms
+iters_per_tick       | 2,100,000
+iters_total          | 2,100,000,000
 ```
