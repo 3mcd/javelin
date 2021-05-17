@@ -44,7 +44,7 @@ const sysNet = () => {
   // every 50ms
   if (useInterval(1 / 20) * 1000) {
     // dequeue and encode a message
-    const encoded = encodeMessage(take())
+    const encoded = encode(take())
     // and send it to each client
     send(encoded)
   }
@@ -85,7 +85,7 @@ const sysNet = () => {
   )
 
   if (useInterval(1 / 20) * 1000) {
-    send(encodeMessage(take()))
+    send(encode(take()))
   }
 }
 ```

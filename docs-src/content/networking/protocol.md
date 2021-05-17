@@ -46,12 +46,12 @@ update(message, 99, [updatedBody])
 destroy(message, 2)
 ```
 
-A message can be serialized into an `ArrayBuffer` using `encodeMessage`. Messages are deserialized with `decodeMessage`, which executes callbacks for each operation encoded in the message.
+A message can be serialized into an `ArrayBuffer` using `encode`. Messages are deserialized with `decodeMessage`, which executes callbacks for each operation encoded in the message.
 
 ```ts
-import { encodeMessage } from "@javelin/net"
+import { encode } from "@javelin/net"
 
-const encoded = encodeMessage(message)
+const encoded = encode(message)
 channel.send(encoded)
 
 // ... somewhere on the client:

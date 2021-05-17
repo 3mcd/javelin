@@ -133,6 +133,30 @@ export function encodeModel(model: Model) {
   return buffer
 }
 
+export function decodeSchemaKey(
+  encoded: Uint8Array,
+  offset: number,
+  schema: SchemaKey,
+  key: keyof SchemaKey,
+) {
+  const dataTypeId = encoded[offset++]
+  let schemaKey: SchemaKey
+  if (dataTypeId === ARRAY) {
+    schemaKey = arrayOf<SchemaKey>(uint8)
+    offset = decodeSchemaKey(encoded, offset, schemaKey, "__type__")
+  } else if (dataTypeId === OBJECT) {
+    schemaKey = objectOf<SchemaKey>(uint8)
+    offset = decodeSchemaKey(encoded, offset, schemaKey, "__type__")
+  } else if ((dataTypeId & SCHEMA_MASK) !== 0) {
+    schemaKey = {}
+    offset = decodeSchema(encoded, offset - 1, schemaKey)
+  } else {
+    schemaKey = DATA_TYPE_IDS_LOOKUP[dataTypeId]
+  }
+  schema[key] = schemaKey
+  return offset
+}
+
 export function decodeSchema(
   encoded: Uint8Array,
   offset: number,
@@ -145,36 +169,7 @@ export function decodeSchema(
     while (keySize-- > 0) {
       key += String.fromCharCode(encoded[offset++])
     }
-    const dataTypeId = encoded[offset++]
-    if (dataTypeId === ARRAY) {
-      const collection = arrayOf<SchemaKey>(uint8)
-      const elementType = encoded[offset++]
-      if ((elementType & SCHEMA_MASK) !== 0) {
-        const elementSchema = {}
-        offset = decodeSchema(encoded, offset - 1, elementSchema)
-        collection.__type__ = elementSchema
-      } else {
-        collection.__type__ = DATA_TYPE_IDS_LOOKUP[elementType]
-      }
-      schema[key] = collection
-    } else if (dataTypeId === OBJECT) {
-      const collection = objectOf<SchemaKey>(uint8)
-      const elementType = encoded[offset++]
-      if ((elementType & SCHEMA_MASK) !== 0) {
-        const elementSchema = {}
-        offset = decodeSchema(encoded, offset - 1, elementSchema)
-        collection.__type__ = elementSchema
-      } else {
-        collection.__type__ = DATA_TYPE_IDS_LOOKUP[elementType]
-      }
-      schema[key] = collection
-    } else if ((dataTypeId & SCHEMA_MASK) !== 0) {
-      const child: Schema = {}
-      offset = decodeSchema(encoded, offset - 1, child)
-      schema[key] = child
-    } else {
-      schema[key] = DATA_TYPE_IDS_LOOKUP[dataTypeId]
-    }
+    offset = decodeSchemaKey(encoded, offset, schema, key as keyof SchemaKey)
   }
   return offset
 }
@@ -186,11 +181,11 @@ export function decodeModel(
 ) {
   const config = new Map()
   const encoded = new Uint8Array(dataView.buffer, offset, length)
-  let i = 0
-  while (i < length) {
+  let o = 0
+  while (o < length) {
     const schema = {}
-    const schemaId = encoded[i++]
-    i = decodeSchema(encoded, i, schema)
+    const schemaId = encoded[o++]
+    o = decodeSchema(encoded, o, schema)
     config.set(schemaId, schema)
   }
   return createModel(config)

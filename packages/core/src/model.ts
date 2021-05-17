@@ -86,7 +86,7 @@ export const objectOf = <E extends SchemaKey>(element: E): ObjectType<E> => ({
 })
 export const mapOf = <
   E extends SchemaKey,
-  K extends DataTypeNumber | DataTypeString
+  K extends DataTypeNumber | DataTypeString,
 >(
   element: E,
   key: K,
@@ -117,13 +117,16 @@ export type InstanceOfSchema<S extends Schema> = {
   [K in keyof S]: InstanceOfSchemaKey<S[K]>
 }
 
-export type ExtractSchemaKeyType<
-  K extends SchemaKey
-> = K extends DataTypePrimitive
-  ? ReturnType<K["create"]>
-  : K extends Schema
-  ? InstanceOfSchema<K>
-  : never
+export type ExtractSchemaKeyType<K extends SchemaKey> =
+  K extends DataTypePrimitive
+    ? ReturnType<K["create"]>
+    : K extends ArrayType<infer _>
+    ? ExtractSchemaKeyType<_>[]
+    : K extends ObjectType<infer _>
+    ? { [key: string]: ExtractSchemaKeyType<_> }
+    : K extends Schema
+    ? InstanceOfSchema<K>
+    : never
 
 export const isPrimitiveType = (object: object): object is DataType =>
   "__kind__" in object &&
@@ -224,7 +227,7 @@ export const insertNode = (
       keys: {},
       idsByKey: {},
     } as ModelNodeSchema
-    ids = collate(type as Schema, node, ids)
+    ids = collateSchema(type as Schema, node, ids)
   } else {
     if (isPrimitiveType(type)) {
       node = { ...base, type } as ModelNode
@@ -262,7 +265,11 @@ export const insertNode = (
   return ids
 }
 
-export const collate = (schema: Schema, target: ModelNodeSchema, ids = -1) => {
+export const collateSchema = (
+  schema: Schema,
+  target: ModelNodeSchema,
+  ids = -1,
+) => {
   const keys = Object.keys(schema).sort(localeCompare)
 
   for (let i = 0; i < keys.length; i++) {
@@ -298,7 +305,7 @@ export const createModel = (config: ModelConfig): Model => {
   const model: Model = { [$flat]: {} }
   config.forEach((schema, typeId) => {
     const root = getModelRoot()
-    collate(schema, root)
+    collateSchema(schema, root)
     model[typeId] = root
   })
   Object.defineProperty(model, $flat, {

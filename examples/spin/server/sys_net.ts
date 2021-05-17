@@ -1,11 +1,12 @@
 import { useInterval, World } from "@javelin/ecs"
+import { Clock } from "@javelin/hrtime-loop"
 import { encode } from "@javelin/net"
 import { effClients } from "./eff_clients"
 import { eff_message, getInitialMessage } from "./eff_message"
 import { SEND_RATE } from "./env"
 import { qryPlayers } from "./queries"
 
-export const sysNet = (world: World) => {
+export const sysNet = (world: World<Clock>) => {
   const send = useInterval((1 / SEND_RATE) * 1000)
   const clients = effClients()
   const producer = eff_message(send)

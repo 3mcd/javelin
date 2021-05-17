@@ -26,7 +26,7 @@ export type Destroy = [DeferredOpType.Destroy, number]
 
 export type WorldOp = Spawn | Attach | Detach | Destroy
 
-export interface World<T = any> {
+export interface World<T = void> {
   /**
    * The unique identifier for this world.
    */
@@ -200,7 +200,7 @@ export type WorldState<T = unknown> = {
 
 function getInitialWorldState<T>() {
   return {
-    currentTickData: (null as unknown) as T,
+    currentTickData: null as unknown as T,
     currentTick: 0,
     currentSystem: 0,
   }
@@ -211,7 +211,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   const systems: System<T>[] = []
   const deferredOps: WorldOp[] = []
   const deferredPool = createStackPool<WorldOp>(
-    () => ([] as any) as WorldOp,
+    () => [] as any as WorldOp,
     op => {
       mutableEmpty(op)
       return op
