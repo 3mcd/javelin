@@ -6,7 +6,7 @@ export type EffectApi<S, A extends any[]> = (
 ) => UnwrappedEffectState<S>
 export type EffectExecutor<S, A extends any[]> = (...args: A) => S
 export type EffectFactory<S, A extends any[]> = (
-  world: World,
+  world: World<unknown>,
 ) => EffectExecutor<S, A>
 export type EffectOptions = { throw?: boolean; global?: boolean }
 
@@ -55,9 +55,8 @@ export function createEffect<S = unknown, A extends any[] = []>(
     let currentWorldSystemEffectData = systemEffectDataByWorldId[currentWorld]
 
     if (systemEffectDataByWorldId[currentWorld] === undefined) {
-      currentWorldSystemEffectData = systemEffectDataByWorldId[
-        currentWorld
-      ] = []
+      currentWorldSystemEffectData = systemEffectDataByWorldId[currentWorld] =
+        []
     }
 
     let currentSystemEffect = currentWorldSystemEffectData[currentSystem]

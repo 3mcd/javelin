@@ -1,7 +1,7 @@
 import { set } from "@javelin/track"
 import { qryTransformsWShell } from "./queries"
 
-export const sys_physics = () => {
+export const sysPhysics = () => {
   for (const [
     entities,
     [transforms, shells, changesets],

@@ -1,9 +1,10 @@
 import { component, useInterval, World } from "@javelin/ecs"
+import { Clock } from "@javelin/hrtime-loop"
 import { Big, Changes, Shell, Transform } from "./components"
 import { SWAP_INTERVAL } from "./env"
 import { qryTransforms } from "./queries"
 
-export const sysSwap = (world: World) => {
+export const sysSwap = (world: World<Clock>) => {
   const swap = useInterval(SWAP_INTERVAL)
 
   if (!swap) {

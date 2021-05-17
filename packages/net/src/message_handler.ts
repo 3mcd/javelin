@@ -14,7 +14,7 @@ const ERROR_PATCH_NO_MATCH =
 const ERROR_PATCH_UNSUPPORTED_TYPE =
   "Failed to patch component: only primitive types are currently supported"
 
-export const createMessageHandler = (world: World) => {
+export const createMessageHandler = (world: World<unknown>) => {
   let model: Model
   const patched = new Set<number>()
   const updated = new Set<number>()
