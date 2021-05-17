@@ -10,9 +10,9 @@
     "@javelin/ecs": "1.0.0-alpha.0",
     "@javelin/track": "1.0.0-alpha.0"
   },
-  "peerDependencies": {
-    "@javelin/core": ">=0.0.1",
-    "@javelin/ecs": ">=0.0.1"
+  "dependencies": {
+    "@javelin/core": "^1.0.0-alpha.0",
+    "@javelin/ecs": "^1.0.0-alpha.0"
   },
   "scripts": {
     "perf": "yarn build && node perf/index.js",

@@ -155,7 +155,7 @@ export function patch(
   insert(op, changeset.size, uint8)
   for (const prop in changeset.changes) {
     const schemaId = +prop
-    const componentSchema = model[$flat][schemaId]
+    const schema = model[$flat][schemaId]
     const changes = changeset.changes[prop]
     insert(op, schemaId, uint8)
     insert(op, changes.fieldCount, uint8)
@@ -165,7 +165,7 @@ export function patch(
       if (noop) {
         continue
       }
-      const node = componentSchema[record.field]
+      const node = schema[record.field]
       assert(
         node.kind === SchemaKeyKind.Primitive,
         "Failed to encode patch: only primitive field mutations are currently supported",
