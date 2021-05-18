@@ -1,14 +1,14 @@
 {
   "name": "@javelin/spin",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "private": true,
   "scripts": {
     "start": "vite --config client/vite.config.ts & ts-node server/index.ts",
     "start:server": "ts-node server/index.ts"
   },
   "dependencies": {
-    "@javelin/ecs": "1.0.0-alpha.1",
-    "@javelin/net": "1.0.0-alpha.1",
+    "@javelin/ecs": "1.0.0-alpha.2",
+    "@javelin/net": "1.0.0-alpha.2",
     "@javelin/pack": "1.0.0-alpha.1",
     "@web-udp/client": "^4.2.1",
     "@web-udp/server": "^4.2.1",
