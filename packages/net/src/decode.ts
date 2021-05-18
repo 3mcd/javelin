@@ -25,7 +25,6 @@ type EntitySnapshotHandler = (entity: number, components: Component[]) => void
 export type DecodeMessageHandlers = {
   onTick?(tick: number): void
   onModel?(model: Model): void
-  onSpawn?: EntitySnapshotHandler
   onAttach?: EntitySnapshotHandler
   onUpdate?: EntitySnapshotHandler
   onDetach?(entity: number, schemaIds: number[]): void
@@ -195,9 +194,6 @@ function getHandlerByMessagePartKind(
 ) {
   let handler: EntitySnapshotHandler | undefined
   switch (kind) {
-    case MessagePartKind.Spawn:
-      handler = handlers.onSpawn
-      break
     case MessagePartKind.Attach:
       handler = handlers.onAttach
       break
@@ -233,7 +229,6 @@ export function decode(
       case MessagePartKind.Tick:
         decodeTick(dataView, offset, length, onTick)
         break
-      case MessagePartKind.Spawn:
       case MessagePartKind.Attach:
       case MessagePartKind.Update:
         assert(model !== undefined, ERROR_MODEL_NOT_FOUND)

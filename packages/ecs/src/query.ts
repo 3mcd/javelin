@@ -44,6 +44,9 @@ export type QueryIteratee<S extends Selector> = (
 export type Query<S extends Selector = Selector> = ((
   callback: QueryIteratee<S>,
 ) => void) & {
+  signature: number[]
+  filters: QueryFilters
+
   [Symbol.iterator](): IterableIterator<QueryRecord<S>>
 
   /**
@@ -84,6 +87,8 @@ export type Query<S extends Selector = Selector> = ((
    * @param archetype
    */
   matchesArchetype(archetype: Archetype): boolean
+
+  equals(query: Query): boolean
 
   match(
     components: Component[],
@@ -151,7 +156,7 @@ function createQueryInternal<S extends Selector>(
     return records
   }
   const pool = createStackPool<SelectorResult<S>>(
-    () => ([] as unknown) as SelectorResult<S>,
+    () => [] as unknown as SelectorResult<S>,
     components => {
       mutableEmpty(components)
       return components
@@ -178,7 +183,8 @@ function createQueryInternal<S extends Selector>(
   }
 
   const query = forEach as Query<S>
-
+  query.signature = signature
+  query.filters = filters
   query.not = (...exclude: Selector) =>
     createQueryInternal({
       ...options,
@@ -191,13 +197,13 @@ function createQueryInternal<S extends Selector>(
       },
     })
   query.select = <T extends SelectorSubset<S>>(...include: T) =>
-    (createQueryInternal({
+    createQueryInternal({
       ...options,
       include,
-    }) as unknown) as Query<T>
+    }) as unknown as Query<T>
   query.get = (
     entity: Entity,
-    out: SelectorResult<S> = ([] as unknown) as SelectorResult<S>,
+    out: SelectorResult<S> = [] as unknown as SelectorResult<S>,
   ) => {
     const c = context ?? UNSAFE_internals.currentWorldId
     const records = recordsIndex[c]
@@ -240,9 +246,27 @@ function createQueryInternal<S extends Selector>(
 
     return iterator
   }
+  query.equals = (query: Query) => {
+    if (query.signature.length !== signature.length) {
+      return false
+    }
+    for (let i = 0; i < query.signature.length; i++) {
+      if (query.signature[i] !== signature[i]) {
+        return false
+      }
+    }
+    if (query.filters.not.size !== filters.not.size) {
+      return false
+    }
+    let result = true
+    query.filters.not.forEach(
+      schemaId => (result = result && filters.not.has(schemaId)),
+    )
+    return result
+  }
   query.match = (
     components: Component[],
-    out: SelectorResultSparse<S> = ([] as unknown) as SelectorResultSparse<S>,
+    out: SelectorResultSparse<S> = [] as unknown as SelectorResultSparse<S>,
   ): SelectorResultSparse<S> => {
     for (let i = 0; i < layout.length; i++) {
       out[i] = null

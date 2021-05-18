@@ -87,19 +87,6 @@ export function snapshot(
 }
 
 /**
- * Create an spawn message op.
- * @example
- * [
- *   entity: uint32,
- *   count: uint8,
- *   components: [schemaId: uint8, length: uint16, encoded: *][],
- * ]
- * @param entity
- * @param components
- * @returns MessageOp
- */
-export const spawn = snapshot
-/**
  * Create an attach message op.
  * @example
  * [

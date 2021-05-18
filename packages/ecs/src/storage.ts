@@ -16,13 +16,6 @@ export interface Storage {
   readonly archetypes: ReadonlyArray<Archetype>
 
   /**
-   * Create a new entity.
-   * @param entity Entity
-   * @param components Array of components to associate with the entity
-   */
-  create(entity: number, components: Component[]): number
-
-  /**
    * Associate components with an entity.
    * @param entity Entity
    * @param components Components to insert
@@ -96,6 +89,11 @@ export interface Storage {
   readonly archetypeCreated: Signal<Archetype>
 
   /**
+   * Signal dispatched when an entity begins transitioning between archetypes.
+   */
+  readonly entityRelocating: Signal<Entity, Archetype, Archetype, Component[]>
+
+  /**
    * Signal dispatched when an entity transitions between archetypes.
    */
   readonly entityRelocated: Signal<Entity, Archetype, Archetype, Component[]>
@@ -113,20 +111,18 @@ const ERROR_NO_SCHEMA = "Failed to locate component: schema not registered"
 
 export function createStorage(options: StorageOptions = {}): Storage {
   const archetypeCreated = createSignal<Archetype>()
-  const entityRelocated = createSignal<
-    Entity,
-    Archetype,
-    Archetype,
-    Component[]
-  >()
+  const entityRelocating =
+    createSignal<Entity, Archetype, Archetype, Component[]>()
+  const entityRelocated =
+    createSignal<Entity, Archetype, Archetype, Component[]>()
   const archetypes: Archetype[] = options.snapshot
     ? options.snapshot.archetypes.map(snapshot => createArchetype({ snapshot }))
     : [createArchetype({ signature: [] })]
   // Array where the index corresponds to an entity and the value corresponds
   // to the index of the entity's archetype within the `archetypes` array. When
   // mutating or reading components, we always assume the location is valid
-  // since it is kept in sync with the entity's archetype via the `create`,
-  // `insert`, and `remove` methods.
+  // since it is kept in sync with the entity's archetype via the `insert` and
+  // `remove` methods.
   const entityIndex: (Archetype | null)[] = []
 
   /**
@@ -168,14 +164,6 @@ export function createStorage(options: StorageOptions = {}): Storage {
     return archetype
   }
 
-  function create(entity: number, components: Component[]) {
-    const archetype = findOrCreateArchetype(components)
-    archetype.insert(entity, components)
-    entityIndex[entity] = archetype
-    entityRelocated.dispatch(entity, archetypes[0], archetype, components)
-    return entity
-  }
-
   function getEntityArchetype(entity: number) {
     const archetype = entityIndex[entity]
     assert(archetype !== undefined, ERROR_ENTITY_NOT_CREATED)
@@ -184,38 +172,47 @@ export function createStorage(options: StorageOptions = {}): Storage {
   }
 
   function relocate(
-    source: Archetype,
+    prev: Archetype,
     entity: number,
     components: Component[],
     changed: Component[],
   ) {
-    const dest = findOrCreateArchetype(components)
-    source.remove(entity)
-    dest.insert(entity, components)
-    entityIndex[entity] = dest
-    entityRelocated.dispatch(entity, source, dest, changed)
+    const next = findOrCreateArchetype(components)
+    entityRelocating.dispatch(entity, prev, next, changed)
+    prev.remove(entity)
+    next.insert(entity, components)
+    entityIndex[entity] = next
+    entityRelocated.dispatch(entity, prev, next, changed)
   }
 
   function insert(entity: number, components: Component[]) {
-    const source = getEntityArchetype(entity)
-    const index = source.indices[entity]
-    const final = components.slice()
-    for (let i = 0; i < source.signature.length; i++) {
-      const schemaId = source.signature[i]
-      if (components.find(c => c.__type__ === schemaId)) {
-        // take inserted component
-        continue
+    const source = entityIndex[entity]
+    if (source === undefined || source === null) {
+      const archetype = findOrCreateArchetype(components)
+      entityRelocating.dispatch(entity, archetypes[0], archetype, components)
+      archetype.insert(entity, components)
+      entityIndex[entity] = archetype
+      entityRelocated.dispatch(entity, archetypes[0], archetype, components)
+    } else {
+      const index = source.indices[entity]
+      const final = components.slice()
+      for (let i = 0; i < source.signature.length; i++) {
+        const schemaId = source.signature[i]
+        if (components.find(c => c.__type__ === schemaId)) {
+          // take inserted component
+          continue
+        }
+        final.push(source.table[i][index])
       }
-      final.push(source.table[i][index])
+      relocate(source, entity, final, components)
     }
-    relocate(source, entity, final, components)
   }
 
   function remove(entity: number, schemaIds: number[]) {
     const source = getEntityArchetype(entity)
-    const index = source.indices[entity]
-    const final: Component[] = []
     const removed: Component[] = []
+    const final: Component[] = []
+    const index = source.indices[entity]
     for (let i = 0; i < source.signature.length; i++) {
       const type = source.signature[i]
       const component = source.table[i][index]! as Component
@@ -310,8 +307,8 @@ export function createStorage(options: StorageOptions = {}): Storage {
     archetypeCreated,
     archetypes,
     clear,
-    create,
     destroy,
+    entityRelocating,
     entityRelocated,
     findComponent,
     findComponentBySchemaId,

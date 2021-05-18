@@ -28,15 +28,11 @@ export const createMessageHandler = (world: World<unknown>) => {
     onModel(m) {
       model = m
     },
-    onSpawn(entity, components) {
-      const local = world.reserve()
-      world.spawnImmediate(local, components)
-      entities.set(entity, local)
-    },
     onAttach(entity, components) {
-      const local = entities.get(entity)
+      let local = entities.get(entity)
       if (local === undefined) {
-        return
+        local = world.reserve()
+        entities.set(entity, local)
       }
       world.attachImmediate(local, components)
     },

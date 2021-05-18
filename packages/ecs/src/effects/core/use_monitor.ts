@@ -1,7 +1,7 @@
 import { createStackPool, mutableEmpty } from "@javelin/core"
 import { Component } from "../../component"
 import { createEffect } from "../../effect"
-import { Entity, EntitySnapshotSparse } from "../../entity"
+import { Entity, EntitySnapshotWithDiff } from "../../entity"
 import {
   Query,
   Selector,
@@ -11,14 +11,16 @@ import {
 
 type MonitorCallback<S extends Selector> = (
   entity: Entity,
-  changed: SelectorResultSparse<S>,
+  results: SelectorResult<S>,
+  diff: SelectorResultSparse<S>,
 ) => unknown
 
-const snapshots = createStackPool<EntitySnapshotSparse>(
-  () => [-1, []],
+const snapshots = createStackPool<EntitySnapshotWithDiff>(
+  () => [-1, [], []],
   c => {
     c[0] = -1
     mutableEmpty(c[1])
+    mutableEmpty(c[2])
     return c
   },
   1000,
@@ -59,15 +61,16 @@ const snapshots = createStackPool<EntitySnapshotSparse>(
 export const useMonitor = createEffect(world => {
   const {
     storage: {
+      entityRelocating,
       entityRelocated,
       archetypes: [rootArchetype],
     },
   } = world
 
-  let stagedEnter: EntitySnapshotSparse[] = []
-  let stagedExit: EntitySnapshotSparse[] = []
-  let readyEnter: EntitySnapshotSparse[] = []
-  let readyExit: EntitySnapshotSparse[] = []
+  let stagedEnter: EntitySnapshotWithDiff[] = []
+  let stagedExit: EntitySnapshotWithDiff[] = []
+  let readyEnter: EntitySnapshotWithDiff[] = []
+  let readyExit: EntitySnapshotWithDiff[] = []
 
   let _query: Query | null = null
 
@@ -84,23 +87,23 @@ export const useMonitor = createEffect(world => {
         const entity = entities[i]
         const snapshot = snapshots.retain()
         snapshot[0] = entity
-        query.get(entity, snapshot[1] as Component[])
+        query.get(entity, snapshot[1])
+        query.get(entity, snapshot[2] as Component[])
         stagedEnter.push(snapshot)
       }
     }
   }
 
-  entityRelocated.subscribe(function detectMonitorMatch(
+  entityRelocating.subscribe(function detectMonitorExit(
     entity,
     prev,
     next,
-    changed,
+    diff,
   ) {
     if (_query === null) {
       return
     }
 
-    const matchEnter = _query.matchesArchetype(next)
     const matchExit = _query.matchesArchetype(prev)
 
     // entity matched previously and was destroyed
@@ -112,14 +115,31 @@ export const useMonitor = createEffect(world => {
       }
     }
 
-    if (
-      // (xor) entity transitioned into, or out of, query signature
-      matchEnter !== matchExit
-    ) {
+    if (matchExit && !_query.matchesArchetype(next)) {
       const snapshot = snapshots.retain()
       snapshot[0] = entity
-      _query.match(changed, snapshot[1])
-      ;(matchEnter ? stagedEnter : stagedExit).push(snapshot)
+      _query.get(entity, snapshot[1])
+      _query.match(diff, snapshot[2])
+      stagedExit.push(snapshot)
+    }
+  })
+
+  entityRelocated.subscribe(function detectMonitorEnter(
+    entity,
+    prev,
+    next,
+    diff,
+  ) {
+    if (_query === null) {
+      return
+    }
+
+    if (!_query.matchesArchetype(prev) && _query.matchesArchetype(next)) {
+      const snapshot = snapshots.retain()
+      snapshot[0] = entity
+      _query.get(entity, snapshot[1])
+      _query.match(diff, snapshot[2])
+      stagedEnter.push(snapshot)
     }
   })
 
@@ -128,11 +148,11 @@ export const useMonitor = createEffect(world => {
     onEnter?: MonitorCallback<S>,
     onExit?: MonitorCallback<S>,
   ) {
-    if (_query !== query) {
+    if (_query !== query && !_query?.equals(query)) {
       register(query)
     }
 
-    let result: EntitySnapshotSparse | undefined
+    let result: EntitySnapshotWithDiff | undefined
 
     mutableEmpty(readyEnter)
     mutableEmpty(readyExit)
@@ -147,7 +167,11 @@ export const useMonitor = createEffect(world => {
     if (onEnter !== undefined) {
       for (let i = 0; i < readyEnter.length; i++) {
         const snapshot = readyEnter[i]
-        onEnter(snapshot[0], snapshot[1] as SelectorResult<S>)
+        onEnter(
+          snapshot[0],
+          snapshot[1] as SelectorResult<S>,
+          snapshot[2] as SelectorResultSparse<S>,
+        )
         snapshots.release(snapshot)
       }
     }
@@ -155,7 +179,11 @@ export const useMonitor = createEffect(world => {
     if (onExit !== undefined) {
       for (let i = 0; i < readyExit.length; i++) {
         const snapshot = readyExit[i]
-        onExit(snapshot[0], snapshot[1] as SelectorResult<S>)
+        onExit(
+          snapshot[0],
+          snapshot[1] as SelectorResult<S>,
+          snapshot[2] as SelectorResultSparse<S>,
+        )
         snapshots.release(snapshot)
       }
     }

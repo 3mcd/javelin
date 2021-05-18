@@ -11,7 +11,6 @@ The protcol is has a single message type with multiple parts. A message may cont
 
 - current tick number
 - component model (excluded by default)
-- spawned entities
 - attached components
 - updated components (full)
 - patched components (deltas)
@@ -34,14 +33,14 @@ import { createMessage } from "@javelin/net"
 const message = createMessage()
 ```
 
-They are operated on via functions called **message writers** that correspond to various ECS instructions, like `spawn`, `update` and `destroy`. These functions push the data of the operation into a temporary buffer that is read when the message is ultimately encoded. You may accumulate as many operations as you'd like on a message:
+They are operated on via functions called **message writers** that correspond to various ECS instructions, like `attach`, `update` and `destroy`. These functions push the data of the operation into a temporary buffer that is read when the message is ultimately encoded. You may accumulate as many operations as you'd like on a message:
 
 ```ts
 import { component } from "@javelin/ecs"
-import { spawn, update } from "@javelin/net"
+import { attach, update } from "@javelin/net"
 import { Body } from "./components"
 
-spawn(message, 1, [component(Player)])
+attach(message, 1, [component(Player)])
 update(message, 99, [updatedBody])
 destroy(message, 2)
 ```
@@ -59,7 +58,7 @@ import { decodeMessage } from "@javelin/net"
 
 decodeMessage(encoded, {
   onSpawn(e, components) {
-    world.spawn(e, components)
+    world.attach(e, components)
   },
 })
 ```
@@ -74,17 +73,13 @@ reset(message)
 
 ## Message Writers
 
-### `spawn(message: Message, entity: Entity, components: Component[]): void`
-
-Write a spawn operation.
-
 ### `attach(message: Message, entity: Entity, components: Component[]): void`
 
 Write an attach operation for an entity and one or more components.
 
 ### `update(message: Message, entity: Entity, components: Component[]): void`
 
-Write an update operation for an entity and one or more of its components.
+Write an update operation for an entity and one or more components.
 
 ### `patch(message: Message, entity: Entity, changes: InstanceOfSchema<typeof ChangeSet>): void`
 
@@ -100,7 +95,7 @@ const sysPatchBodies = () =>
 
 ### `detach(message: Message, entity: Entity, components: Component[]): void`
 
-Write a detach operation for an entity and one or more of its components.
+Write a detach operation for an entity and one or more components.
 
 ### `destroy(message: Message, entity: Entity): void`
 

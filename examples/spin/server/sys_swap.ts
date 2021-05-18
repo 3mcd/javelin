@@ -33,7 +33,7 @@ export const sysSwap = (world: World<Clock>) => {
 
   for (let i = 0; i < count; i++) {
     const a = Math.random() * Math.PI * 2
-    world.spawn(
+    const e = world.spawn(
       component(Transform, {
         position: [Math.cos(a) * 50, Math.sin(a) * 50],
       }),

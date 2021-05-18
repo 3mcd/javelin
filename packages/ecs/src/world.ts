@@ -26,7 +26,7 @@ export type Destroy = [DeferredOpType.Destroy, number]
 
 export type WorldOp = Spawn | Attach | Detach | Destroy
 
-export interface World<T = void> {
+export interface World<T = null> {
   /**
    * The unique identifier for this world.
    */
@@ -38,7 +38,7 @@ export interface World<T = void> {
    *
    * @param data Tick data
    */
-  tick(data: T): void
+  tick(data: T extends null ? void : T): void
 
   /**
    * Register a system to be executed each tick.
@@ -74,7 +74,6 @@ export interface World<T = void> {
    * @param components The new entity's components
    */
   spawn(...components: ReadonlyArray<Component>): number
-  spawnImmediate(entity: Entity, components: Component[]): void
 
   /**
    * Attach new components to an entity.
@@ -245,11 +244,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     return deferred
   }
 
-  function spawnImmediate(entity: Entity, components: Component[]) {
-    storage.create(entity, components)
-    spawned.dispatch(entity)
-  }
-
   function attachImmediate(entity: Entity, components: Component[]) {
     storage.insert(entity, components)
     attached.dispatch(entity, components)
@@ -266,11 +260,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   function destroyImmediate(entity: Entity) {
     storage.destroy(entity)
     destroyed.dispatch(entity)
-  }
-
-  function applySpawnOp(op: Spawn) {
-    const [, entity, components] = op
-    spawnImmediate(entity, components)
   }
 
   function applyAttachOp(op: Attach) {
@@ -290,9 +279,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
 
   function applyDeferredOp(deferred: WorldOp) {
     switch (deferred[0]) {
-      case DeferredOpType.Spawn:
-        applySpawnOp(deferred)
-        break
       case DeferredOpType.Attach:
         applyAttachOp(deferred)
         break
@@ -313,10 +299,10 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     }
   }
 
-  function tick(data: T) {
+  function tick(data: T extends null ? void : T) {
     let prevWorld = UNSAFE_internals.currentWorldId
     UNSAFE_internals.currentWorldId = id
-    state.currentTickData = data
+    state.currentTickData = data as T
     for (let i = 0; i < deferredOps.length; i++) {
       applyDeferredOp(deferredOps[i])
     }
@@ -360,8 +346,10 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function spawn(...components: Component[]) {
-    const entity = prevEntity++
-    deferredOps.push(createDeferredOp(DeferredOpType.Spawn, entity, components))
+    const entity = reserve()
+    deferredOps.push(
+      createDeferredOp(DeferredOpType.Attach, entity, components),
+    )
     return entity
   }
 
@@ -473,7 +461,6 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     reset,
     snapshot,
     spawn,
-    spawnImmediate,
     state,
     storage,
     tick,

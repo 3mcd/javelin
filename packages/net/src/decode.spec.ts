@@ -28,7 +28,6 @@ describe("decode", () => {
     handlers = {
       onTick: jest.fn(),
       onModel: jest.fn(),
-      onSpawn: jest.fn(),
       onAttach: jest.fn(),
       onUpdate: jest.fn(),
       onPatch: jest.fn(),
