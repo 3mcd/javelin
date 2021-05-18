@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-alpha.2](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.1...v1.0.0-alpha.2) (2021-05-18)
+
+
+### Features
+
+* remove spawn op; useMonitor reset only on query signature change ([56cab8d](https://github.com/3mcd/javelin/commit/56cab8d0b7d7fa214692d55b21b75c727fe64847))
+
+
+
+
+
 # [1.0.0-alpha.1](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.0...v1.0.0-alpha.1) (2021-05-17)
 
 

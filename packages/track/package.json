@@ -1,6 +1,6 @@
 {
   "name": "@javelin/track",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "browser": "dist/javelin-track.bundle.js",
@@ -23,6 +23,6 @@
   "gitHead": "084d65218a12efbb32ea2b22e0f8e1812acb7d7e",
   "dependencies": {
     "@javelin/core": "1.0.0-alpha.1",
-    "@javelin/ecs": "1.0.0-alpha.1"
+    "@javelin/ecs": "1.0.0-alpha.2"
   }
 }
