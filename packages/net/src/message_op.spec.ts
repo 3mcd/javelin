@@ -15,7 +15,6 @@ import {
   detach,
   patch,
   snapshot,
-  spawn,
   update,
 } from "./message_op"
 
@@ -72,7 +71,6 @@ describe("message_op", () => {
     ])
     model = createModel(config)
   })
-  it("creates spawn ops", () => runSnapshotOpTest(spawn, model))
   it("creates attach ops", () => runSnapshotOpTest(attach, model))
   it("creates update ops", () => runSnapshotOpTest(update, model))
   it("creates patch ops", () => {

@@ -6,7 +6,6 @@ import * as MessageOp from "./message_op"
 
 export type MessageProducer = {
   model(): void
-  spawn(entity: Entity, components: Component[]): void
   destroy(entity: Entity): void
   attach(entity: Entity, components: Component[]): void
   detach(entity: Entity, components: Component[]): void
@@ -45,11 +44,6 @@ export const createMessageProducer = (
     _insert(
       MessageOp.model(UNSAFE_internals.model),
       Message.MessagePartKind.Model,
-    )
-  const spawn = (entity: Entity, components: Component[]) =>
-    _insert(
-      MessageOp.spawn(UNSAFE_internals.model, entity, components),
-      Message.MessagePartKind.Spawn,
     )
   const attach = (entity: Entity, components: Component[]) =>
     _insert(
@@ -115,5 +109,5 @@ export const createMessageProducer = (
     return message
   }
 
-  return { model, spawn, destroy, attach, detach, update, patch, take }
+  return { model, destroy, attach, detach, update, patch, take }
 }

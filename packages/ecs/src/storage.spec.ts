@@ -9,9 +9,9 @@ describe("createStorage", () => {
 
     ;(createArchetype as jest.Mock).mockClear()
 
-    storage.create(1, [{ __type__: 0 }])
-    storage.create(2, [{ __type__: 1 }])
-    storage.create(3, [{ __type__: 0 }, { __type__: 1 }])
+    storage.insert(1, [{ __type__: 0 }])
+    storage.insert(2, [{ __type__: 1 }])
+    storage.insert(3, [{ __type__: 0 }, { __type__: 1 }])
 
     expect(createArchetype).toHaveBeenNthCalledWith(1, { signature: [0] })
     expect(createArchetype).toHaveBeenNthCalledWith(2, { signature: [1] })
@@ -19,21 +19,21 @@ describe("createStorage", () => {
   })
   it("also removes entity from archetype when removed", () => {
     const storage = createStorage()
-    const entity = storage.create(0, [{ __type__: 0 }])
+    storage.insert(0, [{ __type__: 0 }])
     const archetype = storage.archetypes[1]
 
     ;(archetype as any).entities = [0]
     ;(archetype as any).indices = [0]
     ;(archetype as any).table = [[{ __type__: 0 }]]
 
-    storage.destroy(entity)
+    storage.destroy(0)
 
-    expect(archetype.remove).toHaveBeenCalledWith(entity)
+    expect(archetype.remove).toHaveBeenCalledWith(0)
   })
   it("moves entities into new archetypes when inserting components", () => {
     const storage = createStorage()
     const components = [{ __type__: 0 }]
-    // The next archetype we create (via storage.create) will encompass the
+    // The next archetype we create (via storage.insert) will encompass the
     // first component.
     ;(createArchetype as jest.Mock).mockClear()
     ;(createArchetype as jest.Mock).mockImplementation(() => ({
@@ -43,7 +43,7 @@ describe("createStorage", () => {
       table: [[components[0]]],
       indices: [0],
     }))
-    const entity = storage.create(0, components)
+    storage.insert(0, components)
 
     expect(storage.archetypes.length).toBe(2)
     expect(storage.archetypes[1].signature).toEqual([0])
@@ -55,9 +55,9 @@ describe("createStorage", () => {
       indices: [0, 1],
     }))
 
-    storage.insert(entity, [{ __type__: 1 }])
+    storage.insert(0, [{ __type__: 1 }])
 
-    expect(storage.archetypes[1].remove).toHaveBeenCalledWith(entity)
+    expect(storage.archetypes[1].remove).toHaveBeenCalledWith(0)
     expect(storage.archetypes.length).toBe(3)
     expect(storage.archetypes[2].signature).toEqual([0, 1])
   })

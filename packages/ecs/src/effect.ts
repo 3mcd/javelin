@@ -5,8 +5,8 @@ export type EffectApi<S, A extends any[]> = (
   ...args: A
 ) => UnwrappedEffectState<S>
 export type EffectExecutor<S, A extends any[]> = (...args: A) => S
-export type EffectFactory<S, A extends any[]> = (
-  world: World<unknown>,
+export type EffectFactory<S, A extends any[], W> = (
+  world: World<W>,
 ) => EffectExecutor<S, A>
 export type EffectOptions = { throw?: boolean; global?: boolean }
 
@@ -29,8 +29,12 @@ function isPromise<T = unknown>(object: unknown): object is Promise<T> {
   return typeof object === "object" && object !== null && "then" in object
 }
 
-export function createEffect<S = unknown, A extends any[] = []>(
-  factory: EffectFactory<S, A>,
+export function createEffect<
+  S = unknown,
+  A extends any[] = [],
+  W extends unknown = void,
+>(
+  factory: EffectFactory<S, A, W>,
   options: EffectOptions = { throw: false, global: false },
 ): EffectApi<S, A> {
   const { global } = options
@@ -47,7 +51,7 @@ export function createEffect<S = unknown, A extends any[] = []>(
   return function effect(...args: A) {
     currentWorld = UNSAFE_internals.currentWorldId
 
-    const world = UNSAFE_internals.worlds[currentWorld]
+    const world = UNSAFE_internals.worlds[currentWorld] as World<W>
     const currentTick = world.state.currentTick
 
     currentSystem = global ? 0 : world.state.currentSystem

@@ -1,4 +1,5 @@
 import { createEffect, useMonitor, World } from "@javelin/ecs"
+import { Clock } from "@javelin/hrtime-loop"
 import { createMessageProducer } from "@javelin/net"
 import { reset } from "@javelin/track"
 import { Big } from "./components"
@@ -9,7 +10,7 @@ import {
   qryTransformsWShell,
 } from "./queries"
 
-export const getInitialMessage = (world: World) => {
+export const getInitialMessage = (world: World<Clock>) => {
   const producer = createMessageProducer()
 
   for (const [entities, [transforms, shells]] of qryTransformsWShell) {
@@ -17,12 +18,14 @@ export const getInitialMessage = (world: World) => {
       const e = entities[i]
       const t = transforms[i]
       const s = shells[i]
-      producer.spawn(e, world.has(e, Big) ? [t, world.get(e, Big), s] : [t, s])
+      producer.attach(e, world.has(e, Big) ? [t, world.get(e, Big), s] : [t, s])
     }
   }
 
   return producer.take(true)
 }
+
+let i = 0
 
 export const eff_message = createEffect(({ has }) => {
   const producer = createMessageProducer({
@@ -32,17 +35,17 @@ export const eff_message = createEffect(({ has }) => {
   return function eff_message(update = false) {
     useMonitor(
       qryTransformsWShell,
-      e => producer.spawn(e, qryTransformsWShell.get(e)),
-      e => producer.destroy(e),
+      (e, results) => producer.attach(e, results),
+      producer.detach,
     )
     useMonitor(
       qryTransformsWBig,
-      (e, [, b]) => b && producer.attach(e, [b]),
-      (e, [, b]) => b && producer.detach(e, [b]),
+      (e, _, [, b]) => b && producer.attach(e, [b]),
+      (e, _, [, b]) => b && producer.detach(e, [b]),
     )
 
     if (update) {
-      qryTransformsWChanges((e, [t, c]) => {
+      qryTransformsWChanges((e, [, c]) => {
         const priority = has(e, Big) ? BIG_PRIORITY : SMALL_PRIORITY
         producer.patch(e, c, priority)
         reset(c)

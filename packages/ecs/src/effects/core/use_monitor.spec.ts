@@ -1,4 +1,4 @@
-import { EntitySnapshotSparse } from "@javelin/ecs"
+import { EntitySnapshotWithDiff } from "@javelin/ecs"
 import { Archetype, createArchetype } from "../../archetype"
 import { registerSchema } from "../../component"
 import { Entity, EntitySnapshot } from "../../entity"
@@ -24,8 +24,8 @@ const c = createQuery(C)
 
 const entitySortComparator = (a: Entity, b: Entity) => a - b
 const entitySnapshotSortComparitor = (
-  [ea]: EntitySnapshot | EntitySnapshotSparse,
-  [eb]: EntitySnapshot | EntitySnapshotSparse,
+  [ea]: EntitySnapshot | EntitySnapshotWithDiff,
+  [eb]: EntitySnapshot | EntitySnapshotWithDiff,
 ) => entitySortComparator(ea, eb)
 
 describe("useMonitor", () => {
@@ -44,7 +44,7 @@ describe("useMonitor", () => {
   })
 
   it("emits entity-component pairs that were added prior to the first execution", () => {
-    const results: EntitySnapshotSparse[] = []
+    const results: EntitySnapshotWithDiff[] = []
     const archetype = {
       ...createArchetype({ signature: [1, 2] }),
       entities: [2, 4, 6],
@@ -57,7 +57,7 @@ describe("useMonitor", () => {
     ]
     archetype.indices = [-1, -1, 0, -1, 1, -1, 2]
 
-    useMonitor(ab, (e, components) => results.push([e, components]))
+    useMonitor(ab, (e, result, diff) => results.push([e, result, diff]))
 
     results.sort(entitySnapshotSortComparitor)
 
@@ -88,7 +88,7 @@ describe("useMonitor", () => {
 
     world.storage.entityRelocated.dispatch(1, prev, next, [])
     world.storage.entityRelocated.dispatch(2, prev, next, [])
-    world.storage.entityRelocated.dispatch(3, next, prev, [])
+    world.storage.entityRelocating.dispatch(3, next, prev, [])
 
     useMonitor(
       ab,

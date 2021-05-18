@@ -5,14 +5,10 @@
   "module": "dist/esm/index.js",
   "browser": "dist/javelin-net.bundle.js",
   "license": "MIT",
-  "devDependencies": {
-    "@javelin/core": "1.0.0-alpha.0",
-    "@javelin/ecs": "1.0.0-alpha.0",
-    "@javelin/track": "1.0.0-alpha.1"
-  },
   "dependencies": {
     "@javelin/core": "1.0.0-alpha.1",
-    "@javelin/ecs": "1.0.0-alpha.1"
+    "@javelin/ecs": "1.0.0-alpha.1",
+    "@javelin/track": "1.0.0-alpha.1"
   },
   "scripts": {
     "perf": "yarn build && node perf/index.js",

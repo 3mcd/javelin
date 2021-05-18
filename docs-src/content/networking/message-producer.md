@@ -21,7 +21,6 @@ Message producers expose methods that correspond to each of the operations descr
 
 ```ts
 const producer = useProducer()
-producer.spawn(e, [a, b])
 producer.attach(e, [c])
 producer.update(e, [c])
 producer.detach(e, [b])
@@ -34,13 +33,13 @@ The `take` method will dequeue a message, or null, if no changes were written.
 const message = producer.take() // Message | null
 ```
 
-`useMonitor` can be used to conveniently write spawn and destroy operations.
+`useMonitor` can be used to conveniently write attach and destroy operations.
 
 ```ts
 const sysNet = () => {
-  const { spawn, destroy, take } = useProducer().value
-  // write spawn/destroy operations for players
-  useMonitor(players, spawn, destroy)
+  const { attach, destroy, take } = useProducer().value
+  // write attach/destroy operations for players
+  useMonitor(players, attach, destroy)
   // every 50ms
   if (useInterval(1 / 20) * 1000) {
     // dequeue and encode a message
@@ -57,7 +56,7 @@ const sysNet = () => {
 
 ```ts
 const getInitialMessage = () => {
-  producer.spawn(...)
+  producer.attach(...)
   // ...
   return producer.take(true) // include component model
 }
@@ -73,9 +72,9 @@ Below is example that demonstrates how you might write attach/detach operations 
 const players = createQuery(Player)
 const burning = createQuery(Player, Burn)
 const sysNet = () => {
-  const { spawn, destroy, attach, detach, take } = useProducer().value
+  const { destroy, attach, detach, take } = useProducer().value
   // spawn newly created players on client
-  useMonitor(players, spawn, destroy)
+  useMonitor(players, attach, destroy)
   // a burn effect may be attached/detached frequently, so we control the
   // synchronization with a separate monitor
   useMonitor(

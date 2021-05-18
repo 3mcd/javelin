@@ -12,7 +12,6 @@ export type Message = {
 export enum MessagePartKind {
   Model,
   Tick,
-  Spawn,
   Attach,
   Update,
   Patch,
@@ -89,18 +88,6 @@ export function tick(message: Message, tick: number) {
 
 export function model(message: Message) {
   overwrite(message, MessagePartKind.Model, Ops.model(UNSAFE_internals.model))
-}
-
-export function spawn(
-  message: Message,
-  entity: Entity,
-  components: Component[],
-) {
-  insert(
-    message,
-    MessagePartKind.Spawn,
-    Ops.spawn(UNSAFE_internals.model, entity, components),
-  )
 }
 
 export function attach(
