@@ -25,8 +25,6 @@ export const getInitialMessage = (world: World<Clock>) => {
   return producer.take(true)
 }
 
-let i = 0
-
 export const eff_message = createEffect(({ has }) => {
   const producer = createMessageProducer({
     maxByteLength: MESSAGE_MAX_BYTE_LENGTH,
