@@ -18,7 +18,7 @@ Entities are organized by their component makeup into Archetypes for quick looku
 
 ### Ergonomic
 
-Define your game's data model using simple syntax.
+Define your game's data model using plain old JavaScript objects.
 
 ```ts
 const Transform = {
@@ -37,7 +37,7 @@ const entity = world.spawn(
 
 ### Intuitive
 
-Query game state using simple syntax.
+Query game state using familiar syntax.
 
 ```ts
 const qryBodies = createQuery(Transform, Velocity)
@@ -50,7 +50,7 @@ const sysPhysics = () =>
 
 ### Powerful
 
-Best practices are built-in with tools like [Topics](https://javelin.games/ecs/topics) for inter-system messaging:
+Best practices are built-in with tools like [Topics](https://javelin.games/ecs/topics) for inter-system messaging.
 
 ```ts
 const sysMovement = () =>
@@ -66,7 +66,7 @@ const sysPhysics = () => {
 }
 ```
 
-and [Effects](https://javelin.games/ecs/effects) for handling async code, third-party dependencies, and events:
+and [Effects](https://javelin.games/ecs/effects) for handling async code, third-party dependencies, and events.
 
 ```ts
 const sysRender = () => {
