@@ -40,9 +40,9 @@ const entity = world.spawn(
 Query game state using familiar syntax.
 
 ```ts
-const qryBodies = createQuery(Transform, Velocity)
-const sysPhysics = () =>
-  qryBodies((e, [t, v]) => {
+const bodies = createQuery(Transform, Velocity)
+const physics = () =>
+  bodies((e, [t, v]) => {
     t.x += v.x
     t.y += v.y
   })
@@ -53,14 +53,15 @@ const sysPhysics = () =>
 Best practices are built-in with tools like [Topics](https://javelin.games/ecs/topics) for inter-system messaging.
 
 ```ts
-const sysMovement = () =>
-  qryInput((e, [input]) => {
+const commands = createTopic<PhysicsCommand>()
+const movement = () =>
+  input((e, [input]) => {
     if (input.jump) {
-      topPhysics.push(impulse(e, 0, 10))
+      commands.push(impulse(e, 0, 10))
     }
   })
-const sysPhysics = () => {
-  for (const message of topPhysics) {
+const physics = () => {
+  for (const command of commands) {
     // ...
   }
 }
@@ -69,12 +70,12 @@ const sysPhysics = () => {
 and [Effects](https://javelin.games/ecs/effects) for handling async code, third-party dependencies, and events.
 
 ```ts
-const sysRender = () => {
+const render = () => {
   const scene = useScene()
   const model = useLoadGLTF("llama.gltf")
 
   useMonitor(
-    qryPlayers,
+    players,
     e => scene.insert(e, model, world.get(e, Transform)),
     e => scene.destroy(e),
   )
