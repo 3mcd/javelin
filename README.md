@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./logo.png" width="100px">
+  <img src="./logo.png" width="180px">
 </p>
 
 <p align="center">
@@ -7,7 +7,7 @@
   <a href="https://codecov.io/gh/3mcd/javelin"><img src="https://codecov.io/gh/3mcd/javelin/branch/master/graph/badge.svg?token=8UMA33S9UL" alt="codecov"></a>
 </p>
 
-# javelin
+# Javelin
 
 Javelin is a collection of packages used to build multiplayer games for the web.
 
@@ -25,7 +25,7 @@ Visit https://javelin.games
 
 | Package                                        | Description                                        |
 | ---------------------------------------------- | -------------------------------------------------- |
-| [@javelin/core](./packages/core)             | Core types, utilities, and data model              |
+| [@javelin/core](./packages/core)               | Core types, utilities, and data model              |
 | [@javelin/ecs](./packages/ecs)                 | Build games using the ECS pattern                  |
 | [@javelin/net](./packages/net)                 | Synchronize ECS worlds                             |
 | [@javelin/pack](./packages/pack)               | Convert objects to and from binary arrays          |
