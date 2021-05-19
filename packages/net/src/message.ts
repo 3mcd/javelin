@@ -1,6 +1,6 @@
-import { Component, Entity, UNSAFE_internals } from "@javelin/ecs"
 import { InstanceOfSchema } from "@javelin/core"
-import { uint16, uint8 } from "@javelin/pack"
+import { Component, Entity, UNSAFE_internals } from "@javelin/ecs"
+import { uint32, uint8 } from "@javelin/pack"
 import { ChangeSet } from "@javelin/track"
 import * as Ops from "./message_op"
 
@@ -53,7 +53,7 @@ export function getOrSetPart(message: Message, kind: MessagePartKind) {
   if (part === undefined) {
     part = createMessagePart(kind)
     message.parts[kind] = part
-    message.byteLength += uint8.byteLength + uint16.byteLength // kind + length
+    message.byteLength += uint8.byteLength + uint32.byteLength // kind + length
   }
   return part
 }

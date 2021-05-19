@@ -220,34 +220,34 @@ export function decode(
   while (offset < dataView.byteLength) {
     const kind = uint8.read(dataView, offset)
     offset += uint8.byteLength
-    const length = uint16.read(dataView, offset)
-    offset += uint16.byteLength
+    const byteLength = uint32.read(dataView, offset)
+    offset += uint32.byteLength
     switch (kind) {
       case MessagePartKind.Model:
-        _decodeModel(dataView, offset, length, _onModel)
+        _decodeModel(dataView, offset, byteLength, _onModel)
         break
       case MessagePartKind.Tick:
-        decodeTick(dataView, offset, length, onTick)
+        decodeTick(dataView, offset, byteLength, onTick)
         break
       case MessagePartKind.Attach:
       case MessagePartKind.Update:
         assert(model !== undefined, ERROR_MODEL_NOT_FOUND)
         const handler = getHandlerByMessagePartKind(handlers, kind)
         if (handler !== undefined) {
-          decodeEntitySnapshot(dataView, offset, length, model, handler)
+          decodeEntitySnapshot(dataView, offset, byteLength, model, handler)
         }
         break
       case MessagePartKind.Patch:
         assert(model !== undefined, ERROR_MODEL_NOT_FOUND)
-        decodePatch(dataView, offset, length, model, onPatch)
+        decodePatch(dataView, offset, byteLength, model, onPatch)
         break
       case MessagePartKind.Detach:
-        decodeDetach(dataView, offset, length, onDetach)
+        decodeDetach(dataView, offset, byteLength, onDetach)
         break
       case MessagePartKind.Destroy:
-        decodeDestroy(dataView, offset, length, onDestroy)
+        decodeDestroy(dataView, offset, byteLength, onDestroy)
         break
     }
-    offset += length
+    offset += byteLength
   }
 }
