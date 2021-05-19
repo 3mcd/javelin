@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./logo.png" width="100px">
+  <img src="./logo.png" width="180px">
 </p>
 
 <p align="center">
@@ -8,7 +8,7 @@
   <a href="https://discord.gg/AbEWH3taWU"><img src="https://img.shields.io/discord/844566064281026600?logo=discord" alt="discord"></a>
 </p>
 
-# javelin
+# Javelin
 
 Join us on [Discord](https://discord.gg/AbEWH3taWU)!
 
@@ -30,7 +30,7 @@ Visit https://javelin.games
 
 | Package                                        | Description                                        |
 | ---------------------------------------------- | -------------------------------------------------- |
-| [@javelin/core](./packages/core)             | Core types, utilities, and data model              |
+| [@javelin/core](./packages/core)               | Core types, utilities, and data model              |
 | [@javelin/ecs](./packages/ecs)                 | Build games using the ECS pattern                  |
 | [@javelin/net](./packages/net)                 | Synchronize ECS worlds                             |
 | [@javelin/pack](./packages/pack)               | Convert objects to and from binary arrays          |
