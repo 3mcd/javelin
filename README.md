@@ -12,15 +12,40 @@
 
 Join us on [Discord](https://discord.gg/AbEWH3taWU)!
 
-> v.1.0.0 is releasing soon! You can check it out with `npm i @javelin/ecs@1.0.0-alpha.7` and review the progress in the [`next`](https://github.com/3mcd/javelin/tree/next) branch.
+Javelin is a collection of JavaScript packages used to build multiplayer for Node and web browsers. It provides an Entity-Component System (ECS), an efficient protocol used to synchronize game worlds, and a few other helpful utilities.
 
-Javelin is a collection of packages used to build multiplayer games for the web.
+Javelin is unopinionated and doesn't make many decisions for you. This makes it a good candidate for building many kinds of multiplayer games, but you'll need to bring your own network transport (WebSockets, WebRTC, etc.), matchmaking, database, auth strategy, controller support, etc.
 
-**Note** – each package is an active work in progress and each minor release will likely introduce breaking changes prior to a 1.0 release.
+## API Sample
 
-The primary goals of Javelin are developer experience, performance, and a built-in networking protocol. A secondary goal is to provide examples of client-side prediction, input reconciliation, and other algorithms commonly used in fast-paced online games.
+Below is a simple example of a game server that broadcasts entities with both `Position` and `Velocity` components to connected clients.
 
-Javelin is comprised of an Entity-Component System (ECS) and an associated networking package used to synchronize game data between a client and server (or other clients).
+```ts
+import { createWorld, createQuery, component, number } from "@javelin/ecs"
+import { createMessageProducer, encode } from "@javelin/net"
+import { broadcast } from "./net"
+const world = createWorld()
+const Position = {
+  x: number,
+  y: number,
+}
+const Velocity = {
+  x: number,
+  y: number,
+}
+const points = createQuery(Position, Velocity)
+const { attach, destroy, update, take } = createMessageProducer()
+world.spawn(component(Position), component(Velocity, { x: 0, y: -9.81 }))
+world.addSystem(() => useMonitor(points, attach, destroy))
+world.addSystem(() =>
+  points((e, [p, v]) => {
+    p.x += v.x
+    p.y += v.y
+    update(e, p)
+  }),
+)
+world.addSystem(() => broadcast(encode(take())))
+```
 
 ## Docs
 
