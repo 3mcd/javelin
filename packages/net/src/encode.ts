@@ -1,4 +1,4 @@
-import { uint16, uint8 } from "@javelin/pack"
+import { uint32, uint8 } from "@javelin/pack"
 import { Message, MessagePart } from "./message"
 import { $buffer } from "./message_op"
 
@@ -9,8 +9,8 @@ function encodePart(
 ): number {
   uint8.write(dataView, offset, part.kind)
   offset += uint8.byteLength
-  uint16.write(dataView, offset, part.byteLength)
-  offset += uint16.byteLength
+  uint32.write(dataView, offset, part.byteLength)
+  offset += uint32.byteLength
   for (let i = 0; i < part.ops.length; i++) {
     const { data, view } = part.ops[i]
     for (let j = 0; j < data.length; j++) {

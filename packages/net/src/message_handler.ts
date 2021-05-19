@@ -1,18 +1,7 @@
-import {
-  $struct,
-  assert,
-  ErrorType,
-  Model,
-  ModelNode,
-  SchemaKeyKind,
-} from "@javelin/core"
+import { Model } from "@javelin/core"
 import { createEffect, World } from "@javelin/ecs"
+import { applyPatchToComponent } from "@javelin/track"
 import { decode, DecodeMessageHandlers } from "./decode"
-
-const ERROR_PATCH_NO_MATCH =
-  "Failed to patch component: reached leaf before finding field"
-const ERROR_PATCH_UNSUPPORTED_TYPE =
-  "Failed to patch component: only primitive types are currently supported"
 
 export const createMessageHandler = (world: World<unknown>) => {
   let model: Model
@@ -78,44 +67,9 @@ export const createMessageHandler = (world: World<unknown>) => {
       if (component === null) {
         return
       }
-      const type = model[schemaId]
-      let traverseIndex = 0
-      let key: string | number | null = null
-      let ref = component
-      let node: ModelNode = type as ModelNode
-      outer: while (node.id !== field) {
-        if (key !== null) {
-          ref = ref[key]
-        }
-        switch (node.kind) {
-          case SchemaKeyKind.Primitive:
-            throw new Error(ERROR_PATCH_NO_MATCH)
-          case SchemaKeyKind.Array:
-          case SchemaKeyKind.Object:
-          case SchemaKeyKind.Set:
-          case SchemaKeyKind.Map:
-            key = traverse[traverseIndex++]
-            node = node.edge
-            continue
-          case $struct:
-            for (let i = 0; i < node.edges.length; i++) {
-              const child = node.edges[i]
-              if (child.lo <= field && child.hi >= field) {
-                key = child.key
-                node = child
-                continue outer
-              }
-            }
-          default:
-            throw new Error(ERROR_PATCH_NO_MATCH)
-        }
-      }
-      assert(key !== null, "", ErrorType.Internal)
-      assert(
-        node.kind === SchemaKeyKind.Primitive,
-        ERROR_PATCH_UNSUPPORTED_TYPE,
-      )
-      ref[key] = value
+
+      applyPatchToComponent(component, field, traverse, value)
+
       patched.add(local)
     },
     onArrayMethod(
