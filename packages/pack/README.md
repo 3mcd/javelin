@@ -9,13 +9,20 @@ This algorithm has been written a million times. So why maintain our own?
 
 - Easy to integrate with your existing ArrayBuffer-based protocol.
 - Includes `boolean`, `string8`, `string16`, `uint8`, `uint16`, `uint32`, `int8`, `int16`, `int32`, `float32`, `float64`.
-- Deeply nested objects, e.g. `{ name: string16 }`
+- Deeply nested objects, e.g. `{ stats: { strength: uint16 } }`
 - Deeply nested arrays, e.g. `{ order: arrayOf(arrayOf({ name: string16 })) }`
 
 ## Example
 
 ```ts
-import { encode, decode, string8, uint8, createModel } from "@javelin/pack"
+import {
+  arrayOf,
+  createModel,
+  decode,
+  encode,
+  string8,
+  uint8,
+} from "@javelin/pack"
 
 const person = {
   name: string8,
@@ -24,7 +31,7 @@ const person = {
 
 const model = createModel({
   ...person,
-  children: [person],
+  children: arrayOf(person),
 })
 
 const data = {
@@ -41,7 +48,8 @@ const decoded = decode(encoded, model) // { name: "Ben", ... }
 ```
 
 ## Unsupported
-* Cycles (e.g. `person.children = arrayOf(person)`)
+
+- Cycles (e.g. `person.children = arrayOf(person)`)
 
 ## Performance
 
