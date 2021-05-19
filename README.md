@@ -9,39 +9,48 @@
 
 # Javelin
 
-Javelin is a collection of JavaScript packages used to build multiplayer for Node and web browsers. It provides an Entity-Component System (ECS), an efficient protocol used to synchronize game worlds, and a few other helpful utilities.
+Javelin is a collection of JavaScript packages that provides the means to create multiplayer games for Node and web browsers. It's comprised of an Entity-Component System (ECS), an efficient networking protocol, and other helpful utilities like a high-precision game loop for Node.
 
-Javelin is unopinionated and doesn't make many decisions for you. This makes it a good candidate for building many kinds of multiplayer games, but you'll need to bring your own network transport (WebSockets, WebRTC, etc.), matchmaking, database, auth strategy, controller support, etc.
+Javelin is unopinionated and doesn't make many decisions for you. This makes it a good candidate for building many kinds of multiplayer games, but you'll need to bring your own network transport (WebSockets, WebRTC, etc.), database, auth strategy, controller support, matchmaking, etc.
 
 ## API Sample
 
 Below is a simple example of a game server that broadcasts entities with both `Position` and `Velocity` components to connected clients.
 
 ```ts
-import { createWorld, createQuery, component, number } from "@javelin/ecs"
-import { createMessageProducer, encode } from "@javelin/net"
+import { createWorld, createQuery, component, useMonitor } from "@javelin/ecs"
+import { createMessageProducer, encode, float64 } from "@javelin/net"
+import { createHrtimeLoop } from "@javelin/hrtime-loop"
 import { broadcast } from "./net"
-const world = createWorld()
+
 const Position = {
-  x: number,
-  y: number,
+  x: float64,
+  y: float64,
 }
 const Velocity = {
-  x: number,
-  y: number,
+  x: float64,
+  y: float64,
 }
+const world = createWorld()
 const points = createQuery(Position, Velocity)
-const { attach, destroy, update, take } = createMessageProducer()
+const messages = createMessageProducer()
+
+// create an entity
 world.spawn(component(Position), component(Velocity, { x: 0, y: -9.81 }))
-world.addSystem(() => useMonitor(points, attach, destroy))
+// create/delete points on client
+world.addSystem(() => useMonitor(points, messages.attach, messages.destroy))
+// update point positions
 world.addSystem(() =>
   points((e, [p, v]) => {
     p.x += v.x
     p.y += v.y
-    update(e, p)
+    messages.update(e, p)
   }),
 )
-world.addSystem(() => broadcast(encode(take())))
+// broadcast messages to clients
+world.addSystem(() => broadcast(encode(messages.take())))
+// start a high-precision game loop
+createHrtimeLoop((1 / 60) * 1000, world.tick).start()
 ```
 
 ## Docs
