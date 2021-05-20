@@ -4,7 +4,7 @@ import { World } from "../world"
 export type Internals = {
   schemaIndex: WeakMap<Schema, number>
   model: Model
-  worlds: World<unknown>[]
+  worlds: World[]
   currentWorldId: number
 }
 

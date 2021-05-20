@@ -1,7 +1,4 @@
-import { arrayOf, boolean, number, registerSchema } from "@javelin/ecs"
-import { ChangeSet } from "@javelin/track"
-
-export const Changes = { ...ChangeSet }
+import { boolean, number, registerSchema } from "@javelin/ecs"
 
 export const Player = {
   clientId: number,
@@ -9,8 +6,9 @@ export const Player = {
 }
 
 export const Transform = {
-  position: arrayOf(number),
-  // add some overhead for comparison between sync/patch
+  x: number,
+  y: number,
+  // add some overhead for comparison between update/patch
   extra: number,
   extra2: number,
   extra3: number,
@@ -27,8 +25,7 @@ export const Shell = {
   value: number,
 }
 
-registerSchema(Changes, 1)
-registerSchema(Player, 2)
-registerSchema(Transform, 3)
-registerSchema(Big, 4)
-registerSchema(Shell, 5)
+registerSchema(Player, 1)
+registerSchema(Transform, 2)
+registerSchema(Big, 3)
+registerSchema(Shell, 4)

@@ -3,7 +3,7 @@ import { createEffect, World } from "@javelin/ecs"
 import { applyPatchToComponent } from "@javelin/track"
 import { decode, DecodeMessageHandlers } from "./decode"
 
-export const createMessageHandler = (world: World<unknown>) => {
+export const createMessageHandler = (world: World) => {
   let model: Model
   const patched = new Set<number>()
   const updated = new Set<number>()
