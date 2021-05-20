@@ -1,5 +1,5 @@
 import {
-  $struct,
+  $schema,
   arrayOf,
   createModel,
   DataTypeNumber,
@@ -17,7 +17,7 @@ import {
 function assertIsModelNodeSchema(
   node: ModelNode,
 ): asserts node is ModelNodeSchema {
-  if (node.kind !== $struct) {
+  if (node.kind !== $schema) {
     throw new Error()
   }
 }

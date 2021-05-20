@@ -1,7 +1,7 @@
 import { assert, ErrorType } from "./debug"
 
 export const $flat = Symbol("javelin_model_flat")
-export const $struct = Symbol("javelin_model_struct")
+export const $schema = Symbol("javelin_model_struct")
 
 export enum SchemaKeyKind {
   Primitive,
@@ -36,10 +36,13 @@ export type SetType<E extends SchemaKey = SchemaKey> = {
   __kind__: SchemaKeyKind.Set
   __type__: E
 }
-export type MapType<E extends SchemaKey = SchemaKey> = {
+export type MapType<
+  K extends DataTypeNumber | DataTypeString = DataTypeNumber | DataTypeString,
+  E extends SchemaKey = SchemaKey,
+> = {
   __kind__: SchemaKeyKind.Map
   __type__: E
-  __key__: DataTypeNumber | DataTypeString
+  __key__: K
 }
 export type DataTypeNumber = DataType<number>
 export type DataTypeString = DataType<string>
@@ -76,31 +79,37 @@ export const dynamic: DataTypeDynamic = {
   reset: (object, key) => (object[key] = null),
 }
 
-export const arrayOf = <E extends SchemaKey>(element: E): ArrayType<E> => ({
+export const arrayOf = <T extends SchemaKey>(element: T): ArrayType<T> => ({
   __kind__: SchemaKeyKind.Array,
   __type__: element,
 })
-export const objectOf = <E extends SchemaKey>(element: E): ObjectType<E> => ({
+export const objectOf = <T extends SchemaKey>(element: T): ObjectType<T> => ({
   __kind__: SchemaKeyKind.Object,
   __type__: element,
 })
 export const mapOf = <
-  E extends SchemaKey,
   K extends DataTypeNumber | DataTypeString,
+  T extends SchemaKey,
 >(
-  element: E,
   key: K,
-): MapType<E> => ({
+  element: T,
+): MapType<K, T> => ({
   __kind__: SchemaKeyKind.Map,
   __type__: element,
   __key__: key,
 })
-export const setOf = <E extends SchemaKey>(element: E) => ({
+export const setOf = <T extends SchemaKey>(element: T): SetType<T> => ({
   __kind__: SchemaKeyKind.Set,
   __type__: element,
 })
 
-export type SchemaKey = DataType | ArrayType<any> | ObjectType<any> | Schema
+export type SchemaKey =
+  | DataType
+  | ArrayType<any>
+  | ObjectType<any>
+  | SetType<any>
+  | MapType<any, any>
+  | Schema
 export type Schema = {
   [key: string]: SchemaKey
 }
@@ -124,29 +133,20 @@ export type ExtractSchemaKeyType<K extends SchemaKey> =
     ? ExtractSchemaKeyType<_>[]
     : K extends ObjectType<infer _>
     ? { [key: string]: ExtractSchemaKeyType<_> }
+    : K extends SetType<infer _>
+    ? Set<ExtractSchemaKeyType<_>>
+    : K extends MapType<infer K, infer V>
+    ? Map<ExtractSchemaKeyType<K>, ExtractSchemaKeyType<V>>
     : K extends Schema
     ? InstanceOfSchema<K>
     : never
-
-export const isPrimitiveType = (object: object): object is DataType =>
-  "__kind__" in object &&
-  (object as DataType).__kind__ === SchemaKeyKind.Primitive
-export const isArrayType = (object: object): object is ArrayType =>
-  "__kind__" in object && (object as ArrayType).__kind__ === SchemaKeyKind.Array
-export const isObjectType = (object: object): object is ObjectType =>
-  "__kind__" in object &&
-  (object as ObjectType).__kind__ === SchemaKeyKind.Object
-export const isSetType = (object: object): object is SetType =>
-  "__kind__" in object && (object as SetType).__kind__ === SchemaKeyKind.Set
-export const isMapType = (object: object): object is MapType =>
-  "__kind__" in object && (object as MapType).__kind__ === SchemaKeyKind.Map
 
 export type ModelConfig = Map<number, Schema>
 export type ModelNodeBase = {
   id: number
   lo: number
   hi: number
-  kind: SchemaKeyKind | typeof $struct
+  kind: SchemaKeyKind | typeof $schema
   inCollection: boolean
 }
 export type ModelNodeSchemaDescendant = ModelNode & {
@@ -172,7 +172,7 @@ export type ModelNodeSchema = ModelNodeBase & {
   edges: ModelNodeSchemaDescendant[]
   idsByKey: { [key: string]: number }
   keys: { [key: string]: ModelNodeSchemaDescendant }
-  kind: typeof $struct
+  kind: typeof $schema
 }
 export type ModelNodePrimitive = ModelNodeBase & {
   type: DataType
@@ -206,23 +206,20 @@ export function insertNode(
   key?: string,
 ) {
   const id = ++ids
-  const kind = "__kind__" in type ? (type.__kind__ as SchemaKeyKind) : $struct
+  const kind = "__kind__" in type ? (type.__kind__ as SchemaKeyKind) : $schema
   const base: ModelNodeBase = {
     id,
     lo: id,
     hi: -1,
     inCollection:
       target.inCollection ||
-      target.kind === SchemaKeyKind.Array ||
-      target.kind === SchemaKeyKind.Object ||
-      target.kind === SchemaKeyKind.Set ||
-      target.kind === SchemaKeyKind.Map,
+      (target.kind !== SchemaKeyKind.Primitive && target.kind !== $schema),
     kind,
   }
 
   let node: ModelNode
 
-  if (kind === $struct) {
+  if (kind === $schema) {
     node = {
       ...base,
       edges: [],
@@ -231,7 +228,7 @@ export function insertNode(
     } as ModelNodeSchema
     ids = collateSchema(type as Schema, node, ids)
   } else {
-    if (isPrimitiveType(type)) {
+    if (type.__kind__ === SchemaKeyKind.Primitive) {
       node = { ...base, type } as ModelNode
     } else {
       node = { ...base } as ModelNode
@@ -244,7 +241,7 @@ export function insertNode(
   if (key) {
     ;(node as ModelNodeSchemaDescendant).key = key
     assert(
-      target.kind === $struct,
+      target.kind === $schema,
       "expected target node to be struct",
       ErrorType.Internal,
     )
@@ -294,7 +291,7 @@ function createRootModelNode(): ModelNodeSchema {
     idsByKey: {},
     inCollection: false,
     keys: {},
-    kind: $struct,
+    kind: $schema,
   }
 }
 
@@ -332,7 +329,7 @@ export function flattenModelNode(
     case SchemaKeyKind.Map:
       flattenModelNode(node.edge, flat)
       break
-    case $struct:
+    case $schema:
       for (let i = 0; i < node.edges.length; i++) {
         flattenModelNode(node.edges[i], flat)
       }

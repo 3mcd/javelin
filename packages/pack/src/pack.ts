@@ -1,5 +1,5 @@
 import {
-  $struct,
+  $schema,
   assert,
   ModelNode,
   ModelNodeSchema,
@@ -54,7 +54,7 @@ export function serialize(
     case SchemaKeyKind.Object:
       // TODO: support map
       break
-    case $struct:
+    case $schema:
       for (let i = 0; i < node.edges.length; i++) {
         const edge = node.edges[i]
         offset = serialize(out, edge, object[edge.key], offset)
@@ -129,7 +129,7 @@ const decodeInner = (
     // TODO: support map
     case SchemaKeyKind.Object:
       break
-    case $struct: {
+    case $schema: {
       cursor.value = child = {}
       for (let i = 0; i < node.edges.length; i++) {
         const edge = node.edges[i]
