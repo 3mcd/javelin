@@ -1,13 +1,13 @@
 import {
+  arrayOf,
   createModel,
-  dynamic,
   initialize,
   InstanceOfSchema,
   Model,
   Schema,
 } from "@javelin/core"
 import { component, registerSchema } from "@javelin/ecs"
-import { float64, int8, uint32 } from "@javelin/pack"
+import { float32, float64, int8, uint16, uint32 } from "@javelin/pack"
 import { ChangeSet, set } from "@javelin/track"
 import { decode, DecodeMessageHandlers } from "./decode"
 import { encode } from "./encode"
@@ -16,17 +16,21 @@ import * as MessageOp from "./message_op"
 
 const Position = { x: float64, y: float64 }
 const Velocity = { x: float64, y: float64 }
+const Complex = {
+  nested: { foo: uint16 },
+  array: arrayOf(arrayOf({ deep: float32 })),
+}
 const A = { value: int8 }
 const B = { value: uint32 }
 
 registerSchema(Position, 1)
 registerSchema(Velocity, 2)
+registerSchema(Complex, 3)
 
 describe("decode", () => {
   let handlers: DecodeMessageHandlers
   beforeEach(() => {
     handlers = {
-      onTick: jest.fn(),
       onModel: jest.fn(),
       onAttach: jest.fn(),
       onUpdate: jest.fn(),
@@ -44,14 +48,6 @@ describe("decode", () => {
         (handlers as Record<string, Function>)[prop],
       ).not.toHaveBeenCalled()
     }
-  })
-  it("decodes tick part", () => {
-    const message = createMessage()
-    const op = MessageOp.tick(123)
-    insert(message, MessagePartKind.Tick, op)
-    const encoded = encode(message)
-    decode(encoded, handlers)
-    expect(handlers.onTick).toHaveBeenCalledWith(123)
   })
   it("decodes model part", () => {
     const config = new Map<number, Schema>([
@@ -73,13 +69,15 @@ describe("decode", () => {
     })
     expect(JSON.stringify(result)).toBe(JSON.stringify(model))
   })
-  it.only("decodes patch part", () => {
+  it("decodes patch part", () => {
     const config = new Map<number, Schema>([
       [1, Position],
       [2, Velocity],
+      [3, Complex],
     ])
     const position = component(Position)
     const velocity = component(Velocity)
+    const complex = component(Complex)
     const model = createModel(config)
     const message = createMessage()
     const entity = 0
@@ -89,6 +87,8 @@ describe("decode", () => {
     )
     set(position, changeset, "x", -12.6666666)
     set(velocity, changeset, "y", 44)
+    set(complex, changeset, "array.0", [{ deep: 999 }])
+    set(complex, changeset, "nested", { foo: 1 })
     const op = MessageOp.patch(model, entity, changeset)
     insert(message, MessagePartKind.Patch, op)
     const encoded = encode(message)
@@ -97,7 +97,7 @@ describe("decode", () => {
       encoded,
       {
         onPatch(...args) {
-          results.push(args)
+          results.push(JSON.parse(JSON.stringify(args)))
         },
       },
       model,
@@ -105,6 +105,8 @@ describe("decode", () => {
     expect(results).toEqual([
       [entity, 1, 0, [], -12.6666666],
       [entity, 2, 1, [], 44],
+      [entity, 3, 1, [0], [{ deep: 999 }]],
+      [entity, 3, 4, [], { foo: 1 }],
     ])
   })
 })

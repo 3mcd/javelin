@@ -153,16 +153,18 @@ export function patch(
         continue
       }
       const node = schema[record.field]
-      assert(
-        node.kind === SchemaKeyKind.Primitive,
-        "Failed to encode patch: only primitive field mutations are currently supported",
-      )
       insert(op, record.field, uint8)
       insert(op, record.traverse.length, uint8)
       for (let i = 0; i < record.traverse.length; i++) {
         insert(op, record.traverse[i], uint16)
       }
-      insert(op, value, dataTypeToView(node.type))
+      if (node.kind === SchemaKeyKind.Primitive) {
+        insert(op, value, dataTypeToView(node.type))
+      } else {
+        const encoded = encode(value, node)
+        insert(op, encoded.byteLength, uint16)
+        insert(op, encoded)
+      }
     }
   }
   return op

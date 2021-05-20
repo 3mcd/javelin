@@ -1,7 +1,6 @@
 import {
   $flat,
   assert,
-  ErrorType,
   Model,
   mutableEmpty,
   SchemaKeyKind,
@@ -111,13 +110,18 @@ function decodePatch(
           offset += uint16.byteLength
         }
         const node = componentSchema[field]
-        assert(
-          node.kind === SchemaKeyKind.Primitive,
-          "Failed to decode patch: only primitive field mutations are currently supported",
-        )
-        const view = dataTypeToView(node.type)
-        const value = view.read(dataView, offset)
-        offset += view.byteLength
+        let value: unknown
+        if (node.kind === SchemaKeyKind.Primitive) {
+          const view = dataTypeToView(node.type)
+          value = view.read(dataView, offset)
+          offset += view.byteLength
+        } else {
+          const byteLength = uint16.read(dataView, offset)
+          offset += uint16.byteLength
+          const encoded = dataView.buffer.slice(offset, offset + byteLength)
+          offset += byteLength
+          value = decodePack<Component>(encoded, node)
+        }
         onPatch?.(entity, schemaId, field, tmpTraverse, value)
       }
       for (let j = 0; j < arrayCount; j++) {

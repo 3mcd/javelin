@@ -1,5 +1,6 @@
 import {
   $struct,
+  assert,
   ModelNode,
   ModelNodeSchema,
   SchemaKeyKind,
@@ -64,59 +65,64 @@ export function serialize(
   return offset
 }
 
-export function encode(object: any, type: ModelNodeSchema): ArrayBuffer {
+export function encode(object: any, type: ModelNode): ArrayBuffer {
   const bufferFields: BufferField[] = []
   const bufferSize = serialize(bufferFields, type, object)
   const buffer = new ArrayBuffer(bufferSize)
-  const bufferView = new DataView(buffer)
+  const dataView = new DataView(buffer)
 
   let offset = 0
 
   for (let i = 0; i < bufferFields.length; i++) {
     const bufferField = bufferFields[i]
-    bufferField.view.write(bufferView, offset, bufferField.value)
+    bufferField.view.write(dataView, offset, bufferField.value)
     offset += bufferField.byteLength
   }
 
   return buffer
 }
 
-export function decodeProperty(
-  out: any,
-  key: string | number,
-  field: Field,
-  bufferView: DataView,
-  offset: number,
-) {
-  out[key] = field.read(bufferView, offset, field.length || 0)
-  return offset + field.byteLength * (field.length || 1)
+type DecodeComplex = {
+  key: string | number
+  value: Record<string | number, unknown>
 }
+type DecodePrimitive = { value: string | number | boolean }
+type DecodeRoot = { value: unknown }
+type DecodeCursor = { offset: number } & (
+  | DecodePrimitive
+  | DecodeComplex
+  | DecodeRoot
+)
 
-const deserialize = (
-  bufferView: DataView,
+const isComplex = (cursor: object): cursor is DecodeComplex => "key" in cursor
+const NOT_COMPLEX = { key: null, value: null }
+
+const decodeInner = (
+  dataView: DataView,
   node: ModelNode,
-  object: any,
-  key: string | number,
-  offset: number = 0,
+  cursor: DecodeCursor,
 ) => {
-  let child: any
-
+  const { key, value: parent } = isComplex(cursor) ? cursor : NOT_COMPLEX
+  let child: unknown
   switch (node.kind) {
-    case SchemaKeyKind.Primitive:
-      offset = decodeProperty(
-        object,
-        key,
-        dataTypeToView(node.type),
-        bufferView,
-        offset,
+    case SchemaKeyKind.Primitive: {
+      const field = dataTypeToView(node.type) as Field
+      child = cursor.value = field.read(
+        dataView,
+        cursor.offset,
+        field.length || 0,
       )
+      cursor.offset += field.byteLength * (field.length || 1)
       break
+    }
     case SchemaKeyKind.Array: {
-      const length = uint32.read(bufferView, offset, 0)
-      offset += uint32.byteLength
-      child = [] as any[]
+      const length = uint32.read(dataView, cursor.offset, 0)
+      cursor.value = child = [] as Record<number, unknown>
+      cursor.offset += uint32.byteLength
       for (let i = 0; i < length; i++) {
-        offset = deserialize(bufferView, node.edge, child, i, offset)
+        ;(cursor as DecodeComplex).key = i
+        decodeInner(dataView, node.edge, cursor)
+        cursor.value = child
       }
       break
     }
@@ -124,34 +130,27 @@ const deserialize = (
     case SchemaKeyKind.Object:
       break
     case $struct: {
-      child = {}
+      cursor.value = child = {}
       for (let i = 0; i < node.edges.length; i++) {
         const edge = node.edges[i]
-        offset = deserialize(bufferView, edge, child, edge.key, offset)
+        ;(cursor as DecodeComplex).key = edge.key
+        decodeInner(dataView, edge, cursor)
+        cursor.value = child
       }
       break
     }
   }
-
-  if (child !== undefined) {
-    object[key] = child
+  if (parent && key !== null) {
+    parent[key] = cursor.value
   }
-
-  return offset
+  return child
 }
 
-export function decode<T>(buffer: ArrayBuffer, type: ModelNodeSchema): T {
-  const bufferView = new DataView(buffer)
-  const root = {}
-
-  let offset = 0
-
-  for (let i = 0; i < type.edges.length; i++) {
-    const edge = type.edges[i]
-    offset = deserialize(bufferView, edge, root, edge.key, offset)
-  }
-
-  return root as T
+export function decode<T>(buffer: ArrayBuffer, type: ModelNode): T {
+  const dataView = new DataView(buffer)
+  const cursor = { offset: 0, value: null }
+  const value = decodeInner(dataView, type, cursor)
+  return value as T
 }
 
 export * from "./views"
