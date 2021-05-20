@@ -1,5 +1,5 @@
 import {
-  $struct,
+  $schema,
   assert,
   ErrorType,
   ModelNode,
@@ -38,7 +38,7 @@ export function applyPatchToComponent(
         key = traverse[traverseIndex++]
         node = node.edge
         continue
-      case $struct:
+      case $schema:
         for (let i = 0; i < node.edges.length; i++) {
           const child = node.edges[i]
           if (child.lo <= field && child.hi >= field) {

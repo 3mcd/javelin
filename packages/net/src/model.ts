@@ -1,5 +1,5 @@
 import {
-  $struct,
+  $schema,
   arrayOf,
   assert,
   createModel,
@@ -96,7 +96,7 @@ function encodeModelNode(node: ModelNode, out: number[], offset: number = 0) {
     case SchemaKeyKind.Map:
       offset++
       break
-    case $struct: {
+    case $schema: {
       const length = node.edges.length
       out.push(length | SCHEMA_MASK)
       offset++

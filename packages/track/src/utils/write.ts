@@ -1,5 +1,5 @@
 import {
-  $struct,
+  $schema,
   createStackPool,
   InstanceOfSchema,
   ModelNode,
@@ -22,7 +22,7 @@ const recordLookup: Record<
 const arrayOpPool = createStackPool<InstanceOfSchema<typeof ChangeSetArrayOp>>(
   () => ({
     method: -1,
-    record: (null as unknown) as InstanceOfSchema<typeof ChangeSetRecord>,
+    record: null as unknown as InstanceOfSchema<typeof ChangeSetRecord>,
     values: [],
     start: -1,
     insert: -1,
@@ -30,7 +30,7 @@ const arrayOpPool = createStackPool<InstanceOfSchema<typeof ChangeSetArrayOp>>(
   }),
   op => {
     op.method = -1
-    op.record = (null as unknown) as InstanceOfSchema<typeof ChangeSetRecord>
+    op.record = null as unknown as InstanceOfSchema<typeof ChangeSetRecord>
     mutableEmpty(op.values)
     return op
   },
@@ -56,7 +56,7 @@ const getRecord = (component: Component, path: string) => {
           node = node.edge
           traverse.push(sub)
           break
-        case $struct:
+        case $schema:
           node = node.keys[sub]
           break
       }

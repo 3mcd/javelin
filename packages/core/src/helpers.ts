@@ -1,9 +1,7 @@
 import {
+  DataType,
   InstanceOfSchema,
   InstanceOfSchemaKey,
-  isArrayType,
-  isObjectType,
-  isPrimitiveType,
   Schema,
   SchemaKeyKind,
 } from "./model"
@@ -14,19 +12,30 @@ export function initialize<S extends Schema>(
   schema: S,
 ): InstanceOfSchema<S> {
   for (const prop in schema) {
-    const value = schema[prop]
-
-    if (isPrimitiveType(value)) {
-      object[prop] = value.create()
-    } else if (value.__kind__ === SchemaKeyKind.Array) {
-      object[prop] = [] as InstanceOfSchemaKey<any>
-    } else if (value.__kind__ === SchemaKeyKind.Object) {
-      object[prop] = {} as InstanceOfSchemaKey<any>
-    } else {
-      object[prop] = initialize({}, value as Schema) as InstanceOfSchemaKey<any>
+    const schemaKey = schema[prop]
+    let value: unknown
+    switch (schemaKey.__kind__) {
+      case SchemaKeyKind.Primitive:
+        value = (schemaKey as DataType).create()
+        break
+      case SchemaKeyKind.Array:
+        value = []
+        break
+      case SchemaKeyKind.Object:
+        value = {}
+        break
+      case SchemaKeyKind.Set:
+        value = new Set()
+        break
+      case SchemaKeyKind.Map:
+        value = new Map()
+        break
+      default:
+        value = initialize({}, schemaKey as Schema)
+        break
     }
+    object[prop] = value as InstanceOfSchemaKey<any>
   }
-
   return object
 }
 
@@ -35,21 +44,27 @@ export function reset<S extends Schema>(
   schema: S,
 ) {
   for (const prop in schema) {
-    const value = schema[prop]
-
-    if (isPrimitiveType(value)) {
-      value.reset(object, prop, undefined)
-    } else if (isArrayType(value)) {
-      mutableEmpty(object[prop])
-    } else if (isObjectType(value)) {
-      const child = object[prop]
-      for (const childProp in child) {
-        delete object[childProp]
+    const schemaKey = schema[prop]
+    switch (schemaKey.__kind__) {
+      case SchemaKeyKind.Primitive:
+        ;(schemaKey as DataType).reset(object, prop, undefined)
+        break
+      case SchemaKeyKind.Array:
+        mutableEmpty(object[prop])
+        break
+      case SchemaKeyKind.Object: {
+        const child = object[prop]
+        for (const childProp in child) delete object[childProp]
+        break
       }
-    } else {
-      reset(object[prop], value as Schema)
+      case SchemaKeyKind.Set:
+      case SchemaKeyKind.Map:
+        object[prop].clear()
+        break
+      default:
+        reset(object[prop], schemaKey as Schema)
+        break
     }
   }
-
   return object
 }
