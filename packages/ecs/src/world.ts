@@ -26,7 +26,7 @@ export type Destroy = [DeferredOpType.Destroy, number]
 
 export type WorldOp = Spawn | Attach | Detach | Destroy
 
-export interface World<T = null> {
+export interface World<T = unknown> {
   /**
    * The unique identifier for this world.
    */
@@ -38,7 +38,7 @@ export interface World<T = null> {
    *
    * @param data Tick data
    */
-  tick(data: T extends null ? void : T): void
+  tick(data: T): void
 
   /**
    * Register a system to be executed each tick.
@@ -205,7 +205,7 @@ function getInitialWorldState<T>() {
   }
 }
 
-export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
+export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
   const { topics = [] } = options
   const systems: System<T>[] = []
   const deferredOps: WorldOp[] = []
@@ -299,7 +299,7 @@ export function createWorld<T>(options: WorldOptions<T> = {}): World<T> {
     }
   }
 
-  function tick(data: T extends null ? void : T) {
+  function tick(data: T) {
     let prevWorld = UNSAFE_internals.currentWorldId
     UNSAFE_internals.currentWorldId = id
     state.currentTickData = data as T

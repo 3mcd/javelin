@@ -1,11 +1,8 @@
 import React, { forwardRef, useEffect, useRef } from "react"
 import "./App.css"
-import { component } from "@javelin/ecs"
 import { Canvas, CanvasRef } from "./Canvas"
-import { Camera } from "./ecs/components"
-import { createRenderSystem } from "./ecs/sys_render"
-import { world } from "./ecs/world"
 import { useWindowSize } from "./hooks/useWindowSize"
+import { world } from "./world"
 
 const Render = forwardRef<CanvasRef>(function Render(props, ref) {
   const size = useWindowSize()
@@ -19,7 +16,7 @@ function App() {
     let running = true
     const step = (t: number) => {
       if (running) {
-        world.tick(t)
+        world.tick(canvas.current)
         requestAnimationFrame(step)
       }
     }
@@ -30,13 +27,6 @@ function App() {
       running = false
     }
   }, [])
-
-  useEffect(() => {
-    const camera = world.spawn(component(Camera))
-    if (canvas.current && canvas.current.context) {
-      world.addSystem(createRenderSystem(world, canvas.current, camera))
-    }
-  }, [canvas.current])
 
   return (
     <div className="App">
