@@ -195,14 +195,16 @@ function assertIsModelNodeSchemaDescendant(
   assert("key" in node, "", ErrorType.Internal)
 }
 
-const localeCompare = (a: string, b: string) => a.localeCompare(b)
+function localeCompare(a: string, b: string) {
+  return a.localeCompare(b)
+}
 
-export const insertNode = (
+export function insertNode(
   target: ModelNode,
   type: SchemaKey,
   ids: number,
   key?: string,
-) => {
+) {
   const id = ++ids
   const kind = "__kind__" in type ? (type.__kind__ as SchemaKeyKind) : $struct
   const base: ModelNodeBase = {
@@ -265,11 +267,11 @@ export const insertNode = (
   return ids
 }
 
-export const collateSchema = (
+export function collateSchema(
   schema: Schema,
   target: ModelNodeSchema,
   ids = -1,
-) => {
+) {
   const keys = Object.keys(schema).sort(localeCompare)
 
   for (let i = 0; i < keys.length; i++) {
@@ -283,16 +285,18 @@ export const collateSchema = (
   return ids
 }
 
-const getModelRoot = (): ModelNodeSchema => ({
-  edges: [],
-  hi: Infinity,
-  lo: -1,
-  id: -1,
-  idsByKey: {},
-  inCollection: false,
-  keys: {},
-  kind: $struct,
-})
+function createRootModelNode(): ModelNodeSchema {
+  return {
+    edges: [],
+    hi: Infinity,
+    lo: -1,
+    id: -1,
+    idsByKey: {},
+    inCollection: false,
+    keys: {},
+    kind: $struct,
+  }
+}
 
 /**
  * createModel() produces a graph from a model and assigns each writable field
@@ -301,10 +305,10 @@ const getModelRoot = (): ModelNodeSchema => ({
  * @param config
  * @returns Model
  */
-export const createModel = (config: ModelConfig): Model => {
+export function createModel(config: ModelConfig): Model {
   const model: Model = { [$flat]: {} }
   config.forEach((schema, typeId) => {
-    const root = getModelRoot()
+    const root = createRootModelNode()
     collateSchema(schema, root)
     model[typeId] = root
   })
@@ -316,10 +320,10 @@ export const createModel = (config: ModelConfig): Model => {
   return model
 }
 
-export const flattenModelNode = (
+export function flattenModelNode(
   node: ModelNode,
   flat: ModelFlat[keyof ModelFlat],
-) => {
+) {
   flat[node.id] = node
   switch (node.kind) {
     case SchemaKeyKind.Array:
@@ -336,7 +340,7 @@ export const flattenModelNode = (
   }
 }
 
-export const flattenModel = (model: Model): ModelFlat => {
+export function flattenModel(model: Model): ModelFlat {
   const flat: ModelFlat = {}
   for (const prop in model) {
     const sub = {} as ModelFlat[keyof ModelFlat]

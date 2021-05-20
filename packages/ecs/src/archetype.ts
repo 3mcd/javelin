@@ -10,7 +10,7 @@ export type ArchetypeTable<S extends Schema[]> = {
   >
 }
 
-export interface ArchetypeData<T extends Schema[]> {
+export type ArchetypeData<T extends Schema[]> = {
   /**
    * Two-dimensional array of component type->component[] where each index
    * (column) of the component array corresponds to an entity.
@@ -31,18 +31,16 @@ export interface ArchetypeData<T extends Schema[]> {
   readonly signature: Type
 }
 
-export type ArchetypeSnapshot<
-  T extends Schema[] = Schema[]
-> = ArchetypeData<T> & {
-  indices: PackedSparseArray<number>
-}
+export type ArchetypeSnapshot<T extends Schema[] = Schema[]> =
+  ArchetypeData<T> & {
+    indices: PackedSparseArray<number>
+  }
 
 /**
  * An Archetype is a collection of entities that share components of the same
  * type.
  */
-export interface Archetype<T extends Schema[] = Schema[]>
-  extends ArchetypeData<T> {
+export type Archetype<T extends Schema[] = Schema[]> = ArchetypeData<T> & {
   /**
    * Insert an entity into the Archetype.
    *
@@ -101,15 +99,14 @@ function createArchetypeState<T extends Schema[]>(
   const snapshot = "snapshot" in options ? options.snapshot : null
   const entities = snapshot ? Object.keys(snapshot.indices).map(Number) : []
   const indices = snapshot ? unpackSparseArray(snapshot.indices) : []
-  const signature = ("signature" in options
-    ? options.signature
-    : options.snapshot.signature
+  const signature = (
+    "signature" in options ? options.signature : options.snapshot.signature
   )
     .slice()
     .sort((a, b) => a - b)
-  const table = ((snapshot
+  const table = (snapshot
     ? snapshot.table.map(column => column.slice())
-    : signature.map(() => [])) as unknown) as ArchetypeTable<T>
+    : signature.map(() => [])) as unknown as ArchetypeTable<T>
   const signatureInverse = signature.reduce((a, x, i) => {
     a[x] = i
     return a
@@ -127,13 +124,8 @@ function createArchetypeState<T extends Schema[]>(
 export function createArchetype<T extends Schema[]>(
   options: ArchetypeOptions<T>,
 ): Archetype<T> {
-  const {
-    signature,
-    signatureInverse,
-    entities,
-    indices,
-    table,
-  } = createArchetypeState<T>(options)
+  const { signature, signatureInverse, entities, indices, table } =
+    createArchetypeState<T>(options)
   const inserted = createSignal<number>()
   const removed = createSignal<number>()
 

@@ -15,7 +15,7 @@ export type StorageSnapshot = {
   archetypes: ArchetypeSnapshot[]
 }
 
-export interface Storage {
+export type Storage = {
   /**
    * Archetype table.
    */
