@@ -203,7 +203,7 @@
               <pre style="background-color: #f6f8f8">
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">player </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ __type__: </span><span style="color:#4179ad;">1</span><span style="color:#555c64;">, name: </span><span style="color:#4179ad;">&quot;elrond&quot; </span><span style="color:#555c64;">}
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">health </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ __type__: </span><span style="color:#4179ad;">2</span><span style="color:#555c64;">, value: </span><span style="color:#4179ad;">100 </span><span style="color:#555c64;">}
-</span><span style="color:#388282;">const </span><span style="color:#555c64;">entity </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.spawn(player, health)
+</span><span style="color:#388282;">const </span><span style="color:#555c64;">entity </span><span style="color:#388282;">= </span><span style="color:#555c64;">world.create(player, health)
 </span></code></pre>
               <aside>
                 <p>
@@ -237,18 +237,18 @@
 <code><span style="color:#388282;">const </span><span style="color:#555c64;">input </span><span style="color:#388282;">= </span><span style="color:#555c64;">{ __type__: </span><span style="color:#4179ad;">3</span><span style="color:#555c64;">, space: </span><span style="color:#a35d66;">true </span><span style="color:#555c64;">}
 
 world.attach(entity, input)
-world.tick() </span><span style="color:#8c95a0;">// (Player, Health) -&gt; (Player, Health, Input)
+world.step() </span><span style="color:#8c95a0;">// (Player, Health) -&gt; (Player, Health, Input)
 
 </span><span style="color:#555c64;">world.detach(entity, input)
-world.tick() </span><span style="color:#8c95a0;">// (Player, Health, Input) -&gt; (Player, Health)
+world.step() </span><span style="color:#8c95a0;">// (Player, Health, Input) -&gt; (Player, Health)
 </span></code></pre>
               <aside>
                 <p>
                   <strong>Tip</strong> — using <code>world.attach</code> and
                   <code>world.detach</code> to build entities is slower than
-                  <code>world.spawn(...components)</code> because the components
-                  of the affected entity must be relocated each time the
-                  entity's archetype changes.
+                  <code>world.create(...components)</code> because the
+                  components of the affected entity must be relocated each time
+                  the entity's archetype changes.
                 </p>
               </aside>
               <h3 id="destroying-entities">
@@ -277,11 +277,11 @@ world.tick() </span><span style="color:#8c95a0;">// (Player, Health, Input) -&gt
                 >
               </h2>
               <p>
-                In the example above, <code>world.tick()</code> was called each
+                In the example above, <code>world.step()</code> was called each
                 time entity was modified. Operations like creating and
                 destroying entities, as well as attaching and detaching
                 components, are deferred until the next
-                <code>world.tick()</code> call. This is done to improve the
+                <code>world.step()</code> call. This is done to improve the
                 predictability of systems, so that systems never miss changes to
                 entities, discussed in the
                 <a href="/ecs/events">Events</a> section.

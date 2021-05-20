@@ -6,9 +6,10 @@
   "browser": "dist/javelin-track.bundle.js",
   "license": "MIT",
   "scripts": {
+    "clean": "rm -rf dist",
     "perf": "node perf/index.js",
     "build": "tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
-    "prepare": "yarn build"
+    "prepare": "yarn clean && yarn build"
   },
   "files": [
     "dist"

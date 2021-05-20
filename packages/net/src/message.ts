@@ -11,7 +11,6 @@ export type Message = {
 
 export enum MessagePartKind {
   Model,
-  Tick,
   Attach,
   Update,
   Patch,
@@ -80,10 +79,6 @@ export function overwrite(
   const part = getOrSetPart(message, kind)
   clearMessagePart(part)
   insert(message, kind, op)
-}
-
-export function tick(message: Message, tick: number) {
-  overwrite(message, MessagePartKind.Tick, Ops.tick(tick))
 }
 
 export function model(message: Message) {

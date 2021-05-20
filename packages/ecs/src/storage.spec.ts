@@ -9,9 +9,9 @@ describe("createStorage", () => {
 
     ;(createArchetype as jest.Mock).mockClear()
 
-    storage.insert(1, [{ __type__: 0 }])
-    storage.insert(2, [{ __type__: 1 }])
-    storage.insert(3, [{ __type__: 0 }, { __type__: 1 }])
+    storage.attachComponents(1, [{ __type__: 0 }])
+    storage.attachComponents(2, [{ __type__: 1 }])
+    storage.attachComponents(3, [{ __type__: 0 }, { __type__: 1 }])
 
     expect(createArchetype).toHaveBeenNthCalledWith(1, { signature: [0] })
     expect(createArchetype).toHaveBeenNthCalledWith(2, { signature: [1] })
@@ -19,14 +19,14 @@ describe("createStorage", () => {
   })
   it("also removes entity from archetype when removed", () => {
     const storage = createStorage()
-    storage.insert(0, [{ __type__: 0 }])
+    storage.attachComponents(0, [{ __type__: 0 }])
     const archetype = storage.archetypes[1]
 
     ;(archetype as any).entities = [0]
     ;(archetype as any).indices = [0]
     ;(archetype as any).table = [[{ __type__: 0 }]]
 
-    storage.destroy(0)
+    storage.clearComponents(0)
 
     expect(archetype.remove).toHaveBeenCalledWith(0)
   })
@@ -43,7 +43,7 @@ describe("createStorage", () => {
       table: [[components[0]]],
       indices: [0],
     }))
-    storage.insert(0, components)
+    storage.attachComponents(0, components)
 
     expect(storage.archetypes.length).toBe(2)
     expect(storage.archetypes[1].signature).toEqual([0])
@@ -55,7 +55,7 @@ describe("createStorage", () => {
       indices: [0, 1],
     }))
 
-    storage.insert(0, [{ __type__: 1 }])
+    storage.attachComponents(0, [{ __type__: 1 }])
 
     expect(storage.archetypes[1].remove).toHaveBeenCalledWith(0)
     expect(storage.archetypes.length).toBe(3)

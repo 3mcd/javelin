@@ -6,8 +6,9 @@
   "browser": "dist/javelin-core.bundle.js",
   "license": "MIT",
   "scripts": {
-    "build": "rm -rf dist && tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
-    "prepare": "yarn build"
+    "clean": "rm -rf dist",
+    "build": "tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
+    "prepare": "yarn clean && yarn build"
   },
   "files": [
     "dist"

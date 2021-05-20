@@ -5,7 +5,7 @@ weight = 3
 
 A **message producer** lets you build messages between ticks, prioritize updates to certain component types, and divide messages based on certain criteria (like a maximum size).
 
-## Producing Messages
+## Building Messages
 
 Message producers maintain a queue of messages. New messages are enqueued when the most current message reaches a maximum byte length (default `Infinity`). The maxmum byte length is specified using the `options` argument to `createMessageProducer`.
 
@@ -36,7 +36,7 @@ const message = producer.take() // Message | null
 `useMonitor` can be used to conveniently write attach and destroy operations.
 
 ```ts
-const sysNet = () => {
+const net = () => {
   const { attach, destroy, take } = useProducer().value
   // write attach/destroy operations for players
   useMonitor(players, attach, destroy)
@@ -71,7 +71,7 @@ Below is example that demonstrates how you might write attach/detach operations 
 ```ts
 const players = createQuery(Player)
 const burning = createQuery(Player, Burn)
-const sysNet = () => {
+const net = () => {
   const { destroy, attach, detach, take } = useProducer().value
   // spawn newly created players on client
   useMonitor(players, attach, destroy)
@@ -96,7 +96,7 @@ const sysNet = () => {
 Two strategies exist for synchronizing component state: updates and patches. Updates send the entire component state, which is simple to implement but uses more bandwidth.
 
 ```ts
-qryTransforms((e, [t]) => producer.update(e, [t]))
+transforms((e, [t]) => producer.update(e, [t]))
 ```
 
 `MessageHandler` simply uses `Object.assign` to apply component updates in a message to their local counterparts.
@@ -107,7 +107,7 @@ A patch operation effeciently serializes fields contained in a [`ChangeSet`](./e
 
 ```ts
 import { set } from "@javelin/track"
-qryTransformsWithChanges((e, [t, changes]) => {
+trackedTransforms((e, [t, changes]) => {
   set(t, changes, "x", 3)
   set(t, changes, "y", 4)
 })
@@ -117,7 +117,7 @@ A patch operation can then be written to a message producer `patch`:
 
 ```ts
 import { reset } from "@javelin/track"
-qryTransformsWithChanges((e, [t, changes]) => {
+trackedTransforms((e, [t, changes]) => {
   producer.patch(e, changes)
   reset(changes)
 })

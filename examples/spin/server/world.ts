@@ -56,14 +56,14 @@ const getInitialMessage = (world: World) => {
   return producer.take(true)
 }
 
-const useClients = createEffect(({ spawn, destroy }) => {
+const useClients = createEffect(({ create, destroy }) => {
   const clients = new Map()
   const send_u = (entity: Entity, data: ArrayBuffer) =>
     clients.get(entity).send(data)
   const api = { send_u }
 
   udp.connections.subscribe(connection => {
-    const entity = spawn(component(Player))
+    const entity = create(component(Player))
     clients.set(entity, connection)
     connection.closed.subscribe(() => {
       destroy(entity)
@@ -140,7 +140,7 @@ world.addSystem(world => {
   })
   for (let i = 0; i < count; i++) {
     const a = Math.random() * Math.PI * 2
-    world.spawn(
+    world.create(
       component(Transform, {
         x: Math.cos(a) * 50,
         y: Math.sin(a) * 50,
@@ -168,7 +168,7 @@ createPointsAroundCircle(50, ENTITY_COUNT).map(([x, y], i) => {
   if (i % 2 === 0) {
     components.push(component(Big))
   }
-  world.spawn(...components)
+  world.create(...components)
 })
 
-createHrtimeLoop((1 / TICK_RATE) * 1000, world.tick).start()
+createHrtimeLoop((1 / TICK_RATE) * 1000, world.step).start()

@@ -39,7 +39,7 @@ const points = createQuery(Position, Velocity)
 const messages = createMessageProducer()
 
 // create an entity
-world.spawn(component(Position), component(Velocity, { x: 0, y: -9.81 }))
+world.create(component(Position), component(Velocity, { x: 0, y: -9.81 }))
 // create/delete points on client
 world.addSystem(() => useMonitor(points, messages.attach, messages.destroy))
 // update point positions
@@ -53,7 +53,7 @@ world.addSystem(() =>
 // broadcast messages to clients
 world.addSystem(() => broadcast(encode(messages.take())))
 // start a high-precision game loop
-createHrtimeLoop((1 / 60) * 1000, world.tick).start()
+createHrtimeLoop((1 / 60) * 1000, world.step).start()
 ```
 
 ## Docs

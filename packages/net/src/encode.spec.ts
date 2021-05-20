@@ -1,9 +1,9 @@
-import { uint16, uint8 } from "@javelin/pack"
+import { uint16, uint32, uint8 } from "@javelin/pack"
 import { encode } from "./encode"
 import * as Message from "./message"
 import * as MessageOp from "./message_op"
 
-const PART_HEADER_LENGTH = uint8.byteLength + uint16.byteLength
+const PART_HEADER_LENGTH = uint8.byteLength + uint32.byteLength
 
 describe("encode", () => {
   it("has 0 bytes of overhead", () => {
@@ -26,8 +26,8 @@ describe("encode", () => {
     const encoded = encode(message)
     const dataView = new DataView(encoded)
     expect(dataView.getUint8(0)).toBe(kind)
-    expect(dataView.getUint16(1)).toBe(uint8.byteLength)
-    expect(dataView.getUint8(3)).toBe(data)
+    expect(dataView.getUint32(1)).toBe(uint8.byteLength)
+    expect(dataView.getUint8(5)).toBe(data)
     expect(encoded.byteLength).toBe(PART_HEADER_LENGTH + uint8.byteLength)
   })
   it("encodes multiple parts ordered by kind", () => {
@@ -47,11 +47,11 @@ describe("encode", () => {
     const encoded = encode(message)
     const dataView = new DataView(encoded)
     expect(dataView.getUint8(0)).toBe(kind1)
-    expect(dataView.getUint16(1)).toBe(uint8.byteLength)
-    expect(dataView.getUint8(3)).toBe(data1)
-    expect(dataView.getUint8(4)).toBe(kind2)
-    expect(dataView.getUint16(5)).toBe(uint8.byteLength)
-    expect(dataView.getUint8(7)).toBe(data2)
+    expect(dataView.getUint32(1)).toBe(uint8.byteLength)
+    expect(dataView.getUint8(5)).toBe(data1)
+    expect(dataView.getUint8(6)).toBe(kind2)
+    expect(dataView.getUint32(7)).toBe(uint8.byteLength)
+    expect(dataView.getUint8(11)).toBe(data2)
     expect(encoded.byteLength).toBe((PART_HEADER_LENGTH + uint8.byteLength) * 2)
   })
   it("encodes arraybuffers", () => {
@@ -62,7 +62,7 @@ describe("encode", () => {
     Message.insert(message, 0, op)
     const encoded = encode(message)
     const dataView = new DataView(encoded)
-    expect(dataView.getUint16(1)).toBe(array.byteLength)
-    expect(String(new Uint8Array(encoded.slice(3)))).toBe(String(array))
+    expect(dataView.getUint32(1)).toBe(array.byteLength)
+    expect(String(new Uint8Array(encoded.slice(5)))).toBe(String(array))
   })
 })

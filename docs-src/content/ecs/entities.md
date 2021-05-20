@@ -11,12 +11,12 @@ A world has several methods for managing entities.
 
 ### Creating Entities
 
-Entities are created using `world.spawn`. This method accepts zero or more components and returns the newly created entity.
+Entities are created using `world.create`. This method accepts zero or more components and returns the newly created entity.
 
 ```ts
 const player = component(Player)
 const health = component(Health)
-const entity = world.spawn(player, health)
+const entity = world.create(player, health)
 ```
 
 Entities can have a single instance of a given component type.
@@ -37,15 +37,15 @@ Components can be assigned to existing entities using `world.attach`, and remove
 const input = component(Input)
 
 world.attach(entity, input)
-world.tick() // (Player, Health) -> (Player, Health, Input)
+world.step() // (Player, Health) -> (Player, Health, Input)
 
 world.detach(entity, input)
-world.tick() // (Player, Health, Input) -> (Player, Health)
+world.step() // (Player, Health, Input) -> (Player, Health)
 ```
 
 <aside>
   <p>
-    <strong>Tip</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.spawn(...components)</code> because the components of the affected entity must be relocated each time the entity's archetype changes.
+    <strong>Tip</strong> — using <code>world.attach</code> and <code>world.detach</code> to build entities is slower than <code>world.create(...components)</code> because the components of the affected entity must be relocated each time the entity's archetype changes.
   </p>
 </aside>
 
@@ -61,6 +61,6 @@ When an entity is destroyed, its components are automatically released back to t
 
 ## World Operations
 
-In the example above, `world.tick()` was called each time entity was modified. Operations like creating and destroying entities, as well as attaching and detaching components, are deferred until the next `world.tick()` call. This is done to improve the predictability of systems, so that systems never miss changes to entities, discussed in the [Events](/ecs/events) section.
+In the example above, `world.step()` was called each time entity was modified. Operations like creating and destroying entities, as well as attaching and detaching components, are deferred until the next `world.step()` call. This is done to improve the predictability of systems, so that systems never miss changes to entities, discussed in the [Events](/ecs/events) section.
 
 Each of these changes is represented by a `WorldOp` object. You can review the types of operations in [world_op.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world_op.ts). These objects are used in the Javelin network protocol to synchronize entities reliably between client and server.

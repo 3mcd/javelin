@@ -68,7 +68,7 @@ describe("useMonitor", () => {
 
   it.todo("emits entity-component pairs")
 
-  it("emits entities that were relocated last tick", () => {
+  it("emits entities that were relocated last step", () => {
     const resultsEnter: number[] = []
     const resultsExit: number[] = []
     const prev = createArchetype({ signature: [1] })

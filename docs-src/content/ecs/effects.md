@@ -10,7 +10,7 @@ You'll often need to interact with some asynchronous code, third-party library, 
 The below example demonstrates a worker effect that might perform some expensive computation in a worker thread and return a result back to the system when finished.
 
 ```ts
-const sysPhysics = () => {
+const physics = () => {
   const { result, doExpensiveComputation } = useWorker()
 
   if (shouldRun && !result) {
@@ -77,7 +77,7 @@ Effects can exist in either **local mode** or **global mode**. Local effects are
 Local effects are useful if you want to perform a one-off task, like perform an API request:
 
 ```ts
-const sysQuestUI = () => {
+const questUI = () => {
   const context = useCanvas()
   const { done, quests } = useFetch("/quests?complete=false")
 
@@ -115,7 +115,7 @@ The most common use-case for effects is probably interacting with a third party,
 Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.
 
 ```ts
-const effSim = createEffect(world => {
+const useSimulation = createEffect(world => {
   const sim = new Library.Simulation()
   return () => {
     queries.attached.forEach(...)  // add new bodies to simulation
@@ -128,16 +128,16 @@ const effSim = createEffect(world => {
   global: true
 });
 
-const sysJump = () => {
-  const { applyImpulse } = useSim()
+const jump = () => {
+  const { applyImpulse } = useSimulation()
   jumping((e, [body, input]) => {
     applyImpulse(body.simulationId, ...)
   })
 }
 
-const sysMove = () => {
-  // references the same simulation as in sysJump
-  const sim = useSim()
+const move = () => {
+  // references the same simulation as in `jump`
+  const sim = useSimulation()
   ...
 }
 ```
@@ -161,7 +161,7 @@ The following example demonstrates a ref which stores the radius of the largest 
 ```ts
 const biggest = useRef<number | null>(null)
 
-organisms.forEach((entity, [circle]) => {
+organisms((entity, [circle]) => {
   if (circle.radius > biggest.value) {
     biggest.value = circle.radius
   }
@@ -201,7 +201,7 @@ if (done) {
 ```
 
 <script>
-  const sysInterval = () => {
+  const interval = () => {
     const ref = Javelin.useRef(0)
     const log = Javelin.useInterval(4000)
 
@@ -209,7 +209,7 @@ if (done) {
       console.log("interval", ++ref.value)
     }
   }
-  const sysJson = () => {
+  const json = () => {
     // start request after 1s
     const timer = Javelin.useTimer(1000)
     // cancel request after 5s
@@ -221,10 +221,10 @@ if (done) {
     console.log(request)
   }
   const world = Javelin.createWorld({
-    systems: [sysJson, sysInterval]
+    systems: [json, interval]
   })
 
   setInterval(() => {
-    world.tick()
+    world.step()
   }, 2000);
 </script>

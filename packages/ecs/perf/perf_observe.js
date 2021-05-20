@@ -14,10 +14,10 @@ const Player = {
   inventory: arrayOf(number),
 }
 
-const qryPlayers = createQuery(Player)
-const sysObserve = () => {
+const players = createQuery(Player)
+const observe = () => {
   const { track, trackPop, trackPush } = useObserve()
-  qryPlayers((e, [p]) => {
+  players((e, [p]) => {
     p.x += 1
     p.y += 1
     track(p, "x", (p.x += 1))
@@ -30,7 +30,7 @@ const sysObserve = () => {
 }
 
 const world = createWorld({
-  systems: [sysObserve],
+  systems: [observe],
 })
 
 module.exports.run = () => {
@@ -39,7 +39,7 @@ module.exports.run = () => {
   let i = 0
 
   for (let i = 0; i < n; i++) {
-    world.spawn(component(Player))
+    world.create(component(Player))
   }
 
   let start
@@ -55,7 +55,7 @@ module.exports.run = () => {
     if (i === 2) {
       start = performance.now()
     }
-    world.tick()
+    world.step()
     if (i === 1) {
       endInit = performance.now()
     }

@@ -19,7 +19,7 @@ module.exports.run = () => {
 
   const qa = createQuery(A)
 
-  const sysAttach = world => {
+  const attach = world => {
     for (const [entities] of qa) {
       for (let i = 0; i < entities.length; i++) {
         const entity = entities[i]
@@ -33,22 +33,22 @@ module.exports.run = () => {
       ops++
     })
   }
-  const sysDetach = world => {
+  const detach = world => {
     useTrigger(B, entity => {
       world.detach(entity, B)
       ops++
     })
   }
 
-  const world = createWorld({ systems: [sysAttach, sysDetach] })
+  const world = createWorld({ systems: [attach, detach] })
 
   for (let i = 0; i < n; i++) {
-    world.spawn(component(A))
+    world.create(component(A))
   }
 
   const start = performance.now()
   for (let i = 0; i < t; i++) {
-    world.tick()
+    world.step()
   }
   const time = performance.now() - start
   console.log(`tick_count     | ${t}`)
