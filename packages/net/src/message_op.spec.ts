@@ -1,12 +1,15 @@
-import { Component, component } from "@javelin/ecs"
 import {
+  $flat,
+  arrayOf,
   createModel,
   initialize,
   InstanceOfSchema,
   Model,
   Schema,
+  SchemaKeyKind,
 } from "@javelin/core"
-import { encode, float64, uint16, uint32, uint8 } from "@javelin/pack"
+import { Component, component, registerSchema } from "@javelin/ecs"
+import { encode, float32, float64, uint16, uint32, uint8 } from "@javelin/pack"
 import { ChangeSet, set } from "@javelin/track"
 import {
   $buffer,
@@ -21,6 +24,15 @@ import {
 const Position = { x: float64, y: float64 }
 const Velocity = { x: float64, y: float64 }
 const Rotation = { a: float64 }
+const Complex = {
+  nested: { foo: uint16 },
+  array: arrayOf(arrayOf({ deep: float32 })),
+}
+
+registerSchema(Position, 0)
+registerSchema(Velocity, 1)
+registerSchema(Rotation, 2)
+registerSchema(Complex, 3)
 
 function runSnapshotOpTest(snapshotOpFactory: typeof snapshot, model: Model) {
   const entity = 0
@@ -68,6 +80,7 @@ describe("message_op", () => {
       [0, Position],
       [1, Velocity],
       [2, Rotation],
+      [3, Complex],
     ])
     model = createModel(config)
   })
@@ -81,6 +94,7 @@ describe("message_op", () => {
     )
     const position = component(Position)
     const velocity = component(Velocity)
+    const complex = component(Complex)
     const tracks: [
       Component,
       InstanceOfSchema<typeof ChangeSet>,
@@ -91,6 +105,8 @@ describe("message_op", () => {
       [position, changeset, "y", 100],
       [velocity, changeset, "x", 3.3333333],
       [velocity, changeset, "y", 1.1],
+      [complex, changeset, "nested", { foo: 4 }],
+      [complex, changeset, "array.0", [{ deep: 987 }]],
     ]
     tracks.forEach(args => set(...args))
     const op = patch(model, entity, changeset)
@@ -104,6 +120,7 @@ describe("message_op", () => {
     for (const prop in changeset.changes) {
       const schemaId = +prop
       const { fields, fieldCount, arrayCount } = changeset.changes[schemaId]
+      const type = model[$flat][schemaId]
       expect(op.data[j]).toBe(schemaId)
       expect(op.view[j]).toBe(uint8)
       j++
@@ -129,9 +146,21 @@ describe("message_op", () => {
           expect(op.data[j]).toBe(traverse[k])
           j++
         }
-        // value
-        expect(op.data[j]).toBe(value)
-        j++
+        const node = type[field]
+        if (node.kind === SchemaKeyKind.Primitive) {
+          // primitive fields
+          expect(op.data[j]).toBe(value)
+          j++
+        } else {
+          // complex fields
+          const encoded = encode(value, node)
+          expect(op.data[j]).toBe(encoded.byteLength)
+          expect(op.view[j]).toBe(uint16)
+          j++
+          expect(String(op.data[j])).toBe(String(encoded))
+          expect(op.view[j]).toBe($buffer)
+          j++
+        }
       }
     }
   })
