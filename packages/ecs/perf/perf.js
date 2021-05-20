@@ -54,12 +54,12 @@ module.exports.run = function run() {
     [componentTypes[8], componentTypes[9]],
   ].map(c => createQuery(...c))
 
-  const entities = components.map(c => world.spawn(...c))
+  const entities = components.map(c => world.create(...c))
 
   let i = n
   let c = 0
 
-  world.tick()
+  world.step()
 
   world.addSystem(() => {
     for (let j = 0; j < queries.length; j++) {
@@ -75,7 +75,7 @@ module.exports.run = function run() {
   const runStart = Date.now()
 
   while (i--) {
-    world.tick()
+    world.step()
   }
 
   const runEnd = Date.now()
@@ -84,7 +84,7 @@ module.exports.run = function run() {
     world.destroy(entities[i])
   }
 
-  components.forEach(c => world.spawn(...c))
+  components.forEach(c => world.create(...c))
 
   world.reset()
 

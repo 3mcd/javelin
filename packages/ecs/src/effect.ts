@@ -16,7 +16,7 @@ type CellEffectData<S, A extends any[]> = {
   executor: EffectExecutor<S, A>
   lockAsync: boolean
   lockGlobal: boolean
-  lockGlobalTick: number
+  lockGlobalTick: number | null
   state: UnwrappedEffectState<S>
 }
 
@@ -40,21 +40,21 @@ export function createEffect<
   const { global } = options
   const systemEffectDataByWorldId: SystemEffectData[][] = []
 
-  let previousTick: number
+  let previousStep: number
   let previousWorld: number
   let previousSystem: number
 
   let currentWorld: number
-  let currentSystem: number
+  let latestSystem: number
   let cellCount: number = -1
 
   return function effect(...args: A) {
     currentWorld = UNSAFE_internals.currentWorldId
 
     const world = UNSAFE_internals.worlds[currentWorld] as World<W>
-    const currentTick = world.state.currentTick
+    const step = world.latestStep
 
-    currentSystem = global ? 0 : world.state.currentSystem
+    latestSystem = global ? 0 : world.latestSystem
 
     let currentWorldSystemEffectData = systemEffectDataByWorldId[currentWorld]
 
@@ -63,10 +63,10 @@ export function createEffect<
         []
     }
 
-    let currentSystemEffect = currentWorldSystemEffectData[currentSystem]
+    let currentSystemEffect = currentWorldSystemEffectData[latestSystem]
 
     if (currentSystemEffect === undefined) {
-      currentSystemEffect = currentWorldSystemEffectData[currentSystem] = {
+      currentSystemEffect = currentWorldSystemEffectData[latestSystem] = {
         cells: [],
         cellCount: -1,
       }
@@ -79,7 +79,7 @@ export function createEffect<
       cellCount = 0
     } else if (
       previousSystem !== undefined &&
-      (previousTick !== currentTick || previousSystem !== currentSystem)
+      (previousStep !== step || previousSystem !== latestSystem)
     ) {
       let previousSystemEffectData =
         currentWorldSystemEffectData[previousSystem]
@@ -91,7 +91,7 @@ export function createEffect<
         throw new Error(
           `Failed to execute effect: encountered too ${
             previousSystemEffectData.cellCount > cellCount ? "few" : "many"
-          } effects this tick`,
+          } effects this step`,
         )
       }
 
@@ -108,15 +108,15 @@ export function createEffect<
         executor: factory(world),
         lockGlobal: false,
         lockAsync: false,
-        lockGlobalTick: -1,
+        lockGlobalTick: null,
         state: null as UnwrappedEffectState<S>,
       }
     }
 
     if (global) {
-      if (cell.lockGlobalTick !== world.state.currentTick) {
+      if (cell.lockGlobalTick !== world.latestStep) {
         cell.lockGlobal = false
-        cell.lockGlobalTick = world.state.currentTick
+        cell.lockGlobalTick = world.latestStep
       } else {
         cell.lockGlobal = true
       }
@@ -140,9 +140,9 @@ export function createEffect<
       cell.state = result as UnwrappedEffectState<S>
     }
 
-    previousTick = currentTick
+    previousStep = step
     previousWorld = currentWorld
-    previousSystem = currentSystem
+    previousSystem = latestSystem
 
     return cell.state
   }

@@ -175,7 +175,7 @@ const spawnJunk = () => {
     for (let i = 0; i < 10000; i++) {
       const x = Math.random() * (canvas.width * 1.5) - 0.25 * canvas.width
       const y = Math.random() * (canvas.height * 1.5) - 0.25 * canvas.height
-      world.spawn(
+      world.create(
         world.component(Transform, x, y),
         world.component(Velocity),
         world.component(Junk),
@@ -347,7 +347,7 @@ function spawnWormhole(
   y = Math.random() * canvas.height,
   r = Math.max(10, Math.random() * 60),
 ) {
-  world.spawn(
+  world.create(
     world.component(Transform, x, y),
     world.component(Wormhole, r),
     world.component(Velocity),
@@ -358,7 +358,7 @@ function spawnWormhole(
 spawnWormhole()
 
 function loop() {
-  world.tick()
+  world.step()
   requestAnimationFrame(loop)
 }
 

@@ -17,9 +17,9 @@ world.attach(entity, ChangeSet)
 Retreive an entity's change set just like any other component type: using queries.
 
 ```ts
-const qryTrackedBodies = createQuery(Position, Velocity, ChangeSet)
-const sysTrack = () => {
-  qryTrackedBodies((e, [p, v, changes]) => {
+const trackedBodies = createQuery(Position, Velocity, ChangeSet)
+const track = () => {
+  trackedBodies((e, [p, v, changes]) => {
     // ...
   })
 }
@@ -29,7 +29,7 @@ const sysTrack = () => {
 
 ```ts
 import { track } from "@javelin/track"
-qryTrackedBodies((e, [p, v, changes]) => {
+trackedBodies((e, [p, v, changes]) => {
   set(p, changes, "x", p.x + v.x)
   set(p, changes, "y", p.y + v.y)
 })

@@ -276,14 +276,14 @@ const </span><span style="color:#555c64;">world </span><span style="color:#38828
 world.addSystem(sysRender)
 </span></code></pre>
               <p>
-                When <code>world.tick()</code> is called, each system is
+                When <code>world.step()</code> is called, each system is
                 executed in the order that it was registered.
               </p>
               <p>
                 Systems have a signature of
                 <code>(world: World&lt;T&gt;) =&gt; void</code>, where the first
                 argument is the world that is currently mid-tick. A single value
-                can be passed to <code>world.tick(data)</code>, which is then
+                can be passed to <code>world.step(data)</code>, which is then
                 available in each system via
                 <code>world.state.currentTickData</code>. Often times this value
                 holds the amount of time that has elapsed since the previous
@@ -304,7 +304,7 @@ setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="col
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">currentTime </span><span style="color:#388282;">= </span><span style="color:#88669e;">Date</span><span style="color:#555c64;">.now()
   </span><span style="color:#388282;">const </span><span style="color:#555c64;">delta </span><span style="color:#388282;">= </span><span style="color:#555c64;">currentTime </span><span style="color:#388282;">- </span><span style="color:#555c64;">previousTime
 
-  world.tick(delta)
+  world.step(delta)
 
   previousTime </span><span style="color:#388282;">= </span><span style="color:#555c64;">currentTime
 }, </span><span style="color:#4179ad;">1000 </span><span style="color:#388282;">/ </span><span style="color:#4179ad;">60</span><span style="color:#555c64;">)
@@ -404,8 +404,8 @@ setInterval(() </span><span style="color:#388282;">=&gt; </span><span style="col
                 tuples of components <code>(Position, Player)</code>:
               </p>
               <pre style="background-color: #f6f8f8">
-<code><span style="color:#555c64;">world.spawn(world.component(Player), world.component(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">))
-world.spawn(world.component(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">), world.component(Player))
+<code><span style="color:#555c64;">world.create(world.component(Player), world.component(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">))
+world.create(world.component(</span><span style="color:#88669e;">Position</span><span style="color:#555c64;">), world.component(Player))
 
 </span><span style="color:#388282;">const </span><span style="color:#555c64;">sysRender </span><span style="color:#388282;">= </span><span style="color:#555c64;">() </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{
   players.forEach((</span><span style="color:#8a6c3c;">entity</span><span style="color:#555c64;">, [</span><span style="color:#8a6c3c;">position</span><span style="color:#555c64;">, </span><span style="color:#8a6c3c;">player</span><span style="color:#555c64;">]) </span><span style="color:#388282;">=&gt; </span><span style="color:#555c64;">{

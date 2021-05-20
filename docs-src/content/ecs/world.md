@@ -27,10 +27,10 @@ Systems can also be registered after a world is initialized using the `world.add
 world.addSystem(() => console.log("Tock!"))
 ```
 
-Calling `world.tick()` will process operations (like adding, removing, updating entities) that occurred during the previous tick. Then, all systems will be executed in the order that they were registered.
+Calling `world.step()` will process operations (like adding, removing, updating entities) that occurred during the previous tick. Then, all systems will be executed in the order that they were registered.
 
 ```ts
-setInterval(world.tick, 1000)
+setInterval(world.step, 1000)
 ```
 
 More on systems later in the [Systems](/ecs/systems) section!

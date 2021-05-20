@@ -56,7 +56,7 @@ function createMessageBuilder() {
 
   // 100 spawned entities
   for (let i = 0; i < 100; i++) {
-    messageBuilder.spawn(i, [position(), velocity(), quaternion()])
+    messageBuilder.create(i, [position(), velocity(), quaternion()])
   }
 
   // 75 attached components

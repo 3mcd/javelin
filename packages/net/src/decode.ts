@@ -23,7 +23,6 @@ const ERROR_MODEL_NOT_FOUND =
 type EntitySnapshotHandler = (entity: number, components: Component[]) => void
 
 export type DecodeMessageHandlers = {
-  onTick?(tick: number): void
   onModel?(model: Model): void
   onAttach?: EntitySnapshotHandler
   onUpdate?: EntitySnapshotHandler
@@ -164,21 +163,6 @@ function decodeDestroy(
   }
 }
 
-function decodeTick(
-  dataView: DataView,
-  offset: number,
-  length: number,
-  onTick: DecodeMessageHandlers["onTick"],
-) {
-  const end = offset + length
-  while (offset < end) {
-    const tick = uint32.read(dataView, offset, 0)
-    offset += uint32.byteLength
-    onTick?.(tick)
-  }
-  return offset
-}
-
 function _decodeModel(
   dataView: DataView,
   offset: number,
@@ -209,7 +193,7 @@ export function decode(
   handlers: DecodeMessageHandlers,
   model?: Model,
 ) {
-  const { onPatch, onDetach, onDestroy, onTick, onModel } = handlers
+  const { onPatch, onDetach, onDestroy, onModel } = handlers
   const dataView = new DataView(buffer)
   const _onModel = (_model: Model) => {
     model = _model
@@ -225,9 +209,6 @@ export function decode(
     switch (kind) {
       case MessagePartKind.Model:
         _decodeModel(dataView, offset, byteLength, _onModel)
-        break
-      case MessagePartKind.Tick:
-        decodeTick(dataView, offset, byteLength, onTick)
         break
       case MessagePartKind.Attach:
       case MessagePartKind.Update:

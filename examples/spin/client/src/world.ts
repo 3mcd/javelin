@@ -124,11 +124,7 @@ world.addSystem(({ attach }) => {
 })
 
 world.addSystem(world => {
-  const {
-    reserve,
-    attachImmediate,
-    state: { currentTickData: canvas },
-  } = world
+  const { create, attachImmediate, latestStepData: canvas } = world
   const net = useNet()
   const rate = useRef(0)
   const update = useInterval(1000)
@@ -140,7 +136,7 @@ world.addSystem(world => {
   }
 
   if (cameraEntity.value === -1) {
-    cameraEntity.value = reserve()
+    cameraEntity.value = create()
     attachImmediate(cameraEntity.value, [component(Camera)])
   }
 

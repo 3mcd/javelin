@@ -29,7 +29,7 @@ const Inventory = {
   bags: arrayOf(arrayOf(uint32)),
 }
 const world = createWorld()
-const entity = world.spawn(
+const entity = world.create(
   component(Transform), // => { x: 0, y: 0 }
   component(Inventory), // => { bags: [] }
 )

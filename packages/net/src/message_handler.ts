@@ -7,20 +7,17 @@ export const createMessageHandler = (world: World) => {
   let model: Model
   const patched = new Set<number>()
   const updated = new Set<number>()
-  const state = { remote: { tick: -1 }, patched, updated }
+  const state = { patched, updated }
   const entities = new Map<number, number>()
   const messages: ArrayBuffer[] = []
   const handlers: DecodeMessageHandlers = {
-    onTick(tick) {
-      state.remote.tick = tick
-    },
     onModel(m) {
       model = m
     },
     onAttach(entity, components) {
       let local = entities.get(entity)
       if (local === undefined) {
-        local = world.reserve()
+        local = world.create()
         entities.set(entity, local)
       }
       world.attachImmediate(local, components)
@@ -32,7 +29,7 @@ export const createMessageHandler = (world: World) => {
       }
       for (let i = 0; i < components.length; i++) {
         const source = components[i]
-        const target = world.storage.findComponentBySchemaId(
+        const target = world.storage.getComponentsBySchemaId(
           local,
           source.__type__,
         )
@@ -63,13 +60,11 @@ export const createMessageHandler = (world: World) => {
       if (local === undefined) {
         return
       }
-      const component = world.storage.findComponentBySchemaId(local, schemaId)
+      const component = world.storage.getComponentsBySchemaId(local, schemaId)
       if (component === null) {
         return
       }
-
       applyPatchToComponent(component, field, traverse, value)
-
       patched.add(local)
     },
     onArrayMethod(
@@ -93,11 +88,6 @@ export const createMessageHandler = (world: World) => {
     while ((message = messages.pop())) {
       decode(message, handlers, model)
     }
-
-    // const message = messages.pop()
-    // if (message !== undefined) {
-    //   decode(message, handlers, model)
-    // }
   }
 
   const useInfo = createEffect(() => () => state, {

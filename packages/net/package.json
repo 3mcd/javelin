@@ -11,9 +11,10 @@
     "@javelin/track": "1.0.0-alpha.2"
   },
   "scripts": {
+    "clean": "rm -rf dist",
     "perf": "yarn build && node perf/index.js",
     "build": "tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
-    "prepare": "yarn build"
+    "prepare": "yarn clean && yarn build"
   },
   "files": [
     "dist"

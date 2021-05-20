@@ -7,17 +7,15 @@ function flushPromises() {
 }
 
 describe("createEffect", () => {
-  const reset = (currentTick = 0, currentWorld = 0, currentSystem = 0) => {
+  const reset = (latestStep = 0, currentWorld = 0, latestSystem = 0) => {
     UNSAFE_internals.worlds = [
-      { id: 0, state: { currentTick, currentSystem } } as World,
-      { id: 1, state: { currentTick, currentSystem } } as World,
+      { id: 0, latestStep, latestSystem } as World,
+      { id: 1, latestStep, latestSystem } as World,
     ]
     UNSAFE_internals.currentWorldId = currentWorld
   }
 
-  beforeEach(() => {
-    reset()
-  })
+  beforeEach(() => reset())
 
   it("executes callback once per effect call", () => {
     const callback = jest.fn()

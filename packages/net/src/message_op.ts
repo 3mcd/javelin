@@ -207,21 +207,6 @@ export function destroy(entity: Entity): MessageOp {
 }
 
 /**
- * Create a tick message op.
- * @example
- * [
- *   tick: uint32,
- * ]
- * @param tick
- * @returns MessageOp
- */
-export function tick(tick: number): MessageOp {
-  const op = messageOpPool.retain()
-  insert(op, tick, uint32)
-  return op
-}
-
-/**
  * Create a model message op.
  * @example
  * [
