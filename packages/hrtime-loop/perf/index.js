@@ -4,9 +4,8 @@ const interval = (1 / 60) * 1000
 const ticks = 1000
 const samples = []
 
-function tick(clock) {
-  samples.push({ ...clock })
-
+function step(clock) {
+  samples.push(clock.dt)
   if (samples.length >= ticks) {
     loop.stop()
     printResults()
@@ -14,9 +13,8 @@ function tick(clock) {
 }
 
 function printResults() {
-  const avgTick = samples.reduce((a, s) => a + s.dt, 0) / samples.length
-  const stdDeviation =
-    samples.reduce((a, s) => avgTick - s.dt, 0) / samples.length
+  const avgTick = samples.reduce((a, s) => a + s, 0) / samples.length
+  const stdDeviation = samples.reduce((a, s) => avgTick - s, 0) / samples.length
 
   console.log(`tick_interval | ${interval}`)
   console.log(`ticks         | ${ticks}`)
@@ -29,6 +27,6 @@ function printResults() {
   )
 }
 
-const loop = createHrtimeLoop(interval, tick)
+const loop = createHrtimeLoop(step, interval)
 
 loop.start()

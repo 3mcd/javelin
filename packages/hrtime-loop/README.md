@@ -13,19 +13,21 @@ npm i @javelin/hrtime-loop
 ```ts
 import { createHrtimeLoop } from "@javelin/hrtime-loop"
 
-const loop = createHrtimeLoop(1 / 60, clock => {
+const loop = createHrtimeLoop(clock => {
   // (bigint) monotonic time
-  clock.time
-  // (number) time since last tick in ms
-  clock.dt
+  clock.now
   // (number) total number of ticks
   clock.tick
-})
+  // (number) time since last tick in ms
+  clock.dt
+}, (1 / 60) * 1000 /* tick interval (ms) */)
 
 // Start the loop
 loop.start()
 // Stop the loop
 loop.stop()
+// Check if loop is running
+loop.isRunning()
 ```
 
 ## Performance
@@ -35,7 +37,7 @@ loop.stop()
 ```
 tick_interval | 16.666666666666668
 ticks         | 1000
-avg_tick      | 16.70963940498233
-accuracy      | 99.743%
+avg_tick      | 16.678785390999984
+accuracy      | 99.927%
 precision     | 100.000%
 ```

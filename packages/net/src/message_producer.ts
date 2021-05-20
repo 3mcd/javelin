@@ -21,9 +21,9 @@ export type MessageProducerOptions = {
   maxByteLength?: number
 }
 
-export const createMessageProducer = (
+export function createMessageProducer(
   options: MessageProducerOptions = {},
-): MessageProducer => {
+): MessageProducer {
   const { maxByteLength = Infinity } = options
   const messageQueue: Message.Message[] = [Message.createMessage()]
   const entityPriorities = new Map<Entity, number>()

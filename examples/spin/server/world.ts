@@ -32,7 +32,7 @@ const transformsBig = createQuery(Transform, Big)
 const transformsTracked = createQuery(Transform, ChangeSet)
 const transformsInShell = createQuery(Transform, Shell, ChangeSet)
 
-export const createPointsAroundCircle = (r: number, n: number) => {
+export function createPointsAroundCircle(r: number, n: number) {
   const out = []
   for (let i = 0; i < n; i++) {
     const angle = (i / (n / 2)) * Math.PI
@@ -43,7 +43,7 @@ export const createPointsAroundCircle = (r: number, n: number) => {
   return out
 }
 
-const getInitialMessage = (world: World) => {
+function getInitialMessage(world: World) {
   const producer = createMessageProducer()
   for (const [entities, [transforms, shells]] of transformsInShell) {
     for (let i = 0; i < entities.length; i++) {
@@ -171,4 +171,4 @@ createPointsAroundCircle(50, ENTITY_COUNT).map(([x, y], i) => {
   world.create(...components)
 })
 
-createHrtimeLoop((1 / TICK_RATE) * 1000, world.step).start()
+createHrtimeLoop(world.step, (1 / TICK_RATE) * 1000).start()

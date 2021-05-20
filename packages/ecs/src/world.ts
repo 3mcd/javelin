@@ -1,10 +1,5 @@
 import { assert, createStackPool, mutableEmpty, Schema } from "@javelin/core"
-import {
-  Component,
-  ComponentOf,
-  componentTypePools,
-  registerSchema,
-} from "./component"
+import { Component, ComponentOf, registerSchema } from "./component"
 import { Entity } from "./entity"
 import { UNSAFE_internals } from "./internal"
 import { createStorage, Storage, StorageSnapshot } from "./storage"
@@ -26,8 +21,7 @@ export type Detach = [DeferredOpType.Detach, number, number[]]
 export type Destroy = [DeferredOpType.Destroy, number]
 
 export type WorldOp = Spawn | Attach | Detach | Destroy
-
-export interface World<T = unknown> {
+export type World<T = unknown> = {
   /**
    * Unique world identifier.
    */
@@ -226,7 +220,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function maybeReleaseComponent(component: Component) {
-    const pool = componentTypePools.get(component.__type__)
+    const pool = UNSAFE_internals.schemaPools.get(component.__type__)
     if (pool) {
       pool.release(component)
     }
@@ -364,7 +358,9 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
       const archetype = storage.archetypes[i]
       for (let j = 0; j < archetype.signature.length; j++) {
         const column = archetype.table[j]
-        const componentPool = componentTypePools.get(archetype.signature[j])
+        const componentPool = UNSAFE_internals.schemaPools.get(
+          archetype.signature[j],
+        )
         for (let k = 0; k < column.length; k++) {
           const component = column[k]
           componentPool?.release(component!)

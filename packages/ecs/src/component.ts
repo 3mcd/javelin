@@ -9,22 +9,19 @@ import {
 } from "@javelin/core"
 import { UNSAFE_internals } from "./internal"
 
-export type ComponentProps = {
+type ComponentProps = {
   readonly __type__: number
 }
 
 export type ComponentOf<S extends Schema> = ComponentProps & InstanceOfSchema<S>
-export type Component = ComponentOf<Schema>
-
 export type ComponentsOf<C extends Schema[]> = {
   [K in keyof C]: C[K] extends Schema ? ComponentOf<C[K]> : never
 }
+export type Component = ComponentOf<Schema>
 
-let nextSchemaId = 0
+let schemaIds = 0
 
-export function createComponentBase<S extends Schema>(
-  schema: S,
-): ComponentOf<S> {
+function createComponentBase<S extends Schema>(schema: S): ComponentOf<S> {
   return Object.defineProperties(
     {},
     {
@@ -43,8 +40,6 @@ export function isComponentOf<S extends Schema>(
 ): component is ComponentOf<S> {
   return component.__type__ === UNSAFE_internals.schemaIndex.get(schema)
 }
-
-export const componentTypePools = new Map<number, StackPool<Component>>()
 
 export function createComponentPool<S extends Schema>(
   Schema: S,
@@ -77,30 +72,30 @@ export function registerSchema(
   }
   type = schemaId
   if (type === undefined) {
-    while (modelConfig.has(nextSchemaId)) {
-      nextSchemaId++
+    while (modelConfig.has(schemaIds)) {
+      schemaIds++
     }
-    type = nextSchemaId
+    type = schemaIds
   } else if (modelConfig.has(type)) {
     throw new Error(
       "Failed to register component type: a component with same id is already registered",
     )
   }
-  componentTypePools.set(type, createComponentPool(schema, poolSize))
+  UNSAFE_internals.schemaPools.set(type, createComponentPool(schema, poolSize))
   modelConfig.set(type, schema)
   UNSAFE_internals.schemaIndex.set(schema, type)
   UNSAFE_internals.model = createModel(modelConfig)
   return type
 }
 
-export const component = <S extends Schema>(
+export function component<S extends Schema>(
   schema: S,
   props?: Partial<InstanceOfSchema<S>>,
-): ComponentOf<S> => {
+): ComponentOf<S> {
   const type = registerSchema(schema)
-  const instance = (componentTypePools.get(type) as StackPool<
-    ComponentOf<S>
-  >).retain()
+  const instance = (
+    UNSAFE_internals.schemaPools.get(type) as StackPool<ComponentOf<S>>
+  ).retain()
   if (props !== undefined) {
     Object.assign(instance, props)
   }
