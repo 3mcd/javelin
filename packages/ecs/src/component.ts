@@ -1,9 +1,9 @@
 import {
   createModel,
   createStackPool,
-  initialize,
-  InstanceOfSchema,
-  reset,
+  FieldExtract,
+  initializeWithSchema,
+  resetWithSchema,
   Schema,
   StackPool,
 } from "@javelin/core"
@@ -13,7 +13,7 @@ type ComponentProps = {
   readonly __type__: number
 }
 
-export type ComponentOf<S extends Schema> = ComponentProps & InstanceOfSchema<S>
+export type ComponentOf<S extends Schema> = ComponentProps & FieldExtract<S>
 export type ComponentsOf<C extends Schema[]> = {
   [K in keyof C]: C[K] extends Schema ? ComponentOf<C[K]> : never
 }
@@ -47,12 +47,12 @@ export function createComponentPool<S extends Schema>(
 ) {
   const componentPool = createStackPool<ComponentOf<S>>(
     () =>
-      initialize(
-        createComponentBase(Schema) as InstanceOfSchema<S>,
+      initializeWithSchema(
+        createComponentBase(Schema) as FieldExtract<S>,
         Schema,
       ) as ComponentOf<S>,
     component =>
-      reset(component as InstanceOfSchema<S>, Schema) as ComponentOf<S>,
+      resetWithSchema(component as FieldExtract<S>, Schema) as ComponentOf<S>,
     poolSize,
   )
 
@@ -90,7 +90,7 @@ export function registerSchema(
 
 export function component<S extends Schema>(
   schema: S,
-  props?: Partial<InstanceOfSchema<S>>,
+  props?: Partial<FieldExtract<S>>,
 ): ComponentOf<S> {
   const type = registerSchema(schema)
   const instance = (

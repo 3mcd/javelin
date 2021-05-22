@@ -1,18 +1,6 @@
-import {
-  $flat,
-  assert,
-  Model,
-  mutableEmpty,
-  SchemaKeyKind,
-} from "@javelin/core"
+import { $flat, assert, Model, mutableEmpty } from "@javelin/core"
 import { Component } from "@javelin/ecs"
-import {
-  dataTypeToView,
-  decode as decodePack,
-  uint16,
-  uint32,
-  uint8,
-} from "@javelin/pack"
+import * as Pack from "@javelin/pack"
 import { MessagePartKind } from "./message"
 import { decodeModel } from "./model"
 
@@ -48,31 +36,24 @@ export type DecodeMessageHandlers = {
 
 function decodeEntitySnapshot(
   dataView: DataView,
-  offset: number,
+  cursor: Pack.Cursor,
   length: number,
   model: Model,
-  onSnapshot: EntitySnapshotHandler,
+  onSnapshot?: EntitySnapshotHandler,
 ) {
-  const end = offset + length
+  const end = cursor.offset + length
   const { buffer } = dataView
-  while (offset < end) {
+  while (cursor.offset < end) {
     const components: Component[] = []
-    const ent = uint32.read(dataView, offset)
-    offset += uint32.byteLength
-    const cnt = uint8.read(dataView, offset)
-    offset += uint8.byteLength
-    for (let i = 0; i < cnt; i++) {
-      const cid = uint8.read(dataView, offset)
-      offset += uint8.byteLength
-      const len = uint16.read(dataView, offset)
-      offset += uint16.byteLength
-      const enc = buffer.slice(offset, offset + len)
-      offset += len
-      const component = decodePack<Component>(enc, model[cid])
-      ;(component as any).__type__ = cid
+    const entity = Pack.read(dataView, Pack.uint32, cursor)
+    const count = Pack.read(dataView, Pack.uint8, cursor)
+    for (let i = 0; i < count; i++) {
+      const schemaId = Pack.read(dataView, Pack.uint8, cursor)
+      const component = Pack.decode<Component>(buffer, model[schemaId], cursor)
+      ;(component as any).__type__ = schemaId
       components.push(component)
     }
-    onSnapshot(ent, components)
+    onSnapshot?.(entity, components)
   }
 }
 
@@ -80,48 +61,28 @@ const tmpTraverse: number[] = []
 
 function decodePatch(
   dataView: DataView,
-  offset: number,
+  cursor: Pack.Cursor,
   length: number,
   model: Model,
   onPatch: DecodeMessageHandlers["onPatch"],
 ) {
-  const end = offset + length
-  while (offset < end) {
-    const entity = uint32.read(dataView, offset)
-    offset += uint32.byteLength
-    const size = uint8.read(dataView, offset)
-    offset += uint8.byteLength
+  const end = cursor.offset + length
+  while (cursor.offset < end) {
+    const entity = Pack.read(dataView, Pack.uint32, cursor)
+    const size = Pack.read(dataView, Pack.uint8, cursor)
     for (let i = 0; i < size; i++) {
-      const schemaId = uint8.read(dataView, offset)
-      const componentSchema = model[$flat][schemaId]
-      offset += uint8.byteLength
-      const fieldCount = uint8.read(dataView, offset)
-      offset += uint8.byteLength
-      const arrayCount = uint8.read(dataView, offset)
-      offset += uint8.byteLength
+      const schemaId = Pack.read(dataView, Pack.uint8, cursor)
+      const collated = model[$flat][schemaId]
+      const fieldCount = Pack.read(dataView, Pack.uint8, cursor)
+      const arrayCount = Pack.read(dataView, Pack.uint8, cursor)
       for (let j = 0; j < fieldCount; j++) {
-        const field = uint8.read(dataView, offset)
-        offset += uint8.byteLength
-        const traverseLength = uint8.read(dataView, offset)
-        offset += uint8.byteLength
+        const field = Pack.read(dataView, Pack.uint8, cursor)
+        const traverseLength = Pack.read(dataView, Pack.uint8, cursor)
         mutableEmpty(tmpTraverse)
         for (let k = 0; k < traverseLength; k++) {
-          tmpTraverse.push(uint16.read(dataView, offset))
-          offset += uint16.byteLength
+          tmpTraverse.push(Pack.read(dataView, Pack.uint16, cursor))
         }
-        const node = componentSchema[field]
-        let value: unknown
-        if (node.kind === SchemaKeyKind.Primitive) {
-          const view = dataTypeToView(node.type)
-          value = view.read(dataView, offset)
-          offset += view.byteLength
-        } else {
-          const byteLength = uint16.read(dataView, offset)
-          offset += uint16.byteLength
-          const encoded = dataView.buffer.slice(offset, offset + byteLength)
-          offset += byteLength
-          value = decodePack<Component>(encoded, node)
-        }
+        const value = Pack.decode(dataView.buffer, collated[field], cursor)
         onPatch?.(entity, schemaId, field, tmpTraverse, value)
       }
       for (let j = 0; j < arrayCount; j++) {
@@ -133,20 +94,17 @@ function decodePatch(
 
 function decodeDetach(
   dataView: DataView,
-  offset: number,
+  cursor: Pack.Cursor,
   length: number,
   onDetach: DecodeMessageHandlers["onDetach"],
 ) {
-  const end = offset + length
-  while (offset < end) {
+  const end = cursor.offset + length
+  while (cursor.offset < end) {
     const schemaIds = []
-    const entity = uint32.read(dataView, offset, 0)
-    offset += uint32.byteLength
-    const schemaIdsLength = uint8.read(dataView, offset, 0)
-    offset += uint8.byteLength
+    const entity = Pack.read(dataView, Pack.uint32, cursor)
+    const schemaIdsLength = Pack.read(dataView, Pack.uint8, cursor)
     for (let i = 0; i < schemaIdsLength; i++) {
-      const schemaId = uint8.read(dataView, offset, 0)
-      offset += uint8.byteLength
+      const schemaId = Pack.read(dataView, Pack.uint8, cursor)
       schemaIds.push(schemaId)
     }
     onDetach?.(entity, schemaIds)
@@ -155,41 +113,24 @@ function decodeDetach(
 
 function decodeDestroy(
   dataView: DataView,
-  offset: number,
+  cursor: Pack.Cursor,
   length: number,
   onDestroy: DecodeMessageHandlers["onDestroy"],
 ) {
-  const end = offset + length
-  while (offset < end) {
-    const entity = uint32.read(dataView, offset, 0)
-    offset += uint32.byteLength
+  const end = cursor.offset + length
+  while (cursor.offset < end) {
+    const entity = Pack.read(dataView, Pack.uint32, cursor)
     onDestroy?.(entity)
   }
 }
 
 function _decodeModel(
   dataView: DataView,
-  offset: number,
+  cursor: Pack.Cursor,
   length: number,
   onModel: DecodeMessageHandlers["onModel"],
 ) {
-  onModel?.(decodeModel(dataView, offset, length))
-}
-
-function getHandlerByMessagePartKind(
-  handlers: DecodeMessageHandlers,
-  kind: MessagePartKind,
-) {
-  let handler: EntitySnapshotHandler | undefined
-  switch (kind) {
-    case MessagePartKind.Attach:
-      handler = handlers.onAttach
-      break
-    case MessagePartKind.Update:
-      handler = handlers.onUpdate
-      break
-  }
-  return handler
+  onModel?.(decodeModel(dataView, cursor, length))
 }
 
 export function decode(
@@ -198,41 +139,43 @@ export function decode(
   model?: Model,
 ) {
   const { onPatch, onDetach, onDestroy, onModel } = handlers
+  const cursor = { offset: 0 }
   const dataView = new DataView(buffer)
   const _onModel = (_model: Model) => {
     model = _model
     onModel?.(_model)
   }
 
-  let offset = 0
-  while (offset < dataView.byteLength) {
-    const kind = uint8.read(dataView, offset)
-    offset += uint8.byteLength
-    const byteLength = uint32.read(dataView, offset)
-    offset += uint32.byteLength
+  while (cursor.offset < dataView.byteLength) {
+    const kind = Pack.read(dataView, Pack.uint8, cursor)
+    const byteLength = Pack.read(dataView, Pack.uint32, cursor)
     switch (kind) {
       case MessagePartKind.Model:
-        _decodeModel(dataView, offset, byteLength, _onModel)
+        _decodeModel(dataView, cursor, byteLength, _onModel)
         break
       case MessagePartKind.Attach:
       case MessagePartKind.Update:
         assert(model !== undefined, ERROR_MODEL_NOT_FOUND)
-        const handler = getHandlerByMessagePartKind(handlers, kind)
-        if (handler !== undefined) {
-          decodeEntitySnapshot(dataView, offset, byteLength, model, handler)
-        }
+        decodeEntitySnapshot(
+          dataView,
+          cursor,
+          byteLength,
+          model,
+          kind === MessagePartKind.Attach
+            ? handlers.onAttach
+            : handlers.onUpdate,
+        )
         break
       case MessagePartKind.Patch:
         assert(model !== undefined, ERROR_MODEL_NOT_FOUND)
-        decodePatch(dataView, offset, byteLength, model, onPatch)
+        decodePatch(dataView, cursor, byteLength, model, onPatch)
         break
       case MessagePartKind.Detach:
-        decodeDetach(dataView, offset, byteLength, onDetach)
+        decodeDetach(dataView, cursor, byteLength, onDetach)
         break
       case MessagePartKind.Destroy:
-        decodeDestroy(dataView, offset, byteLength, onDestroy)
+        decodeDestroy(dataView, cursor, byteLength, onDestroy)
         break
     }
-    offset += byteLength
   }
 }

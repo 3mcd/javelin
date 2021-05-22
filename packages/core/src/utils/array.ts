@@ -29,8 +29,9 @@ export function mutableRemove<T>(arr: T[], element: T) {
   return true
 }
 
-export function mutableEmpty(arr: unknown[]) {
+export function mutableEmpty<T extends unknown[]>(arr: T) {
   while (arr.length > 0) arr.pop()
+  return arr
 }
 
 export function createArray<T = void>(

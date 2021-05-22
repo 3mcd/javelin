@@ -17,7 +17,7 @@ export const ChangeSetRecord = {
 export const ChangeSetArrayOp = {
   method: number,
   record: ChangeSetRecord,
-  values: arrayOf(dynamic),
+  values: arrayOf(dynamic()),
   start: number,
   deleteCount: number,
 }
@@ -26,7 +26,7 @@ export const ChangeSet = {
   changes: objectOf({
     fields: objectOf({
       noop: boolean,
-      value: dynamic,
+      value: dynamic(),
       record: ChangeSetRecord,
     }),
     array: arrayOf(ChangeSetArrayOp),

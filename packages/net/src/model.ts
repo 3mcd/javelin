@@ -1,124 +1,71 @@
-import {
-  $schema,
-  arrayOf,
-  assert,
-  createModel,
-  DataType,
-  dynamic,
-  ErrorType,
-  Model,
-  ModelNode,
-  objectOf,
-  Schema,
-  SchemaKey,
-  SchemaKeyKind,
-} from "@javelin/core"
-import {
-  boolean,
-  dataTypeToView,
-  float32,
-  float64,
-  int16,
-  int32,
-  int8,
-  string16,
-  string8,
-  uint16,
-  uint32,
-  uint8,
-} from "@javelin/pack"
+import * as Core from "@javelin/core"
+import { FieldNumber } from "@javelin/core"
+import * as Pack from "@javelin/pack"
 
-const DATA_TYPE_IDS: { [key: string]: number } = {
-  [uint8.__type__]: 0,
-  [uint16.__type__]: 1,
-  [uint32.__type__]: 2,
-  [int8.__type__]: 3,
-  [int16.__type__]: 4,
-  [int32.__type__]: 5,
-  [float32.__type__]: 6,
-  [float64.__type__]: 7,
-  [string8.__type__]: 8,
-  [string16.__type__]: 9,
-  [boolean.__type__]: 10,
-  [dynamic.__type__]: 11,
-}
-
-const DATA_TYPE_IDS_LOOKUP = [
-  uint8,
-  uint16,
-  uint32,
-  int8,
-  int16,
-  int32,
-  float32,
-  float64,
-  string8,
-  string16,
-  boolean,
-  dynamic,
+const BYTE_VIEWS = [
+  Pack.uint8,
+  Pack.uint16,
+  Pack.uint32,
+  Pack.int8,
+  Pack.int16,
+  Pack.int32,
+  Pack.float32,
+  Pack.float64,
+  Pack.string8,
+  Pack.string16,
+  Pack.boolean,
 ]
+const BYTE_VIEWS_LOOKUP = BYTE_VIEWS.reduce((sparse, byteView) => {
+  sparse[byteView[Pack.$byteView]] = byteView
+  return sparse
+}, [] as Pack.ByteView[])
 
+const COLLECTION_MASK = 1 << 6
 const SCHEMA_MASK = 1 << 7
-const ARRAY = DATA_TYPE_IDS_LOOKUP.length
-const OBJECT = ARRAY + 1
 
-function getDataTypeId(field: DataType) {
-  const id = DATA_TYPE_IDS[dataTypeToView(field).__type__]
-  assert(
-    id !== undefined,
-    `invalid data type ${field.__type__}`,
-    ErrorType.Internal,
-  )
-  return id
+function encodeDataType(field: Core.Field, out: number[], offset = 0) {
+  const byteView = Pack.fieldToByteView(field)
+  out.push(byteView[Pack.$byteView])
+  offset++
+  if (Pack.isStringView(byteView)) {
+    out.push(byteView.length ?? 0)
+    offset++
+  }
+  return offset
 }
 
-function encodeModelNode(node: ModelNode, out: number[], offset: number = 0) {
-  switch (node.kind) {
-    case SchemaKeyKind.Primitive:
-      out.push(getDataTypeId(node.type))
+function encodeModelNode(node: Core.CollatedNode, out: number[], offset = 0) {
+  if (Core.isField(node)) {
+    if (Core.isPrimitiveField(node)) {
+      offset = encodeDataType(node, out, offset)
+    } else {
+      out.push(node[Core.$kind] | COLLECTION_MASK)
       offset++
-      break
-    case SchemaKeyKind.Array:
-      out.push(ARRAY)
-      offset++
-      offset = encodeModelNode(node.edge, out, offset)
-      break
-    case SchemaKeyKind.Object:
-      out.push(OBJECT)
-      offset++
-      offset = encodeModelNode(node.edge, out, offset)
-      break
-    // TODO: support set
-    case SchemaKeyKind.Set:
-      offset++
-      break
-    // TODO: support map
-    case SchemaKeyKind.Map:
-      offset++
-      break
-    case $schema: {
-      const length = node.edges.length
-      out.push(length | SCHEMA_MASK)
-      offset++
-      for (let i = 0; i < node.edges.length; i++) {
-        const edge = node.edges[i]
-        const { key } = edge
-        out.push(key.length)
-        offset++
-        for (let i = 0; i < key.length; i++) {
-          out.push(key.charCodeAt(i))
-          offset++
-        }
-        offset = encodeModelNode(node.edges[i], out, offset)
+      if ("key" in node) {
+        offset = encodeDataType(node.key, out, offset)
       }
-      break
+      offset = encodeModelNode(node.element as Core.CollatedNode, out, offset)
+    }
+  } else {
+    const length = node.fields.length
+    out.push(length | SCHEMA_MASK)
+    offset++
+    for (let i = 0; i < length; i++) {
+      const key = node.keys[i]
+      out.push(key.length)
+      offset++
+      for (let i = 0; i < key.length; i++) {
+        out.push(key.charCodeAt(i))
+        offset++
+      }
+      offset = encodeModelNode(node.fields[i], out, offset)
     }
   }
 
   return offset
 }
 
-export function encodeModel(model: Model) {
+export function encodeModel(model: Core.Model) {
   const flat: number[] = []
   let size = 0
   for (const prop in model) {
@@ -133,60 +80,67 @@ export function encodeModel(model: Model) {
   return buffer
 }
 
-export function decodeSchemaKey(
+export function decodeField(
   encoded: Uint8Array,
-  offset: number,
-  schema: SchemaKey,
-  key: keyof SchemaKey,
-) {
-  const dataTypeId = encoded[offset++]
-  let schemaKey: SchemaKey
-  if (dataTypeId === ARRAY) {
-    schemaKey = arrayOf<SchemaKey>(uint8)
-    offset = decodeSchemaKey(encoded, offset, schemaKey, "__type__")
-  } else if (dataTypeId === OBJECT) {
-    schemaKey = objectOf<SchemaKey>(uint8)
-    offset = decodeSchemaKey(encoded, offset, schemaKey, "__type__")
-  } else if ((dataTypeId & SCHEMA_MASK) !== 0) {
-    schemaKey = {}
-    offset = decodeSchema(encoded, offset - 1, schemaKey)
-  } else {
-    schemaKey = DATA_TYPE_IDS_LOOKUP[dataTypeId]
-  }
-  schema[key] = schemaKey
-  return offset
-}
-
-export function decodeSchema(
-  encoded: Uint8Array,
-  offset: number,
-  schema: Schema,
-) {
-  let count = encoded[offset++] & ~SCHEMA_MASK
-  while (count-- > 0) {
-    let keySize = encoded[offset++]
-    let key = ""
-    while (keySize-- > 0) {
-      key += String.fromCharCode(encoded[offset++])
+  cursor: Pack.Cursor,
+): Core.FieldAny | Core.Schema {
+  const dataTypeId = encoded[cursor.offset++]
+  let child: Core.FieldAny | Core.Schema
+  if ((dataTypeId & SCHEMA_MASK) !== 0) {
+    let length = dataTypeId & ~SCHEMA_MASK
+    child = {} as Core.Schema
+    while (length-- > 0) {
+      let keySize = encoded[cursor.offset++]
+      let key = ""
+      while (keySize-- > 0) {
+        key += String.fromCharCode(encoded[cursor.offset++])
+      }
+      child[key] = decodeField(encoded, cursor)
     }
-    offset = decodeSchemaKey(encoded, offset, schema, key as keyof SchemaKey)
+  } else if ((dataTypeId & COLLECTION_MASK) !== 0) {
+    const collectionType = dataTypeId & ~COLLECTION_MASK
+    switch (collectionType) {
+      case Core.FieldKind.Array:
+        child = Core.arrayOf(decodeField(encoded, cursor))
+        break
+      case Core.FieldKind.Object: {
+        const key = decodeField(encoded, cursor) as Pack.StringView
+        child = Core.objectOf(decodeField(encoded, cursor), key)
+        break
+      }
+      case Core.FieldKind.Set:
+        child = Core.setOf(decodeField(encoded, cursor))
+        break
+      case Core.FieldKind.Map:
+        child = Core.mapOf(
+          decodeField(encoded, cursor) as FieldNumber,
+          decodeField(encoded, cursor),
+        )
+        break
+      default:
+        child = Core.dynamic()
+        break
+    }
+  } else {
+    child = BYTE_VIEWS_LOOKUP[dataTypeId]
+    if (Pack.isStringView(child)) {
+      child = { ...child, length: encoded[cursor.offset++] } as Pack.StringView
+    }
   }
-  return offset
+  return child
 }
 
 export function decodeModel(
   dataView: DataView,
-  offset: number,
+  cursor: Pack.Cursor,
   length: number,
 ) {
   const config = new Map()
-  const encoded = new Uint8Array(dataView.buffer, offset, length)
-  let o = 0
-  while (o < length) {
-    const schema = {}
-    const schemaId = encoded[o++]
-    o = decodeSchema(encoded, o, schema)
+  const encoded = new Uint8Array(dataView.buffer)
+  while (cursor.offset < length) {
+    const schemaId = encoded[cursor.offset++]
+    const schema = decodeField(encoded, cursor)
     config.set(schemaId, schema)
   }
-  return createModel(config)
+  return Core.createModel(config)
 }

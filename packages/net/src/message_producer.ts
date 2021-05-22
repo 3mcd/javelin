@@ -1,4 +1,9 @@
-import { assert, ErrorType, initialize, InstanceOfSchema } from "@javelin/core"
+import {
+  assert,
+  ErrorType,
+  FieldExtract,
+  initializeWithSchema,
+} from "@javelin/core"
 import { Component, Entity, UNSAFE_internals } from "@javelin/ecs"
 import { ChangeSet, copy, reset } from "@javelin/track"
 import * as Message from "./message"
@@ -12,7 +17,7 @@ export type MessageProducer = {
   update(entity: Entity, components: Component[]): void
   patch(
     entity: Entity,
-    changes: InstanceOfSchema<typeof ChangeSet>,
+    changes: FieldExtract<typeof ChangeSet>,
     priority?: number,
   ): void
   take(includeModel?: boolean): Message.Message | null
@@ -27,7 +32,7 @@ export function createMessageProducer(
   const { maxByteLength = Infinity } = options
   const messageQueue: Message.Message[] = [Message.createMessage()]
   const entityPriorities = new Map<Entity, number>()
-  const entityChangeSets = new Map<Entity, InstanceOfSchema<typeof ChangeSet>>()
+  const entityChangeSets = new Map<Entity, FieldExtract<typeof ChangeSet>>()
   const _insert = (op: MessageOp.MessageOp, kind: Message.MessagePartKind) => {
     let message = messageQueue[0]
     if (
@@ -57,13 +62,13 @@ export function createMessageProducer(
     )
   const patch = (
     entity: Entity,
-    changes: InstanceOfSchema<typeof ChangeSet>,
+    changes: FieldExtract<typeof ChangeSet>,
     priority = Infinity,
   ) => {
     let changeset = entityChangeSets.get(entity)
     if (changeset === undefined) {
-      changeset = initialize(
-        {} as InstanceOfSchema<typeof ChangeSet>,
+      changeset = initializeWithSchema(
+        {} as FieldExtract<typeof ChangeSet>,
         ChangeSet,
       )
       entityChangeSets.set(entity, changeset)

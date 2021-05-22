@@ -1,16 +1,11 @@
-import { uint32, uint8 } from "@javelin/pack"
+import * as Pack from "@javelin/pack"
+import { Cursor } from "@javelin/pack"
 import { Message, MessagePart } from "./message"
 import { $buffer } from "./message_op"
 
-function encodePart(
-  dataView: DataView,
-  part: MessagePart,
-  offset: number,
-): number {
-  uint8.write(dataView, offset, part.kind)
-  offset += uint8.byteLength
-  uint32.write(dataView, offset, part.byteLength)
-  offset += uint32.byteLength
+function encodePart(dataView: DataView, part: MessagePart, cursor: Cursor) {
+  Pack.write(dataView, Pack.uint8, cursor, part.kind)
+  Pack.write(dataView, Pack.uint32, cursor, part.byteLength)
   for (let i = 0; i < part.ops.length; i++) {
     const { data, view } = part.ops[i]
     for (let j = 0; j < data.length; j++) {
@@ -20,24 +15,21 @@ function encodePart(
         const byteLength = (d as ArrayBuffer).byteLength
         new Uint8Array(dataView.buffer, 0, dataView.buffer.byteLength).set(
           new Uint8Array(d as ArrayBuffer),
-          offset,
+          cursor.offset,
         )
-        offset += byteLength
+        cursor.offset += byteLength
       } else {
-        v.write(dataView, offset, d)
-        offset += v.byteLength
+        Pack.write(dataView, v, cursor, d as string | number | boolean)
       }
     }
   }
-  return offset
 }
 
 export function encode(message: Message): ArrayBuffer {
   const buffer = new ArrayBuffer(message.byteLength)
   const view = new DataView(buffer)
-  let offset = 0
-  message.parts.forEach(part => {
-    offset = encodePart(view, part, offset)
-  })
+  const cursor = { offset: 0 }
+  // message.parts is sparse so we use forEach to skip empty elements
+  message.parts.forEach(part => encodePart(view, part, cursor))
   return buffer
 }
