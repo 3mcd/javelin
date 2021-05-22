@@ -20,6 +20,7 @@ export const createMessageHandler = (world: World) => {
         local = world.create()
         entities.set(entity, local)
       }
+      console.log("attach", local, components)
       world.attachImmediate(local, components)
     },
     onUpdate(entity, components) {
@@ -45,6 +46,7 @@ export const createMessageHandler = (world: World) => {
       if (local === undefined) {
         return
       }
+      console.log("detach", local, schemaIds)
       world.detachImmediate(local, schemaIds)
     },
     onDestroy(entity) {

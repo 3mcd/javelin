@@ -1,10 +1,12 @@
 import {
-  $schema,
+  $kind,
+  assert,
+  CollatedNode,
   createStackPool,
-  InstanceOfSchema,
-  ModelNode,
+  FieldExtract,
+  FieldKind,
+  isField,
   mutableEmpty,
-  SchemaKeyKind,
 } from "@javelin/core"
 import { Component, UNSAFE_internals } from "@javelin/ecs"
 import {
@@ -17,12 +19,12 @@ import { MutArrayMethod } from "../types"
 const PATH_DELIMITER = "."
 const recordLookup: Record<
   number,
-  Record<string, InstanceOfSchema<typeof ChangeSetRecord>>
+  Record<string, FieldExtract<typeof ChangeSetRecord>>
 > = {}
-const arrayOpPool = createStackPool<InstanceOfSchema<typeof ChangeSetArrayOp>>(
+const arrayOpPool = createStackPool<FieldExtract<typeof ChangeSetArrayOp>>(
   () => ({
     method: -1,
-    record: null as unknown as InstanceOfSchema<typeof ChangeSetRecord>,
+    record: null as unknown as FieldExtract<typeof ChangeSetRecord>,
     values: [],
     start: -1,
     insert: -1,
@@ -30,7 +32,7 @@ const arrayOpPool = createStackPool<InstanceOfSchema<typeof ChangeSetArrayOp>>(
   }),
   op => {
     op.method = -1
-    op.record = null as unknown as InstanceOfSchema<typeof ChangeSetRecord>
+    op.record = null as unknown as FieldExtract<typeof ChangeSetRecord>
     mutableEmpty(op.values)
     return op
   },
@@ -45,20 +47,22 @@ const getRecord = (component: Component, path: string) => {
   }
   let record = records[path]
   if (record === undefined) {
-    let node: ModelNode = UNSAFE_internals.model[type]
+    let node: CollatedNode = UNSAFE_internals.model[type]
     const traverse: string[] = []
     const split = path.split(PATH_DELIMITER)
     for (let i = 0; i < split.length; i++) {
       const sub = split[i]
-      switch (node.kind) {
-        case SchemaKeyKind.Array:
-        case SchemaKeyKind.Object:
-          node = node.edge
-          traverse.push(sub)
-          break
-        case $schema:
-          node = node.keys[sub]
-          break
+      if (isField(node)) {
+        switch (node[$kind]) {
+          case FieldKind.Array:
+          case FieldKind.Object:
+            assert("element" in node)
+            node = node.element as CollatedNode
+            traverse.push(sub)
+            break
+        }
+      } else {
+        node = node.fieldsByKey[sub]
       }
     }
     records[path] = record = { traverse, path, split, field: node.id }
@@ -67,7 +71,7 @@ const getRecord = (component: Component, path: string) => {
 }
 
 function getOrCreateChanges(
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeset: FieldExtract<typeof ChangeSet>,
   schemaId: number,
 ) {
   let changes = changeset.changes[schemaId]
@@ -82,11 +86,11 @@ function getOrCreateChanges(
   return changes
 }
 
-export function reset(changeset: InstanceOfSchema<typeof ChangeSet>) {
+export function reset(changeset: FieldExtract<typeof ChangeSet>) {
   for (const prop in changeset.changes) {
     const changes = changeset.changes[prop]
     const { array, fields } = changes
-    let arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> | undefined
+    let arrayOp: FieldExtract<typeof ChangeSetArrayOp> | undefined
     while ((arrayOp = array.pop())) {
       arrayOpPool.release(arrayOp)
     }
@@ -101,8 +105,8 @@ export function reset(changeset: InstanceOfSchema<typeof ChangeSet>) {
 }
 
 export function copy(
-  from: InstanceOfSchema<typeof ChangeSet>,
-  to: InstanceOfSchema<typeof ChangeSet>,
+  from: FieldExtract<typeof ChangeSet>,
+  to: FieldExtract<typeof ChangeSet>,
 ) {
   if (from.touched === false) {
     return
@@ -157,7 +161,7 @@ export function copy(
 
 export function set(
   component: Component,
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeset: FieldExtract<typeof ChangeSet>,
   path: string,
   value: unknown,
 ) {
@@ -190,7 +194,7 @@ export function set(
 
 export function push(
   component: Component,
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeset: FieldExtract<typeof ChangeSet>,
   path: string,
 ) {
   const record = getRecord(component, path)
@@ -203,7 +207,7 @@ export function push(
   if (changes.arrayCount === 0) {
     changeset.size++
   }
-  const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
+  const arrayOp: FieldExtract<typeof ChangeSetArrayOp> = {
     values: [],
     record,
     method: MutArrayMethod.Push,
@@ -223,7 +227,7 @@ export function push(
 
 export function pop(
   component: Component,
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeset: FieldExtract<typeof ChangeSet>,
   path: string,
 ) {
   const record = getRecord(component, path)
@@ -236,7 +240,7 @@ export function pop(
   if (changes.arrayCount === 0) {
     changeset.size++
   }
-  const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
+  const arrayOp: FieldExtract<typeof ChangeSetArrayOp> = {
     values: [],
     record,
     method: MutArrayMethod.Pop,
@@ -252,7 +256,7 @@ export function pop(
 
 export function unshift(
   component: Component,
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeset: FieldExtract<typeof ChangeSet>,
   path: string,
 ) {
   const record = getRecord(component, path)
@@ -265,7 +269,7 @@ export function unshift(
   if (changes.arrayCount === 0) {
     changeset.size++
   }
-  const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
+  const arrayOp: FieldExtract<typeof ChangeSetArrayOp> = {
     values: [],
     record,
     method: MutArrayMethod.Unshift,
@@ -285,7 +289,7 @@ export function unshift(
 
 export function shift(
   component: Component,
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeset: FieldExtract<typeof ChangeSet>,
   path: string,
 ) {
   const record = getRecord(component, path)
@@ -298,7 +302,7 @@ export function shift(
   if (changes.arrayCount === 0) {
     changeset.size++
   }
-  const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
+  const arrayOp: FieldExtract<typeof ChangeSetArrayOp> = {
     values: [],
     record,
     method: MutArrayMethod.Shift,
@@ -314,7 +318,7 @@ export function shift(
 
 export function splice(
   component: Component,
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeset: FieldExtract<typeof ChangeSet>,
   path: string,
   start: number,
   deleteCount: number,
@@ -329,7 +333,7 @@ export function splice(
   if (changes.arrayCount === 0) {
     changeset.size++
   }
-  const arrayOp: InstanceOfSchema<typeof ChangeSetArrayOp> = {
+  const arrayOp: FieldExtract<typeof ChangeSetArrayOp> = {
     values: [],
     record,
     method: MutArrayMethod.Splice,

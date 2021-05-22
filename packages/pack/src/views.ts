@@ -1,185 +1,220 @@
 import * as Model from "@javelin/core"
-import { DataType } from "@javelin/core"
+import { $kind } from "@javelin/core"
+import { Cursor } from "./pack"
 
-export enum ViewType {
-  Uint8 = "uint8",
-  Uint16 = "uint16",
-  Uint32 = "uint32",
-  Int8 = "int8",
-  Int16 = "int16",
-  Int32 = "int32",
-  Float32 = "float32",
-  Float64 = "float64",
-  String8 = "string8",
-  String16 = "string16",
-  Boolean = "boolean",
+export const $byteView = Symbol("javelin_byte_view")
+
+export enum ByteViewKind {
+  Uint8,
+  Uint16,
+  Uint32,
+  Int8,
+  Int16,
+  Int32,
+  Float32,
+  Float64,
+  String8,
+  String16,
+  Boolean,
 }
 
-export const isView = (
-  dataType: DataType<unknown>,
-): dataType is View<unknown> => {
-  return "byteLength" in dataType
-}
+export type ByteViewField =
+  | Model.FieldNumber
+  | Model.FieldString
+  | Model.FieldBoolean
 
-export type View<T = any> = Model.DataType<T> & {
+export type ByteView<T extends ByteViewField = ByteViewField> = T & {
+  [$byteView]: ByteViewKind
   byteLength: number
-  read(view: DataView, offset: number, length?: number): T
-  write(view: DataView, offset: number, data: T): void
+  read(dataView: DataView, offset: number, length?: number): Model.FieldGet<T>
+  write(dataView: DataView, offset: number, data: Model.FieldGet<T>): void
 }
 
-function view<T>(
-  dataTypeId: string,
-  dataTypeBase: Model.DataType,
+export type StringView = ByteView<Model.FieldString> & {
+  [$byteView]: ByteViewKind.String16 | ByteViewKind.String8
+  length?: number
+}
+
+export function isByteView(object: object): object is ByteView {
+  return Model.isField(object) && "byteLength" in object
+}
+
+export function isStringView(object: object): object is StringView {
+  return isByteView(object) && object[$kind] === Model.FieldKind.String
+}
+
+export function read<T extends ByteView>(
+  dataView: DataView,
+  byteView: T,
+  cursor: Cursor,
+) {
+  const length = (byteView as StringView).length ?? 1
+  const data = byteView.read(dataView, cursor.offset, length)
+  cursor.offset += byteView.byteLength * length
+  return data as Model.FieldGet<T>
+}
+
+export function write<T extends ByteView>(
+  dataView: DataView,
+  byteView: T,
+  cursor: Cursor,
+  data: Model.FieldGet<T>,
+) {
+  const length = (byteView as StringView).length ?? 1
+  byteView.write(dataView, cursor.offset, data)
+  cursor.offset += byteView.byteLength * length
+}
+
+function createByteView<T extends ByteViewField>(
+  kind: ByteViewKind,
+  field: T,
   byteLength: number,
-  read: (view: DataView, offset: number, length?: number) => T,
-  write: (view: DataView, offset: number, data: T) => void,
-): View<T> {
+  read: (
+    dataView: DataView,
+    offset: number,
+    length?: number,
+  ) => Model.FieldGet<T>,
+  write: (dataView: DataView, offset: number, data: Model.FieldGet<T>) => void,
+): ByteView<T> {
   return {
+    ...field,
+    [$byteView]: kind,
     byteLength,
     read,
     write,
-    ...dataTypeBase,
-    __type__: dataTypeId,
   }
 }
 
-export const uint8 = view(
-  ViewType.Uint8,
+export const uint8 = createByteView(
+  ByteViewKind.Uint8,
   Model.number,
   1,
-  (view, offset) => view.getUint8(offset),
-  (view, offset, data: number) => view.setUint8(offset, data),
+  (dataView, offset) => dataView.getUint8(offset),
+  (dataView, offset, data: number) => dataView.setUint8(offset, data),
 )
-export const uint16 = view(
-  ViewType.Uint16,
+export const uint16 = createByteView(
+  ByteViewKind.Uint16,
   Model.number,
   2,
-  (view, offset) => view.getUint16(offset),
-  (view, offset, data: number) => view.setUint16(offset, data),
+  (dataView, offset) => dataView.getUint16(offset),
+  (dataView, offset, data: number) => dataView.setUint16(offset, data),
 )
-export const uint32 = view(
-  ViewType.Uint32,
+export const uint32 = createByteView(
+  ByteViewKind.Uint32,
   Model.number,
   4,
-  (view, offset) => view.getUint32(offset),
-  (view, offset, data: number) => view.setUint32(offset, data),
+  (dataView, offset) => dataView.getUint32(offset),
+  (dataView, offset, data: number) => dataView.setUint32(offset, data),
 )
-export const int8 = view(
-  ViewType.Int8,
+export const int8 = createByteView(
+  ByteViewKind.Int8,
   Model.number,
   1,
-  (view, offset) => view.getInt8(offset),
-  (view, offset, data: number) => view.setInt8(offset, data),
+  (dataView, offset) => dataView.getInt8(offset),
+  (dataView, offset, data: number) => dataView.setInt8(offset, data),
 )
-export const int16 = view(
-  ViewType.Int16,
+export const int16 = createByteView(
+  ByteViewKind.Int16,
   Model.number,
   2,
-  (view, offset) => view.getInt16(offset),
-  (view, offset, data: number) => view.setInt16(offset, data),
+  (dataView, offset) => dataView.getInt16(offset),
+  (dataView, offset, data: number) => dataView.setInt16(offset, data),
 )
-export const int32 = view(
-  ViewType.Int32,
+export const int32 = createByteView(
+  ByteViewKind.Int32,
   Model.number,
   4,
-  (view, offset) => view.getInt32(offset),
-  (view, offset, data: number) => view.setInt32(offset, data),
+  (dataView, offset) => dataView.getInt32(offset),
+  (dataView, offset, data: number) => dataView.setInt32(offset, data),
 )
-export const float32 = view(
-  ViewType.Float32,
+export const float32 = createByteView(
+  ByteViewKind.Float32,
   Model.number,
   4,
-  (view, offset) => view.getFloat32(offset),
-  (view, offset, data: number) => view.setFloat32(offset, data),
+  (dataView, offset) => dataView.getFloat32(offset),
+  (dataView, offset, data: number) => dataView.setFloat32(offset, data),
 )
-export const float64 = view(
-  ViewType.Float64,
+export const float64 = createByteView(
+  ByteViewKind.Float64,
   Model.number,
   8,
-  (view, offset) => view.getFloat64(offset),
-  (view, offset, data: number) => view.setFloat64(offset, data),
+  (dataView, offset) => dataView.getFloat64(offset),
+  (dataView, offset, data: number) => dataView.setFloat64(offset, data),
 )
-export const string8 = view(
-  ViewType.String8,
+export const string8 = createByteView(
+  ByteViewKind.String8,
   Model.string,
   1,
-  (view, offset, length = 0) => {
+  (dataView, offset, length = 0) => {
     let value = ""
-
     for (let i = 0; i < length; i++) {
-      const charCode = view.getUint8(offset)
-
+      const charCode = dataView.getUint8(offset)
       if (charCode === 0) {
         break
       }
-
       value += String.fromCharCode(charCode)
       offset++
     }
-
     return value
   },
-  (view, offset, data: string) => {
+  (dataView, offset, data: string) => {
     for (let j = 0; j < data.length; j++) {
-      view.setUint8(offset, data[j].charCodeAt(0))
+      dataView.setUint8(offset, data[j].charCodeAt(0))
       offset++
     }
   },
 )
-export const string16 = view(
-  ViewType.String16,
+export const string16 = createByteView(
+  ByteViewKind.String16,
   Model.string,
-  1,
-  (view, offset, length = 0) => {
+  2,
+  (dataView, offset, length = 0) => {
     let value = ""
-
     for (let i = 0; i < length; i++) {
-      const charCode = view.getUint16(offset)
-
+      const charCode = dataView.getUint16(offset)
       if (charCode === 0) {
         break
       }
-
       value += String.fromCharCode(charCode)
-      offset++
+      offset += string16.byteLength
     }
-
     return value
   },
-  (view, offset, data: string) => {
+  (dataView, offset, data: string) => {
     for (let j = 0; j < data.length; j++) {
-      view.setUint16(offset, data[j].charCodeAt(0))
-      offset++
+      dataView.setUint16(offset, data[j].charCodeAt(0))
+      offset += string16.byteLength
     }
   },
 )
 
-export const boolean = view(
-  ViewType.Boolean,
+export const boolean = createByteView(
+  ByteViewKind.Boolean,
   Model.boolean,
   uint8.byteLength,
-  (view: DataView, offset: number) => !!uint8.read(view, offset, length),
-  (view: DataView, offset: number, value: boolean) =>
-    uint8.write(view, offset, +value),
+  (dataView: DataView, offset: number) =>
+    !!uint8.read(dataView, offset, length),
+  (dataView: DataView, offset: number, value: boolean) =>
+    uint8.write(dataView, offset, +value),
 )
 
 export const number = float64
-export const string = string8
+export const string = string16
 
-export const dataTypeToView = (dataType: Model.DataType) => {
-  if ("byteLength" in dataType) {
-    return dataType as View
+export function fieldToByteView(field: Model.Field) {
+  if (isByteView(field)) {
+    return field
   }
-  switch (dataType) {
-    case Model.number:
-    case Model.dynamic:
+  switch (field[$kind]) {
+    case Model.FieldKind.Number:
+    case Model.FieldKind.Dynamic:
       return number
-    case Model.string:
+    case Model.FieldKind.String:
       return string
-    case Model.boolean:
+    case Model.FieldKind.Boolean:
       return boolean
   }
   throw new Error(
-    `Failed to find view: unsupported DataType "${dataType.__type__}"`,
+    `Failed to find dataView: unsupported field "${field[$kind]}"`,
   )
 }

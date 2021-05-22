@@ -1,4 +1,4 @@
-import { InstanceOfSchema } from "@javelin/core"
+import { FieldExtract } from "@javelin/core"
 import { Component, Entity, UNSAFE_internals } from "@javelin/ecs"
 import { uint32, uint8 } from "@javelin/pack"
 import { ChangeSet } from "@javelin/track"
@@ -112,7 +112,7 @@ export function update(
 export function patch(
   message: Message,
   entity: Entity,
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeset: FieldExtract<typeof ChangeSet>,
 ) {
   insert(
     message,

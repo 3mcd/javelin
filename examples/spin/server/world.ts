@@ -84,7 +84,7 @@ const useMessage = createEffect(({ has }) => {
     useMonitor(
       transformsInShell,
       (e, [t, s]) => producer.attach(e, [t, s]),
-      producer.detach,
+      (e, [t, s]) => producer.detach(e, [t, s]),
     )
     useMonitor(
       transformsBig,
@@ -159,7 +159,7 @@ world.addSystem(() =>
   }),
 )
 
-createPointsAroundCircle(50, ENTITY_COUNT).map(([x, y], i) => {
+createPointsAroundCircle(50, 10).map(([x, y], i) => {
   const components: Component[] = [
     component(Transform, { x, y }),
     component(Shell, { value: (i % 6) + 1 }),

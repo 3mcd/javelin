@@ -1,17 +1,35 @@
-import { arrayOf, createModel } from "@javelin/core"
+import {
+  arrayOf,
+  createModel,
+  mapOf,
+  objectOf,
+  Schema,
+  setOf,
+} from "@javelin/core"
 import { decode, encode } from "./pack"
-import { boolean, int8, string, string8, uint16, uint8 } from "./views"
+import {
+  boolean,
+  float64,
+  int8,
+  string,
+  string8,
+  uint16,
+  uint8,
+  ByteView,
+  string16,
+  StringView,
+} from "./views"
 
 describe("pack", () => {
   it("encodes and decodes nested schema", () => {
     const model = createModel(
-      new Map([
+      new Map<number, Schema>([
         [
           0,
           {
             x: int8,
             y: int8,
-            name: { ...string, length: 10 },
+            name: { ...string, length: 10 } as StringView,
             enabled: boolean,
             a: {
               b: int8,
@@ -35,7 +53,7 @@ describe("pack", () => {
     expect(result).toEqual(object)
   })
 
-  it("handles arrays", () => {
+  it("encodes arrays", () => {
     const model = createModel(
       new Map([
         [
@@ -43,7 +61,7 @@ describe("pack", () => {
           {
             order: arrayOf(uint8),
             items: arrayOf({
-              name: { ...string8, length: 25 },
+              name: { ...string8, length: 25 } as ByteView,
               weight: uint16,
               attributes: {
                 damage: uint16,
@@ -65,7 +83,7 @@ describe("pack", () => {
     expect(object).toEqual(result)
   })
 
-  it("handles nested arrays", () => {
+  it("encodes nested arrays", () => {
     const model = createModel(
       new Map([
         [
@@ -88,6 +106,54 @@ describe("pack", () => {
       ],
     }
 
+    const result = decode(encode(object, model[0]), model[0])
+    expect(object).toEqual(result)
+  })
+
+  it("encodes objects", () => {
+    const model = createModel(
+      new Map([
+        [
+          0,
+          {
+            object: objectOf({ x: float64 }, {
+              ...string16,
+              length: 4,
+            } as StringView),
+          },
+        ],
+      ]),
+    )
+    const object = {
+      object: {
+        "%#$!": {
+          x: 1,
+        },
+      },
+    }
+    const result = decode(encode(object, model[0]), model[0])
+    expect(object).toEqual(result)
+  })
+
+  it("encodes sets", () => {
+    const model = createModel(new Map([[0, { set: setOf({ x: float64 }) }]]))
+    const object = {
+      set: new Set([{ x: 1.23 }, { x: 4.56 }, { x: 7.89 }]),
+    }
+    const result = decode(encode(object, model[0]), model[0])
+    expect(object).toEqual(result)
+  })
+
+  it("encodes maps", () => {
+    const model = createModel(
+      new Map([[0, { map: mapOf(float64, { x: float64 }) }]]),
+    )
+    const object = {
+      map: new Map([
+        [1, { x: 2 }],
+        [3, { x: 4 }],
+      ]),
+    }
     const result = decode(encode(object, model[0]), model[0])
     expect(object).toEqual(result)
   })

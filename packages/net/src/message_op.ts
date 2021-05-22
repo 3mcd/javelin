@@ -1,20 +1,20 @@
 import {
   $flat,
-  assert,
   createStackPool,
-  InstanceOfSchema,
+  FieldExtract,
+  isField,
+  isPrimitiveField,
   Model,
   mutableEmpty,
-  SchemaKeyKind,
 } from "@javelin/core"
 import { Component, Entity } from "@javelin/ecs"
 import {
-  dataTypeToView,
+  ByteView,
+  fieldToByteView,
   encode,
   uint16,
   uint32,
   uint8,
-  View,
 } from "@javelin/pack"
 import { ChangeSet } from "@javelin/track"
 import { encodeModel } from "./model"
@@ -23,7 +23,7 @@ export const $buffer = Symbol("javelin_array_buffer")
 
 export type MessageOp = {
   data: unknown[]
-  view: (View | typeof $buffer)[]
+  view: (ByteView | typeof $buffer)[]
   byteLength: number
 }
 
@@ -45,8 +45,8 @@ export function resetOp(op: MessageOp): MessageOp {
 export const messageOpPool = createStackPool(createOp, resetOp, 1000)
 
 export function insert(op: MessageOp, data: ArrayBuffer): MessageOp
-export function insert(op: MessageOp, data: unknown, view: View): MessageOp
-export function insert(op: MessageOp, data: unknown, view?: View) {
+export function insert(op: MessageOp, data: unknown, view: ByteView): MessageOp
+export function insert(op: MessageOp, data: unknown, view?: ByteView) {
   op.data.push(data)
   op.view.push(view ?? $buffer)
   op.byteLength += view ? view.byteLength : (data as ArrayBuffer).byteLength
@@ -60,7 +60,7 @@ export function insert(op: MessageOp, data: unknown, view?: View) {
  * [
  *   entity: uint32,
  *   count: uint8,
- *   components: [schemaId: uint8, length: uint16, encoded: *][],
+ *   components: [schemaId: uint8, encoded: *][],
  * ]
  * @param entity
  * @param components
@@ -80,7 +80,6 @@ export function snapshot(
     const schemaId = component.__type__
     const encoded = encode(component, model[schemaId])
     insert(op, schemaId, uint8)
-    insert(op, encoded.byteLength, uint16)
     insert(op, encoded)
   }
   return op
@@ -135,8 +134,9 @@ export const update = snapshot
 export function patch(
   model: Model,
   entity: Entity,
-  changeset: InstanceOfSchema<typeof ChangeSet>,
+  changeset: FieldExtract<typeof ChangeSet>,
 ): MessageOp {
+  changeset.changes
   const op = messageOpPool.retain()
   insert(op, entity, uint32)
   insert(op, changeset.size, uint8)
@@ -158,12 +158,10 @@ export function patch(
       for (let i = 0; i < record.traverse.length; i++) {
         insert(op, record.traverse[i], uint16)
       }
-      if (node.kind === SchemaKeyKind.Primitive) {
-        insert(op, value, dataTypeToView(node.type))
+      if (isField(node) && isPrimitiveField(node)) {
+        insert(op, value, fieldToByteView(node))
       } else {
-        const encoded = encode(value, node)
-        insert(op, encoded.byteLength, uint16)
-        insert(op, encoded)
+        insert(op, encode(value, node))
       }
     }
   }

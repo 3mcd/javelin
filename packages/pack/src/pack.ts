@@ -1,31 +1,49 @@
 import {
-  $schema,
-  assert,
-  ModelNode,
-  ModelNodeSchema,
-  SchemaKeyKind,
+  $kind,
+  CollatedNode,
+  FieldArray,
+  FieldKind,
+  FieldMap,
+  FieldObject,
+  FieldSet,
+  isField,
 } from "@javelin/core"
-import { dataTypeToView, uint32, View } from "./views"
+import {
+  ByteView,
+  fieldToByteView,
+  read,
+  StringView,
+  uint32,
+  write,
+} from "./views"
 
-type Field = View & { length?: number }
+export type Cursor = {
+  offset: number
+}
 
 type BufferField = {
-  view: View
+  view: ByteView
   value: unknown
   byteLength: number
 }
 
-function pushBufferField<T>(out: BufferField[], field: Field, value: T) {
-  const byteLength = field.byteLength * (field.length || 1)
+function pushBufferField<T>(
+  out: BufferField[],
+  field: ByteView | StringView,
+  value: T,
+) {
+  const length = (field as StringView).length ?? null
+  const byteLength = field.byteLength * (length ?? 1)
   out.push({
     view: field,
-    value: typeof value === "string" ? value.slice(0, field.length) : value,
+    value:
+      length !== null ? (value as unknown as string).slice(0, length) : value,
     byteLength,
   })
   return byteLength
 }
 
-function pushArrayLengthField(out: BufferField[], length: number) {
+function pushCollectionLengthField(out: BufferField[], length: number) {
   out.push({
     view: uint32,
     value: length,
@@ -36,121 +54,198 @@ function pushArrayLengthField(out: BufferField[], length: number) {
 
 export function serialize(
   out: BufferField[],
-  node: ModelNode,
+  node: CollatedNode,
   object: any,
   offset = 0,
 ) {
-  switch (node.kind) {
-    case SchemaKeyKind.Primitive:
-      offset += pushBufferField(out, dataTypeToView(node.type), object)
-      break
-    case SchemaKeyKind.Array: {
-      offset += pushArrayLengthField(out, object.length)
-      for (let i = 0; i < object.length; i++) {
-        offset = serialize(out, node.edge, object[i], offset)
+  if (isField(node)) {
+    switch (node[$kind]) {
+      case FieldKind.Number:
+      case FieldKind.String:
+      case FieldKind.Boolean:
+        offset += pushBufferField(out, fieldToByteView(node), object)
+        break
+      case FieldKind.Array: {
+        offset += pushCollectionLengthField(out, object.length)
+        for (let i = 0; i < object.length; i++) {
+          offset = serialize(
+            out,
+            (node as FieldArray<unknown>).element as CollatedNode,
+            object[i],
+            offset,
+          )
+        }
+        break
       }
-      break
+      case FieldKind.Object: {
+        const keys = Object.keys(object)
+        offset += pushCollectionLengthField(out, keys.length)
+        for (let i = 0; i < keys.length; i++) {
+          const key = keys[i]
+          offset += pushBufferField(
+            out,
+            fieldToByteView((node as FieldObject<unknown>).key),
+            key,
+          )
+          offset = serialize(
+            out,
+            (node as FieldObject<unknown>).element as CollatedNode,
+            object[key],
+            offset,
+          )
+        }
+        break
+      }
+      case FieldKind.Set:
+        offset += pushCollectionLengthField(out, object.size)
+        object.forEach((element: unknown) => {
+          offset = serialize(
+            out,
+            (node as FieldSet<unknown>).element as CollatedNode,
+            element,
+            offset,
+          )
+        })
+        break
+      case FieldKind.Map:
+        offset += pushCollectionLengthField(out, object.size)
+        ;(object as Map<number | string, unknown>).forEach((element, key) => {
+          offset += pushBufferField(
+            out,
+            fieldToByteView((node as FieldMap<unknown, unknown>).key),
+            key,
+          )
+          offset = serialize(
+            out,
+            (node as FieldMap<unknown, unknown>).element as CollatedNode,
+            element,
+            offset,
+          )
+        })
+        break
     }
-    case SchemaKeyKind.Object:
-      // TODO: support map
-      break
-    case $schema:
-      for (let i = 0; i < node.edges.length; i++) {
-        const edge = node.edges[i]
-        offset = serialize(out, edge, object[edge.key], offset)
-      }
-      break
+  } else {
+    for (let i = 0; i < node.fields.length; i++) {
+      const edge = node.fields[i]
+      offset = serialize(out, edge, object[node.keys[i]], offset)
+    }
   }
 
   return offset
 }
 
-export function encode(object: any, type: ModelNode): ArrayBuffer {
+export function encode(
+  object: any,
+  type: CollatedNode,
+  cursor = { offset: 0 },
+): ArrayBuffer {
   const bufferFields: BufferField[] = []
   const bufferSize = serialize(bufferFields, type, object)
   const buffer = new ArrayBuffer(bufferSize)
   const dataView = new DataView(buffer)
 
-  let offset = 0
-
   for (let i = 0; i < bufferFields.length; i++) {
     const bufferField = bufferFields[i]
-    bufferField.view.write(dataView, offset, bufferField.value)
-    offset += bufferField.byteLength
+    write(
+      dataView,
+      bufferField.view,
+      cursor,
+      bufferField.value as number | string | boolean,
+    )
   }
 
   return buffer
 }
 
-type DecodeComplex = {
-  key: string | number
-  value: Record<string | number, unknown>
-}
-type DecodePrimitive = { value: string | number | boolean }
-type DecodeRoot = { value: unknown }
-type DecodeCursor = { offset: number } & (
-  | DecodePrimitive
-  | DecodeComplex
-  | DecodeRoot
-)
-
-const isComplex = (cursor: object): cursor is DecodeComplex => "key" in cursor
-const NOT_COMPLEX = { key: null, value: null }
-
 const decodeInner = (
   dataView: DataView,
-  node: ModelNode,
-  cursor: DecodeCursor,
+  node: CollatedNode,
+  cursor: Cursor,
 ) => {
-  const { key, value: parent } = isComplex(cursor) ? cursor : NOT_COMPLEX
-  let child: unknown
-  switch (node.kind) {
-    case SchemaKeyKind.Primitive: {
-      const field = dataTypeToView(node.type) as Field
-      child = cursor.value = field.read(
-        dataView,
-        cursor.offset,
-        field.length || 0,
-      )
-      cursor.offset += field.byteLength * (field.length || 1)
-      break
+  if (!isField(node)) {
+    const schema: { [key: string]: unknown } = {}
+    for (let i = 0; i < node.fields.length; i++) {
+      schema[node.keys[i]] = decodeInner(dataView, node.fields[i], cursor)
     }
-    case SchemaKeyKind.Array: {
+    return schema
+  }
+  switch (node[$kind]) {
+    case FieldKind.Number:
+    case FieldKind.String:
+    case FieldKind.Boolean: {
+      return read(dataView, fieldToByteView(node), cursor)
+    }
+    case FieldKind.Array: {
       const length = uint32.read(dataView, cursor.offset, 0)
-      cursor.value = child = [] as Record<number, unknown>
+      const array = [] as Record<number, unknown>
       cursor.offset += uint32.byteLength
       for (let i = 0; i < length; i++) {
-        ;(cursor as DecodeComplex).key = i
-        decodeInner(dataView, node.edge, cursor)
-        cursor.value = child
+        array[i] = decodeInner(
+          dataView,
+          (node as FieldArray<unknown>).element as CollatedNode,
+          cursor,
+        )
       }
-      break
+      return array
     }
-    // TODO: support map
-    case SchemaKeyKind.Object:
-      break
-    case $schema: {
-      cursor.value = child = {}
-      for (let i = 0; i < node.edges.length; i++) {
-        const edge = node.edges[i]
-        ;(cursor as DecodeComplex).key = edge.key
-        decodeInner(dataView, edge, cursor)
-        cursor.value = child
+    case FieldKind.Object: {
+      const keyByteView = fieldToByteView(
+        (node as FieldObject<unknown>).key,
+      ) as StringView
+      const length = read(dataView, uint32, cursor)
+      const object: { [key: string]: unknown } = {}
+      for (let i = 0; i < length; i++) {
+        const key = read(dataView, keyByteView, cursor)
+        object[key] = decodeInner(
+          dataView,
+          (node as FieldObject<unknown>).element as CollatedNode,
+          cursor,
+        )
       }
-      break
+      return object
+    }
+    case FieldKind.Set: {
+      const length = read(dataView, uint32, cursor)
+      const set = new Set()
+      for (let i = 0; i < length; i++) {
+        set.add(
+          decodeInner(
+            dataView,
+            (node as FieldSet<unknown>).element as CollatedNode,
+            cursor,
+          ),
+        )
+      }
+      return set
+    }
+    case FieldKind.Map: {
+      const keyByteView = fieldToByteView(
+        (node as FieldObject<unknown>).key as ByteView,
+      )
+      const length = read(dataView, uint32, cursor)
+      const map = new Map()
+      for (let i = 0; i < length; i++) {
+        const key = read(dataView, keyByteView, cursor)
+        map.set(
+          key,
+          decodeInner(
+            dataView,
+            (node as FieldObject<unknown>).element as CollatedNode,
+            cursor,
+          ),
+        )
+      }
+      return map
     }
   }
-  if (parent && key !== null) {
-    parent[key] = cursor.value
-  }
-  return child
 }
 
-export function decode<T>(buffer: ArrayBuffer, type: ModelNode): T {
-  const dataView = new DataView(buffer)
-  const cursor = { offset: 0, value: null }
-  const value = decodeInner(dataView, type, cursor)
-  return value as T
+export function decode<T extends ReturnType<typeof decodeInner>>(
+  buffer: ArrayBuffer,
+  type: CollatedNode,
+  cursor: Cursor = { offset: 0 },
+) {
+  return decodeInner(new DataView(buffer), type, cursor) as T
 }
 
 export * from "./views"

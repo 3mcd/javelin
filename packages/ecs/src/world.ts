@@ -195,10 +195,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
   const deferredOps: WorldOp[] = []
   const deferredOpsPool = createStackPool<WorldOp>(
     () => [] as any as WorldOp,
-    op => {
-      mutableEmpty(op)
-      return op
-    },
+    mutableEmpty,
     1000,
   )
   const destroyed = new Set<number>()
@@ -279,7 +276,8 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     const schemaIds = components.map(c =>
       typeof c === "number"
         ? c
-        : UNSAFE_internals.schemaIndex.get(c) ?? (c as Component).__type__,
+        : UNSAFE_internals.schemaIndex.get(c as Schema) ??
+          (c as Component).__type__,
     )
     deferredOps.push(createDeferredOp(DeferredOpType.Detach, entity, schemaIds))
   }

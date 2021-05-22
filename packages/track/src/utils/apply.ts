@@ -1,21 +1,13 @@
-import {
-  $schema,
-  assert,
-  ErrorType,
-  ModelNode,
-  SchemaKeyKind,
-} from "@javelin/core"
+import { assert, CollatedNode, ErrorType, isField } from "@javelin/core"
 import { Component, ComponentOf, UNSAFE_internals } from "@javelin/ecs"
 import { ChangeSet } from "../components"
 
 const ERROR_PATCH_NO_MATCH =
   "Failed to patch component: reached leaf before finding field"
-const ERROR_PATCH_UNSUPPORTED_TYPE =
-  "Failed to patch component: only primitive types are currently supported"
 
 export function applyPatchToComponent(
   component: Component,
-  field: number,
+  fieldId: number,
   traverse: number[],
   value: unknown,
 ) {
@@ -23,37 +15,29 @@ export function applyPatchToComponent(
   let traverseIndex = 0
   let key: string | number | null = null
   let ref = component
-  let node: ModelNode = type as ModelNode
-  outer: while (node.id !== field) {
+  let node: CollatedNode = type as CollatedNode
+  outer: while (node.id !== fieldId) {
     if (key !== null) {
-      ref = ref[key]
+      ref = ref[key] as any
     }
-    switch (node.kind) {
-      case SchemaKeyKind.Primitive:
-        throw new Error(ERROR_PATCH_NO_MATCH)
-      case SchemaKeyKind.Array:
-      case SchemaKeyKind.Object:
-      case SchemaKeyKind.Set:
-      case SchemaKeyKind.Map:
-        key = traverse[traverseIndex++]
-        node = node.edge
-        continue
-      case $schema:
-        for (let i = 0; i < node.edges.length; i++) {
-          const child = node.edges[i]
-          if (child.lo <= field && child.hi >= field) {
-            key = child.key
-            node = child
-            continue outer
-          }
+    if (!isField(node)) {
+      for (let i = 0; i < node.fields.length; i++) {
+        const child = node.fields[i]
+        if (child.lo <= fieldId && child.hi >= fieldId) {
+          key = node.keys[i]
+          node = child
+          continue outer
         }
-      default:
-        throw new Error(ERROR_PATCH_NO_MATCH)
+      }
+    } else {
+      assert("element" in node, ERROR_PATCH_NO_MATCH)
+      key = traverse[traverseIndex++]
+      node = node.element as CollatedNode
+      continue
     }
   }
   assert(key !== null, "", ErrorType.Internal)
-  assert(node.kind === SchemaKeyKind.Primitive, ERROR_PATCH_UNSUPPORTED_TYPE)
-  ref[key] = value
+  ref[key] = value as any
 }
 
 export function apply(

@@ -1,4 +1,4 @@
-import { uint16, uint32, uint8 } from "@javelin/pack"
+import { uint32, uint8 } from "@javelin/pack"
 import { encode } from "./encode"
 import * as Message from "./message"
 import * as MessageOp from "./message_op"

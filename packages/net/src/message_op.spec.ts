@@ -1,12 +1,15 @@
 import {
   $flat,
+  $kind,
   arrayOf,
   createModel,
-  initialize,
-  InstanceOfSchema,
+  FieldExtract,
+  FieldKind,
+  initializeWithSchema,
+  isField,
+  isPrimitiveField,
   Model,
   Schema,
-  SchemaKeyKind,
 } from "@javelin/core"
 import { Component, component, registerSchema } from "@javelin/ecs"
 import { encode, float32, float64, uint16, uint32, uint8 } from "@javelin/pack"
@@ -51,9 +54,6 @@ function runSnapshotOpTest(snapshotOpFactory: typeof snapshot, model: Model) {
     expect(op.data[i]).toBe(components[j].__type__)
     expect(op.view[i]).toBe(uint8)
     i++
-    expect(op.data[i]).toBe(componentsEncoded[j].byteLength)
-    expect(op.view[i]).toBe(uint16)
-    i++
     expect(String(op.data[i])).toBe(String(componentsEncoded[j]))
     expect(op.view[i]).toBe($buffer)
     i++
@@ -66,7 +66,6 @@ function runSnapshotOpTest(snapshotOpFactory: typeof snapshot, model: Model) {
         (a, c, i) =>
           a +
           uint8.byteLength + // schemaId
-          uint16.byteLength + // length
           componentsEncoded[i].byteLength, // encoded
         0,
       ),
@@ -88,8 +87,8 @@ describe("message_op", () => {
   it("creates update ops", () => runSnapshotOpTest(update, model))
   it("creates patch ops", () => {
     const entity = 0
-    const changeset = initialize(
-      {} as InstanceOfSchema<typeof ChangeSet>,
+    const changeset = initializeWithSchema(
+      {} as FieldExtract<typeof ChangeSet>,
       ChangeSet,
     )
     const position = component(Position)
@@ -97,7 +96,7 @@ describe("message_op", () => {
     const complex = component(Complex)
     const tracks: [
       Component,
-      InstanceOfSchema<typeof ChangeSet>,
+      FieldExtract<typeof ChangeSet>,
       string,
       unknown,
     ][] = [
@@ -147,16 +146,13 @@ describe("message_op", () => {
           j++
         }
         const node = type[field]
-        if (node.kind === SchemaKeyKind.Primitive) {
+        if (isField(node) && isPrimitiveField(node)) {
           // primitive fields
           expect(op.data[j]).toBe(value)
           j++
         } else {
           // complex fields
           const encoded = encode(value, node)
-          expect(op.data[j]).toBe(encoded.byteLength)
-          expect(op.view[j]).toBe(uint16)
-          j++
           expect(String(op.data[j])).toBe(String(encoded))
           expect(op.view[j]).toBe($buffer)
           j++
