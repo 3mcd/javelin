@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-alpha.3](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2021-05-23)
+
+
+### Bug Fixes
+
+* use uint32 for message part byte length ([aa96bb6](https://github.com/3mcd/javelin/commit/aa96bb6901ccbd24044492bc1ae1859f614fa78d))
+
+
+### Features
+
+* add set and map types to components ([cd67a1b](https://github.com/3mcd/javelin/commit/cd67a1b87ec475157a98863b8ef1c7a862ce7c13))
+* model enhancements ([65bbe77](https://github.com/3mcd/javelin/commit/65bbe772b631bf06b71870348827c315c397fbc4))
+* more api improvements ([6e4f27b](https://github.com/3mcd/javelin/commit/6e4f27b8e200ed49679e1512dccc1fea22010841))
+
+
+
+
+
 # [1.0.0-alpha.2](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.1...v1.0.0-alpha.2) (2021-05-18)
 
 **Note:** Version bump only for package @javelin/track

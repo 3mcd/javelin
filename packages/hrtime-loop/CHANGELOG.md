@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-alpha.3](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2021-05-23)
+
+
+### Features
+
+* more api improvements ([6e4f27b](https://github.com/3mcd/javelin/commit/6e4f27b8e200ed49679e1512dccc1fea22010841))
+* prefer function keyword; hrtime-loop accuracy improvements and api tweaks ([ade3c9a](https://github.com/3mcd/javelin/commit/ade3c9a219a90844abda31903a44a30f2812ea87))
+
+
+
+
+
 # [0.22.0](https://github.com/3mcd/javelin/compare/v0.21.2...v0.22.0) (2021-04-15)
 
 
