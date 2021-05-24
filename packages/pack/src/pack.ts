@@ -1,6 +1,7 @@
 import {
   $kind,
   CollatedNode,
+  Field,
   FieldArray,
   FieldKind,
   FieldMap,
@@ -29,15 +30,17 @@ type BufferField = {
 
 function pushBufferField<T>(
   out: BufferField[],
-  field: ByteView | StringView,
+  byteView: ByteView | StringView,
   value: T,
+  length = (byteView as StringView).length ?? 1,
 ) {
-  const length = (field as StringView).length ?? null
-  const byteLength = field.byteLength * (length ?? 1)
+  const byteLength = length * byteView.byteLength
   out.push({
-    view: field,
+    view: byteView,
     value:
-      length !== null ? (value as unknown as string).slice(0, length) : value,
+      byteView[$kind] === FieldKind.String
+        ? (value as unknown as string).slice(0, length)
+        : value,
     byteLength,
   })
   return byteLength
@@ -63,7 +66,12 @@ export function serialize(
       case FieldKind.Number:
       case FieldKind.String:
       case FieldKind.Boolean:
-        offset += pushBufferField(out, fieldToByteView(node), object)
+        offset += pushBufferField(
+          out,
+          fieldToByteView(node),
+          object,
+          (node as unknown as StringView).length,
+        )
         break
       case FieldKind.Array: {
         offset += pushCollectionLengthField(out, object.length)
@@ -173,7 +181,12 @@ const decodeInner = (
     case FieldKind.Number:
     case FieldKind.String:
     case FieldKind.Boolean: {
-      return read(dataView, fieldToByteView(node), cursor)
+      return read(
+        dataView,
+        fieldToByteView(node),
+        cursor,
+        (node as Field as StringView).length,
+      )
     }
     case FieldKind.Array: {
       const length = uint32.read(dataView, cursor.offset, 0)

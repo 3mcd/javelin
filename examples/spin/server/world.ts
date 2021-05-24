@@ -53,7 +53,7 @@ function getInitialMessage(world: World) {
       producer.attach(e, world.has(e, Big) ? [t, world.get(e, Big), s] : [t, s])
     }
   }
-  return producer.take(true)
+  return producer.take()
 }
 
 const useClients = createEffect(({ create, destroy }) => {
@@ -159,7 +159,7 @@ world.addSystem(() =>
   }),
 )
 
-createPointsAroundCircle(50, 10).map(([x, y], i) => {
+createPointsAroundCircle(50, ENTITY_COUNT).map(([x, y], i) => {
   const components: Component[] = [
     component(Transform, { x, y }),
     component(Shell, { value: (i % 6) + 1 }),
