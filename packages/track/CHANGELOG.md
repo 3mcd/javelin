@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-alpha.4](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2021-05-24)
+
+**Note:** Version bump only for package @javelin/track
+
+
+
+
+
 # [1.0.0-alpha.3](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2021-05-23)
 
 
