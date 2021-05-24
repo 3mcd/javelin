@@ -1,6 +1,11 @@
 import { FieldExtract } from "@javelin/core"
-import { Component, Entity, UNSAFE_internals } from "@javelin/ecs"
-import { uint32, uint8 } from "@javelin/pack"
+import {
+  Component,
+  Entity,
+  UNSAFE_internals,
+  UNSAFE_modelChanged,
+} from "@javelin/ecs"
+import { enhanceModel, ModelEnhanced, uint32, uint8 } from "@javelin/pack"
 import { ChangeSet } from "@javelin/track"
 import * as Ops from "./message_op"
 
@@ -22,6 +27,14 @@ export type MessagePart = {
   ops: Ops.MessageOp[]
   kind: MessagePartKind
   byteLength: number
+}
+
+let enhancedModel: ModelEnhanced = enhanceModel(UNSAFE_internals.model)
+
+UNSAFE_modelChanged.subscribe(model => (enhancedModel = enhanceModel(model)))
+
+export function getEnhancedModel() {
+  return enhancedModel
 }
 
 export function createMessage(): Message {
@@ -77,12 +90,13 @@ export function overwrite(
   op: Ops.MessageOp,
 ) {
   const part = getOrSetPart(message, kind)
+  message.byteLength -= part.byteLength
   clearMessagePart(part)
   insert(message, kind, op)
 }
 
 export function model(message: Message) {
-  overwrite(message, MessagePartKind.Model, Ops.model(UNSAFE_internals.model))
+  overwrite(message, MessagePartKind.Model, Ops.model(enhancedModel))
 }
 
 export function attach(
@@ -93,7 +107,7 @@ export function attach(
   insert(
     message,
     MessagePartKind.Attach,
-    Ops.attach(UNSAFE_internals.model, entity, components),
+    Ops.attach(enhancedModel, entity, components),
   )
 }
 
@@ -105,7 +119,7 @@ export function update(
   insert(
     message,
     MessagePartKind.Update,
-    Ops.update(UNSAFE_internals.model, entity, components),
+    Ops.update(enhancedModel, entity, components),
   )
 }
 
@@ -117,7 +131,7 @@ export function patch(
   insert(
     message,
     MessagePartKind.Patch,
-    Ops.patch(UNSAFE_internals.model, entity, changeset),
+    Ops.patch(enhancedModel, entity, changeset),
   )
 }
 

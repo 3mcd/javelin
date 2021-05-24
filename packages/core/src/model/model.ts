@@ -27,41 +27,41 @@ export type FieldString = FieldData<string> & {
 export type FieldBoolean = FieldData<boolean> & {
   [$kind]: FieldKind.Boolean
 }
-export type FieldArray<T> = FieldData<T[]> & {
+export type FieldArray<T, P = unknown> = FieldData<T[]> & {
   [$kind]: FieldKind.Array
-  element: Schema | FOf<T>
+  element: Schema | FOf<T, P>
 }
-export type FieldObject<T> = FieldData<StringMap<T>> & {
+export type FieldObject<T, P = unknown> = FieldData<StringMap<T>> & {
   [$kind]: FieldKind.Object
   key: FOf<string>
-  element: Schema | FOf<T>
+  element: Schema | FOf<T, P>
 }
-export type FieldSet<T> = FieldData<Set<T>> & {
+export type FieldSet<T, P = unknown> = FieldData<Set<T>> & {
   [$kind]: FieldKind.Set
-  element: Schema | FOf<T>
+  element: Schema | FOf<T, P>
 }
-export type FieldMap<K, V> = FieldData<Map<K, V>> & {
+export type FieldMap<K, V, P = unknown> = FieldData<Map<K, V>> & {
   [$kind]: FieldKind.Map
   key: FOf<K>
-  element: Schema | FOf<V>
+  element: Schema | FOf<V, P>
 }
 export type FieldDynamic<T> = FieldData<T> & {
   [$kind]: FieldKind.Dynamic
 }
-export type FOf<T> = T extends number
-  ? FieldNumber
+export type FOf<T, P = unknown> = T extends number
+  ? FieldNumber & P
   : T extends string
-  ? FieldString
+  ? FieldString & P
   : T extends boolean
-  ? FieldBoolean
+  ? FieldBoolean & P
   : T extends (infer _)[]
-  ? FieldArray<_>
+  ? FieldArray<_, P>
   : T extends StringMap<infer _>
-  ? FieldObject<_>
+  ? FieldObject<_, P>
   : T extends Set<infer _>
-  ? FieldSet<_>
+  ? FieldSet<_, P>
   : T extends Map<infer K, infer V>
-  ? FieldMap<K, V>
+  ? FieldMap<K, V, P>
   : FieldData<T>
 export type FieldGet<T extends Field> = T extends FieldNumber
   ? number
@@ -84,21 +84,16 @@ export type FieldExtract<T> = T extends Field
   ? { [K in keyof T]: FieldExtract<T[K]> }
   : never
 
-export type FieldPrimitive =
-  | FieldNumber
-  | FieldString
-  | FieldBoolean
-  | FieldDynamic<unknown>
+export type FieldPrimitive<P = unknown> = P &
+  (FieldNumber | FieldString | FieldBoolean | FieldDynamic<unknown>)
 
-export type FieldAny =
-  | FieldNumber
-  | FieldString
-  | FieldBoolean
-  | FieldArray<any>
-  | FieldObject<any>
-  | FieldSet<any>
-  | FieldMap<any, any>
-  | FieldDynamic<any>
+export type FieldComplex<P = unknown> =
+  | FieldArray<unknown, P>
+  | FieldObject<unknown, P>
+  | FieldSet<unknown, P>
+  | FieldMap<unknown, unknown, P>
+
+export type FieldAny = FieldPrimitive | FieldComplex
 
 export type CollatedNodeBase = {
   id: number
@@ -106,16 +101,21 @@ export type CollatedNodeBase = {
   lo: number
   deep: boolean
 }
-export type CollatedNodeSchema = CollatedNodeBase & {
+export type CollatedNodeSchema<P = unknown> = CollatedNodeBase & {
   keys: string[]
-  fields: CollatedNode[]
-  fieldsByKey: { [key: string]: CollatedNode }
+  fields: CollatedNode<P>[]
+  fieldsByKey: { [key: string]: CollatedNode<P> }
   fieldIdsByKey: { [key: string]: number }
 }
-export type CollatedNodeField = FieldAny & CollatedNodeBase
-export type CollatedNode = CollatedNodeSchema | CollatedNodeField
-export type ModelFlat = { [key: number]: { [f: number]: CollatedNode } }
-export type Model = {
-  [$flat]: ModelFlat
-  [key: number]: CollatedNode
+export type CollatedNodeField<P> = (FieldComplex<P> | FieldPrimitive<P>) &
+  CollatedNodeBase
+export type CollatedNode<P = unknown> =
+  | CollatedNodeSchema<P>
+  | CollatedNodeField<P>
+export type ModelFlat<P = unknown> = {
+  [key: number]: { [f: number]: CollatedNode<P> }
+}
+export type Model<P = unknown> = {
+  [$flat]: ModelFlat<P>
+  [key: number]: CollatedNode<P>
 }

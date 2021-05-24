@@ -1,6 +1,7 @@
-import { $flat, assert, Model, mutableEmpty } from "@javelin/core"
+import { $flat, assert, mutableEmpty } from "@javelin/core"
 import { Component } from "@javelin/ecs"
 import * as Pack from "@javelin/pack"
+import { enhanceModel, ModelEnhanced } from "@javelin/pack"
 import { MessagePartKind } from "./message"
 import { decodeModel } from "./model"
 
@@ -10,7 +11,7 @@ const ERROR_MODEL_NOT_FOUND =
 type EntitySnapshotHandler = (entity: number, components: Component[]) => void
 
 export type DecodeMessageHandlers = {
-  onModel?(model: Model): void
+  onModel?(model: ModelEnhanced): void
   onAttach?: EntitySnapshotHandler
   onUpdate?: EntitySnapshotHandler
   onDetach?(entity: number, schemaIds: number[]): void
@@ -38,7 +39,7 @@ function decodeEntitySnapshot(
   dataView: DataView,
   cursor: Pack.Cursor,
   length: number,
-  model: Model,
+  model: ModelEnhanced,
   onSnapshot?: EntitySnapshotHandler,
 ) {
   const end = cursor.offset + length
@@ -63,7 +64,7 @@ function decodePatch(
   dataView: DataView,
   cursor: Pack.Cursor,
   length: number,
-  model: Model,
+  model: ModelEnhanced,
   onPatch: DecodeMessageHandlers["onPatch"],
 ) {
   const end = cursor.offset + length
@@ -130,18 +131,18 @@ function _decodeModel(
   length: number,
   onModel: DecodeMessageHandlers["onModel"],
 ) {
-  onModel?.(decodeModel(dataView, cursor, length))
+  onModel?.(enhanceModel(decodeModel(dataView, cursor, length)))
 }
 
 export function decode(
   buffer: ArrayBuffer,
   handlers: DecodeMessageHandlers,
-  model?: Model,
+  model?: ModelEnhanced,
 ) {
   const { onPatch, onDetach, onDestroy, onModel } = handlers
   const cursor = { offset: 0 }
   const dataView = new DataView(buffer)
-  const _onModel = (_model: Model) => {
+  const _onModel = (_model: ModelEnhanced) => {
     model = _model
     onModel?.(_model)
   }

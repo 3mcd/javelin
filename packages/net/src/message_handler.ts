@@ -1,17 +1,17 @@
-import { Model } from "@javelin/core"
 import { createEffect, World } from "@javelin/ecs"
+import { ModelEnhanced } from "@javelin/pack"
 import { applyPatchToComponent } from "@javelin/track"
 import { decode, DecodeMessageHandlers } from "./decode"
 
 export const createMessageHandler = (world: World) => {
-  let model: Model
+  let model: ModelEnhanced
   const patched = new Set<number>()
   const updated = new Set<number>()
   const state = { patched, updated }
   const entities = new Map<number, number>()
   const messages: ArrayBuffer[] = []
   const handlers: DecodeMessageHandlers = {
-    onModel(m) {
+    onModel(m: ModelEnhanced) {
       model = m
     },
     onAttach(entity, components) {

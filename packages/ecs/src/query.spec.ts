@@ -1,3 +1,4 @@
+import { World } from "../dist/cjs"
 import { Archetype, createArchetype } from "./archetype"
 import { Component, registerSchema } from "./component"
 import { UNSAFE_internals } from "./internal"
@@ -39,8 +40,7 @@ describe("createQuery", () => {
         table,
       } as Archetype,
     ]
-
-    UNSAFE_internals.worlds = [world]
+    ;(UNSAFE_internals as { worlds: World[] }).worlds = [world]
     UNSAFE_internals.currentWorldId = 0
 
     const q = createQuery(A, B)

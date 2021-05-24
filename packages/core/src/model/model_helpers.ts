@@ -74,7 +74,10 @@ export function dynamic<T>(
   }
 }
 
-export function isField(object: object): object is Model.FieldData<unknown> {
+export function isField(object: object): object is Model.Field {
+  return Model.$kind in object
+}
+export function isFieldData<T>(object: object): object is Model.FieldData<T> {
   return Model.$kind in object
 }
 export function isPrimitiveField(
@@ -91,18 +94,18 @@ export function isPrimitiveField(
 
 type Cursor = { id: number }
 
-export function collate(
+export function collate<T>(
   visiting: Model.Schema | Model.FieldAny,
   cursor: Cursor,
   deep = false,
-): Model.CollatedNode {
+): Model.CollatedNode<T> {
   let base: Model.CollatedNodeBase = {
     id: ++cursor.id,
     lo: cursor.id,
     hi: cursor.id,
     deep,
   }
-  let node: Model.CollatedNode
+  let node: Model.CollatedNode<T>
   if (isField(visiting)) {
     node = { ...base, ...visiting }
     if ("element" in node) {
@@ -114,8 +117,8 @@ export function collate(
     }
   } else {
     const keys = Object.keys(visiting)
-    const fields: Model.CollatedNode[] = []
-    const fieldsByKey: { [key: string]: Model.CollatedNode } = {}
+    const fields: Model.CollatedNode<T>[] = []
+    const fieldsByKey: { [key: string]: Model.CollatedNode<T> } = {}
     const fieldIdsByKey: { [key: string]: number } = {}
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]
@@ -145,7 +148,7 @@ export function flattenModelNode(
   flat[node.id] = node
   if (isField(node)) {
     if ("element" in node) {
-      flattenModelNode(node.element as Model.CollatedNode, flat)
+      flattenModelNode(node.element as Model.CollatedNode<unknown>, flat)
     }
   } else {
     for (let i = 0; i < node.fields.length; i++) {
@@ -154,9 +157,9 @@ export function flattenModelNode(
   }
 }
 
-export function flattenModel(
+export function flattenModel<T>(
   model: Omit<Model.Model, typeof Model.$flat>,
-): Model.ModelFlat {
+): Model.ModelFlat<T> {
   const flat: Model.Model[typeof Model.$flat] = {}
   for (const prop in model) {
     flattenModelNode(model[prop], (flat[prop] = {}))
@@ -171,7 +174,7 @@ export function flattenModel(
  * @param config
  * @returns Model
  */
-export function createModel(config: ModelConfig): Model.Model {
+export function createModel<T>(config: ModelConfig): Model.Model<T> {
   const model: Omit<Model.Model, typeof Model.$flat> = {}
   const cursor = { id: -1 }
   config.forEach((sf, t) => {
@@ -192,7 +195,7 @@ export function initializeWithSchema<T extends Model.Schema>(
   for (const prop in schema) {
     const type = schema[prop]
     let value: unknown
-    if (isField(type)) {
+    if (isFieldData(type)) {
       value = type.get()
     } else {
       value = initializeWithSchema({}, type as Model.Schema)
@@ -208,11 +211,10 @@ export function resetWithSchema<T extends Model.Schema>(
 ) {
   for (const prop in schema) {
     const type = schema[prop]
-    if (isField(type)) {
-      object[prop] = type.get(object[prop]) as Model.FieldExtract<T>[Extract<
-        keyof T,
-        string
-      >]
+    if (isFieldData(type)) {
+      object[prop] = type.get(
+        object[prop] as any,
+      ) as Model.FieldExtract<T>[Extract<keyof T, string>]
     } else {
       resetWithSchema(
         object[prop] as Model.FieldExtract<T>,

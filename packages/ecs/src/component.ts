@@ -7,7 +7,7 @@ import {
   Schema,
   StackPool,
 } from "@javelin/core"
-import { UNSAFE_internals } from "./internal"
+import { UNSAFE_internals, UNSAFE_setModel } from "./internal"
 
 type ComponentProps = {
   readonly __type__: number
@@ -84,7 +84,7 @@ export function registerSchema(
   UNSAFE_internals.schemaPools.set(type, createComponentPool(schema, poolSize))
   modelConfig.set(type, schema)
   UNSAFE_internals.schemaIndex.set(schema, type)
-  UNSAFE_internals.model = createModel(modelConfig)
+  UNSAFE_setModel(createModel(modelConfig))
   return type
 }
 

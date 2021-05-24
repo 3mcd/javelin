@@ -24,18 +24,21 @@ const BYTE_VIEWS_LOOKUP = BYTE_VIEWS.reduce((sparse, byteView) => {
 const COLLECTION_MASK = 1 << 6
 const SCHEMA_MASK = 1 << 7
 
-function encodeField(field: Core.Field, out: number[], offset = 0) {
-  const byteView = Pack.fieldToByteView(field)
+function encodeField(byteView: Pack.ByteView, out: number[], offset = 0) {
   out.push(byteView[Pack.$byteView])
   offset++
-  if (field[Core.$kind] === Core.FieldKind.String) {
-    out.push((field as StringView).length ?? 0)
+  if (byteView[Core.$kind] === Core.FieldKind.String) {
+    out.push((byteView as StringView).length ?? 0)
     offset++
   }
   return offset
 }
 
-function encodeNode(node: Core.CollatedNode, out: number[], offset = 0) {
+function encodeNode(
+  node: Core.CollatedNode<Pack.ByteView>,
+  out: number[],
+  offset = 0,
+) {
   if (Core.isField(node)) {
     if (Core.isPrimitiveField(node)) {
       offset = encodeField(node, out, offset)
@@ -43,9 +46,13 @@ function encodeNode(node: Core.CollatedNode, out: number[], offset = 0) {
       out.push(node[Core.$kind] | COLLECTION_MASK)
       offset++
       if ("key" in node) {
-        offset = encodeField(node.key, out, offset)
+        offset = encodeField(node.key as Pack.ByteView, out, offset)
       }
-      offset = encodeNode(node.element as Core.CollatedNode, out, offset)
+      offset = encodeNode(
+        node.element as Core.CollatedNode<Pack.ByteView>,
+        out,
+        offset,
+      )
     }
   } else {
     const length = node.fields.length
@@ -66,7 +73,7 @@ function encodeNode(node: Core.CollatedNode, out: number[], offset = 0) {
   return offset
 }
 
-export function encodeModel(model: Core.Model) {
+export function encodeModel(model: Pack.ModelEnhanced) {
   const flat: number[] = []
   let size = 0
   for (const prop in model) {

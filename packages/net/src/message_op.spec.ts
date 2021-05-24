@@ -1,18 +1,24 @@
 import {
   $flat,
-  $kind,
   arrayOf,
   createModel,
   FieldExtract,
-  FieldKind,
   initializeWithSchema,
   isField,
   isPrimitiveField,
-  Model,
   Schema,
 } from "@javelin/core"
 import { Component, component, registerSchema } from "@javelin/ecs"
-import { encode, float32, float64, uint16, uint32, uint8 } from "@javelin/pack"
+import {
+  encode,
+  enhanceModel,
+  float32,
+  float64,
+  ModelEnhanced,
+  uint16,
+  uint32,
+  uint8,
+} from "@javelin/pack"
 import { ChangeSet, set } from "@javelin/track"
 import {
   $buffer,
@@ -37,7 +43,10 @@ registerSchema(Velocity, 1)
 registerSchema(Rotation, 2)
 registerSchema(Complex, 3)
 
-function runSnapshotOpTest(snapshotOpFactory: typeof snapshot, model: Model) {
+function runSnapshotOpTest(
+  snapshotOpFactory: typeof snapshot,
+  model: ModelEnhanced,
+) {
   const entity = 0
   const components = [
     component(Position),
@@ -73,7 +82,7 @@ function runSnapshotOpTest(snapshotOpFactory: typeof snapshot, model: Model) {
 }
 
 describe("message_op", () => {
-  let model: Model
+  let model: ModelEnhanced
   beforeEach(() => {
     const config = new Map<number, Schema>([
       [0, Position],
@@ -81,7 +90,7 @@ describe("message_op", () => {
       [2, Rotation],
       [3, Complex],
     ])
-    model = createModel(config)
+    model = enhanceModel(createModel(config))
   })
   it("creates attach ops", () => runSnapshotOpTest(attach, model))
   it("creates update ops", () => runSnapshotOpTest(update, model))

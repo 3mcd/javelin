@@ -10,8 +10,8 @@ import {
 import { Component, Entity } from "@javelin/ecs"
 import {
   ByteView,
-  fieldToByteView,
   encode,
+  ModelEnhanced,
   uint16,
   uint32,
   uint8,
@@ -67,7 +67,7 @@ export function insert(op: MessageOp, data: unknown, view?: ByteView) {
  * @returns MessageOp
  */
 export function snapshot(
-  model: Model,
+  model: ModelEnhanced,
   entity: Entity,
   components: Component[],
 ): MessageOp {
@@ -132,7 +132,7 @@ export const update = snapshot
  * @returns MessageOp
  */
 export function patch(
-  model: Model,
+  model: ModelEnhanced,
   entity: Entity,
   changeset: FieldExtract<typeof ChangeSet>,
 ): MessageOp {
@@ -159,7 +159,8 @@ export function patch(
         insert(op, record.traverse[i], uint16)
       }
       if (isField(node) && isPrimitiveField(node)) {
-        insert(op, value, fieldToByteView(node))
+        node.write
+        insert(op, value, node)
       } else {
         insert(op, encode(value, node))
       }
@@ -215,7 +216,7 @@ export function destroy(entity: Entity): MessageOp {
  * @param model
  * @returns MessageOp
  */
-export function model(model: Model): MessageOp {
+export function model(model: ModelEnhanced): MessageOp {
   const op = messageOpPool.retain()
   insert(op, encodeModel(model))
   return op
