@@ -1,6 +1,6 @@
 {
   "name": "@javelin/core",
-  "version": "1.0.0-alpha.3",
+  "version": "1.0.0-alpha.4",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "browser": "dist/javelin-core.bundle.js",
