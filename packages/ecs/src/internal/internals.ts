@@ -1,12 +1,13 @@
 import { $flat, Model, Schema, StackPool } from "@javelin/core"
 import { Component } from "../component"
+import { createSignal } from "../signal"
 import { World } from "../world"
 
 export type Internals = {
-  schemaIndex: WeakMap<Schema, number>
-  schemaPools: Map<number, StackPool<Component>>
-  model: Model
-  worlds: World[]
+  readonly model: Model
+  readonly schemaIndex: WeakMap<Schema, number>
+  readonly schemaPools: Map<number, StackPool<Component>>
+  readonly worlds: World[]
   worldIds: number
   currentWorldId: number
 }
@@ -18,4 +19,11 @@ export const UNSAFE_internals: Internals = {
   worlds: [],
   worldIds: 0,
   currentWorldId: -1,
+}
+
+export const UNSAFE_modelChanged = createSignal<Model>()
+
+export function UNSAFE_setModel(model: Model) {
+  ;(UNSAFE_internals as { model: Model }).model = model
+  UNSAFE_modelChanged.dispatch(model)
 }

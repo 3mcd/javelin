@@ -49,17 +49,17 @@ export function createMessageProducer(
   }
   const model = () =>
     _insert(
-      MessageOp.model(UNSAFE_internals.model),
+      MessageOp.model(Message.getEnhancedModel()),
       Message.MessagePartKind.Model,
     )
   const attach = (entity: Entity, components: Component[]) =>
     _insert(
-      MessageOp.attach(UNSAFE_internals.model, entity, components),
+      MessageOp.attach(Message.getEnhancedModel(), entity, components),
       Message.MessagePartKind.Attach,
     )
   const update = (entity: Entity, components: Component[]) =>
     _insert(
-      MessageOp.update(UNSAFE_internals.model, entity, components),
+      MessageOp.update(Message.getEnhancedModel(), entity, components),
       Message.MessagePartKind.Update,
     )
   const patch = (
@@ -99,7 +99,11 @@ export function createMessageProducer(
       const changeset = entityChangeSets.get(entity)
       if (changeset !== undefined && changeset.touched) {
         assert(message !== null, "", ErrorType.Internal)
-        const op = MessageOp.patch(UNSAFE_internals.model, entity, changeset)
+        const op = MessageOp.patch(
+          Message.getEnhancedModel(),
+          entity,
+          changeset,
+        )
         if (op.byteLength + message?.byteLength < maxByteLength) {
           Message.insert(message, Message.MessagePartKind.Patch, op)
           reset(changeset)

@@ -34,13 +34,13 @@ describe("useMonitor", () => {
   beforeEach(() => {
     world = createWorld()
     UNSAFE_internals.currentWorldId = 1
-    UNSAFE_internals.worlds = [, world] as World[]
+    ;(UNSAFE_internals as { worlds: World[] }).worlds = [, world] as World[]
     ;(useMonitor as any).reset(world)
   })
 
   afterEach(() => {
     UNSAFE_internals.currentWorldId = -1
-    UNSAFE_internals.worlds = []
+    ;(UNSAFE_internals as { worlds: World[] }).worlds = []
   })
 
   it("emits entity-component pairs that were added prior to the first execution", () => {

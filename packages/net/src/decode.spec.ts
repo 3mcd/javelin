@@ -8,7 +8,7 @@ import {
   Schema,
 } from "@javelin/core"
 import { component, registerSchema } from "@javelin/ecs"
-import { float32, float64, int8, uint16 } from "@javelin/pack"
+import { enhanceModel, float32, float64, int8, uint16 } from "@javelin/pack"
 import { ChangeSet, set } from "@javelin/track"
 import { decode, DecodeMessageHandlers } from "./decode"
 import { encode } from "./encode"
@@ -57,7 +57,7 @@ describe("decode", () => {
       [2, A],
       [3, B],
     ])
-    const model = createModel(config)
+    const model = enhanceModel(createModel(config))
     const message = createMessage()
     const op = MessageOp.model(model)
     insert(message, MessagePartKind.Model, op)
@@ -79,16 +79,16 @@ describe("decode", () => {
     const position = component(Position)
     const velocity = component(Velocity)
     const complex = component(Complex)
-    const model = createModel(config)
+    const model = enhanceModel(createModel(config))
     const message = createMessage()
     const entity = 0
     const changeset = initializeWithSchema(
       {} as FieldExtract<typeof ChangeSet>,
       ChangeSet,
     )
-    // set(position, changeset, "x", -12.6666666)
-    // set(velocity, changeset, "y", 44)
-    // set(complex, changeset, "array.0", [{ deep: 999 }])
+    set(position, changeset, "x", -12.6666666)
+    set(velocity, changeset, "y", 44)
+    set(complex, changeset, "array.0", [{ deep: 999 }])
     set(complex, changeset, "nested", { foo: 1 })
     const op = MessageOp.patch(model, entity, changeset)
     insert(message, MessagePartKind.Patch, op)
@@ -103,11 +103,11 @@ describe("decode", () => {
       },
       model,
     )
-    // expect(results).toEqual([
-    //   [entity, 1, 0, [], -12.6666666],
-    //   [entity, 2, 1, [], 44],
-    //   [entity, 3, 1, [0], [{ deep: 999 }]],
-    //   [entity, 3, 4, [], { foo: 1 }],
-    // ])
+    expect(results).toEqual([
+      [entity, 1, 1, [], -12.6666666],
+      [entity, 2, 2, [], 44],
+      [entity, 3, 4, [0], [{ deep: 999 }]],
+      [entity, 3, 1, [], { foo: 1 }],
+    ])
   })
 })

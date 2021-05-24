@@ -1,6 +1,6 @@
 import { arrayOf, createModel, mapOf, objectOf, setOf } from "@javelin/core"
 import * as Pack from "@javelin/pack"
-import { float64 } from "@javelin/pack"
+import { enhanceModel, float64 } from "@javelin/pack"
 import { decodeModel, encodeModel } from "./model"
 
 const A = {
@@ -32,7 +32,7 @@ const A = {
 describe("model", () => {
   it("encodes", () => {
     const modelConfig = new Map([[0, A]])
-    const model = createModel(modelConfig)
+    const model = enhanceModel(createModel(modelConfig))
     const buffer = encodeModel(model)
     const dataView = new DataView(buffer)
     const decoded = decodeModel(dataView, { offset: 0 }, buffer.byteLength)

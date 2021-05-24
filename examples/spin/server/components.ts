@@ -1,4 +1,20 @@
-import { boolean, number, string, registerSchema } from "@javelin/ecs"
+import {
+  boolean,
+  number,
+  string,
+  registerSchema,
+  mapOf,
+  setOf,
+  arrayOf,
+} from "@javelin/ecs"
+import {
+  // string,
+
+  string8,
+  StringView,
+  uint32,
+  uint8,
+} from "@javelin/pack"
 
 export const Player = {
   clientId: number,
@@ -19,9 +35,7 @@ export const Transform = {
   extra8: number,
 }
 
-export const Big = {
-  name: { ...string, length: 35 },
-}
+export const Big = {}
 
 export const Shell = {
   value: number,
