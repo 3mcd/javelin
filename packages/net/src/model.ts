@@ -1,6 +1,7 @@
 import * as Core from "@javelin/core"
 import { FieldNumber } from "@javelin/core"
 import * as Pack from "@javelin/pack"
+import { StringView } from "@javelin/pack"
 
 const BYTE_VIEWS = [
   Pack.uint8,
@@ -23,28 +24,28 @@ const BYTE_VIEWS_LOOKUP = BYTE_VIEWS.reduce((sparse, byteView) => {
 const COLLECTION_MASK = 1 << 6
 const SCHEMA_MASK = 1 << 7
 
-function encodeDataType(field: Core.Field, out: number[], offset = 0) {
+function encodeField(field: Core.Field, out: number[], offset = 0) {
   const byteView = Pack.fieldToByteView(field)
   out.push(byteView[Pack.$byteView])
   offset++
-  if (Pack.isStringView(byteView)) {
-    out.push(byteView.length ?? 0)
+  if (field[Core.$kind] === Core.FieldKind.String) {
+    out.push((field as StringView).length ?? 0)
     offset++
   }
   return offset
 }
 
-function encodeModelNode(node: Core.CollatedNode, out: number[], offset = 0) {
+function encodeNode(node: Core.CollatedNode, out: number[], offset = 0) {
   if (Core.isField(node)) {
     if (Core.isPrimitiveField(node)) {
-      offset = encodeDataType(node, out, offset)
+      offset = encodeField(node, out, offset)
     } else {
       out.push(node[Core.$kind] | COLLECTION_MASK)
       offset++
       if ("key" in node) {
-        offset = encodeDataType(node.key, out, offset)
+        offset = encodeField(node.key, out, offset)
       }
-      offset = encodeModelNode(node.element as Core.CollatedNode, out, offset)
+      offset = encodeNode(node.element as Core.CollatedNode, out, offset)
     }
   } else {
     const length = node.fields.length
@@ -58,7 +59,7 @@ function encodeModelNode(node: Core.CollatedNode, out: number[], offset = 0) {
         out.push(key.charCodeAt(i))
         offset++
       }
-      offset = encodeModelNode(node.fields[i], out, offset)
+      offset = encodeNode(node.fields[i], out, offset)
     }
   }
 
@@ -70,7 +71,7 @@ export function encodeModel(model: Core.Model) {
   let size = 0
   for (const prop in model) {
     flat.push(+prop)
-    size += encodeModelNode(model[prop], flat) + 1
+    size += encodeNode(model[prop], flat) + 1
   }
   const buffer = new ArrayBuffer(size)
   const encoded = new Uint8Array(buffer)

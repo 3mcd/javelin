@@ -3,6 +3,7 @@ import {
   ErrorType,
   FieldExtract,
   initializeWithSchema,
+  Model,
 } from "@javelin/core"
 import { Component, Entity, UNSAFE_internals } from "@javelin/ecs"
 import { ChangeSet, copy, reset } from "@javelin/track"
@@ -30,6 +31,7 @@ export function createMessageProducer(
   options: MessageProducerOptions = {},
 ): MessageProducer {
   const { maxByteLength = Infinity } = options
+  let previousModel: Model | null = null
   const messageQueue: Message.Message[] = [Message.createMessage()]
   const entityPriorities = new Map<Entity, number>()
   const entityChangeSets = new Map<Entity, FieldExtract<typeof ChangeSet>>()
@@ -86,8 +88,8 @@ export function createMessageProducer(
     )
   const destroy = (entity: Entity) =>
     _insert(MessageOp.destroy(entity), Message.MessagePartKind.Destroy)
-  const take = (includeModel = false) => {
-    let message = messageQueue.pop() || null
+  const take = (includeModel = previousModel !== UNSAFE_internals.model) => {
+    const message = messageQueue.pop() || Message.createMessage()
     const entities = entityPriorities.keys()
     const prioritized = Array.from(entities).sort(
       (a, b) => (entityPriorities.get(b) ?? 0) - (entityPriorities.get(a) ?? 0),
@@ -96,9 +98,6 @@ export function createMessageProducer(
       const entity = prioritized[i]
       const changeset = entityChangeSets.get(entity)
       if (changeset !== undefined && changeset.touched) {
-        if (message === null) {
-          message = Message.createMessage()
-        }
         assert(message !== null, "", ErrorType.Internal)
         const op = MessageOp.patch(UNSAFE_internals.model, entity, changeset)
         if (op.byteLength + message?.byteLength < maxByteLength) {
@@ -110,6 +109,7 @@ export function createMessageProducer(
     }
     if (message && includeModel) {
       Message.model(message)
+      previousModel = UNSAFE_internals.model
     }
     return message
   }

@@ -47,8 +47,8 @@ export function read<T extends ByteView>(
   dataView: DataView,
   byteView: T,
   cursor: Cursor,
+  length = (byteView as StringView).length ?? 1,
 ) {
-  const length = (byteView as StringView).length ?? 1
   const data = byteView.read(dataView, cursor.offset, length)
   cursor.offset += byteView.byteLength * length
   return data as Model.FieldGet<T>
