@@ -114,11 +114,6 @@ export function copy(
   to.touched = true
   for (const schemaId in from.changes) {
     const changesFrom = from.changes[schemaId]
-
-    if (changesFrom.fieldCount === 0) {
-      continue
-    }
-
     let changesTo = to.changes[schemaId]
     if (changesTo === undefined) {
       changesTo = to.changes[schemaId] = {
@@ -128,11 +123,12 @@ export function copy(
         arrayCount: 0,
       }
     }
-
-    if (changesTo.fieldCount === 0) {
+    if (changesFrom.fieldCount + changesFrom.arrayCount === 0) {
+      continue
+    }
+    if (changesTo.fieldCount + changesTo.arrayCount === 0) {
       to.size++
     }
-
     for (const field in changesFrom.fields) {
       const changeFrom = changesFrom.fields[field]
       if (changeFrom.noop) {
@@ -155,6 +151,13 @@ export function copy(
         changeTo.value = changeFrom.value
       }
     }
+    for (let i = 0; i < changesFrom.array.length; i++) {
+      changesTo.array.push({
+        ...changesFrom.array[i],
+        values: changesFrom.array[i].values.slice(),
+      })
+      changesTo.arrayCount++
+    }
   }
   return to
 }
@@ -166,10 +169,9 @@ export function set(
   value: unknown,
 ) {
   const changes = getOrCreateChanges(changeset, component.__type__)
-  if (changes.fieldCount === 0) {
+  if (changes.fieldCount + changes.fieldCount === 0) {
     changeset.size++
   }
-  changeset.touched = true
   const change = changes.fields[path]
   const record = getRecord(component, path)
   if (change !== undefined) {
@@ -190,8 +192,15 @@ export function set(
     o = o[split[i]]
   }
   o[split[i]] = value
+  changeset.touched = true
 }
 
+export function push(
+  component: Component,
+  changeset: FieldExtract<typeof ChangeSet>,
+  path: string,
+  ...values: unknown[]
+): void
 export function push(
   component: Component,
   changeset: FieldExtract<typeof ChangeSet>,
@@ -204,7 +213,7 @@ export function push(
     o = o[split[i]]
   }
   const changes = getOrCreateChanges(changeset, component.__type__)
-  if (changes.arrayCount === 0) {
+  if (changes.fieldCount + changes.arrayCount === 0) {
     changeset.size++
   }
   const arrayOp: FieldExtract<typeof ChangeSetArrayOp> = {
@@ -222,7 +231,6 @@ export function push(
   changes.arrayCount++
   changes.array.push(arrayOp)
   changeset.touched = true
-  changeset.size++
 }
 
 export function pop(
@@ -237,7 +245,7 @@ export function pop(
     o = o[split[i]]
   }
   const changes = getOrCreateChanges(changeset, component.__type__)
-  if (changes.arrayCount === 0) {
+  if (changes.fieldCount + changes.arrayCount === 0) {
     changeset.size++
   }
   const arrayOp: FieldExtract<typeof ChangeSetArrayOp> = {
@@ -251,7 +259,6 @@ export function pop(
   changes.arrayCount++
   changes.array.push(arrayOp)
   changeset.touched = true
-  changeset.size++
 }
 
 export function unshift(
@@ -266,7 +273,7 @@ export function unshift(
     o = o[split[i]]
   }
   const changes = getOrCreateChanges(changeset, component.__type__)
-  if (changes.arrayCount === 0) {
+  if (changes.fieldCount + changes.arrayCount === 0) {
     changeset.size++
   }
   const arrayOp: FieldExtract<typeof ChangeSetArrayOp> = {
@@ -284,7 +291,6 @@ export function unshift(
   changes.arrayCount++
   changes.array.push(arrayOp)
   changeset.touched = true
-  changeset.size++
 }
 
 export function shift(
@@ -299,7 +305,7 @@ export function shift(
     o = o[split[i]]
   }
   const changes = getOrCreateChanges(changeset, component.__type__)
-  if (changes.arrayCount === 0) {
+  if (changes.fieldCount + changes.arrayCount === 0) {
     changeset.size++
   }
   const arrayOp: FieldExtract<typeof ChangeSetArrayOp> = {
@@ -313,7 +319,6 @@ export function shift(
   changes.arrayCount++
   changes.array.push(arrayOp)
   changeset.touched = true
-  changeset.size++
 }
 
 export function splice(
@@ -330,7 +335,7 @@ export function splice(
     o = o[split[i]]
   }
   const changes = getOrCreateChanges(changeset, component.__type__)
-  if (changes.arrayCount === 0) {
+  if (changes.fieldCount + changes.arrayCount === 0) {
     changeset.size++
   }
   const arrayOp: FieldExtract<typeof ChangeSetArrayOp> = {
@@ -347,5 +352,4 @@ export function splice(
   changes.arrayCount++
   changes.array.push(arrayOp)
   changeset.touched = true
-  changeset.size++
 }

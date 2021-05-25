@@ -1,7 +1,8 @@
-import { $flat, assert, mutableEmpty } from "@javelin/core"
+import { $flat, assert, CollatedNode, mutableEmpty } from "@javelin/core"
 import { Component } from "@javelin/ecs"
 import * as Pack from "@javelin/pack"
-import { enhanceModel, ModelEnhanced } from "@javelin/pack"
+import { ByteView, enhanceModel, ModelEnhanced } from "@javelin/pack"
+import { MutArrayMethod } from "@javelin/track"
 import { MessagePartKind } from "./message"
 import { decodeModel } from "./model"
 
@@ -20,15 +21,15 @@ export type DecodeMessageHandlers = {
     entity: number,
     schemaId: number,
     field: number,
-    traverse: number[],
+    traverse: string[],
     value: unknown,
   ): void
-  onArrayMethod?(
+  onPatchArrayMethod?(
     entity: number,
     schemaId: number,
     method: number,
     field: number,
-    traverse: number,
+    traverse: string[],
     index?: number,
     remove?: number,
     values?: unknown[],
@@ -58,14 +59,16 @@ function decodeEntitySnapshot(
   }
 }
 
-const tmpTraverse: number[] = []
+const tmpTraverse: string[] = []
+const tmpArrayValues: unknown[] = []
 
 function decodePatch(
   dataView: DataView,
   cursor: Pack.Cursor,
   length: number,
   model: ModelEnhanced,
-  onPatch: DecodeMessageHandlers["onPatch"],
+  onPatch?: DecodeMessageHandlers["onPatch"],
+  onPatchArrayMethod?: DecodeMessageHandlers["onPatchArrayMethod"],
 ) {
   const end = cursor.offset + length
   while (cursor.offset < end) {
@@ -75,19 +78,65 @@ function decodePatch(
       const schemaId = Pack.read(dataView, Pack.uint8, cursor)
       const collated = model[$flat][schemaId]
       const fieldCount = Pack.read(dataView, Pack.uint8, cursor)
-      const arrayCount = Pack.read(dataView, Pack.uint8, cursor)
+      const arrayCount = Pack.read(dataView, Pack.uint16, cursor)
       for (let j = 0; j < fieldCount; j++) {
         const field = Pack.read(dataView, Pack.uint8, cursor)
         const traverseLength = Pack.read(dataView, Pack.uint8, cursor)
         mutableEmpty(tmpTraverse)
         for (let k = 0; k < traverseLength; k++) {
-          tmpTraverse.push(Pack.read(dataView, Pack.uint16, cursor))
+          tmpTraverse.push(
+            // TODO: use strings for traverse
+            Pack.read(dataView, Pack.uint16, cursor) as unknown as string,
+          )
         }
         const value = Pack.decode(dataView.buffer, collated[field], cursor)
         onPatch?.(entity, schemaId, field, tmpTraverse, value)
       }
       for (let j = 0; j < arrayCount; j++) {
-        // TODO: support mutating array methods
+        const method = Pack.read(dataView, Pack.uint8, cursor)
+        const field = Pack.read(dataView, Pack.uint8, cursor)
+        const node = collated[field]
+        assert("element" in node)
+        const traverseLength = Pack.read(dataView, Pack.uint8, cursor)
+        mutableEmpty(tmpTraverse)
+        for (let k = 0; k < traverseLength; k++) {
+          tmpTraverse.push(
+            Pack.read(dataView, Pack.uint16, cursor) as unknown as string,
+          )
+        }
+        mutableEmpty(tmpArrayValues)
+        if (
+          method === MutArrayMethod.Push ||
+          method === MutArrayMethod.Unshift ||
+          method === MutArrayMethod.Splice
+        ) {
+          const insertCount = Pack.read(dataView, Pack.uint16, cursor)
+          for (let i = 0; i < insertCount; i++) {
+            tmpArrayValues.push(
+              Pack.decode(
+                dataView.buffer,
+                node.element as CollatedNode<ByteView>,
+                cursor,
+              ),
+            )
+          }
+        }
+        let index = -1
+        let removeCount = 0
+        if (method === MutArrayMethod.Splice) {
+          index = Pack.read(dataView, Pack.uint16, cursor)
+          removeCount = Pack.read(dataView, Pack.uint16, cursor)
+        }
+        onPatchArrayMethod?.(
+          entity,
+          schemaId,
+          method,
+          field,
+          tmpTraverse,
+          index,
+          removeCount,
+          tmpArrayValues,
+        )
       }
     }
   }

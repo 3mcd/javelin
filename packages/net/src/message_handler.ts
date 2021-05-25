@@ -1,6 +1,6 @@
 import { createEffect, World } from "@javelin/ecs"
 import { ModelEnhanced } from "@javelin/pack"
-import { applyPatchToComponent } from "@javelin/track"
+import { applyChange, applyArrayMethod } from "@javelin/track"
 import { decode, DecodeMessageHandlers } from "./decode"
 
 export const createMessageHandler = (world: World) => {
@@ -64,10 +64,10 @@ export const createMessageHandler = (world: World) => {
       if (component === null) {
         return
       }
-      applyPatchToComponent(component, field, traverse, value)
+      applyChange(component, field, traverse, value)
       patched.add(local)
     },
-    onArrayMethod(
+    onPatchArrayMethod(
       entity,
       schemaId,
       method,
@@ -76,7 +76,25 @@ export const createMessageHandler = (world: World) => {
       index,
       remove,
       values,
-    ) {},
+    ) {
+      const local = entities.get(entity)
+      if (local === undefined) {
+        return
+      }
+      const component = world.storage.getComponentsBySchemaId(local, schemaId)
+      if (component === null) {
+        return
+      }
+      applyArrayMethod(
+        component,
+        method,
+        field,
+        traverse,
+        index,
+        remove,
+        values,
+      )
+    },
   }
 
   const push = (message: ArrayBuffer) => messages.unshift(message)
