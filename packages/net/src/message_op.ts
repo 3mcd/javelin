@@ -1,10 +1,11 @@
 import {
   $flat,
+  assert,
+  CollatedNode,
   createStackPool,
   FieldExtract,
   isField,
   isPrimitiveField,
-  Model,
   mutableEmpty,
 } from "@javelin/core"
 import { Component, Entity } from "@javelin/ecs"
@@ -16,7 +17,7 @@ import {
   uint32,
   uint8,
 } from "@javelin/pack"
-import { ChangeSet } from "@javelin/track"
+import { ChangeSet, MutArrayMethod } from "@javelin/track"
 import { encodeModel } from "./model"
 
 export const $buffer = Symbol("javelin_array_buffer")
@@ -144,14 +145,14 @@ export function patch(
     const schemaId = +prop
     const schema = model[$flat][schemaId]
     const changes = changeset.changes[prop]
+    const { fieldCount, arrayCount } = changes
+    if (fieldCount + arrayCount === 0) continue
     insert(op, schemaId, uint8)
     insert(op, changes.fieldCount, uint8)
-    insert(op, changes.arrayCount, uint8)
+    insert(op, changes.arrayCount, uint16)
     for (const prop in changes.fields) {
       const { noop, record, value } = changes.fields[prop]
-      if (noop) {
-        continue
-      }
+      if (noop) continue
       const node = schema[record.field]
       insert(op, record.field, uint8)
       insert(op, record.traverse.length, uint8)
@@ -159,11 +160,46 @@ export function patch(
         insert(op, record.traverse[i], uint16)
       }
       if (isField(node) && isPrimitiveField(node)) {
-        node.write
         insert(op, value, node)
       } else {
         insert(op, encode(value, node))
       }
+    }
+    for (let i = 0; i < changes.arrayCount; i++) {
+      const change = changes.array[i]
+      const {
+        method,
+        values,
+        start,
+        deleteCount,
+        record: { field, traverse },
+      } = change
+      insert(op, method, uint8)
+      insert(op, field, uint8)
+      insert(op, traverse.length, uint8)
+      for (let j = 0; j < traverse.length; j++) {
+        insert(op, traverse[j], uint16)
+      }
+      if (method === MutArrayMethod.Pop || method === MutArrayMethod.Shift) {
+        continue
+      }
+      const node = schema[field]
+      insert(op, values.length, uint16)
+      assert("element" in node)
+      if (isField(node.element) && isPrimitiveField(node.element)) {
+        for (let j = 0; j < values.length; j++) {
+          insert(op, values[j], node.element as ByteView)
+        }
+      } else {
+        for (let j = 0; j < values.length; j++) {
+          insert(op, encode(values[j], node.element as CollatedNode<ByteView>))
+        }
+      }
+      if (method === MutArrayMethod.Push || method === MutArrayMethod.Unshift) {
+        continue
+      }
+      insert(op, start, uint16)
+      insert(op, deleteCount, uint16)
     }
   }
   return op

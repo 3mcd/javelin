@@ -11,7 +11,7 @@ import {
 } from "@javelin/ecs"
 import { Clock, createHrtimeLoop } from "@javelin/hrtime-loop"
 import { createMessageProducer, encode } from "@javelin/net"
-import { ChangeSet, reset, set } from "@javelin/track"
+import { ChangeSet, reset, set, push } from "@javelin/track"
 import { Big, Player, Shell, Transform } from "./components"
 import {
   BIG_PRIORITY,

@@ -1,20 +1,4 @@
-import {
-  boolean,
-  number,
-  string,
-  registerSchema,
-  mapOf,
-  setOf,
-  arrayOf,
-} from "@javelin/ecs"
-import {
-  // string,
-
-  string8,
-  StringView,
-  uint32,
-  uint8,
-} from "@javelin/pack"
+import { arrayOf, boolean, number, registerSchema } from "@javelin/ecs"
 
 export const Player = {
   clientId: number,

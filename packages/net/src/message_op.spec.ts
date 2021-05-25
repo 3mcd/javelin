@@ -1,6 +1,8 @@
 import {
   $flat,
   arrayOf,
+  assert,
+  CollatedNode,
   createModel,
   FieldExtract,
   initializeWithSchema,
@@ -10,6 +12,7 @@ import {
 } from "@javelin/core"
 import { Component, component, registerSchema } from "@javelin/ecs"
 import {
+  ByteView,
   encode,
   enhanceModel,
   float32,
@@ -19,7 +22,7 @@ import {
   uint32,
   uint8,
 } from "@javelin/pack"
-import { ChangeSet, set } from "@javelin/track"
+import { ChangeSet, MutArrayMethod, push, set } from "@javelin/track"
 import {
   $buffer,
   attach,
@@ -94,7 +97,7 @@ describe("message_op", () => {
   })
   it("creates attach ops", () => runSnapshotOpTest(attach, model))
   it("creates update ops", () => runSnapshotOpTest(update, model))
-  it("creates patch ops", () => {
+  it.only("creates patch ops", () => {
     const entity = 0
     const changeset = initializeWithSchema(
       {} as FieldExtract<typeof ChangeSet>,
@@ -116,7 +119,14 @@ describe("message_op", () => {
       [complex, changeset, "nested", { foo: 4 }],
       [complex, changeset, "array.0", [{ deep: 987 }]],
     ]
+    const pushes: [
+      Component,
+      FieldExtract<typeof ChangeSet>,
+      string,
+      unknown,
+    ][] = [[complex, changeset, "array", [{ deep: 123 }]]]
     tracks.forEach(args => set(...args))
+    pushes.forEach(args => push(...args))
     const op = patch(model, entity, changeset)
     // entity
     expect(op.data[0]).toBe(entity)
@@ -127,7 +137,8 @@ describe("message_op", () => {
     let j = 2
     for (const prop in changeset.changes) {
       const schemaId = +prop
-      const { fields, fieldCount, arrayCount } = changeset.changes[schemaId]
+      const { fields, fieldCount, arrayCount, array } =
+        changeset.changes[schemaId]
       const type = model[$flat][schemaId]
       expect(op.data[j]).toBe(schemaId)
       expect(op.view[j]).toBe(uint8)
@@ -150,8 +161,8 @@ describe("message_op", () => {
         expect(op.data[j]).toBe(traverse.length)
         j++
         // traverse
-        for (let k = 0; k < traverse.length; k++) {
-          expect(op.data[j]).toBe(traverse[k])
+        for (let i = 0; i < traverse.length; i++) {
+          expect(op.data[j]).toBe(traverse[i])
           j++
         }
         const node = type[field]
@@ -166,6 +177,64 @@ describe("message_op", () => {
           expect(op.view[j]).toBe($buffer)
           j++
         }
+      }
+      for (let i = 0; i < arrayCount; i++) {
+        const {
+          method,
+          values,
+          start,
+          deleteCount,
+          record: { field, traverse },
+        } = array[i]
+        // method
+        expect(op.data[j]).toBe(method)
+        j++
+        // field
+        expect(op.data[j]).toBe(field)
+        j++
+        // traverse length
+        expect(op.data[j]).toBe(traverse.length)
+        j++
+        // traverse
+        for (let i = 0; i < traverse.length; i++) {
+          expect(op.data[j]).toBe(traverse[i])
+          j++
+        }
+        expect(op.data[j]).toBe(values.length)
+        j++
+        if (method === MutArrayMethod.Pop || method === MutArrayMethod.Shift) {
+          continue
+        }
+        const node = type[field]
+        // values
+        for (let i = 0; i < values.length; i++) {
+          const value = values[i]
+          assert("element" in node)
+          if (isField(node) && isPrimitiveField(node)) {
+            // primitive fields
+            expect(op.data[j]).toBe(value)
+            j++
+          } else {
+            // complex fields
+            const encoded = encode(
+              value,
+              node.element as CollatedNode<ByteView>,
+            )
+            expect(String(op.data[j])).toBe(String(encoded))
+            expect(op.view[j]).toBe($buffer)
+            j++
+          }
+        }
+        if (
+          method === MutArrayMethod.Push ||
+          method === MutArrayMethod.Unshift
+        ) {
+          continue
+        }
+        expect(op.data[j]).toBe(start)
+        j++
+        expect(op.data[j]).toBe(deleteCount)
+        j++
       }
     }
   })

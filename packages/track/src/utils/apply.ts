@@ -1,15 +1,18 @@
 import { assert, CollatedNode, ErrorType, isField } from "@javelin/core"
 import { Component, ComponentOf, UNSAFE_internals } from "@javelin/ecs"
 import { ChangeSet } from "../components"
+import { MutArrayMethod } from "../types"
 
 const ERROR_PATCH_NO_MATCH =
   "Failed to patch component: reached leaf before finding field"
 
-export function applyPatchToComponent(
+type FieldRef = { ref: unknown; key: string | number | null }
+const tmpFieldRef: FieldRef = { ref: null, key: null }
+
+export function findFieldRef(
   component: Component,
   fieldId: number,
-  traverse: number[],
-  value: unknown,
+  traverse: string[],
 ) {
   const type = UNSAFE_internals.model[component.__type__]
   let traverseIndex = 0
@@ -36,8 +39,46 @@ export function applyPatchToComponent(
       continue
     }
   }
+  tmpFieldRef.ref = ref
+  tmpFieldRef.key = key
+  return tmpFieldRef
+}
+
+export function applyArrayMethod(
+  component: Component,
+  method: MutArrayMethod,
+  field: number,
+  traverse: string[],
+  index?: number,
+  remove?: number,
+  values?: unknown[],
+) {
+  const { key, ref } = findFieldRef(component, field, traverse)
   assert(key !== null, "", ErrorType.Internal)
-  ref[key] = value as any
+  const array = ref as unknown[]
+  switch (method) {
+    case MutArrayMethod.Pop:
+      return array.pop()
+    case MutArrayMethod.Shift:
+      return array.shift()
+    case MutArrayMethod.Push:
+      return array.push(...(values as unknown[]))
+    case MutArrayMethod.Unshift:
+      return array.unshift(...(values as unknown[]))
+    case MutArrayMethod.Splice:
+      return array.splice(index as number, remove as number, values)
+  }
+}
+
+export function applyChange(
+  component: Component,
+  fieldId: number,
+  traverse: string[],
+  value: unknown,
+) {
+  const { key, ref } = findFieldRef(component, fieldId, traverse)
+  assert(key !== null, "", ErrorType.Internal)
+  ;(ref as Record<string, unknown>)[key] = value as any
 }
 
 export function apply(
@@ -58,13 +99,25 @@ export function apply(
         record: { field, traverse },
         value,
       } = patch
-      applyPatchToComponent(
-        component,
-        field,
-        traverse as unknown as number[],
-        value,
-      )
+      applyChange(component, field, traverse, value)
     }
   }
-  // TODO: support mutating array methods
+  for (let i = 0; i < source.arrayCount; i++) {
+    const {
+      method,
+      start,
+      deleteCount,
+      values,
+      record: { field, traverse },
+    } = source.array[i]
+    applyArrayMethod(
+      component,
+      method,
+      field,
+      traverse,
+      start,
+      deleteCount,
+      values,
+    )
+  }
 }
