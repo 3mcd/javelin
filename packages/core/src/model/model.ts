@@ -77,6 +77,8 @@ export type FieldGet<T extends Field> = T extends FieldNumber
   ? Set<_>
   : T extends FieldMap<infer K, infer V>
   ? Map<K, V>
+  : T extends FieldDynamic<infer _>
+  ? _
   : unknown
 export type FieldExtract<T> = T extends Field
   ? FieldGet<T>
