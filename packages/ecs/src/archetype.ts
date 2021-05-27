@@ -31,10 +31,11 @@ export type ArchetypeData<T extends Schema[]> = {
   readonly signature: Type
 }
 
-export type ArchetypeSnapshot<T extends Schema[] = Schema[]> =
-  ArchetypeData<T> & {
-    indices: PackedSparseArray<number>
-  }
+export type ArchetypeSnapshot<
+  T extends Schema[] = Schema[]
+> = ArchetypeData<T> & {
+  indices: PackedSparseArray<number>
+}
 
 /**
  * An Archetype is a collection of entities that share components of the same
@@ -80,9 +81,6 @@ export type Archetype<T extends Schema[] = Schema[]> = ArchetypeData<T> & {
    *
    */
   readonly indices: ReadonlyArray<number>
-
-  readonly inserted: Signal<number>
-  readonly removed: Signal<number>
 }
 
 export type ArchetypeOptions<T extends Schema[]> =
@@ -99,14 +97,15 @@ function createArchetypeState<T extends Schema[]>(
   const snapshot = "snapshot" in options ? options.snapshot : null
   const entities = snapshot ? Object.keys(snapshot.indices).map(Number) : []
   const indices = snapshot ? unpackSparseArray(snapshot.indices) : []
-  const signature = (
-    "signature" in options ? options.signature : options.snapshot.signature
+  const signature = ("signature" in options
+    ? options.signature
+    : options.snapshot.signature
   )
     .slice()
     .sort((a, b) => a - b)
-  const table = (snapshot
+  const table = ((snapshot
     ? snapshot.table.map(column => column.slice())
-    : signature.map(() => [])) as unknown as ArchetypeTable<T>
+    : signature.map(() => [])) as unknown) as ArchetypeTable<T>
   const signatureInverse = signature.reduce((a, x, i) => {
     a[x] = i
     return a
@@ -124,11 +123,13 @@ function createArchetypeState<T extends Schema[]>(
 export function createArchetype<T extends Schema[]>(
   options: ArchetypeOptions<T>,
 ): Archetype<T> {
-  const { signature, signatureInverse, entities, indices, table } =
-    createArchetypeState<T>(options)
-  const inserted = createSignal<number>()
-  const removed = createSignal<number>()
-
+  const {
+    signature,
+    signatureInverse,
+    entities,
+    indices,
+    table,
+  } = createArchetypeState<T>(options)
   function insert(entity: number, components: Component[]) {
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
@@ -138,10 +139,7 @@ export function createArchetype<T extends Schema[]>(
     }
 
     indices[entity] = entities.push(entity) - 1
-
-    inserted.dispatch(entity)
   }
-
   function remove(entity: number) {
     const length = entities.length
     const index = indices[entity]
@@ -163,17 +161,13 @@ export function createArchetype<T extends Schema[]>(
       // Update previously leading entity's index
       indices[head!] = index
     }
-
-    removed.dispatch(entity)
   }
 
   return {
     entities,
     indices,
     insert,
-    inserted,
     remove,
-    removed,
     signature,
     signatureInverse,
     table,

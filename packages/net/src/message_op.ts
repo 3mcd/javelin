@@ -113,6 +113,18 @@ export const attach = snapshot
  */
 export const update = snapshot
 
+enum MutationOpKind {
+  Add,
+  Set,
+  Delete,
+}
+type MutationOp = { field: number; traverse: string[] } & (
+  | { kind: MutationOpKind.Add; value: unknown }
+  | { kind: MutationOpKind.Set; key: string; value: unknown }
+  | { kind: MutationOpKind.Delete; keyOrValue: unknown }
+)
+type MutationSet = { schemaId: number; ops: MutationOp[] }[]
+
 /**
  * Create a patch message op.
  * @example
@@ -135,74 +147,67 @@ export const update = snapshot
 export function patch(
   model: ModelEnhanced,
   entity: Entity,
-  changeset: FieldExtract<typeof ChangeSet>,
+  mutations: MutationSet,
 ): MessageOp {
-  changeset.changes
   const op = messageOpPool.retain()
   insert(op, entity, uint32)
-  insert(op, changeset.size, uint8)
-  for (const prop in changeset.changes) {
-    const schemaId = +prop
+  insert(op, mutations.length, uint8)
+  for (let i = 0; i < mutations.length; i++) {
+    const { schemaId, ops } = mutations[i]
     const schema = model[$flat][schemaId]
-    const changes = changeset.changes[prop]
-    const { fieldCount, arrayCount } = changes
-    if (fieldCount + arrayCount === 0) continue
-    insert(op, schemaId, uint8)
-    insert(op, changes.fieldCount, uint8)
-    insert(op, changes.arrayCount, uint16)
-    for (const prop in changes.fields) {
-      const { noop, record, value } = changes.fields[prop]
-      if (noop) continue
+    insert(op, +schemaId, uint8)
+    insert(op, ops.length, uint16)
+    for (let j = 0; j < ops.length; j++) {
+      const record = ops[i]
       const node = schema[record.field]
+      insert(op, record.kind, uint8)
       insert(op, record.field, uint8)
       insert(op, record.traverse.length, uint8)
       for (let i = 0; i < record.traverse.length; i++) {
         insert(op, record.traverse[i], uint16)
       }
-      if (isField(node) && isPrimitiveField(node)) {
-        insert(op, value, node)
-      } else {
-        insert(op, encode(value, node))
-      }
-    }
-    for (let i = 0; i < changes.arrayCount; i++) {
-      const change = changes.array[i]
-      const {
-        method,
-        values,
-        start,
-        deleteCount,
-        record: { field, traverse },
-      } = change
-      insert(op, method, uint8)
-      insert(op, field, uint8)
-      insert(op, traverse.length, uint8)
-      for (let j = 0; j < traverse.length; j++) {
-        insert(op, traverse[j], uint16)
-      }
-      if (method === MutArrayMethod.Pop || method === MutArrayMethod.Shift) {
-        continue
-      }
-      const node = schema[field]
-      insert(op, values.length, uint16)
-      assert("element" in node)
-      if (isField(node.element) && isPrimitiveField(node.element)) {
-        for (let j = 0; j < values.length; j++) {
-          insert(op, values[j], node.element as ByteView)
+      switch (record.kind) {
+        case MutationOpKind.Add: {
+          if (isField(node) && isPrimitiveField(node)) {
+            insert(op, record.value, node)
+          } else {
+            insert(op, encode(record.value, node))
+          }
         }
-      } else {
-        for (let j = 0; j < values.length; j++) {
-          insert(op, encode(values[j], node.element as CollatedNode<ByteView>))
-        }
+          break;
+        case MutationOpKind.Set:
+          break;
+        case MutationOpKind.Delete:
+          insert(op, record.)
       }
-      if (method === MutArrayMethod.Push || method === MutArrayMethod.Unshift) {
-        continue
-      }
-      insert(op, start, uint16)
-      insert(op, deleteCount, uint16)
     }
   }
   return op
+  // for (const prop in changeset.changes) {
+  //   const schemaId = +prop
+  //   const schema = model[$flat][schemaId]
+  //   const changes = changeset.changes[prop]
+  //   const { fieldCount, arrayCount } = changes
+  //   if (fieldCount + arrayCount === 0) continue
+  //   insert(op, schemaId, uint8)
+  //   insert(op, changes.fieldCount, uint8)
+  //   for (const prop in changes.fields) {
+  //     const { noop, record, value } = changes.fields[prop]
+  //     if (noop) continue
+  //     const node = schema[record.field]
+  //     insert(op, record.field, uint8)
+  //     insert(op, record.traverse.length, uint8)
+  //     for (let i = 0; i < record.traverse.length; i++) {
+  //       insert(op, record.traverse[i], uint16)
+  //     }
+  //     if (isField(node) && isPrimitiveField(node)) {
+  //       insert(op, value, node)
+  //     } else {
+  //       insert(op, encode(value, node))
+  //     }
+  //   }
+  // }
+  // return op
 }
 
 /**

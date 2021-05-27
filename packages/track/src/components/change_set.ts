@@ -7,32 +7,26 @@ import {
   string,
 } from "@javelin/core"
 
-export const ChangeSetRecord = {
-  path: string,
-  field: number,
-  split: arrayOf(string),
+export enum ChangeKind {
+  Assign,
+  Add,
+  Set,
+  Remove,
+}
+
+export const FieldRecord = {
+  id: number,
   traverse: arrayOf(string),
 }
 
-export const ChangeSetArrayOp = {
-  method: number,
-  record: ChangeSetRecord,
-  values: arrayOf(dynamic()),
-  start: number,
-  deleteCount: number,
+export const Change = {
+  kind: number,
+  key: dynamic(),
+  value: dynamic(),
+  field: FieldRecord,
 }
 
 export const ChangeSet = {
-  changes: objectOf({
-    fields: objectOf({
-      noop: boolean,
-      value: dynamic(),
-      record: ChangeSetRecord,
-    }),
-    array: arrayOf(ChangeSetArrayOp),
-    fieldCount: number,
-    arrayCount: number,
-  }),
-  size: number,
-  touched: boolean,
+  noop: boolean,
+  changesBySchemaId: objectOf(arrayOf(Change)),
 }
