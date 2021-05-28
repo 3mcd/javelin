@@ -224,3 +224,12 @@ export function resetWithSchema<T extends Model.Schema>(
   }
   return object
 }
+
+export function isSimple(node: Model.CollatedNode): boolean {
+  if (!isField(node)) {
+    return (node.fields as Model.FieldData<unknown>[]).every(isPrimitiveField)
+  } else if ("element" in node) {
+    return isPrimitiveField(node.element as Model.FieldData<unknown>)
+  }
+  return true
+}

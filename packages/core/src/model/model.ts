@@ -111,6 +111,8 @@ export type CollatedNodeSchema<P = unknown> = CollatedNodeBase & {
 }
 export type CollatedNodeField<P> = (FieldComplex<P> | FieldPrimitive<P>) &
   CollatedNodeBase
+export type CollatedNodeFieldComplex<P = unknown> = FieldComplex<P> &
+  CollatedNodeBase
 export type CollatedNode<P = unknown> =
   | CollatedNodeSchema<P>
   | CollatedNodeField<P>

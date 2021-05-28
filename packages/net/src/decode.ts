@@ -1,8 +1,7 @@
-import { $flat, assert, CollatedNode, mutableEmpty } from "@javelin/core"
+import { $flat, assert, isField, isPrimitiveField } from "@javelin/core"
 import { Component } from "@javelin/ecs"
 import * as Pack from "@javelin/pack"
-import { ByteView, enhanceModel, ModelEnhanced } from "@javelin/pack"
-import { MutArrayMethod } from "@javelin/track"
+import { enhanceModel, ModelEnhanced } from "@javelin/pack"
 import { MessagePartKind } from "./message"
 import { decodeModel } from "./model"
 
@@ -73,71 +72,18 @@ function decodePatch(
   const end = cursor.offset + length
   while (cursor.offset < end) {
     const entity = Pack.read(dataView, Pack.uint32, cursor)
-    const size = Pack.read(dataView, Pack.uint8, cursor)
+    const schemaId = Pack.read(dataView, Pack.uint8, cursor)
+    const size = Pack.read(dataView, Pack.uint16, cursor)
+    const flat = model[$flat][schemaId]
     for (let i = 0; i < size; i++) {
-      const schemaId = Pack.read(dataView, Pack.uint8, cursor)
-      const collated = model[$flat][schemaId]
-      const fieldCount = Pack.read(dataView, Pack.uint8, cursor)
-      const arrayCount = Pack.read(dataView, Pack.uint16, cursor)
-      for (let j = 0; j < fieldCount; j++) {
-        const field = Pack.read(dataView, Pack.uint8, cursor)
-        const traverseLength = Pack.read(dataView, Pack.uint8, cursor)
-        mutableEmpty(tmpTraverse)
-        for (let k = 0; k < traverseLength; k++) {
-          tmpTraverse.push(
-            // TODO: use strings for traverse
-            Pack.read(dataView, Pack.uint16, cursor) as unknown as string,
-          )
-        }
-        const value = Pack.decode(dataView.buffer, collated[field], cursor)
+      const field = Pack.read(dataView, Pack.uint8, cursor)
+      const node = flat[field]
+      if (isField(node) && isPrimitiveField(node)) {
+        const value = Pack.read(dataView, node, cursor)
         onPatch?.(entity, schemaId, field, tmpTraverse, value)
       }
-      for (let j = 0; j < arrayCount; j++) {
-        const method = Pack.read(dataView, Pack.uint8, cursor)
-        const field = Pack.read(dataView, Pack.uint8, cursor)
-        const node = collated[field]
-        assert("element" in node)
-        const traverseLength = Pack.read(dataView, Pack.uint8, cursor)
-        mutableEmpty(tmpTraverse)
-        for (let k = 0; k < traverseLength; k++) {
-          tmpTraverse.push(
-            Pack.read(dataView, Pack.uint16, cursor) as unknown as string,
-          )
-        }
-        mutableEmpty(tmpArrayValues)
-        if (
-          method === MutArrayMethod.Push ||
-          method === MutArrayMethod.Unshift ||
-          method === MutArrayMethod.Splice
-        ) {
-          const insertCount = Pack.read(dataView, Pack.uint16, cursor)
-          for (let i = 0; i < insertCount; i++) {
-            tmpArrayValues.push(
-              Pack.decode(
-                dataView.buffer,
-                node.element as CollatedNode<ByteView>,
-                cursor,
-              ),
-            )
-          }
-        }
-        let index = -1
-        let removeCount = 0
-        if (method === MutArrayMethod.Splice) {
-          index = Pack.read(dataView, Pack.uint16, cursor)
-          removeCount = Pack.read(dataView, Pack.uint16, cursor)
-        }
-        onPatchArrayMethod?.(
-          entity,
-          schemaId,
-          method,
-          field,
-          tmpTraverse,
-          index,
-          removeCount,
-          tmpArrayValues,
-        )
-      }
+
+      //
     }
   }
 }
