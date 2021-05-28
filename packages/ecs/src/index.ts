@@ -17,6 +17,7 @@ export {
   UNSAFE_modelChanged,
   UNSAFE_setModel,
 } from "./internal"
+export * from "./observe"
 export * from "./query"
 export * from "./topic"
 export * from "./world"

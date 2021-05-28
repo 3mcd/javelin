@@ -1,17 +1,18 @@
 import {
+  clear,
   Component,
   component,
   createEffect,
   createQuery,
   createWorld,
   Entity,
+  observe,
   useInterval,
   useMonitor,
   World,
 } from "@javelin/ecs"
 import { Clock, createHrtimeLoop } from "@javelin/hrtime-loop"
 import { createMessageProducer, encode } from "@javelin/net"
-import { ChangeSet, reset, set, push } from "@javelin/track"
 import { Big, Player, Shell, Transform } from "./components"
 import {
   BIG_PRIORITY,
@@ -29,8 +30,7 @@ export const world = createWorld<Clock>()
 const players = createQuery(Player)
 const transforms = createQuery(Transform)
 const transformsBig = createQuery(Transform, Big)
-const transformsTracked = createQuery(Transform, ChangeSet)
-const transformsInShell = createQuery(Transform, Shell, ChangeSet)
+const transformsInShell = createQuery(Transform, Shell)
 
 export function createPointsAroundCircle(r: number, n: number) {
   const out = []
@@ -92,10 +92,10 @@ const useMessage = createEffect(({ has }) => {
       (e, _, [, b]) => b && producer.detach(e, [b]),
     )
     if (update) {
-      transformsTracked((e, [, c]) => {
+      transforms((e, [t]) => {
         const priority = has(e, Big) ? BIG_PRIORITY : SMALL_PRIORITY
-        producer.patch(e, c, priority)
-        reset(c)
+        producer.patch(e, t, priority)
+        clear(t)
       })
     }
     return producer
@@ -146,16 +146,16 @@ world.addSystem(world => {
         y: Math.sin(a) * 50,
       }),
       component(Shell, { value: (i % 6) + 1 }),
-      component(ChangeSet),
     )
   }
 })
 
 world.addSystem(() =>
-  transformsInShell((e, [t, s, c]) => {
+  transformsInShell((e, [t, s]) => {
     const a = Math.atan2(t.y, t.x) + 0.01
-    set(t, c, "x", Math.cos(a) * (s.value * 50))
-    set(t, c, "y", Math.sin(a) * (s.value * 50))
+    const o = observe(t)
+    o.x = Math.cos(a) * (s.value * 50)
+    o.y = Math.sin(a) * (s.value * 50)
   }),
 )
 
@@ -163,7 +163,6 @@ createPointsAroundCircle(50, ENTITY_COUNT).map(([x, y], i) => {
   const components: Component[] = [
     component(Transform, { x, y }),
     component(Shell, { value: (i % 6) + 1 }),
-    component(ChangeSet),
   ]
   if (i % 2 === 0) {
     components.push(component(Big))

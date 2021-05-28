@@ -1,23 +1,37 @@
 import {
-  $flat,
+  $kind,
   assert,
   CollatedNode,
+  CollatedNodeSchema,
   createStackPool,
-  FieldExtract,
+  FieldKind,
   isField,
   isPrimitiveField,
+  isSimple,
   mutableEmpty,
 } from "@javelin/core"
-import { Component, Entity } from "@javelin/ecs"
+import {
+  $changes,
+  $touched,
+  Component,
+  Entity,
+  Observed,
+  StructChanges,
+  ArrayChanges,
+  ObjectChanges,
+  SetChanges,
+  $delete,
+} from "@javelin/ecs"
 import {
   ByteView,
   encode,
   ModelEnhanced,
+  string16,
   uint16,
   uint32,
   uint8,
+  write,
 } from "@javelin/pack"
-import { ChangeSet, MutArrayMethod } from "@javelin/track"
 import { encodeModel } from "./model"
 
 export const $buffer = Symbol("javelin_array_buffer")
@@ -45,13 +59,23 @@ export function resetOp(op: MessageOp): MessageOp {
 
 export const messageOpPool = createStackPool(createOp, resetOp, 1000)
 
-export function insert(op: MessageOp, data: ArrayBuffer): MessageOp
-export function insert(op: MessageOp, data: unknown, view: ByteView): MessageOp
+export function insert(op: MessageOp, data: ArrayBuffer): number
+export function insert(op: MessageOp, data: unknown, view: ByteView): number
 export function insert(op: MessageOp, data: unknown, view?: ByteView) {
   op.data.push(data)
   op.view.push(view ?? $buffer)
   op.byteLength += view ? view.byteLength : (data as ArrayBuffer).byteLength
-  return op
+  return op.data.length - 1
+}
+
+export function modify(op: MessageOp, index: number, data: unknown) {
+  const current = op.data[index]
+  const view = op.view[index]
+  op.data[index] = data
+  if (view === $buffer) {
+    op.byteLength +=
+      (data as ArrayBuffer).byteLength - (current as ArrayBuffer).byteLength
+  }
 }
 
 /**
@@ -113,101 +137,95 @@ export const attach = snapshot
  */
 export const update = snapshot
 
-enum MutationOpKind {
-  Add,
-  Set,
-  Delete,
+function patchInner(
+  op: MessageOp,
+  node: CollatedNode<ByteView>,
+  object: object,
+  acc = 0,
+  key?: string | number,
+): number {
+  insert(op, node.id, uint8)
+  if (key !== undefined) {
+    assert("key" in node)
+    insert(op, key, node.key as ByteView)
+  }
+  const changes = (object as Observed)[$changes]
+  // write changes
+  if (!isField(node)) {
+    for (const prop in changes) {
+      const child = node.fieldsByKey[prop]
+      const value = (changes as StructChanges)[prop]
+      if (isField(child) && isPrimitiveField(child)) {
+        insert(op, value, child)
+      } else {
+        insert(op, encode(value, node))
+      }
+      acc++
+    }
+  } else if ("element" in node) {
+    const element = node.element as CollatedNode<ByteView>
+    switch (node[$kind]) {
+      case FieldKind.Array:
+        for (const prop in changes) {
+          const value = (changes as ArrayChanges)[prop]
+          if (isField(element) && isPrimitiveField(element)) {
+            insert(op, value, element)
+          } else {
+            insert(op, encode(value, node))
+          }
+        }
+        acc++
+        break
+    }
+  }
+  // skip nested check if simple
+  if (isSimple(node)) return acc
+  // recurse
+  if (!isField(node)) {
+    for (let i = 0; i < node.fields.length; i++) {
+      const child = node.fields[i]
+      const ref = (object as Record<string, unknown>)[node.keys[i]]
+      if ((ref as Observed)[$touched]) {
+        acc = patchInner(op, child, ref as object, acc)
+      }
+    }
+  } else if ("element" in node) {
+    const element = node.element as CollatedNode<ByteView>
+    switch (node[$kind]) {
+      case FieldKind.Array:
+        for (let i = 0; i < (object as unknown as unknown[]).length; i++) {
+          const value = (object as unknown as unknown[])[i]
+          if ((value as Observed)[$touched]) {
+            acc = patchInner(op, element, object, i)
+          }
+        }
+        break
+    }
+  }
+  return acc
 }
-type MutationOp = { field: number; traverse: string[] } & (
-  | { kind: MutationOpKind.Add; value: unknown }
-  | { kind: MutationOpKind.Set; key: string; value: unknown }
-  | { kind: MutationOpKind.Delete; keyOrValue: unknown }
-)
-type MutationSet = { schemaId: number; ops: MutationOp[] }[]
 
 /**
  * Create a patch message op.
- * @example
- * [
- *   entity: uint32,
- *   count: uint8,
- *   changes: [
- *     schemaId: uint8,
- *     fieldCount: uint8,
- *     arrayCount: uint8,
- *     fields: [field: uint8, traverseLength: uint8, (key: uint16), value: *][],
- *     array: [][],
- *   ][],
- * ]
  * @param model
  * @param entity
- * @param changeset
+ * @param component
  * @returns MessageOp
  */
 export function patch(
   model: ModelEnhanced,
   entity: Entity,
-  mutations: MutationSet,
+  component: Component,
 ): MessageOp {
   const op = messageOpPool.retain()
+  const type = component.__type__
+  if (!(component as unknown as Observed)[$touched]) return op
   insert(op, entity, uint32)
-  insert(op, mutations.length, uint8)
-  for (let i = 0; i < mutations.length; i++) {
-    const { schemaId, ops } = mutations[i]
-    const schema = model[$flat][schemaId]
-    insert(op, +schemaId, uint8)
-    insert(op, ops.length, uint16)
-    for (let j = 0; j < ops.length; j++) {
-      const record = ops[i]
-      const node = schema[record.field]
-      insert(op, record.kind, uint8)
-      insert(op, record.field, uint8)
-      insert(op, record.traverse.length, uint8)
-      for (let i = 0; i < record.traverse.length; i++) {
-        insert(op, record.traverse[i], uint16)
-      }
-      switch (record.kind) {
-        case MutationOpKind.Add: {
-          if (isField(node) && isPrimitiveField(node)) {
-            insert(op, record.value, node)
-          } else {
-            insert(op, encode(record.value, node))
-          }
-        }
-          break;
-        case MutationOpKind.Set:
-          break;
-        case MutationOpKind.Delete:
-          insert(op, record.)
-      }
-    }
-  }
+  insert(op, type, uint8)
+  const size = insert(op, 0, uint16)
+  const root = model[type] as CollatedNode<ByteView>
+  modify(op, size, patchInner(op, root, component))
   return op
-  // for (const prop in changeset.changes) {
-  //   const schemaId = +prop
-  //   const schema = model[$flat][schemaId]
-  //   const changes = changeset.changes[prop]
-  //   const { fieldCount, arrayCount } = changes
-  //   if (fieldCount + arrayCount === 0) continue
-  //   insert(op, schemaId, uint8)
-  //   insert(op, changes.fieldCount, uint8)
-  //   for (const prop in changes.fields) {
-  //     const { noop, record, value } = changes.fields[prop]
-  //     if (noop) continue
-  //     const node = schema[record.field]
-  //     insert(op, record.field, uint8)
-  //     insert(op, record.traverse.length, uint8)
-  //     for (let i = 0; i < record.traverse.length; i++) {
-  //       insert(op, record.traverse[i], uint16)
-  //     }
-  //     if (isField(node) && isPrimitiveField(node)) {
-  //       insert(op, value, node)
-  //     } else {
-  //       insert(op, encode(value, node))
-  //     }
-  //   }
-  // }
-  // return op
 }
 
 /**

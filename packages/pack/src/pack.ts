@@ -1,7 +1,6 @@
 import {
   $kind,
   CollatedNode,
-  createModel,
   Field,
   FieldArray,
   FieldKind,
@@ -11,7 +10,6 @@ import {
   isField,
   isPrimitiveField,
   Model,
-  Schema,
 } from "@javelin/core"
 import {
   ByteView,

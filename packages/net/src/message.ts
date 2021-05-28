@@ -1,4 +1,3 @@
-import { FieldExtract } from "@javelin/core"
 import {
   Component,
   Entity,
@@ -6,7 +5,6 @@ import {
   UNSAFE_modelChanged,
 } from "@javelin/ecs"
 import { enhanceModel, ModelEnhanced, uint32, uint8 } from "@javelin/pack"
-import { ChangeSet } from "@javelin/track"
 import * as Ops from "./message_op"
 
 export type Message = {
@@ -123,15 +121,11 @@ export function update(
   )
 }
 
-export function patch(
-  message: Message,
-  entity: Entity,
-  changeset: FieldExtract<typeof ChangeSet>,
-) {
+export function patch(message: Message, entity: Entity, component: Component) {
   insert(
     message,
     MessagePartKind.Patch,
-    Ops.patch(enhancedModel, entity, changeset),
+    Ops.patch(enhancedModel, entity, component),
   )
 }
 
