@@ -1,69 +1,77 @@
 const {
-  createWorld,
-  createQuery,
+  observe,
+  $changes,
   component,
-  useObserve,
   number,
   arrayOf,
-} = require("../dist/cjs")
-const { performance } = require("perf_hooks")
-
-const Player = {
-  x: number,
-  y: number,
-  inventory: arrayOf(number),
-}
-
-const players = createQuery(Player)
-const observe = () => {
-  const { track, trackPop, trackPush } = useObserve()
-  players((e, [p]) => {
-    p.x += 1
-    p.y += 1
-    track(p, "x", (p.x += 1))
-    track(p, "y", (p.y += 1))
-    p.inventory.push(1)
-    trackPush(p, "inventory", 1)
-    p.inventory.pop()
-    trackPop(p, "inventory")
-  })
-}
-
-const world = createWorld({
-  systems: [observe],
-})
+  objectOf,
+  setOf,
+  mapOf,
+} = require("@javelin/ecs")
+const {
+  performance: { now },
+} = require("perf_hooks")
 
 module.exports.run = () => {
-  let n = 25_000
-  let t = 100
-  let i = 0
-
-  for (let i = 0; i < n; i++) {
-    world.create(component(Player))
+  function run(fn) {
+    const t = now()
+    fn()
+    return (now() - t).toFixed(2)
   }
 
-  let start
-  let end
-  let startInit = performance.now()
-  let endInit
-
-  console.log(
-    `tracking ${(4 * n).toLocaleString()} changes per tick for ${t} ticks`,
-  )
-
-  while (i++ < t) {
-    if (i === 2) {
-      start = performance.now()
-    }
-    world.step()
-    if (i === 1) {
-      endInit = performance.now()
+  function simpleStruct() {
+    const c = component({ x: number, y: number })
+    const o = observe(c)
+    for (let i = 0; i < 100000; i++) {
+      o.x = i
     }
   }
 
-  end = performance.now()
+  function simpleArray() {
+    const c = component({ array: arrayOf(number) })
+    const o = observe(c)
+    for (let i = 0; i < 100000; i++) {
+      o.array[i] = o.array[i] ?? 1
+    }
+  }
 
-  console.log(`tick_count    | ${t}`)
-  console.log(`tick_time_avg | ${(end - start) / t}ms`)
-  console.log(`init_time     | ${endInit - startInit}ms`)
+  function simpleObject() {
+    const c = component({ object: objectOf(number) })
+    const o = observe(c)
+    for (let i = 0; i < 100000; i++) {
+      o.object[i] = 1
+      delete o.object[i]
+    }
+  }
+
+  function set() {
+    const c = component({ set: setOf(number) })
+    const o = observe(c)
+    for (let i = 0; i < 100000; i++) {
+      o.set.add(i)
+      o.set.delete(i)
+    }
+  }
+
+  function map() {
+    const c = component({ map: mapOf(number, number) })
+    const o = observe(c)
+    for (let i = 0; i < 100000; i++) {
+      o.map.set(i, o.map.get(i) ?? i)
+      o.map.delete(i)
+    }
+  }
+
+  console.log(`
+  type    | time (ms)
+  ------------------------------
+  struct  | ${run(simpleStruct)}
+  array   | ${run(simpleArray)}
+  object  | ${run(simpleObject)}
+
+  type    | time (ms)
+  ------------------------------
+  set     | ${run(set)}
+  map     | ${run(map)}
+`)
 }

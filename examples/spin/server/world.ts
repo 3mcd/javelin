@@ -81,11 +81,7 @@ const useMessage = createEffect(({ has }) => {
     maxByteLength: MESSAGE_MAX_BYTE_LENGTH,
   })
   return function useMessage(update = false) {
-    useMonitor(
-      transformsInShell,
-      (e, [t, s]) => producer.attach(e, [t, s]),
-      (e, [t, s]) => producer.detach(e, [t, s]),
-    )
+    useMonitor(transformsInShell, producer.attach, producer.detach)
     useMonitor(
       transformsBig,
       (e, _, [, b]) => b && producer.attach(e, [b]),
@@ -93,8 +89,9 @@ const useMessage = createEffect(({ has }) => {
     )
     if (update) {
       transforms((e, [t]) => {
-        const priority = has(e, Big) ? BIG_PRIORITY : SMALL_PRIORITY
-        producer.patch(e, t, priority)
+        // const priority = has(e, Big) ? BIG_PRIORITY : SMALL_PRIORITY
+        // producer.patch(e, t, Infinity)
+        producer.update(e, [t])
         clear(t)
       })
     }

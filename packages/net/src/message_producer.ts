@@ -5,11 +5,11 @@ import * as MessageOp from "./message_op"
 
 export type MessageProducer = {
   model(): void
-  destroy(entity: Entity): void
   attach(entity: Entity, components: Component[]): void
-  detach(entity: Entity, components: Component[]): void
   update(entity: Entity, components: Component[]): void
   patch(entity: Entity, component: Component, amplify?: number): void
+  destroy(entity: Entity): void
+  detach(entity: Entity, components: Component[]): void
   take(includeModel?: boolean): Message.Message | null
 }
 export type MessageProducerOptions = {
@@ -39,15 +39,10 @@ export function createMessageProducer(
       MessageOp.model(Message.getEnhancedModel()),
       Message.MessagePartKind.Model,
     )
-  const attach = (entity: Entity, components: Component[]) =>
+  const snapshot = (entity: Entity, components: Component[]) =>
     _insert(
-      MessageOp.attach(Message.getEnhancedModel(), entity, components),
-      Message.MessagePartKind.Attach,
-    )
-  const update = (entity: Entity, components: Component[]) =>
-    _insert(
-      MessageOp.update(Message.getEnhancedModel(), entity, components),
-      Message.MessagePartKind.Update,
+      MessageOp.snapshot(Message.getEnhancedModel(), entity, components),
+      Message.MessagePartKind.Snapshot,
     )
   const patch = (entity: Entity, component: Component, amplify = Infinity) =>
     _insert(
@@ -73,5 +68,13 @@ export function createMessageProducer(
     return message
   }
 
-  return { model, destroy, attach, detach, update, patch, take }
+  return {
+    model,
+    destroy,
+    attach: snapshot,
+    update: snapshot,
+    detach,
+    patch,
+    take,
+  }
 }

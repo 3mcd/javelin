@@ -286,7 +286,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     const components: Component[] = []
     for (let i = 0; i < schemaIds.length; i++) {
       const schemaId = schemaIds[i]
-      const component = storage.getComponentsBySchemaId(entity, schemaId)
+      const component = storage.getComponentBySchemaId(entity, schemaId)
       assert(
         component !== null,
         `Failed to detach component: entity does not have component of type ${schemaId}`,
@@ -316,7 +316,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
 
   function get<T extends Schema>(entity: number, schema: T): ComponentOf<T> {
     registerSchema(schema)
-    const component = storage.getComponentsBySchema(entity, schema)
+    const component = storage.getComponentBySchema(entity, schema)
 
     if (component === null) {
       throw new Error("Failed to get component: entity does not have component")
@@ -330,7 +330,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     schema: T,
   ): ComponentOf<T> | null {
     registerSchema(schema)
-    return storage.getComponentsBySchema(entity, schema)
+    return storage.getComponentBySchema(entity, schema)
   }
 
   function reset() {

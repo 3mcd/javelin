@@ -30,13 +30,12 @@ A message handler exposes an effect that can be used to inspect the remote world
 const sysNet = () => {
   const {
     remote: { tick },
-    patched, // entities patched last message
     updated, // entities updated last message
   } = messageHandler.useInfo()
   // ...
 
   qryBodies(e => {
-    if (patched.has(e) || updated.has(e)) {
+    if (updated.has(e)) {
       interpolate(e)
     }
   })
