@@ -9,6 +9,7 @@ import {
   FieldSet,
   isField,
   isPrimitiveField,
+  isSchema,
   Model,
 } from "@javelin/core"
 import {
@@ -158,17 +159,43 @@ export function encode(
   return buffer
 }
 
+function getTarget(node: CollatedNode) {
+  if (isSchema(node)) {
+    return {}
+  } else if ("element" in node) {
+    switch (node[$kind]) {
+      case FieldKind.Array:
+        return []
+      case FieldKind.Object:
+        return {}
+      case FieldKind.Set:
+        return new Set()
+      case FieldKind.Map:
+        return new Map()
+      default:
+        throw new Error("Unsupported collection")
+    }
+  }
+  return null
+}
+
 const decodeInner = (
   dataView: DataView,
   node: CollatedNode<ByteView>,
   cursor: Cursor,
+  target = getTarget(node) as unknown,
 ) => {
-  if (!isField(node)) {
-    const schema: { [key: string]: unknown } = {}
+  if (isSchema(node)) {
     for (let i = 0; i < node.fields.length; i++) {
-      schema[node.keys[i]] = decodeInner(dataView, node.fields[i], cursor)
+      const key = node.keys[i]
+      ;(target as Record<string, unknown>)[key] = decodeInner(
+        dataView,
+        node.fields[i],
+        cursor,
+        (target as Record<string, unknown>)[key],
+      )
     }
-    return schema
+    return target
   }
   switch (node[$kind]) {
     case FieldKind.Number:
@@ -183,38 +210,35 @@ const decodeInner = (
     }
     case FieldKind.Array: {
       const length = read(dataView, uint32, cursor)
-      const array = [] as Record<number, unknown>
       for (let i = 0; i < length; i++) {
-        array[i] = decodeInner(
+        ;(target as unknown[])[i] = decodeInner(
           dataView,
           (node as FieldArray<unknown>).element as CollatedNode<ByteView>,
           cursor,
         )
       }
-      return array
+      return target
     }
     case FieldKind.Object: {
       const length = read(dataView, uint32, cursor)
-      const object: { [key: string]: unknown } = {}
       for (let i = 0; i < length; i++) {
         const key = read(
           dataView,
           (node as FieldObject<unknown>).key as StringView,
           cursor,
         )
-        object[key] = decodeInner(
+        ;(target as Record<string, unknown>)[key] = decodeInner(
           dataView,
           (node as FieldObject<unknown>).element as CollatedNode<ByteView>,
           cursor,
         )
       }
-      return object
+      return target
     }
     case FieldKind.Set: {
       const length = read(dataView, uint32, cursor)
-      const set = new Set()
       for (let i = 0; i < length; i++) {
-        set.add(
+        ;(target as Set<unknown>).add(
           decodeInner(
             dataView,
             (node as FieldSet<unknown>).element as CollatedNode<ByteView>,
@@ -222,18 +246,17 @@ const decodeInner = (
           ),
         )
       }
-      return set
+      return target
     }
     case FieldKind.Map: {
       const length = read(dataView, uint32, cursor)
-      const map = new Map()
       for (let i = 0; i < length; i++) {
         const key = read(
           dataView,
           (node as FieldObject<unknown>).key as ByteView,
           cursor,
         )
-        map.set(
+        ;(target as Map<unknown, unknown>).set(
           key,
           decodeInner(
             dataView,
@@ -242,7 +265,7 @@ const decodeInner = (
           ),
         )
       }
-      return map
+      return target
     }
   }
 }
@@ -251,8 +274,9 @@ export function decode<T extends ReturnType<typeof decodeInner>>(
   buffer: ArrayBuffer,
   node: CollatedNode<ByteView>,
   cursor: Cursor = { offset: 0 },
+  target?: unknown,
 ) {
-  return decodeInner(new DataView(buffer), node, cursor) as T
+  return decodeInner(new DataView(buffer), node, cursor, target) as T
 }
 
 export type ModelEnhanced = Model<ByteView>

@@ -87,7 +87,7 @@ export const useNet = createEffect(
 export const world = createWorld<WorldTickData>()
 
 world.addSystem(({ attach }) => {
-  const { patched, updated } = useNet()
+  const { updated } = useNet()
   const now = performance.now()
   const bufferTime = now - 1000
 
@@ -98,7 +98,7 @@ world.addSystem(({ attach }) => {
   interpolates((e, [{ x, y }, ip]) => {
     const { buffer } = ip
 
-    if (patched.has(e) || updated.has(e)) {
+    if (updated.has(e)) {
       interpBufferInsert(x, y, ip)
       ip.adaptiveSendRate = (now - bufferTime) / 1000
     }

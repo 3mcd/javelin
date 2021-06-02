@@ -102,9 +102,11 @@ export type CollatedNodeBase = {
   hi: number
   lo: number
   deep: boolean
+  traverse: (FieldString | FieldNumber)[]
 }
 export type CollatedNodeSchema<P = unknown> = CollatedNodeBase & {
   keys: string[]
+  keysByFieldId: string[]
   fields: CollatedNode<P>[]
   fieldsByKey: { [key: string]: CollatedNode<P> }
   fieldIdsByKey: { [key: string]: number }

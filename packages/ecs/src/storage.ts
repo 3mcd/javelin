@@ -75,7 +75,7 @@ export type Storage = {
    * @param entity Entity
    * @param schema Component schema
    */
-  getComponentsBySchema<S extends Schema>(
+  getComponentBySchema<S extends Schema>(
     entity: Entity,
     schema: S,
   ): ComponentOf<S> | null
@@ -85,7 +85,7 @@ export type Storage = {
    * @param entity Entity
    * @param schema Component schema id
    */
-  getComponentsBySchemaId(entity: Entity, schemaId: number): Component | null
+  getComponentBySchemaId(entity: Entity, schemaId: number): Component | null
 
   /**
    * Get all components of an entity.
@@ -242,13 +242,13 @@ export function createStorage(options: StorageOptions = {}): Storage {
     return archetype.signature.includes(type)
   }
 
-  function getComponentsBySchema<T extends Schema>(entity: Entity, schema: T) {
+  function getComponentBySchema<T extends Schema>(entity: Entity, schema: T) {
     const type = UNSAFE_internals.schemaIndex.get(schema)
     assert(type !== undefined, ERROR_NO_SCHEMA)
-    return getComponentsBySchemaId(entity, type) as ComponentOf<T>
+    return getComponentBySchemaId(entity, type) as ComponentOf<T>
   }
 
-  function getComponentsBySchemaId<T extends Schema>(
+  function getComponentBySchemaId<T extends Schema>(
     entity: Entity,
     schemaId: number,
   ) {
@@ -298,8 +298,8 @@ export function createStorage(options: StorageOptions = {}): Storage {
     detachBySchemaId,
     entityRelocated,
     entityRelocating,
-    getComponentsBySchemaId,
-    getComponentsBySchema,
+    getComponentBySchemaId,
+    getComponentBySchema,
     getAllComponents,
     getSnapshot,
     hasComponentOfSchema,

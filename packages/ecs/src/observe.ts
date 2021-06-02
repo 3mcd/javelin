@@ -4,6 +4,7 @@ import {
   CollatedNode,
   FieldKind,
   isField,
+  isSchema,
   isSimple,
   Model,
   mutableEmpty,
@@ -24,11 +25,23 @@ export type Changes =
   | MapChanges
   | SetChanges
 
-export type StructChanges = { [key: string]: unknown }
+export type StructChanges = {
+  dirty: boolean
+  changes: { [key: string]: unknown }
+}
 export type ArrayChanges = StructChanges
-export type ObjectChanges = { [key: string]: typeof $delete | unknown }
-export type SetChanges = { add: unknown[]; delete: unknown[] }
-export type MapChanges = Map<unknown, typeof $delete | unknown>
+export type ObjectChanges = {
+  dirty: boolean
+  changes: { [key: string]: typeof $delete | unknown }
+}
+export type SetChanges = {
+  dirty: boolean
+  changes: { add: unknown[]; delete: unknown[] }
+}
+export type MapChanges = {
+  dirty: boolean
+  changes: Map<unknown, typeof $delete | unknown>
+}
 
 type ObservedBase = { [$type]: CollatedNode; [$touched]: boolean }
 export type ObservedStruct = ObservedBase & {
@@ -67,22 +80,27 @@ export type Observed =
 const proxies = new WeakMap<object, Observed>()
 
 const simpleStructHandler: ProxyHandler<ObservedStruct> = {
-  get(target, key: string) {
+  get(target, key: string | symbol) {
+    if (key === $self) return target
     target[$touched] = true
     return target[key as keyof typeof target]
   },
   set(target, key: string, value) {
+    const changes = target[$changes]
     target[key as keyof typeof target] = value
-    target[$changes][key] = value
+    target[$touched] = true
+    changes.changes[key] = value
+    changes.dirty = true
     return true
   },
 }
 const structHandler: ProxyHandler<ObservedStruct> = {
-  get(target, key: string) {
-    const value = target[key]
+  get(target, key: string | symbol) {
+    if (key === $self) return target
+    const value = target[key as keyof typeof target]
     target[$touched] = true
     if (typeof value === "object" && value !== null) {
-      return proxify(value, target[$type], key)
+      return proxify(value, target[$type], key as string)
     }
     return value
   },
@@ -96,8 +114,11 @@ const arrayHandler: ProxyHandler<ObservedArray> = {
 const simpleObjectHandler: ProxyHandler<ObservedObject> = {
   ...simpleStructHandler,
   deleteProperty(target, key: string) {
+    const changes = target[$changes]
     delete target[key as keyof typeof target]
-    target[$changes][key] = $delete
+    target[$touched] = true
+    changes.changes[key] = $delete
+    changes.dirty = true
     return true
   },
 }
@@ -106,7 +127,8 @@ const objectHandler: ProxyHandler<ObservedObject> = {
   deleteProperty: simpleObjectHandler.deleteProperty,
 }
 const setHandler: ProxyHandler<ObservedSet> = {
-  get(target, key) {
+  get(target, key: string | symbol) {
+    if (key === $self) return target
     const value = target[key as keyof typeof target]
     target[$touched] = true
     if (typeof value === "function") {
@@ -117,16 +139,20 @@ const setHandler: ProxyHandler<ObservedSet> = {
 }
 const setMethodHandler: ProxyHandler<Function> = {
   apply(method, target: ObservedSet, args) {
-    const { [$self]: self } = target
+    const { [$self]: self, [$changes]: changes } = target
+    target[$touched] = true
     switch (method) {
       case Set.prototype.add:
-        self[$changes].add.push(args[0])
+        changes.changes.add.push(args[0])
+        changes.dirty = true
         break
       case Set.prototype.delete:
-        self[$changes].delete.push(args[0])
+        changes.changes.delete.push(args[0])
+        changes.dirty = true
         break
       case Set.prototype.clear:
-        self.forEach(value => self[$changes].delete.push(value))
+        self.forEach(value => changes.changes.delete.push(value))
+        changes.dirty = true
         break
     }
     return method.apply(self, args)
@@ -134,6 +160,7 @@ const setMethodHandler: ProxyHandler<Function> = {
 }
 const mapHandler: ProxyHandler<ObservedMap> = {
   get(target, key, receiver) {
+    if (key === $self) return target
     const value = Reflect.get(target, key, receiver)
     target[$touched] = true
     if (typeof value === "function") {
@@ -145,22 +172,26 @@ const mapHandler: ProxyHandler<ObservedMap> = {
 const mapMethodHandler: ProxyHandler<Function> = {
   apply(method, target: ObservedMap, args) {
     const { [$self]: self } = target
+    const { [$changes]: changes } = self
+    self[$touched] = true
     switch (method) {
       case Map.prototype.get: {
         const value = method.apply(self, args as [key: unknown])
-        self[$touched] = true
         if (typeof value === "object" && value !== null) {
           return proxify(value, self[$type], args[0])
         }
       }
       case Map.prototype.set:
-        self[$changes].set(args[0], args[1])
+        changes.changes.set(args[0], args[1])
+        changes.dirty = true
         break
       case Map.prototype.delete:
-        self[$changes].set(args[0], $delete)
+        changes.changes.set(args[0], $delete)
+        changes.dirty = true
         break
       case Map.prototype.clear:
-        self.forEach((_, key) => self[$changes].set(key, $delete))
+        self.forEach((_, key) => changes.changes.set(key, $delete))
+        changes.dirty = true
         return self.clear()
     }
     return method.apply(self, args)
@@ -192,21 +223,21 @@ function getChanges(node: CollatedNode): Changes {
   if (isField(node)) {
     switch (node[$kind]) {
       case FieldKind.Array:
-        return { changes: {} }
+        return { dirty: false, changes: {} }
       case FieldKind.Object:
-        return { changes: {} }
+        return { dirty: false, changes: {} }
       case FieldKind.Set:
-        return { add: [], delete: [] }
+        return { dirty: false, changes: { add: [], delete: [] } }
       case FieldKind.Map:
-        return { changes: new Map() }
+        return { dirty: false, changes: new Map() }
     }
   }
-  return { changes: {} }
+  return { dirty: false, changes: {} }
 }
 
 const descriptorBase = {
   configurable: false,
-  enumerable: false,
+  enumerable: true,
   writable: false,
 }
 
@@ -232,7 +263,7 @@ function register(object: object, node: CollatedNode): Observed {
 
 function proxify(object: object, parent: CollatedNode, key: string) {
   let node: CollatedNode
-  if (!isField(parent)) {
+  if (isSchema(parent)) {
     node = parent.fieldsByKey[key]
   } else {
     assert("element" in parent)
@@ -242,6 +273,7 @@ function proxify(object: object, parent: CollatedNode, key: string) {
 }
 
 export function observe<T extends Component>(component: T): T {
+  ;(component as unknown as Observed)[$touched] = true
   return (proxies.get(component) ??
     register(
       component,
@@ -255,8 +287,8 @@ function clearInner(object: object, node: CollatedNode) {
   }
   const changes = (object as Observed)[$changes]
   if (!isField(node)) {
-    for (const prop in changes) {
-      delete (changes as StructChanges)[prop]
+    for (const prop in changes.changes) {
+      delete (changes as StructChanges).changes[prop]
     }
     for (let i = 0; i < node.fields.length; i++) {
       clearInner(
@@ -268,8 +300,8 @@ function clearInner(object: object, node: CollatedNode) {
     const element = node.element as CollatedNode
     switch (node[$kind]) {
       case FieldKind.Array: {
-        for (const prop in changes) {
-          delete (changes as ArrayChanges)[prop]
+        for (const prop in changes.changes) {
+          delete (changes as ArrayChanges).changes[prop]
         }
         for (let i = 0; i < (object as object[]).length; i++) {
           clearInner((object as object[])[i], element)
@@ -277,8 +309,8 @@ function clearInner(object: object, node: CollatedNode) {
         break
       }
       case FieldKind.Object: {
-        for (const prop in changes) {
-          delete (changes as ObjectChanges)[prop]
+        for (const prop in changes.changes) {
+          delete (changes as ObjectChanges).changes[prop]
         }
         for (const prop in object) {
           clearInner((object as Record<string, object>)[prop], element)
@@ -286,35 +318,80 @@ function clearInner(object: object, node: CollatedNode) {
         break
       }
       case FieldKind.Set: {
-        mutableEmpty((changes as SetChanges).add)
-        mutableEmpty((changes as SetChanges).delete)
+        mutableEmpty((changes as SetChanges).changes.add)
+        mutableEmpty((changes as SetChanges).changes.delete)
         break
       }
       case FieldKind.Map: {
-        ;(changes as MapChanges).clear()
-        ;(object as ObservedMap).forEach((key, value) =>
+        ;(changes as MapChanges).changes.clear()
+        ;(object as ObservedMap).forEach(value =>
           clearInner(value as object, element),
         )
         break
       }
     }
   }
+  changes.dirty = false
   ;(object as Observed)[$touched] = false
 }
 
 export function clear(component: Component) {
-  const node = UNSAFE_internals.model[component.__type__]
-  return clearInner(component, node)
+  const self = ((component as unknown as Observed)[$self] ??
+    component) as unknown as Component
+  const node = UNSAFE_internals.model[self.__type__]
+  return clearInner(self, node)
 }
 
 type FieldRef = { ref: unknown; key: string | number | null }
 const tmpFieldRef: FieldRef = { ref: null, key: null }
 
+export function getFieldValue(
+  node: CollatedNode,
+  object: object,
+  fieldId: number,
+  traverse: (number | string)[],
+) {
+  let t = 0
+  let key: string | number | null = null
+  let ref = object
+  outer: while (node.id !== fieldId) {
+    if (isField(node)) {
+      assert("element" in node)
+      key = traverse[t++]
+      switch (node[$kind]) {
+        case FieldKind.Array:
+        case FieldKind.Object:
+          ref = (ref as Record<string, unknown>)[key!] as Component
+          break
+        case FieldKind.Map:
+          ref = (ref as unknown as Map<unknown, unknown>).get(key) as Component
+          break
+        default:
+          throw new Error("Failed to apply change: invalid target field")
+      }
+      node = node.element as CollatedNode
+    } else {
+      for (let i = 0; i < node.fields.length; i++) {
+        const child = node.fields[i]
+        if (child.lo <= fieldId && child.hi >= fieldId) {
+          key = node.keys[i]
+          node = child
+          if (node.id !== fieldId) {
+            ref = (ref as any)[key]
+          }
+          continue outer
+        }
+      }
+    }
+  }
+  return ref
+}
+
 export function getFieldRef(
   model: Model,
   component: Component,
   fieldId: number,
-  traverse: string[],
+  traverse: (number | string)[],
 ) {
   const type = model[component.__type__]
   let t = 0
@@ -360,7 +437,7 @@ export function apply(
   model: Model,
   component: Component,
   fieldId: number,
-  traverse: string[],
+  traverse: (number | string)[],
   value: unknown,
 ) {
   const { key, ref } = getFieldRef(model, component, fieldId, traverse)

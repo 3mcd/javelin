@@ -80,10 +80,18 @@ export function isField(object: object): object is Model.Field {
 export function isFieldData<T>(object: object): object is Model.FieldData<T> {
   return Model.$kind in object
 }
+export function isSchema<T>(
+  node: Model.CollatedNode<T>,
+): node is Model.CollatedNodeSchema<T> {
+  return !(Model.$kind in node)
+}
 export function isPrimitiveField(
-  field: Model.FieldData<unknown>,
-): field is Model.FieldPrimitive {
-  const kind = field[Model.$kind]
+  object: object,
+): object is Model.FieldPrimitive {
+  if (!isField(object)) {
+    return false
+  }
+  const kind = object[Model.$kind]
   return (
     kind === Model.FieldKind.Number ||
     kind === Model.FieldKind.String ||
@@ -97,13 +105,14 @@ type Cursor = { id: number }
 export function collate<T>(
   visiting: Model.Schema | Model.FieldAny,
   cursor: Cursor,
-  deep = false,
+  traverse: (Model.FieldString | Model.FieldNumber)[] = [],
 ): Model.CollatedNode<T> {
   let base: Model.CollatedNodeBase = {
     id: ++cursor.id,
     lo: cursor.id,
     hi: cursor.id,
-    deep,
+    deep: traverse.length > 0,
+    traverse,
   }
   let node: Model.CollatedNode<T>
   if (isField(visiting)) {
@@ -112,17 +121,21 @@ export function collate<T>(
       node.element = collate(
         node.element as Model.Schema | Model.Field,
         cursor,
-        true,
+        "key" in node
+          ? [...traverse, node.key as Model.FieldString | Model.FieldNumber]
+          : traverse,
       ) as Model.Schema | Model.Field
     }
   } else {
     const keys = Object.keys(visiting)
+    const keysByFieldId: string[] = []
     const fields: Model.CollatedNode<T>[] = []
     const fieldsByKey: { [key: string]: Model.CollatedNode<T> } = {}
     const fieldIdsByKey: { [key: string]: number } = {}
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]
-      const child = collate(visiting[key], cursor, deep)
+      const child = collate(visiting[key], cursor, traverse)
+      keysByFieldId[child.id] = key
       fieldsByKey[key] = child
       fieldIdsByKey[key] = child.id
       fields.push(child)
@@ -130,6 +143,7 @@ export function collate<T>(
     node = {
       ...base,
       keys,
+      keysByFieldId,
       fields,
       fieldsByKey,
       fieldIdsByKey,
@@ -226,8 +240,8 @@ export function resetWithSchema<T extends Model.Schema>(
 }
 
 export function isSimple(node: Model.CollatedNode): boolean {
-  if (!isField(node)) {
-    return (node.fields as Model.FieldData<unknown>[]).every(isPrimitiveField)
+  if (isSchema(node)) {
+    return node.fields.every(isPrimitiveField)
   } else if ("element" in node) {
     return isPrimitiveField(node.element as Model.FieldData<unknown>)
   }

@@ -14,8 +14,7 @@ export type Message = {
 
 export enum MessagePartKind {
   Model,
-  Attach,
-  Update,
+  Snapshot,
   Patch,
   Detach,
   Destroy,
@@ -97,36 +96,16 @@ export function model(message: Message) {
   overwrite(message, MessagePartKind.Model, Ops.model(enhancedModel))
 }
 
-export function attach(
-  message: Message,
-  entity: Entity,
-  components: Component[],
-) {
+export function snapshot(message: Message, entity: Entity, data: Component[]) {
   insert(
     message,
-    MessagePartKind.Attach,
-    Ops.attach(enhancedModel, entity, components),
+    MessagePartKind.Snapshot,
+    Ops.snapshot(enhancedModel, entity, data),
   )
 }
 
-export function update(
-  message: Message,
-  entity: Entity,
-  components: Component[],
-) {
-  insert(
-    message,
-    MessagePartKind.Update,
-    Ops.update(enhancedModel, entity, components),
-  )
-}
-
-export function patch(message: Message, entity: Entity, component: Component) {
-  insert(
-    message,
-    MessagePartKind.Patch,
-    Ops.patch(enhancedModel, entity, component),
-  )
+export function patch(message: Message, entity: Entity, data: Component) {
+  insert(message, MessagePartKind.Patch, Ops.patch(enhancedModel, entity, data))
 }
 
 export function detach(message: Message, entity: Entity, schemaIds: number[]) {
