@@ -47,11 +47,15 @@ world.addSystem(() =>
   points((e, [p, v]) => {
     p.x += v.x
     p.y += v.y
-    messages.update(e, p)
   }),
 )
 // broadcast messages to clients
-world.addSystem(() => broadcast(encode(messages.take())))
+world.addSystem(() => {
+  if (useInterval((1 / 20) * 1000)) {
+    points(messages.update)
+    broadcast(encode(messages.take()))
+  }
+})
 // start a high-precision game loop
 createHrtimeLoop((1 / 60) * 1000, world.step).start()
 ```
