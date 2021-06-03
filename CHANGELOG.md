@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-alpha.5](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.4...v1.0.0-alpha.5) (2021-06-03)
+
+
+### Features
+
+* mut array methods in patch ([22b095f](https://github.com/3mcd/javelin/commit/22b095fc2536680961342a5bc1edde5070fcb2ab))
+* observe coming along nicely ([cf88507](https://github.com/3mcd/javelin/commit/cf88507e0a615f613bb7dc5e86cf1b732b784cb8))
+* patch encoding ([6f26b2f](https://github.com/3mcd/javelin/commit/6f26b2f750c152988931bad662f5bb23200c1905))
+* track checkpoint ([b0d04bc](https://github.com/3mcd/javelin/commit/b0d04bc0837d030d0398f67a42f0c9efcb05a378))
+
+
+
+
+
 # [1.0.0-alpha.4](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2021-05-24)
 
 
