@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-alpha.6](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.5...v1.0.0-alpha.6) (2021-06-04)
+
+
+### Features
+
+* patch/update prioritization ([a73ef89](https://github.com/3mcd/javelin/commit/a73ef89f008a6c0787e0170540020c265780b627))
+
+
+
+
+
 # [1.0.0-alpha.5](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.4...v1.0.0-alpha.5) (2021-06-03)
 
 
