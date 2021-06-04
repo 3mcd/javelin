@@ -1,32 +1,15 @@
-import { arrayOf, createModel, isSimple, Schema } from "@javelin/core"
-import {
-  $changes,
-  $touched,
-  component,
-  observe,
-  registerSchema,
-  useMonitor,
-} from "@javelin/ecs"
+import { arrayOf, createModel, Schema } from "@javelin/core"
+import { component, createPatch, observe, registerSchema } from "@javelin/ecs"
 import {
   encode,
-  decode,
   enhanceModel,
-  float32,
   float64,
   ModelEnhanced,
   uint16,
   uint32,
   uint8,
 } from "@javelin/pack"
-import {
-  $buffer,
-  attach,
-  destroy,
-  detach,
-  patch,
-  snapshot,
-  update,
-} from "./message_op"
+import { $buffer, destroy, detach, patch, snapshot } from "./message_op"
 
 const Position = { x: float64, y: float64 }
 const Velocity = { x: float64, y: float64 }
@@ -90,17 +73,15 @@ describe("message_op", () => {
     ])
     model = enhanceModel(createModel(config))
   })
-  it("creates attach ops", () => runSnapshotOpTest(attach, model))
-  it("creates update ops", () => runSnapshotOpTest(update, model))
-  it.only("creates patch ops", () => {
+  it("creates attach ops", () => runSnapshotOpTest(snapshot, model))
+  it.skip("creates patch ops", () => {
     const e = 0
     const c = component(Complex)
     const o = observe(c)
     o.nested.foo = 2
     o.array.push([{ deep: 0 }])
     o.array[0][0].deep = 120
-    console.log(encode(c, model[c.__type__]), model[c.__type__])
-    const op = patch(model, e, c)
+    const op = patch(model, e, createPatch(c))
     console.log(op)
   })
   it("creates detach ops", () => {

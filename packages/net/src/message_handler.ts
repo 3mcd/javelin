@@ -72,13 +72,15 @@ export const createMessageHandler = (world: World) => {
       const entityRemote = Pack.read(dataView, Pack.uint32, cursor)
       const entityLocal = findOrCreateLocalEntity(entityRemote)
       const schemaId = Pack.read(dataView, Pack.uint8, cursor)
-      const component = world.storage.getComponentBySchemaId(
-        entityLocal,
-        schemaId,
-      )
-      const size = Pack.read(dataView, Pack.uint8, cursor)
+      let component: Component | null
+      try {
+        component = world.storage.getComponentBySchemaId(entityLocal, schemaId)
+      } catch {
+        component = null
+      }
+      const total = Pack.read(dataView, Pack.uint8, cursor)
       const flat = model[$flat][schemaId]
-      for (let i = 0; i < size; i++) {
+      for (let i = 0; i < total; i++) {
         const node = flat[Pack.read(dataView, Pack.uint8, cursor)]
         const traverseLength = Pack.read(dataView, Pack.uint8, cursor)
         mutableEmpty(traverse)
@@ -95,9 +97,9 @@ export const createMessageHandler = (world: World) => {
               unknown
             >)
           : null
-        const count = Pack.read(dataView, Pack.uint8, cursor)
+        const size = Pack.read(dataView, Pack.uint8, cursor)
         if (isSchema(node)) {
-          for (let j = 0; j < count; j++) {
+          for (let j = 0; j < size; j++) {
             const fieldId = Pack.read(dataView, Pack.uint8, cursor)
             const field = flat[fieldId]
             const key = node.keysByFieldId[fieldId]
@@ -112,7 +114,7 @@ export const createMessageHandler = (world: World) => {
           const primitive = isPrimitiveField(element)
           switch (node[$kind]) {
             case FieldKind.Array:
-              for (let j = 0; j < count; j++) {
+              for (let j = 0; j < size; j++) {
                 const index = Pack.read(dataView, Pack.uint16, cursor)
                 const value = primitive
                   ? Pack.read(dataView, element as Pack.ByteView, cursor)
@@ -131,8 +133,8 @@ export const createMessageHandler = (world: World) => {
       const schemaIds: number[] = []
       const entityRemote = Pack.read(dataView, Pack.uint32, cursor)
       const entityLocal = findOrCreateLocalEntity(entityRemote)
-      const schemaIdsLength = Pack.read(dataView, Pack.uint8, cursor)
-      for (let i = 0; i < schemaIdsLength; i++) {
+      const count = Pack.read(dataView, Pack.uint8, cursor)
+      for (let i = 0; i < count; i++) {
         const schemaId = Pack.read(dataView, Pack.uint8, cursor)
         schemaIds.push(schemaId)
       }

@@ -89,9 +89,9 @@ const useMessage = createEffect(({ has }) => {
     )
     if (update) {
       transforms((e, [t]) => {
-        // const priority = has(e, Big) ? BIG_PRIORITY : SMALL_PRIORITY
-        // producer.patch(e, t, Infinity)
-        producer.update(e, [t])
+        const amplify = has(e, Big) ? BIG_PRIORITY : SMALL_PRIORITY
+        producer.patch(e, t, amplify)
+        // producer.update(e, [t], amplify)
         clear(t)
       })
     }

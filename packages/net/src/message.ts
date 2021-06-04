@@ -1,5 +1,6 @@
 import {
   Component,
+  createPatch,
   Entity,
   UNSAFE_internals,
   UNSAFE_modelChanged,
@@ -96,16 +97,24 @@ export function model(message: Message) {
   overwrite(message, MessagePartKind.Model, Ops.model(enhancedModel))
 }
 
-export function snapshot(message: Message, entity: Entity, data: Component[]) {
+export function snapshot(
+  message: Message,
+  entity: Entity,
+  components: Component[],
+) {
   insert(
     message,
     MessagePartKind.Snapshot,
-    Ops.snapshot(enhancedModel, entity, data),
+    Ops.snapshot(enhancedModel, entity, components),
   )
 }
 
-export function patch(message: Message, entity: Entity, data: Component) {
-  insert(message, MessagePartKind.Patch, Ops.patch(enhancedModel, entity, data))
+export function patch(message: Message, entity: Entity, component: Component) {
+  insert(
+    message,
+    MessagePartKind.Patch,
+    Ops.patch(enhancedModel, entity, createPatch(component)),
+  )
 }
 
 export function detach(message: Message, entity: Entity, schemaIds: number[]) {

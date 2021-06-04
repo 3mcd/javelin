@@ -6,76 +6,51 @@ import {
   isField,
   isSchema,
   isSimple,
-  Model,
   mutableEmpty,
 } from "@javelin/core"
 import { Component } from "./component"
 import { UNSAFE_internals } from "./internal"
 
-export const $touched = Symbol("javelin_proxy_touched")
 export const $self = Symbol("javelin_proxy_self")
-export const $type = Symbol("javelin_proxy_node")
+export const $touched = Symbol("javelin_proxy_touched")
 export const $changes = Symbol("javelin_proxy_changes")
 export const $delete = Symbol("javelin_proxy_deleted")
+
+export type ChangesBase = {
+  node: CollatedNode
+  dirty: boolean
+}
+export type StructChanges = ChangesBase & {
+  changes: { [key: string]: unknown }
+}
+export type ArrayChanges = StructChanges
+export type ObjectChanges = ChangesBase & {
+  changes: { [key: string]: typeof $delete | unknown }
+}
+export type SetChanges = ChangesBase & {
+  changes: { add: unknown[]; delete: unknown[] }
+}
+export type MapChanges = ChangesBase & {
+  changes: Map<unknown, typeof $delete | unknown>
+}
 
 export type Changes =
   | StructChanges
   | ArrayChanges
   | ObjectChanges
-  | MapChanges
   | SetChanges
+  | MapChanges
 
-export type StructChanges = {
-  dirty: boolean
-  changes: { [key: string]: unknown }
-}
-export type ArrayChanges = StructChanges
-export type ObjectChanges = {
-  dirty: boolean
-  changes: { [key: string]: typeof $delete | unknown }
-}
-export type SetChanges = {
-  dirty: boolean
-  changes: { add: unknown[]; delete: unknown[] }
-}
-export type MapChanges = {
-  dirty: boolean
-  changes: Map<unknown, typeof $delete | unknown>
-}
-
-type ObservedBase = { [$type]: CollatedNode; [$touched]: boolean }
-export type ObservedStruct = ObservedBase & {
-  [$self]: ObservedStruct
-  [$changes]: StructChanges
-  [key: string]: unknown
-}
-export type ObservedArray = ObservedBase & {
-  [$self]: ObservedArray
-  [$changes]: ArrayChanges
-  [key: number]: unknown
-}
-export type ObservedObject = ObservedBase & {
-  [$self]: ObservedObject
-  [$changes]: ObjectChanges
-  [key: string]: unknown
-}
-export type ObservedSet = Set<unknown> &
-  ObservedBase & {
-    [$self]: ObservedSet
-    [$changes]: SetChanges
-  }
-export type ObservedMap = Map<unknown, unknown> &
-  ObservedBase & {
-    [$self]: ObservedMap
-    [$changes]: MapChanges
-  }
-
-export type Observed =
-  | ObservedStruct
-  | ObservedArray
-  | ObservedObject
-  | ObservedSet
-  | ObservedMap
+type Observed<T = unknown, C = Changes> = {
+  [$touched]: boolean
+  [$changes]: C
+  [$self]: Observed<T, C>
+} & T
+export type ObservedStruct = Observed<{ [key: string]: unknown }, StructChanges>
+export type ObservedArray = Observed<unknown[], ArrayChanges>
+export type ObservedObject = Observed<{ [key: string]: unknown }, ObjectChanges>
+export type ObservedSet = Observed<Set<unknown>, SetChanges>
+export type ObservedMap = Observed<Map<unknown, unknown>, MapChanges>
 
 const proxies = new WeakMap<object, Observed>()
 
@@ -100,15 +75,16 @@ const structHandler: ProxyHandler<ObservedStruct> = {
     const value = target[key as keyof typeof target]
     target[$touched] = true
     if (typeof value === "object" && value !== null) {
-      return proxify(value, target[$type], key as string)
+      return proxify(value, target, key as string)
     }
     return value
   },
   set: simpleStructHandler.set,
 }
-const simpleArrayHandler = simpleStructHandler
+const simpleArrayHandler =
+  simpleStructHandler as unknown as ProxyHandler<ObservedArray>
 const arrayHandler: ProxyHandler<ObservedArray> = {
-  get: structHandler.get,
+  get: (structHandler as unknown as ProxyHandler<ObservedArray>).get,
   set: simpleArrayHandler.set,
 }
 const simpleObjectHandler: ProxyHandler<ObservedObject> = {
@@ -131,10 +107,9 @@ const setHandler: ProxyHandler<ObservedSet> = {
     if (key === $self) return target
     const value = target[key as keyof typeof target]
     target[$touched] = true
-    if (typeof value === "function") {
-      return new Proxy(value, setMethodHandler)
-    }
-    return value
+    return typeof value === "function"
+      ? new Proxy(value, setMethodHandler)
+      : value
   },
 }
 const setMethodHandler: ProxyHandler<Function> = {
@@ -163,10 +138,9 @@ const mapHandler: ProxyHandler<ObservedMap> = {
     if (key === $self) return target
     const value = Reflect.get(target, key, receiver)
     target[$touched] = true
-    if (typeof value === "function") {
-      return new Proxy(value, mapMethodHandler)
-    }
-    return value
+    return typeof value === "function"
+      ? new Proxy(value, mapMethodHandler)
+      : value
   },
 }
 const mapMethodHandler: ProxyHandler<Function> = {
@@ -178,7 +152,7 @@ const mapMethodHandler: ProxyHandler<Function> = {
       case Map.prototype.get: {
         const value = method.apply(self, args as [key: unknown])
         if (typeof value === "object" && value !== null) {
-          return proxify(value, self[$type], args[0])
+          return proxify(value, self, args[0])
         }
       }
       case Map.prototype.set:
@@ -220,19 +194,20 @@ function getHandler(node: CollatedNode): ProxyHandler<Observed> {
 }
 
 function getChanges(node: CollatedNode): Changes {
+  const base: ChangesBase = { dirty: false, node }
   if (isField(node)) {
     switch (node[$kind]) {
       case FieldKind.Array:
-        return { dirty: false, changes: {} }
+        return { ...base, changes: {} }
       case FieldKind.Object:
-        return { dirty: false, changes: {} }
+        return { ...base, changes: {} }
       case FieldKind.Set:
-        return { dirty: false, changes: { add: [], delete: [] } }
+        return { ...base, changes: { add: [], delete: [] } }
       case FieldKind.Map:
-        return { dirty: false, changes: new Map() }
+        return { ...base, changes: new Map() }
     }
   }
-  return { dirty: false, changes: {} }
+  return { ...base, changes: {} }
 }
 
 const descriptorBase = {
@@ -242,32 +217,25 @@ const descriptorBase = {
 }
 
 function register(object: object, node: CollatedNode): Observed {
-  Object.defineProperties(object as Observed, {
-    [$self]: {
-      ...descriptorBase,
-      value: object,
-    },
-    [$type]: {
-      ...descriptorBase,
-      value: node,
-    },
-    [$changes]: {
-      ...descriptorBase,
-      value: getChanges(node),
-    },
+  const changes = getChanges(node)
+  const observed: Observed = Object.defineProperties(object, {
+    [$self]: { ...descriptorBase, value: object },
+    [$changes]: { ...descriptorBase, value: changes },
   })
-  const proxy = new Proxy(object as Observed, getHandler(node))
+  const handler = getHandler(node)
+  const proxy = new Proxy(observed, handler)
   proxies.set(object, proxy)
   return proxy
 }
 
-function proxify(object: object, parent: CollatedNode, key: string) {
+function proxify(object: object, parent: Observed, key: string) {
+  const parentNode = parent[$changes].node
   let node: CollatedNode
-  if (isSchema(parent)) {
-    node = parent.fieldsByKey[key]
+  if (isSchema(parentNode)) {
+    node = parentNode.fieldsByKey[key]
   } else {
-    assert("element" in parent)
-    node = parent.element as CollatedNode
+    assert("element" in parentNode)
+    node = parentNode.element as CollatedNode
   }
   return proxies.get(object) ?? register(object, node)
 }
@@ -281,18 +249,18 @@ export function observe<T extends Component>(component: T): T {
     )) as unknown as T
 }
 
-function clearInner(object: object, node: CollatedNode) {
-  if ((object as Observed)[$touched] !== true) {
+function clearInner(object: Observed, node: CollatedNode) {
+  if (object[$touched] !== true) {
     return
   }
-  const changes = (object as Observed)[$changes]
-  if (!isField(node)) {
+  const changes = object[$changes]
+  if (isSchema(node)) {
     for (const prop in changes.changes) {
       delete (changes as StructChanges).changes[prop]
     }
     for (let i = 0; i < node.fields.length; i++) {
       clearInner(
-        (object as Record<string, object>)[node.keys[i]],
+        (object as Record<string, Observed>)[node.keys[i]],
         node.fields[i],
       )
     }
@@ -303,8 +271,8 @@ function clearInner(object: object, node: CollatedNode) {
         for (const prop in changes.changes) {
           delete (changes as ArrayChanges).changes[prop]
         }
-        for (let i = 0; i < (object as object[]).length; i++) {
-          clearInner((object as object[])[i], element)
+        for (let i = 0; i < (object as unknown as Observed[]).length; i++) {
+          clearInner((object as unknown as Observed[])[i], element)
         }
         break
       }
@@ -313,7 +281,7 @@ function clearInner(object: object, node: CollatedNode) {
           delete (changes as ObjectChanges).changes[prop]
         }
         for (const prop in object) {
-          clearInner((object as Record<string, object>)[prop], element)
+          clearInner((object as Record<string, Observed>)[prop], element)
         }
         break
       }
@@ -325,25 +293,21 @@ function clearInner(object: object, node: CollatedNode) {
       case FieldKind.Map: {
         ;(changes as MapChanges).changes.clear()
         ;(object as ObservedMap).forEach(value =>
-          clearInner(value as object, element),
+          clearInner(value as Observed, element),
         )
         break
       }
     }
   }
   changes.dirty = false
-  ;(object as Observed)[$touched] = false
+  object[$touched] = false
 }
 
-export function clear(component: Component) {
-  const self = ((component as unknown as Observed)[$self] ??
-    component) as unknown as Component
-  const node = UNSAFE_internals.model[self.__type__]
-  return clearInner(self, node)
+export function clear(component: Component | Observed<Component, unknown>) {
+  const self = $self in component ? (component as Observed)[$self] : component
+  const node = UNSAFE_internals.model[(self as Component).__type__]
+  return clearInner(self as unknown as Observed, node)
 }
-
-type FieldRef = { ref: unknown; key: string | number | null }
-const tmpFieldRef: FieldRef = { ref: null, key: null }
 
 export function getFieldValue(
   node: CollatedNode,
@@ -377,7 +341,7 @@ export function getFieldValue(
           key = node.keys[i]
           node = child
           if (node.id !== fieldId) {
-            ref = (ref as any)[key]
+            ref = (ref as Record<string, object>)[key]
           }
           continue outer
         }
@@ -387,59 +351,98 @@ export function getFieldValue(
   return ref
 }
 
-export function getFieldRef(
-  model: Model,
-  component: Component,
-  fieldId: number,
-  traverse: (number | string)[],
-) {
-  const type = model[component.__type__]
-  let t = 0
-  let key: string | number | null = null
-  let ref = component
-  let node: CollatedNode = type as CollatedNode
-  outer: while (node.id !== fieldId) {
-    if (isField(node)) {
-      assert("element" in node)
-      key = traverse[t++]
-      switch (node[$kind]) {
-        case FieldKind.Array:
-        case FieldKind.Object:
-          ref = ref[key!] as Component
-          break
-        case FieldKind.Map:
-          ref = (ref as unknown as Map<unknown, unknown>).get(key) as Component
-          break
-        default:
-          throw new Error("Failed to apply change: invalid target field")
+export type PatchNode = {
+  changes: Map<unknown, unknown>
+  children: Map<unknown, PatchNode>
+}
+export type Patch = PatchNode & { schemaId: number }
+
+function createPatchInner(
+  object: object,
+  patch: PatchNode = { changes: new Map(), children: new Map() },
+): PatchNode {
+  const self = (object as Observed)[$self]
+  const {
+    [$changes]: { node, changes },
+  } = self
+  const simple = isSimple(node)
+  if (isSchema(node)) {
+    if (simple) {
+      for (let i = 0; i < node.fields.length; i++) {
+        const key = node.keys[i]
+        if (key in changes)
+          patch.changes.set(key, (self as ObservedStruct)[key])
       }
-      node = node.element as CollatedNode
     } else {
       for (let i = 0; i < node.fields.length; i++) {
-        const child = node.fields[i]
-        if (child.lo <= fieldId && child.hi >= fieldId) {
-          key = node.keys[i]
-          node = child
-          if (node.id !== fieldId) {
-            ref = (ref as any)[key]
-          }
-          continue outer
+        const key = node.keys[i]
+        const value = (self as ObservedStruct)[key]
+        if (key in changes) patch.changes.set(key, value)
+        if ((value as Observed)[$touched]) {
+          patch.children.set(
+            key,
+            createPatchInner(value as Observed, patch.children.get(key)),
+          )
         }
       }
     }
+  } else if ("element" in node) {
+    switch (node[$kind]) {
+      case FieldKind.Array:
+        if (simple) {
+          for (let i = 0; i < (self as unknown as Observed[]).length; i++) {
+            if (i in changes)
+              patch.changes.set(i, (self as unknown as Observed[])[i])
+          }
+        } else {
+          for (let i = 0; i < (self as unknown as Observed[]).length; i++) {
+            const value = (self as unknown as Observed[])[i]
+            if (i in changes) patch.changes.set(i, value)
+            if ((value as Observed)[$touched])
+              patch.children.set(
+                i,
+                createPatchInner(value, patch.children.get(i)),
+              )
+          }
+        }
+        break
+      case FieldKind.Map:
+        if (simple) {
+          ;(changes as Map<unknown, unknown>).forEach((value, key) =>
+            patch.changes.set(key, value),
+          )
+        } else {
+          ;(self as unknown as Map<unknown, Observed>).forEach((value, key) => {
+            if ((changes as Map<unknown, unknown>).has(key)) {
+              patch.changes.set(key, value)
+              if (value[$touched])
+                patch.children.set(
+                  key,
+                  createPatchInner(value, patch.children.get(key)),
+                )
+            }
+          })
+        }
+        break
+    }
   }
-  tmpFieldRef.ref = ref
-  tmpFieldRef.key = key
-  return tmpFieldRef
+  return patch
+}
+export function createPatch(
+  component: Component,
+  patch: Patch = {
+    schemaId: component.__type__,
+    children: new Map(),
+    changes: new Map(),
+  },
+) {
+  if ($changes in component) {
+    createPatchInner(component, patch)
+  }
+  return patch
 }
 
-export function apply(
-  model: Model,
-  component: Component,
-  fieldId: number,
-  traverse: (number | string)[],
-  value: unknown,
-) {
-  const { key, ref } = getFieldRef(model, component, fieldId, traverse)
-  ;(ref as any)[key!] = value as any
+export function resetPatch(patch: Patch) {
+  patch.changes.clear()
+  patch.children.clear()
 }

@@ -1,6 +1,5 @@
 const {
   observe,
-  $changes,
   component,
   number,
   arrayOf,
@@ -31,7 +30,7 @@ module.exports.run = () => {
     const c = component({ array: arrayOf(number) })
     const o = observe(c)
     for (let i = 0; i < 100000; i++) {
-      o.array[i] = o.array[i] ?? 1
+      o.array[i] = i
     }
   }
 
@@ -39,8 +38,7 @@ module.exports.run = () => {
     const c = component({ object: objectOf(number) })
     const o = observe(c)
     for (let i = 0; i < 100000; i++) {
-      o.object[i] = 1
-      delete o.object[i]
+      o.object[i] = i
     }
   }
 
@@ -49,7 +47,6 @@ module.exports.run = () => {
     const o = observe(c)
     for (let i = 0; i < 100000; i++) {
       o.set.add(i)
-      o.set.delete(i)
     }
   }
 
@@ -57,21 +54,19 @@ module.exports.run = () => {
     const c = component({ map: mapOf(number, number) })
     const o = observe(c)
     for (let i = 0; i < 100000; i++) {
-      o.map.set(i, o.map.get(i) ?? i)
-      o.map.delete(i)
+      o.map.set(i, i)
     }
   }
 
   console.log(`
-  type    | time (ms)
-  ------------------------------
-  struct  | ${run(simpleStruct)}
-  array   | ${run(simpleArray)}
-  object  | ${run(simpleObject)}
+100,000 operations
 
-  type    | time (ms)
-  ------------------------------
-  set     | ${run(set)}
-  map     | ${run(map)}
+type    | time (ms)
+------------------------------
+struct  | ${run(simpleStruct)}
+array   | ${run(simpleArray)}
+object  | ${run(simpleObject)}
+set     | ${run(set)}
+map     | ${run(map)}
 `)
 }
