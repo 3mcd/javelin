@@ -74,7 +74,6 @@ Visit https://javelin.games
 | [@javelin/ecs](./packages/ecs)                 | Build games using the ECS pattern                  |
 | [@javelin/net](./packages/net)                 | Synchronize ECS worlds                             |
 | [@javelin/pack](./packages/pack)               | Convert objects to and from binary arrays          |
-| [@javelin/track](./packages/track)             | Record component mutations                         |
 | [@javelin/hrtime-loop](./packages/hrtime-loop) | Create smooth, high-precision game loops in NodeJS |
 
 ## Examples
