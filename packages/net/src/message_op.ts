@@ -1,5 +1,6 @@
 import {
   $kind,
+  assert,
   CollatedNode,
   createStackPool,
   FieldKind,
@@ -8,15 +9,7 @@ import {
   isSimple,
   mutableEmpty,
 } from "@javelin/core"
-import {
-  $changes,
-  $touched,
-  ArrayChanges,
-  Component,
-  Entity,
-  Observed,
-  StructChanges,
-} from "@javelin/ecs"
+import { Patch, PatchNode, Component, Entity } from "@javelin/ecs"
 import {
   ByteView,
   encode,
@@ -105,91 +98,69 @@ export function snapshot(
 function patchInner(
   op: MessageOp,
   node: CollatedNode<ByteView>,
-  object: object,
+  patch: PatchNode,
   total = 0,
   traverse?: [number | string, ByteView][],
 ) {
-  const changes = (object as Observed)[$changes]
-  if (changes?.dirty) {
-    total++
-    // parent node
+  const { changes, children } = patch
+  const { size } = changes
+  if (size > 0) {
     insert(op, node.id, uint8)
-    // traverse length
     insert(op, traverse?.length ?? 0, uint8)
-    // traverse
     if (traverse !== undefined) {
       for (let i = 0; i < traverse.length; i++) {
         insert(op, traverse[i][0], traverse[i][1])
       }
     }
-    // count
-    const count = insert(op, 0, uint8)
-    // changes
-    let hits = 0
+    insert(op, size, uint8)
     if (isSchema(node)) {
-      for (const prop in changes.changes) {
-        const child = node.fieldsByKey[prop]
-        const value = (changes as StructChanges).changes[prop]
-        // child field
+      changes.forEach((value, key) => {
+        const child = node.fieldsByKey[key as string]
         insert(op, child.id, uint8)
-        // value
         if (isPrimitiveField(child)) {
           insert(op, value, child)
         } else {
           insert(op, encode(value, child))
         }
-        hits++
-      }
-    } else if ("element" in node) {
-      const child = node.element as CollatedNode<ByteView>
+      })
+    } else {
+      assert("element" in node)
+      const element = node.element as CollatedNode<ByteView>
       switch (node[$kind]) {
         case FieldKind.Array:
-          for (const prop in changes.changes) {
-            if (prop === "length") continue
-            const value = (changes as ArrayChanges).changes[prop]
-            // key
-            insert(op, +prop, uint16)
-            // value
-            if (isPrimitiveField(child)) {
-              insert(op, value, child)
+          changes.forEach((value, key) => {
+            if (key === "length") return
+            insert(op, Number(key), uint16)
+            if (isPrimitiveField(element)) {
+              insert(op, value, element)
             } else {
-              insert(op, encode(value, child))
+              insert(op, encode(value, element))
             }
-            hits++
-          }
+          })
           break
       }
     }
-    modify(op, count, hits)
   }
-  // skip nested check if simple
-  if (isSimple(node)) return total
-  // recurse
-  if (isSchema(node)) {
-    for (let i = 0; i < node.fields.length; i++) {
-      const child = node.fields[i]
-      const ref = (object as Record<string, unknown>)[node.keys[i]]
-      if ((ref as Observed)[$touched]) {
-        total = patchInner(op, child, ref as object, total, traverse)
-      }
-    }
-  } else if ("element" in node) {
-    const element = node.element as CollatedNode<ByteView>
-    switch (node[$kind]) {
-      case FieldKind.Array:
-        for (let i = 0; i < (object as unknown as object[]).length; i++) {
-          const value = (object as unknown as object[])[i]
-          if ((value as Observed)[$touched]) {
-            total = patchInner(op, element, value, total, [
-              ...(traverse ?? []),
-              [i, uint16],
-            ])
-          }
-        }
-        break
+  if (!isSimple(node)) {
+    if (isSchema(node)) {
+      children.forEach((changes, key) => {
+        total = patchInner(
+          op,
+          node.fieldsByKey[key as string],
+          changes,
+          total,
+          traverse,
+        )
+      })
+    } else {
+      assert("element" in node)
+      const element = node.element as CollatedNode<ByteView>
+      children.forEach(
+        changes => (total = patchInner(op, element, changes, total, traverse)),
+      )
     }
   }
-  return total
+  return total + 1
 }
 
 /**
@@ -197,21 +168,21 @@ function patchInner(
  * [entity, schemaId, [field, traverse, [operation, ...args]*]*]
  * @param model
  * @param entity
- * @param component
+ * @param schemaId
+ * @param patch
  * @returns MessageOp
  */
 export function patch(
   model: ModelEnhanced,
   entity: Entity,
-  component: Component,
+  patch: Patch,
 ): MessageOp {
   const op = messageOpPool.retain()
-  if (!(component as unknown as Observed)[$touched]) return op
-  const schemaId = component.__type__
+  const { schemaId } = patch
   const root = model[schemaId] as CollatedNode<ByteView>
   insert(op, entity, uint32)
   insert(op, schemaId, uint8)
-  modify(op, insert(op, 0, uint8), patchInner(op, root, component))
+  modify(op, insert(op, 0, uint8), patchInner(op, root, patch))
   return op
 }
 
