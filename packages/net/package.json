@@ -7,7 +7,8 @@
   "license": "MIT",
   "dependencies": {
     "@javelin/core": "1.0.0-alpha.5",
-    "@javelin/ecs": "1.0.0-alpha.6"
+    "@javelin/ecs": "1.0.0-alpha.6",
+    "@javelin/pack": "1.0.0-alpha.5"
   },
   "scripts": {
     "clean": "rm -rf dist",

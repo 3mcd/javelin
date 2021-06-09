@@ -51,9 +51,8 @@ describe("useMonitor", () => {
     }
     ;(world.storage.archetypes as Archetype[]).push(archetype)
     archetype.table = [
-      [{ __type__: 1 }, { __type__: 2 }],
-      [{ __type__: 1 }, { __type__: 2 }],
-      [{ __type__: 1 }, { __type__: 2 }],
+      [{ __type__: 1 }, { __type__: 1 }, { __type__: 1 }],
+      [{ __type__: 2 }, { __type__: 2 }, { __type__: 2 }],
     ]
     archetype.indices = [-1, -1, 0, -1, 1, -1, 2]
 
@@ -66,8 +65,6 @@ describe("useMonitor", () => {
     expect(results[2][0]).toBe(6)
   })
 
-  it.todo("emits entity-component pairs")
-
   it("emits entities that were relocated last step", () => {
     const resultsEnter: number[] = []
     const resultsExit: number[] = []
@@ -78,9 +75,8 @@ describe("useMonitor", () => {
     ;(world.storage.archetypes as Archetype[]).push(prev)
     ;(world.storage.archetypes as Archetype[]).push(next)
     ;(next as any).table = [
-      [{ __type__: 1 }, { __type__: 2 }],
-      [{ __type__: 1 }, { __type__: 2 }],
-      [{ __type__: 1 }, { __type__: 2 }],
+      [{ __type__: 1 }, { __type__: 1 }, { __type__: 1 }],
+      [{ __type__: 2 }, { __type__: 2 }, { __type__: 2 }],
     ]
     ;(next as any).indices = [-1, 0, 1, 2]
 
@@ -108,7 +104,7 @@ describe("useMonitor", () => {
     })
     const changed = createArchetype({ signature: [3] })
     ;(world.storage.archetypes as Archetype[]).push(changed)
-    ;(changed as any).table = [[{ __type__: 1 }, { __type__: 2 }]]
+    ;(changed as any).table = [[{ __type__: 1 }], [{ __type__: 2 }]]
     ;(changed as any).indices = [-1, -1, -1, -1, 0]
 
     useMonitor(ab)
@@ -132,5 +128,31 @@ describe("useMonitor", () => {
     )
 
     expect(resultsEnter.sort(entitySortComparator)).toEqual([4])
+  })
+
+  it("excludes entities that matched and no longer match during the same step", () => {
+    const resultsEnter: number[] = []
+    const resultsExit: number[] = []
+    const prev = createArchetype({ signature: [1] })
+    const next = createArchetype({
+      signature: [1, 2],
+    })
+    ;(world.storage.archetypes as Archetype[]).push(prev)
+    ;(world.storage.archetypes as Archetype[]).push(next)
+    ;(next as any).table = [[{ __type__: 1 }], [, { __type__: 2 }]]
+    ;(next as any).indices = [-1, 0]
+
+    useMonitor(ab)
+
+    world.storage.entityRelocated.dispatch(1, prev, next, [])
+    world.storage.entityRelocating.dispatch(1, next, prev, [])
+
+    useMonitor(
+      ab,
+      e => resultsEnter.push(e),
+      e => resultsExit.push(e),
+    )
+    expect(resultsEnter).toEqual([])
+    expect(resultsExit).toEqual([])
   })
 })
