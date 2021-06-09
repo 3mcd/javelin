@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-alpha.7](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.6...v1.0.0-alpha.7) (2021-06-09)
+
+
+### Bug Fixes
+
+* ignore transient entities in monitor ([db43078](https://github.com/3mcd/javelin/commit/db4307852df3852eed415a4265f40020322b9a15))
+
+
+
+
+
 # [1.0.0-alpha.6](https://github.com/3mcd/javelin/compare/v1.0.0-alpha.5...v1.0.0-alpha.6) (2021-06-04)
 
 

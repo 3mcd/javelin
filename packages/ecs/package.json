@@ -1,6 +1,6 @@
 {
   "name": "@javelin/ecs",
-  "version": "1.0.0-alpha.6",
+  "version": "1.0.0-alpha.7",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "browser": "dist/javelin-ecs.bundle.js",
@@ -23,6 +23,6 @@
   ],
   "gitHead": "084d65218a12efbb32ea2b22e0f8e1812acb7d7e",
   "dependencies": {
-    "@javelin/core": "1.0.0-alpha.5"
+    "@javelin/core": "1.0.0-alpha.7"
   }
 }
