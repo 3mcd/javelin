@@ -1,4 +1,9 @@
-import { createStackPool, mutableEmpty } from "@javelin/core"
+import {
+  assert,
+  createStackPool,
+  mutableEmpty,
+  mutableRemoveByIndexUnordered,
+} from "@javelin/core"
 import { Component } from "../../component"
 import { createEffect } from "../../effect"
 import { Entity, EntitySnapshotWithDiff } from "../../entity"
@@ -67,6 +72,7 @@ export const useMonitor = createEffect(world => {
     },
   } = world
 
+  const matched = new Set<Entity>()
   let stagedEnter: EntitySnapshotWithDiff[] = []
   let stagedExit: EntitySnapshotWithDiff[] = []
   let readyEnter: EntitySnapshotWithDiff[] = []
@@ -100,28 +106,23 @@ export const useMonitor = createEffect(world => {
     next,
     diff,
   ) {
-    if (_query === null) {
+    if (_query === null) return
+    const matchCurr = matched.has(entity)
+    const matchPrev = _query.matchesArchetype(prev)
+    const matchNext = _query.matchesArchetype(next)
+    const isExit = matchPrev && (!matchNext || next === rootArchetype)
+    if (!isExit) return
+    if (matchCurr) {
+      const index = stagedEnter.findIndex(([e]) => e === entity)
+      assert(index !== -1)
+      mutableRemoveByIndexUnordered(stagedEnter, index)
       return
     }
-
-    const matchExit = _query.matchesArchetype(prev)
-
-    // entity matched previously and was destroyed
-    if (matchExit && next === rootArchetype) {
-      const index = stagedEnter.findIndex(([e]) => e === entity)
-      // entity matched and unmatched during the same tick
-      if (index !== -1) {
-        stagedEnter.splice(index, 1)
-      }
-    }
-
-    if (matchExit && !_query.matchesArchetype(next)) {
-      const snapshot = snapshots.retain()
-      snapshot[0] = entity
-      _query.get(entity, snapshot[1])
-      _query.match(diff, snapshot[2])
-      stagedExit.push(snapshot)
-    }
+    const snapshot = snapshots.retain()
+    snapshot[0] = entity
+    _query.get(entity, snapshot[1])
+    _query.match(diff, snapshot[2])
+    stagedExit.push(snapshot)
   })
 
   entityRelocated.subscribe(function detectMonitorEnter(
@@ -130,16 +131,16 @@ export const useMonitor = createEffect(world => {
     next,
     diff,
   ) {
-    if (_query === null) {
-      return
-    }
-
-    if (!_query.matchesArchetype(prev) && _query.matchesArchetype(next)) {
+    if (_query === null) return
+    const matchPrev = _query.matchesArchetype(prev)
+    const matchNext = _query.matchesArchetype(next)
+    if (!matchPrev && matchNext) {
       const snapshot = snapshots.retain()
       snapshot[0] = entity
       _query.get(entity, snapshot[1])
       _query.match(diff, snapshot[2])
       stagedEnter.push(snapshot)
+      matched.add(entity)
     }
   })
 
@@ -163,6 +164,8 @@ export const useMonitor = createEffect(world => {
     while ((result = stagedExit.pop()) !== undefined) {
       readyExit.push(result)
     }
+
+    matched.clear()
 
     if (onEnter !== undefined) {
       for (let i = 0; i < readyEnter.length; i++) {

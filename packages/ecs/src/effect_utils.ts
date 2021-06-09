@@ -12,3 +12,13 @@ export const createRef = <T>(
     const initialValue = initializer(world)
     return () => useRef(initialValue)
   }, options)
+
+export function createImmutableRef<T>(
+  initializer: RefInitializer<T>,
+  options: EffectOptions = {},
+) {
+  return createEffect(world => {
+    const initialValue = initializer(world)
+    return () => useRef(initialValue).value
+  }, options)
+}

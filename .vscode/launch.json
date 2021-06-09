@@ -19,8 +19,18 @@
       "name": "example/networking",
       "skipFiles": ["<node_internals>/**"],
       "preLaunchTask": "npm: example:build",
-      "program": "${workspaceFolder}/examples/networking/dist/server/index.js",
+      "program": "${workspaceFolder}/examples/spin/dist/server/index.js",
       "outFiles": ["${workspaceFolder}/**/*.js"]
+    },
+    {
+      "name": "@javelin/spin (server)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-r", "ts-node/register/transpile-only"],
+      "args": ["server/index.ts"],
+      "cwd": "${workspaceRoot}/examples/spin",
+      "skipFiles": ["<node_internals>/**", "node_modules/**"]
     }
   ]
 }
