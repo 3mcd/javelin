@@ -192,8 +192,7 @@ export const boolean = createByteView(
   ByteViewKind.Boolean,
   Model.boolean,
   uint8.byteLength,
-  (dataView: DataView, offset: number) =>
-    !!uint8.read(dataView, offset, length),
+  (dataView: DataView, offset: number) => !!uint8.read(dataView, offset),
   (dataView: DataView, offset: number, value: boolean) =>
     uint8.write(dataView, offset, +value),
 )

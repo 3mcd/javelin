@@ -1,9 +1,8 @@
-import { World } from "../dist/cjs"
 import { Archetype, createArchetype } from "./archetype"
 import { Component, registerSchema } from "./component"
 import { UNSAFE_internals } from "./internal"
 import { createQuery } from "./query"
-import { createWorld } from "./world"
+import { createWorld, World } from "./world"
 
 jest.mock("./archetype")
 jest.mock("./world")

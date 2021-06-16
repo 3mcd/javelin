@@ -2,12 +2,12 @@
   "name": "@javelin/ecs",
   "version": "1.0.0-alpha.7",
   "license": "MIT",
-  "type": "module",
-  "main": "dist/esm/index.js",
-  "browser": "dist/javelin-ecs.bundle.js",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
   "scripts": {
     "clean": "rm -f *.tsbuildinfo && rm -rf dist",
-    "build": "tsc -b && rollup -c",
+    "build": "tsc -b && esbuild dist/esm/index.js --outdir=dist/cjs --bundle --platform=node",
     "prepare": "npm run clean && npm run build"
   },
   "files": [

@@ -6,8 +6,12 @@ function flushPromises() {
   return new Promise(resolve => setImmediate(resolve))
 }
 
-window.AbortController.prototype.abort = jest.fn(
-  window.AbortController.prototype.abort,
+;(global as any).AbortController = class AbortController {
+  abort() {}
+}
+
+global.AbortController.prototype.abort = jest.fn(
+  global.AbortController.prototype.abort,
 )
 
 describe("useRequest", () => {
@@ -59,7 +63,7 @@ describe("useRequest", () => {
 
     await flushPromises()
 
-    expect(window.AbortController.prototype.abort).toHaveBeenCalledTimes(1)
+    expect(global.AbortController.prototype.abort).toHaveBeenCalledTimes(1)
   })
 
   it("initializes with null data", () => {

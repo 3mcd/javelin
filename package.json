@@ -3,25 +3,22 @@
   "private": true,
   "license": "MIT",
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
-  "description": "Monorepo for Javelin – a toolkit for building multiplayer games with Node and web browsers",
+  "description": "Monorepo for Javelin – a toolkit for building multiplayer games in JavaScript",
   "dependencies": {
     "@types/jest": "^26.0.20",
-    "jest": "^26.6.3",
-    "ts-jest": "^26.5.2",
-    "typescript": "^4.2.4"
-  },
-  "devDependencies": {
-    "@rollup/plugin-node-resolve": "^13.0.0",
-    "rollup": "^2.51.2",
-    "rollup-plugin-terser": "^7.0.2"
+    "esbuild": "^0.12.9",
+    "jest": "^27.0.4",
+    "ts-jest": "^27.0.3",
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.2"
   },
   "repository": "git@github.com:3mcd/javelin",
   "scripts": {
-    "docs": "yarn docs:assets && cd ./docs-src && ./zola serve",
-    "docs:build": "yarn docs:assets && cd ./docs-src && ./zola build --output-dir ../docs",
     "docs:assets": "cp ./packages/ecs/dist/javelin-ecs.bundle.min.js ./docs-src/static",
-    "test": "jest",
-    "example:spin": "pnpm start --filter=@javelin/spin"
+    "docs:build": "yarn docs:assets && cd ./docs-src && ./zola build --output-dir ../docs",
+    "docs": "yarn docs:assets && cd ./docs-src && ./zola serve",
+    "example:spin": "pnpm start --filter=@javelin/spin",
+    "test": "jest"
   },
   "workspaces": [
     "packages/*",

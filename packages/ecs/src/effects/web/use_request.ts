@@ -41,7 +41,9 @@ export const useRequest = createEffect(() => {
   let state: RequestEffectApi = { response: null, error: null, done: false }
   let fetching = false
   let previousUrl: string
-  let abortController = new window.AbortController()
+  let abortController = new (
+    typeof window === "object" ? window : global
+  ).AbortController()
 
   return function useRequest(
     url: string | null,
