@@ -1,4 +1,5 @@
 import {
+  Entity,
   arrayOf,
   component,
   ComponentOf,
@@ -10,7 +11,6 @@ import {
   useMonitor,
   useRef,
 } from "@javelin/ecs"
-import { Entity } from "@javelin/ecs/dist/cjs/entity"
 import { createMessageHandler } from "@javelin/net"
 import { Client } from "@web-udp/client"
 import { Big, Shell, Transform } from "../../server/components"

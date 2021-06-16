@@ -8,7 +8,6 @@ import {
   setOf,
   string,
 } from "@javelin/core"
-import { enhanceModel } from "../dist/cjs"
 import { decode, encode } from "./pack"
 import {
   boolean,
@@ -21,6 +20,7 @@ import {
   uint16,
   uint8,
 } from "./views"
+import { enhanceModel } from "./index"
 
 describe("pack", () => {
   it("encodes and decodes nested schema", () => {

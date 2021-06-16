@@ -1,12 +1,13 @@
 {
   "name": "@javelin/hrtime-loop",
-  "type": "module",
   "version": "1.0.0-alpha.3",
-  "main": "dist/index.js",
   "license": "MIT",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
   "scripts": {
     "clean": "rm -f *.tsbuildinfo && rm -rf dist",
-    "build": "tsc",
+    "build": "tsc -b && esbuild dist/esm/index.js --outdir=dist/cjs --bundle --platform=node",
     "prepare": "npm run clean && npm run build"
   },
   "files": [

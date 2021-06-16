@@ -2,9 +2,9 @@
   "name": "@javelin/net",
   "version": "1.0.0-alpha.7",
   "license": "MIT",
-  "type": "module",
   "main": "dist/cjs/index.js",
-  "browser": "dist/javelin-net.bundle.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
   "dependencies": {
     "@javelin/core": "workspace:*",
     "@javelin/ecs": "workspace:*",
@@ -12,7 +12,7 @@
   },
   "scripts": {
     "clean": "rm -f *.tsbuildinfo && rm -rf dist",
-    "build": "tsc -b && rollup -c",
+    "build": "tsc -b && esbuild dist/esm/index.js --outdir=dist/cjs --bundle --platform=node",
     "prepare": "npm run clean && npm run build"
   },
   "files": [
