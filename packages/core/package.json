@@ -1,14 +1,13 @@
 {
   "name": "@javelin/core",
   "version": "1.0.0-alpha.7",
-  "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
-  "browser": "dist/javelin-core.bundle.js",
   "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "clean": "rm -rf dist",
-    "build": "tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
-    "prepare": "yarn clean && yarn build"
+    "clean": "rm -f *.tsbuildinfo && rm -rf dist",
+    "build": "tsc -b",
+    "prepare": "npm run clean && npm run build"
   },
   "files": [
     "dist"

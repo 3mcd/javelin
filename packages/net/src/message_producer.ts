@@ -61,7 +61,7 @@ export function createMessageProducer(
       Message.MessagePartKind.Snapshot,
     )
   }
-  function update(entity: Entity, components: Component[], amplify = 0) {
+  function update(entity: Entity, components: Component[], amplify = Infinity) {
     let updates = entityUpdates[entity]
     if (updates === undefined) {
       updates = entityUpdates[entity] = new Map()
@@ -72,7 +72,7 @@ export function createMessageProducer(
     }
     entityPriorities[entity] = (entityPriorities[entity] ?? 0) + amplify
   }
-  function patch(entity: Entity, component: Component, amplify = 0) {
+  function patch(entity: Entity, component: Component, amplify = Infinity) {
     entityPatches[entity] = createPatch(component, entityPatches[entity])
     entityPriorities[entity] = (entityPriorities[entity] ?? 0) + amplify
   }

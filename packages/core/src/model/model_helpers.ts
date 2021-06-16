@@ -1,34 +1,95 @@
 import { mutableEmpty } from "../utils"
-import * as Model from "./model"
+import {
+  $flat,
+  $kind,
+  CollatedNode,
+  CollatedNodeBase,
+  CollatedNodeSchema,
+  Field,
+  FieldAny,
+  FieldArray,
+  FieldBoolean,
+  FieldData,
+  FieldDynamic,
+  FieldExtract,
+  FieldKind,
+  FieldMap,
+  FieldNumber,
+  FieldObject,
+  FieldOf,
+  FieldPrimitive,
+  FieldSet,
+  FieldString,
+  Model,
+  ModelFlat,
+  Schema,
+} from "./model"
 
-export const number: Model.FieldNumber = {
-  [Model.$kind]: Model.FieldKind.Number,
+/**
+ * Object used in a Schema to declare a numeric field.
+ * @example
+ * const Wallet = { money: number }
+ */
+export const number: FieldNumber = {
+  [$kind]: FieldKind.Number,
   get: () => 0,
 }
-export const string: Model.FieldString = {
-  [Model.$kind]: Model.FieldKind.String,
+/**
+ * Object used in a Schema to declare a string field.
+ * @example
+ * const Book = { title: string }
+ */
+export const string: FieldString = {
+  [$kind]: FieldKind.String,
   get: () => "",
 }
-export const boolean: Model.FieldBoolean = {
-  [Model.$kind]: Model.FieldKind.Boolean,
+/**
+ * Object used in a Schema to declare a boolean field.
+ * @example
+ * const Controller = { jumping: boolean }
+ */
+export const boolean: FieldBoolean = {
+  [$kind]: FieldKind.Boolean,
   get: () => false,
 }
-
-export function arrayOf<T extends Model.Field | Model.Schema>(
+/**
+ * Build a field that represents an array within a Schema. The sole parameter
+ * defines the array's element type, which can be another field or Schema.
+ * @param element
+ * @returns
+ * @example <caption>primitive element</caption>
+ * const Bag = { items: arrayOf(number) }
+ * @example <caption>complex element</caption>
+ * const Shape = { vertices: arrayOf(arrayOf(number)) }
+ */
+export function arrayOf<T extends Field | Schema>(
   element: T,
-): Model.FieldArray<Model.FieldExtract<T>> {
+): FieldArray<FieldExtract<T>> {
   return {
-    [Model.$kind]: Model.FieldKind.Array,
+    [$kind]: FieldKind.Array,
     get: (array = []) => mutableEmpty(array),
     element,
   }
 }
-export function objectOf<T extends Model.Field | Model.Schema>(
+/**
+ * Build a field that represents an object within a Schema. The first parameter
+ * defines the object's element type, which can be another field or Schema. If
+ * provided, the second argument will override the default key type of `string`
+ * with another field derived from `string`.
+ * @param element
+ * @returns
+ * @example <caption>primitive element</caption>
+ * const Stats = { values: objectOf(number) }
+ * @example <caption>`key` type override (e.g. for `@javelin/pack` encoding)</caption>
+ * const Stat = { min: number, max: number, value: number }
+ * const Stats = { values: objectOf(Stat, { ...string, length: 20 }) }
+ */
+export function objectOf<T extends Field | Schema>(
   element: T,
-  key: Model.FieldString = string,
-): Model.FieldObject<Model.FieldExtract<T>> {
+  key: FieldString = string,
+): FieldObject<FieldExtract<T>> {
   return {
-    [Model.$kind]: Model.FieldKind.Object,
+    [$kind]: FieldKind.Object,
     get: (object = {}) => {
       for (const prop in object) {
         delete object[prop]
@@ -39,11 +100,21 @@ export function objectOf<T extends Model.Field | Model.Schema>(
     element,
   }
 }
-export function setOf<T extends Model.Field | Model.Schema>(
+/**
+ * Build a field that represents an Set within a Schema. The sole parameter
+ * defines the Set's element type, which can be another field or Schema.
+ * @param element
+ * @returns
+ * @example <caption>primitive element</caption>
+ * const Buffs = { values: setOf(number) }
+ * @example <caption>complex element</caption>
+ * const Body = { colliders: setOf(Collider) }
+ */
+export function setOf<T extends Field | Schema>(
   element: T,
-): Model.FieldSet<Model.FieldExtract<T>> {
+): FieldSet<FieldExtract<T>> {
   return {
-    [Model.$kind]: Model.FieldKind.Set,
+    [$kind]: FieldKind.Set,
     get: (set = new Set()) => {
       set.clear()
       return set
@@ -51,12 +122,23 @@ export function setOf<T extends Model.Field | Model.Schema>(
     element,
   }
 }
-export function mapOf<K, V extends Model.Field | Model.Schema>(
-  key: Model.FOf<K>,
+/**
+ * Build a field that represents an Map within a Schema. The first parameter
+ * defines the Map's key type, which must be a primitive field. The second
+ * argument defines the Map's value type, which can be a field or schema.
+ * @param element
+ * @returns
+ * @example <caption>primitive element</caption>
+ * const Disabled = { entities: mapOf(number, boolean) }
+ * @example <caption>complex element</caption>
+ * const PrivateChat = { messagesByClientId: mapOf(string, arrayOf(ChatMessage)) }
+ */
+export function mapOf<K, V extends Field | Schema>(
+  key: FieldOf<K>,
   element: V,
-): Model.FieldMap<K, Model.FieldExtract<V>> {
+): FieldMap<K, FieldExtract<V>> {
   return {
-    [Model.$kind]: Model.FieldKind.Map,
+    [$kind]: FieldKind.Map,
     get: (map = new Map()) => {
       map.clear()
       return map
@@ -65,72 +147,78 @@ export function mapOf<K, V extends Model.Field | Model.Schema>(
     element,
   }
 }
+/**
+ * Build a field that represents an unknown type in a Schema. Accepts an
+ * optional parameter which is a factory function that returns an initial
+ * value for each field.
+ * @param element
+ * @returns
+ * @example <caption>`unknown` type</caption>
+ * const RigidBody = { value: dynamic() }
+ * @example <caption>library type</caption>
+ * const RigidBody = { value: dynamic(() => new Rapier.RigidBody()) }
+ */
 export function dynamic<T>(
-  get: Model.FieldData<T>["get"] = () => null as unknown as T,
-): Model.FieldDynamic<T> {
+  get: FieldData<T>["get"] = () => null as unknown as T,
+): FieldDynamic<T> {
   return {
-    [Model.$kind]: Model.FieldKind.Dynamic,
+    [$kind]: FieldKind.Dynamic,
     get,
   }
 }
 
-export function isField(object: object): object is Model.Field {
-  return Model.$kind in object
-}
-export function isFieldData<T>(object: object): object is Model.FieldData<T> {
-  return Model.$kind in object
+export function isField<T>(object: object): object is FieldData<T> {
+  return $kind in object
 }
 export function isSchema<T>(
-  node: Model.CollatedNode<T>,
-): node is Model.CollatedNodeSchema<T> {
-  return !(Model.$kind in node)
+  node: CollatedNode<T>,
+): node is CollatedNodeSchema<T> {
+  return !($kind in node)
 }
-export function isPrimitiveField(
-  object: object,
-): object is Model.FieldPrimitive {
+export function isPrimitiveField(object: object): object is FieldPrimitive {
   if (!isField(object)) {
     return false
   }
-  const kind = object[Model.$kind]
+  const kind = object[$kind]
   return (
-    kind === Model.FieldKind.Number ||
-    kind === Model.FieldKind.String ||
-    kind === Model.FieldKind.Boolean ||
-    kind === Model.FieldKind.Dynamic
+    kind === FieldKind.Number ||
+    kind === FieldKind.String ||
+    kind === FieldKind.Boolean ||
+    kind === FieldKind.Dynamic
   )
 }
 
 type Cursor = { id: number }
 
 export function collate<T>(
-  visiting: Model.Schema | Model.FieldAny,
+  visiting: Schema | FieldAny,
   cursor: Cursor,
-  traverse: (Model.FieldString | Model.FieldNumber)[] = [],
-): Model.CollatedNode<T> {
-  let base: Model.CollatedNodeBase = {
+  traverse: (FieldString | FieldNumber)[] = [],
+): CollatedNode<T> {
+  let base: CollatedNodeBase = {
     id: ++cursor.id,
     lo: cursor.id,
     hi: cursor.id,
     deep: traverse.length > 0,
     traverse,
   }
-  let node: Model.CollatedNode<T>
+  let node: CollatedNode<T>
   if (isField(visiting)) {
     node = { ...base, ...visiting }
     if ("element" in node) {
       node.element = collate(
-        node.element as Model.Schema | Model.Field,
+        node.element as Schema | Field,
         cursor,
         "key" in node
-          ? [...traverse, node.key as Model.FieldString | Model.FieldNumber]
+          ? [...traverse, node.key as FieldString | FieldNumber]
           : traverse,
-      ) as Model.Schema | Model.Field
+      ) as Schema | Field
     }
   } else {
     const keys = Object.keys(visiting)
     const keysByFieldId: string[] = []
-    const fields: Model.CollatedNode<T>[] = []
-    const fieldsByKey: { [key: string]: Model.CollatedNode<T> } = {}
+    const fields: CollatedNode<T>[] = []
+    const fieldsByKey: { [key: string]: CollatedNode<T> } = {}
     const fieldIdsByKey: { [key: string]: number } = {}
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]
@@ -153,16 +241,16 @@ export function collate<T>(
   return node
 }
 
-type ModelConfig = Map<number, Model.Schema | Model.Field>
+type ModelConfig = Map<number, Schema | Field>
 
 export function flattenModelNode(
-  node: Model.CollatedNode,
-  flat: Model.Model[typeof Model.$flat],
+  node: CollatedNode,
+  flat: Model[typeof $flat],
 ) {
   flat[node.id] = node
   if (isField(node)) {
     if ("element" in node) {
-      flattenModelNode(node.element as Model.CollatedNode<unknown>, flat)
+      flattenModelNode(node.element as CollatedNode<unknown>, flat)
     }
   } else {
     for (let i = 0; i < node.fields.length; i++) {
@@ -172,9 +260,9 @@ export function flattenModelNode(
 }
 
 export function flattenModel<T>(
-  model: Omit<Model.Model, typeof Model.$flat>,
-): Model.ModelFlat<T> {
-  const flat: Model.Model[typeof Model.$flat] = {}
+  model: Omit<Model, typeof $flat>,
+): ModelFlat<T> {
+  const flat: Model[typeof $flat] = {}
   for (const prop in model) {
     flattenModelNode(model[prop], (flat[prop] = {}))
   }
@@ -182,68 +270,65 @@ export function flattenModel<T>(
 }
 
 /**
- * createModel() produces a graph from a model and assigns each writable field
- * a unique integer id.
- *
+ * Produce a graph from a model and assign each writable field a unique integer
+ * id.
  * @param config
  * @returns Model
  */
-export function createModel<T>(config: ModelConfig): Model.Model<T> {
-  const model: Omit<Model.Model, typeof Model.$flat> = {}
+export function createModel<T>(config: ModelConfig): Model<T> {
+  const model: Omit<Model, typeof $flat> = {}
   const cursor = { id: -1 }
   config.forEach((sf, t) => {
     cursor.id = -1
     model[t] = collate(sf, cursor)
   })
-  return Object.defineProperty(model, Model.$flat, {
+  return Object.defineProperty(model, $flat, {
     enumerable: false,
     writable: false,
     value: flattenModel(model),
-  })
+  }) as Model<T>
 }
 
-export function initializeWithSchema<T extends Model.Schema>(
-  object: Model.FieldExtract<T>,
+export function initializeWithSchema<T extends Schema>(
+  object: FieldExtract<T>,
   schema: T,
-): Model.FieldExtract<T> {
+): FieldExtract<T> {
   for (const prop in schema) {
     const type = schema[prop]
     let value: unknown
-    if (isFieldData(type)) {
+    if (isField(type)) {
       value = type.get()
     } else {
-      value = initializeWithSchema({}, type as Model.Schema)
+      value = initializeWithSchema({}, type as Schema)
     }
-    object[prop] = value as Model.FieldExtract<T>[Extract<keyof T, string>]
+    object[prop] = value as FieldExtract<T>[Extract<keyof T, string>]
   }
   return object
 }
 
-export function resetWithSchema<T extends Model.Schema>(
-  object: Model.FieldExtract<T>,
+export function resetWithSchema<T extends Schema>(
+  object: FieldExtract<T>,
   schema: T,
 ) {
   for (const prop in schema) {
     const type = schema[prop]
-    if (isFieldData(type)) {
-      object[prop] = type.get(
-        object[prop] as any,
-      ) as Model.FieldExtract<T>[Extract<keyof T, string>]
+    if (isField(type)) {
+      object[prop] = type.get(object[prop]) as FieldExtract<T>[Extract<
+        keyof T,
+        string
+      >]
     } else {
-      resetWithSchema(
-        object[prop] as Model.FieldExtract<T>,
-        type as Model.Schema,
-      )
+      resetWithSchema(object[prop] as FieldExtract<T>, type as Schema)
     }
   }
   return object
 }
 
-export function isSimple(node: Model.CollatedNode): boolean {
+export function isSimple(node: CollatedNode): boolean {
   if (isSchema(node)) {
     return node.fields.every(isPrimitiveField)
   } else if ("element" in node) {
-    return isPrimitiveField(node.element as Model.FieldData<unknown>)
+    return isPrimitiveField(node.element as FieldData<unknown>)
   }
   return true
 }

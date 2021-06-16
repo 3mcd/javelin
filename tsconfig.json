@@ -1,16 +1,18 @@
 {
   "compilerOptions": {
-    "strict": true,
-    "target": "ES2018",
-    "module": "ESNext",
-    "esModuleInterop": true,
-    "noImplicitAny": true,
-    "moduleResolution": "node",
-    "strictNullChecks": true,
-    "sourceMap": true,
+    "composite": true,
     "declaration": true,
     "declarationMap": true,
-    "skipLibCheck": true
+    "downlevelIteration": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "target": "esnext"
   },
   "exclude": ["node_modules"]
 }

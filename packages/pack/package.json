@@ -1,15 +1,14 @@
 {
   "name": "@javelin/pack",
   "version": "1.0.0-alpha.7",
-  "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
-  "browser": "dist/javelin-pack.bundle.js",
   "license": "MIT",
+  "type": "module",
+  "main": "dist/esm/index.js",
+  "browser": "dist/javelin-pack.bundle.js",
   "scripts": {
-    "clean": "rm -rf dist",
-    "perf": "yarn build && node perf/index.js",
-    "build": "tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
-    "prepare": "yarn clean && yarn build"
+    "clean": "rm -f *.tsbuildinfo && rm -rf dist",
+    "build": "tsc -b && rollup -c",
+    "prepare": "npm run clean && npm run build"
   },
   "files": [
     "dist"
@@ -23,11 +22,10 @@
     "multiplayer",
     "networking"
   ],
-  "gitHead": "084d65218a12efbb32ea2b22e0f8e1812acb7d7e",
   "devDependencies": {
     "@msgpack/msgpack": "^2.4.1"
   },
   "dependencies": {
-    "@javelin/core": "1.0.0-alpha.7"
+    "@javelin/core": "workspace:*"
   }
 }

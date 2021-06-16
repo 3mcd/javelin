@@ -218,7 +218,7 @@ const descriptorBase = {
 
 function register(object: object, node: CollatedNode): Observed {
   const changes = getChanges(node)
-  const observed: Observed = Object.defineProperties(object, {
+  const observed: Observed = Object.defineProperties(object as Observed, {
     [$self]: { ...descriptorBase, value: object },
     [$changes]: { ...descriptorBase, value: changes },
   })
