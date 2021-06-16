@@ -1,10 +1,10 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "downlevelIteration": true,
-    "outDir": "dist/esm",
-    "module": "esnext"
+    "rootDir": "src",
+    "outDir": "dist/esm"
   },
   "include": ["src"],
-  "exclude": ["**/*.spec.ts", "**/__mocks__/**/*"]
+  "exclude": ["**/*.spec.ts", "**/__mocks__/**/*"],
+  "references": [{ "path": "../core" }]
 }

@@ -86,17 +86,17 @@ Visit https://javelin.games
 
 | Script                    | Description                                      |
 | ------------------------- | ------------------------------------------------ |
-| `yarn build`              | Build all packages and examples                  |
-| `yarn test`               | Run all unit and integration tests               |
-| `yarn perf`               | Run all performance tests                        |
-| `yarn example:networking` | An example of synchronizing entities over WebRTC |
+| `pnpm build`              | Build all packages and examples                  |
+| `pnpm test`               | Run all unit and integration tests               |
+| `pnpm perf`               | Run all performance tests                        |
+| `pnpm example:networking` | An example of synchronizing entities over WebRTC |
 
 ## Development
 
 ```sh
-yarn
-yarn build
-yarn example:networking
+pnpm
+pnpm build
+pnpm example:networking
 ```
 
 Note that when developing, changes to code in local, dependent packages will not automatically refresh development apps. Just build the dependent packages and restart the dev server process when you want to test a change.

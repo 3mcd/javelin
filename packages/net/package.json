@@ -1,20 +1,19 @@
 {
   "name": "@javelin/net",
   "version": "1.0.0-alpha.7",
-  "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
-  "browser": "dist/javelin-net.bundle.js",
   "license": "MIT",
+  "type": "module",
+  "main": "dist/cjs/index.js",
+  "browser": "dist/javelin-net.bundle.js",
   "dependencies": {
-    "@javelin/core": "1.0.0-alpha.7",
-    "@javelin/ecs": "1.0.0-alpha.7",
-    "@javelin/pack": "1.0.0-alpha.7"
+    "@javelin/core": "workspace:*",
+    "@javelin/ecs": "workspace:*",
+    "@javelin/pack": "workspace:*"
   },
   "scripts": {
-    "clean": "rm -rf dist",
-    "perf": "yarn build && node perf/index.js",
-    "build": "tsc --project tsconfig.json && tsc --project tsconfig.cjs.json && rollup -c",
-    "prepare": "yarn clean && yarn build"
+    "clean": "rm -f *.tsbuildinfo && rm -rf dist",
+    "build": "tsc -b && rollup -c",
+    "prepare": "npm run clean && npm run build"
   },
   "files": [
     "dist"
@@ -25,6 +24,5 @@
     "mog",
     "multiplayer",
     "networking"
-  ],
-  "gitHead": "084d65218a12efbb32ea2b22e0f8e1812acb7d7e"
+  ]
 }

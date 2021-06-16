@@ -29,26 +29,26 @@ export type FieldBoolean = FieldData<boolean> & {
 }
 export type FieldArray<T, P = unknown> = FieldData<T[]> & {
   [$kind]: FieldKind.Array
-  element: Schema | FOf<T, P>
+  element: Schema | FieldOf<T, P>
 }
 export type FieldObject<T, P = unknown> = FieldData<StringMap<T>> & {
   [$kind]: FieldKind.Object
-  key: FOf<string>
-  element: Schema | FOf<T, P>
+  key: FieldOf<string>
+  element: Schema | FieldOf<T, P>
 }
 export type FieldSet<T, P = unknown> = FieldData<Set<T>> & {
   [$kind]: FieldKind.Set
-  element: Schema | FOf<T, P>
+  element: Schema | FieldOf<T, P>
 }
 export type FieldMap<K, V, P = unknown> = FieldData<Map<K, V>> & {
   [$kind]: FieldKind.Map
-  key: FOf<K>
-  element: Schema | FOf<V, P>
+  key: FieldOf<K>
+  element: Schema | FieldOf<V, P>
 }
 export type FieldDynamic<T> = FieldData<T> & {
   [$kind]: FieldKind.Dynamic
 }
-export type FOf<T, P = unknown> = T extends number
+export type FieldOf<T, P = unknown> = T extends number
   ? FieldNumber & P
   : T extends string
   ? FieldString & P
