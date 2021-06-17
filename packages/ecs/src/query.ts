@@ -41,6 +41,11 @@ export type QueryIteratee<S extends Selector> = (
   entity: Entity,
   components: SelectorResult<S>,
 ) => unknown
+
+/**
+ * A query is a live-updating, iterable collection of entity-components records
+ * that match a provided selector (list of schemas).
+ */
 export type Query<S extends Selector = Selector> = ((
   callback: QueryIteratee<S>,
 ) => void) & {
@@ -125,13 +130,26 @@ function createQueryInternal<S extends Selector>(
     registerSchema(schema),
   )
   const recordsIndex = [] as QueryRecord<S>[][]
+  const pool = createStackPool<SelectorResult<S>>(
+    () => [] as unknown as SelectorResult<S>,
+    components => {
+      mutableEmpty(components)
+      return components
+    },
+    1000,
+  )
 
   let context = options.context
 
-  const maybeRegisterArchetype = (
+  /**
+   * Attempt to register an archetype with this query. If the archetype is
+   * matched, a live record of the archetype's entities, columns, and entity
+   * index is pushed into the query's registry.
+   */
+  function maybeRegisterArchetype(
     archetype: Archetype,
     records: QueryRecord<S>[],
-  ) => {
+  ) {
     if (matches(signature, filters, archetype)) {
       const columns = layout.map(
         schemaId => archetype.table[archetype.signature.indexOf(schemaId)],
@@ -143,7 +161,12 @@ function createQueryInternal<S extends Selector>(
       ])
     }
   }
-  const registerWorld = (worldId: number) => {
+
+  /**
+   * Create a new index of archetype records for the provided world, attempt
+   * register existing archetypes, and subscribe to newly created ones.
+   */
+  function registerWorld(worldId: number) {
     const world = UNSAFE_internals.worlds[worldId]
     const records: QueryRecord<S>[] = []
     recordsIndex[worldId] = records
@@ -155,15 +178,8 @@ function createQueryInternal<S extends Selector>(
     )
     return records
   }
-  const pool = createStackPool<SelectorResult<S>>(
-    () => [] as unknown as SelectorResult<S>,
-    components => {
-      mutableEmpty(components)
-      return components
-    },
-    1000,
-  )
-  const forEach = (iteratee: QueryIteratee<S>) => {
+
+  function forEach(iteratee: QueryIteratee<S>) {
     const c = context ?? UNSAFE_internals.currentWorldId
     assert(c !== null && c !== -1, ERROR_MSG_UNBOUND_QUERY, ErrorType.Query)
     const records = recordsIndex[c] || registerWorld(c)
@@ -182,11 +198,16 @@ function createQueryInternal<S extends Selector>(
     pool.release(components)
   }
 
-  const query = forEach as Query<S>
-  query.signature = signature
-  query.filters = filters
-  query.not = (...exclude: Selector) =>
-    createQueryInternal({
+  function iterator() {
+    const c = context ?? UNSAFE_internals.currentWorldId
+    assert(c !== null && c !== -1, ERROR_MSG_UNBOUND_QUERY, ErrorType.Query)
+    const iterator = (recordsIndex[c] || registerWorld(c))[Symbol.iterator]()
+
+    return iterator
+  }
+
+  function not(...exclude: Selector) {
+    return createQueryInternal({
       ...options,
       filters: {
         not: new Set(
@@ -196,15 +217,19 @@ function createQueryInternal<S extends Selector>(
         ),
       },
     })
-  query.select = <T extends SelectorSubset<S>>(...include: T) =>
-    createQueryInternal({
+  }
+
+  function select<T extends SelectorSubset<S>>(...include: T) {
+    return createQueryInternal({
       ...options,
       include,
     }) as unknown as Query<T>
-  query.get = (
+  }
+
+  function get(
     entity: Entity,
     out: SelectorResult<S> = [] as unknown as SelectorResult<S>,
-  ) => {
+  ) {
     const c = context ?? UNSAFE_internals.currentWorldId
     const records = recordsIndex[c]
     for (let i = 0; i < records.length; i++) {
@@ -221,12 +246,15 @@ function createQueryInternal<S extends Selector>(
       "Failed to get components of query: entity does not match query",
     )
   }
-  query.bind = (world: World) =>
-    createQueryInternal({
+
+  function bind(world: World) {
+    return createQueryInternal({
       ...options,
       context: world.id,
     })
-  query.test = (entity: Entity) => {
+  }
+
+  function test(entity: Entity) {
     const c = context ?? UNSAFE_internals.currentWorldId
     const records = recordsIndex[c]
     for (let i = 0; i < records.length; i++) {
@@ -237,16 +265,12 @@ function createQueryInternal<S extends Selector>(
     }
     return false
   }
-  query.matchesArchetype = (archetype: Archetype) =>
-    matches(signature, filters, archetype)
-  query[Symbol.iterator] = () => {
-    const c = context ?? UNSAFE_internals.currentWorldId
-    assert(c !== null && c !== -1, ERROR_MSG_UNBOUND_QUERY, ErrorType.Query)
-    const iterator = (recordsIndex[c] || registerWorld(c))[Symbol.iterator]()
 
-    return iterator
+  function matchesArchetype(archetype: Archetype) {
+    return matches(signature, filters, archetype)
   }
-  query.equals = (query: Query) => {
+
+  function equals(query: Query) {
     if (query.signature.length !== signature.length) {
       return false
     }
@@ -264,10 +288,11 @@ function createQueryInternal<S extends Selector>(
     )
     return result
   }
-  query.match = (
+
+  function match(
     components: Component[],
     out: SelectorResultSparse<S> = [] as unknown as SelectorResultSparse<S>,
-  ): SelectorResultSparse<S> => {
+  ): SelectorResultSparse<S> {
     for (let i = 0; i < layout.length; i++) {
       out[i] = null
     }
@@ -280,6 +305,19 @@ function createQueryInternal<S extends Selector>(
     }
     return out as SelectorResultSparse<S>
   }
+
+  const query = forEach as Query<S>
+  query[Symbol.iterator] = iterator
+  query.signature = signature
+  query.filters = filters
+  query.not = not
+  query.select = select
+  query.get = get
+  query.bind = bind
+  query.test = test
+  query.matchesArchetype = matchesArchetype
+  query.equals = equals
+  query.match = match
 
   return query
 }
