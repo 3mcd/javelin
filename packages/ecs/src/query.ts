@@ -15,17 +15,50 @@ import { World } from "./world"
 const ERROR_MSG_UNBOUND_QUERY =
   "a query must be executed within a system or bound to a world using Query.bind()"
 
+/**
+ * A list of schemas that defines the signature of a query's results.
+ * @example
+ * const particle: Selector = [Position, Color]
+ */
 export type Selector = Schema[]
+
+/**
+ * An array of schema instances that corresponds to a selector.
+ * @example
+ * const results: SelectorResult<[Position, Color]> = [
+ *   { x: 0, y: 0 },
+ *   { value: 0xff0000 }
+ * ]
+ */
 export type SelectorResult<S extends Selector> = {
   [K in keyof S]: S[K] extends Schema ? ComponentOf<S[K]> : Component
 }
+
+/**
+ * A "sparse" `SelectorResult` where each value can be null.
+ * @example
+ * const results: SelectorResultSparse<[Position, Color]> = [
+ *   null,
+ *   { value: 0xff0000 }
+ * ]
+ */
 export type SelectorResultSparse<S extends Selector> = {
   [K in keyof S]: (S[K] extends Schema ? ComponentOf<S[K]> : Component) | null
 }
+
+/**
+ * A subset of selector `S`.
+ * @example
+ * const subset: SelectorSubset<[Position, Color]> = [Color]
+ */
 export type SelectorSubset<S extends Selector> = (S extends Array<infer _>
   ? _
   : never)[]
 
+/**
+ * A record generated from an archetype with live references to the
+ * archetype's entities and component data.
+ */
 export type QueryRecord<S extends Selector> = [
   entities: ReadonlyArray<number>,
   columns: {
@@ -33,18 +66,22 @@ export type QueryRecord<S extends Selector> = [
   },
   entityLookup: ReadonlyArray<number>,
 ]
-export type QueryForEachRecord<S extends Selector> = [
-  entity: number,
-  selectorResult: SelectorResult<S>,
-]
+
+/**
+ * A function used to iterate a query using the `query(fn)` syntax.
+ * @example
+ * const iteratee: QueryIteratee<[Position, Color]> = (entity, [position, color]) => {
+ *   // ...
+ * }
+ */
 export type QueryIteratee<S extends Selector> = (
   entity: Entity,
   components: SelectorResult<S>,
 ) => unknown
 
 /**
- * A query is a live-updating, iterable collection of entity-components records
- * that match a provided selector (list of schemas).
+ * A live-updating, iterable collection of entity-components records that match
+ * a provided selector (list of schemas).
  */
 export type Query<S extends Selector = Selector> = ((
   callback: QueryIteratee<S>,
@@ -57,42 +94,38 @@ export type Query<S extends Selector = Selector> = ((
   /**
    * Create a new query that excludes entities with components of provided
    * component type(s) from this query's results.
-   * @param selector
    */
   not(...selector: Selector): Query<S>
 
   /**
    * Create a new query that behaves the same as this query, but yields a
    * specified subset of components.
-   * @param include
    */
   select<T extends SelectorSubset<S>>(...include: T): Query<T>
 
   /**
    * Get the results of a query for a specific entity.
-   * @param entity
-   * @param out
    */
   get(entity: Entity, out?: SelectorResult<S>): SelectorResult<S>
 
   /**
    * Determine if an entity matches the query.
-   * @param entity
    */
   test(entity: Entity): boolean
 
   /**
    * Bind the results of this query to a specific world.
-   * @param world
    */
   bind(world: World): Query<S>
 
   /**
-   * Determine if a query matches an archetype.
-   * @param archetype
+   * Determine if this query matches an archetype.
    */
   matchesArchetype(archetype: Archetype): boolean
 
+  /**
+   * Determine if this query equals another query.
+   */
   equals(query: Query): boolean
 
   match(
@@ -105,9 +138,16 @@ type QueryFilters = {
   not: Set<number>
 }
 
-const matches = (type: Type, filters: QueryFilters, archetype: Archetype) =>
-  typeIsSuperset(archetype.signature, type) &&
-  archetype.signature.every(c => !filters.not.has(c))
+/**
+ * Determine if a query signature (type) matches an archetype signature,
+ * accounting for query filters (if any).
+ */
+function matches(type: Type, filters: QueryFilters, archetype: Archetype) {
+  return (
+    typeIsSuperset(archetype.signature, type) &&
+    archetype.signature.every(c => !filters.not.has(c))
+  )
+}
 
 type QueryFactoryOptions<S extends Selector> = {
   select: S
@@ -323,18 +363,17 @@ function createQueryInternal<S extends Selector>(
 }
 
 /**
- * Create a query that can be used to iterate over entities that match a
- * provided component type selector. Maintains an automatically-updated
- * cache of archetypes, and can be used across multiple worlds.
- * @param selector Query selector
- * @returns Query
+ * Create a query that can be used to iterate entities that match a selector.
+ * Maintains a live-updating cache of entities, and can be used across multiple
+ * worlds.
  * @example
  * const burning = createQuery(Player, Burn)
  * burning.forEach((entity, [player, burn]) => {
  *   player.health -= burn.damage
  * })
  */
-export const createQuery = <S extends Selector>(...selector: S): Query<S> =>
-  createQueryInternal({
+export function createQuery<S extends Selector>(...selector: S): Query<S> {
+  return createQueryInternal({
     select: selector,
   })
+}
