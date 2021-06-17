@@ -2,13 +2,13 @@ import {
   arrayOf,
   boolean,
   createModel,
-  initializeWithSchema,
+  createSchemaInstance,
   mapOf,
   number,
   objectOf,
   setOf,
   string,
-  resetWithSchema,
+  resetSchemaInstance,
 } from "./model_helpers"
 import {
   $kind,
@@ -98,23 +98,23 @@ describe("model_helpers", () => {
     expect(flat[1][7]).toBe(elObject)
   })
   it("initializes objects from schema", () => {
-    const a = initializeWithSchema({} as FieldExtract<typeof A>, A)
-    const b = initializeWithSchema({} as FieldExtract<typeof B>, B)
+    const a = createSchemaInstance({} as FieldExtract<typeof A>, A)
+    const b = createSchemaInstance({} as FieldExtract<typeof B>, B)
     expect(a.x).toBe(0)
     expect(a.y).toBe(0)
     expect(b.array).toEqual([])
     expect(b.object).toEqual({})
   })
   it("resets objects from schema", () => {
-    const a = initializeWithSchema({} as FieldExtract<typeof A>, A)
-    const b = initializeWithSchema({} as FieldExtract<typeof B>, B)
+    const a = createSchemaInstance({} as FieldExtract<typeof A>, A)
+    const b = createSchemaInstance({} as FieldExtract<typeof B>, B)
     a.x = 98
     a.y = 99
     b.array.push({ map: new Map() })
     b.object.zonk = true
     b.object.zoot = false
-    resetWithSchema(a, A)
-    resetWithSchema(b, B)
+    resetSchemaInstance(a, A)
+    resetSchemaInstance(b, B)
     expect(a.x).toBe(0)
     expect(a.y).toBe(0)
     expect(b.array).toEqual([])
