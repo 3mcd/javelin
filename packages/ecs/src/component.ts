@@ -2,8 +2,8 @@ import {
   createModel,
   createStackPool,
   FieldExtract,
-  initializeWithSchema,
-  resetWithSchema,
+  createSchemaInstance,
+  resetSchemaInstance,
   Schema,
   StackPool,
 } from "@javelin/core"
@@ -59,12 +59,15 @@ export function createComponentPool<S extends Schema>(
 ) {
   const componentPool = createStackPool<ComponentOf<S>>(
     () =>
-      initializeWithSchema(
-        createComponentBase(Schema) as FieldExtract<S>,
+      createSchemaInstance(
         Schema,
+        createComponentBase(Schema) as FieldExtract<S>,
       ) as ComponentOf<S>,
     component =>
-      resetWithSchema(component as FieldExtract<S>, Schema) as ComponentOf<S>,
+      resetSchemaInstance(
+        component as FieldExtract<S>,
+        Schema,
+      ) as ComponentOf<S>,
     poolSize,
   )
 

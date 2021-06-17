@@ -26,7 +26,7 @@ import {
 } from "./model"
 
 /**
- * Object used in a Schema to declare a numeric field.
+ * Object used in a schema to declare a numeric field.
  * @example
  * const Wallet = { money: number }
  */
@@ -34,8 +34,9 @@ export const number: FieldNumber = {
   [$kind]: FieldKind.Number,
   get: () => 0,
 }
+
 /**
- * Object used in a Schema to declare a string field.
+ * Object used in a schema to declare a string field.
  * @example
  * const Book = { title: string }
  */
@@ -43,8 +44,9 @@ export const string: FieldString = {
   [$kind]: FieldKind.String,
   get: () => "",
 }
+
 /**
- * Object used in a Schema to declare a boolean field.
+ * Object used in a schema to declare a boolean field.
  * @example
  * const Controller = { jumping: boolean }
  */
@@ -52,11 +54,10 @@ export const boolean: FieldBoolean = {
   [$kind]: FieldKind.Boolean,
   get: () => false,
 }
+
 /**
- * Build a field that represents an array within a Schema. The sole parameter
+ * Build a field that represents an array within a schema. The sole parameter
  * defines the array's element type, which can be another field or Schema.
- * @param element
- * @returns
  * @example <caption>primitive element</caption>
  * const Bag = { items: arrayOf(number) }
  * @example <caption>complex element</caption>
@@ -71,13 +72,12 @@ export function arrayOf<T extends Field | Schema>(
     element,
   }
 }
+
 /**
- * Build a field that represents an object within a Schema. The first parameter
+ * Build a field that represents an object within a schema. The first parameter
  * defines the object's element type, which can be another field or Schema. If
  * provided, the second argument will override the default key type of `string`
  * with another field derived from `string`.
- * @param element
- * @returns
  * @example <caption>primitive element</caption>
  * const Stats = { values: objectOf(number) }
  * @example <caption>`key` type override (e.g. for `@javelin/pack` encoding)</caption>
@@ -100,11 +100,10 @@ export function objectOf<T extends Field | Schema>(
     element,
   }
 }
+
 /**
- * Build a field that represents an Set within a Schema. The sole parameter
+ * Build a field that represents an Set within a schema. The sole parameter
  * defines the Set's element type, which can be another field or Schema.
- * @param element
- * @returns
  * @example <caption>primitive element</caption>
  * const Buffs = { values: setOf(number) }
  * @example <caption>complex element</caption>
@@ -122,12 +121,11 @@ export function setOf<T extends Field | Schema>(
     element,
   }
 }
+
 /**
- * Build a field that represents an Map within a Schema. The first parameter
+ * Build a field that represents an Map within a schema. The first parameter
  * defines the Map's key type, which must be a primitive field. The second
  * argument defines the Map's value type, which can be a field or schema.
- * @param element
- * @returns
  * @example <caption>primitive element</caption>
  * const Disabled = { entities: mapOf(number, boolean) }
  * @example <caption>complex element</caption>
@@ -147,12 +145,11 @@ export function mapOf<K, V extends Field | Schema>(
     element,
   }
 }
+
 /**
- * Build a field that represents an unknown type in a Schema. Accepts an
+ * Build a field that represents an unknown type in a schema. Accepts an
  * optional parameter which is a factory function that returns an initial
  * value for each field.
- * @param element
- * @returns
  * @example <caption>`unknown` type</caption>
  * const RigidBody = { value: dynamic() }
  * @example <caption>library type</caption>
@@ -167,14 +164,16 @@ export function dynamic<T>(
   }
 }
 
+/**
+ * Determine if an object is a Javelin model field.
+ */
 export function isField<T>(object: object): object is FieldData<T> {
   return $kind in object
 }
-export function isSchema<T>(
-  node: CollatedNode<T>,
-): node is CollatedNodeSchema<T> {
-  return !($kind in node)
-}
+
+/**
+ * Determine if an object is a primitive Javelin model field.
+ */
 export function isPrimitiveField(object: object): object is FieldPrimitive {
   if (!isField(object)) {
     return false
@@ -188,20 +187,50 @@ export function isPrimitiveField(object: object): object is FieldPrimitive {
   )
 }
 
+/**
+ * Determine if a Javelin model node represents a schema.
+ */
+export function isSchema<T>(
+  node: CollatedNode<T>,
+): node is CollatedNodeSchema<T> {
+  return !($kind in node)
+}
+
+/**
+ * Determine if a Javelin model node is simple. A node is simple if:
+ *   1. it is primitive
+ *   2. it is a schema and each of its fields are primitive
+ *   3. it is a complex field (e.g. array, map) and its element is primitive
+ */
+export function isSimple(node: CollatedNode): boolean {
+  if (isSchema(node)) {
+    return node.fields.every(isPrimitiveField)
+  } else if ("element" in node) {
+    return isPrimitiveField(node.element as FieldData<unknown>)
+  }
+  return true
+}
+
 type Cursor = { id: number }
 
-export function collate<T>(
+/**
+ * Create a recursively annotated schema where each field is uniquely
+ * addressed by an integer id, indexed using `lo` and `hi` fields, and
+ * annotated with useful metadata.
+ */
+function collate<T>(
   visiting: Schema | FieldAny,
   cursor: Cursor,
   traverse: (FieldString | FieldNumber)[] = [],
 ): CollatedNode<T> {
   let base: CollatedNodeBase = {
-    id: ++cursor.id,
+    id: cursor.id,
     lo: cursor.id,
     hi: cursor.id,
     deep: traverse.length > 0,
     traverse,
   }
+  cursor.id++
   let node: CollatedNode<T>
   if (isField(visiting)) {
     node = { ...base, ...visiting }
@@ -243,10 +272,12 @@ export function collate<T>(
 
 type ModelConfig = Map<number, Schema | Field>
 
-export function flattenModelNode(
-  node: CollatedNode,
-  flat: Model[typeof $flat],
-) {
+/**
+ * Recursively flatten a model node, updating the `flat` argument with
+ * key/value pairs where the key is a field id and the value is a its
+ * corresponding model node.
+ */
+function flattenModelNode(node: CollatedNode, flat: Model[typeof $flat]) {
   flat[node.id] = node
   if (isField(node)) {
     if ("element" in node) {
@@ -259,9 +290,11 @@ export function flattenModelNode(
   }
 }
 
-export function flattenModel<T>(
-  model: Omit<Model, typeof $flat>,
-): ModelFlat<T> {
+/**
+ * Recursively flatten a model, creating a new object containing key/value
+ * pairs where keys are field ids and values are corresponding model nodes.
+ */
+function flattenModel<T>(model: Omit<Model, typeof $flat>): ModelFlat<T> {
   const flat: Model[typeof $flat] = {}
   for (const prop in model) {
     flattenModelNode(model[prop], (flat[prop] = {}))
@@ -272,16 +305,10 @@ export function flattenModel<T>(
 /**
  * Produce a graph from a model and assign each writable field a unique integer
  * id.
- * @param config
- * @returns Model
  */
 export function createModel<T>(config: ModelConfig): Model<T> {
   const model: Omit<Model, typeof $flat> = {}
-  const cursor = { id: -1 }
-  config.forEach((sf, t) => {
-    cursor.id = -1
-    model[t] = collate(sf, cursor)
-  })
+  config.forEach((schema, t) => (model[t] = collate(schema, { id: 0 })))
   return Object.defineProperty(model, $flat, {
     enumerable: false,
     writable: false,
@@ -289,9 +316,14 @@ export function createModel<T>(config: ModelConfig): Model<T> {
   }) as Model<T>
 }
 
-export function initializeWithSchema<T extends Schema>(
-  object: FieldExtract<T>,
+type SchemaKey<T extends Schema> = FieldExtract<T>[Extract<keyof T, string>]
+
+/**
+ * Create an instance of a schema.
+ */
+export function createSchemaInstance<T extends Schema>(
   schema: T,
+  object: FieldExtract<T> = {} as FieldExtract<T>,
 ): FieldExtract<T> {
   for (const prop in schema) {
     const type = schema[prop]
@@ -299,36 +331,27 @@ export function initializeWithSchema<T extends Schema>(
     if (isField(type)) {
       value = type.get()
     } else {
-      value = initializeWithSchema({}, type as Schema)
+      value = createSchemaInstance({}, type as Schema)
     }
-    object[prop] = value as FieldExtract<T>[Extract<keyof T, string>]
+    object[prop] = value as SchemaKey<T>
   }
   return object
 }
 
-export function resetWithSchema<T extends Schema>(
+/**
+ * Reset an instance of a schema.
+ */
+export function resetSchemaInstance<T extends Schema>(
   object: FieldExtract<T>,
   schema: T,
 ) {
   for (const prop in schema) {
     const type = schema[prop]
     if (isField(type)) {
-      object[prop] = type.get(object[prop]) as FieldExtract<T>[Extract<
-        keyof T,
-        string
-      >]
+      object[prop] = type.get(object[prop]) as SchemaKey<T>
     } else {
-      resetWithSchema(object[prop] as FieldExtract<T>, type as Schema)
+      resetSchemaInstance(object[prop] as FieldExtract<T>, type as Schema)
     }
   }
   return object
-}
-
-export function isSimple(node: CollatedNode): boolean {
-  if (isSchema(node)) {
-    return node.fields.every(isPrimitiveField)
-  } else if ("element" in node) {
-    return isPrimitiveField(node.element as FieldData<unknown>)
-  }
-  return true
 }
