@@ -81,7 +81,7 @@ export const useNet = createEffect(
       return Object.assign(state, handler.useInfo())
     }
   },
-  { global: true },
+  { shared: true },
 )
 
 export const world = createWorld<WorldTickData>()
