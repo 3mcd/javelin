@@ -117,7 +117,7 @@ describe("createEffect", () => {
         ref = {}
         return () => ref
       },
-      { global: true },
+      { shared: true },
     )
 
     const a = effect()
@@ -138,7 +138,7 @@ describe("createEffect", () => {
 
   it("executes once per tick in global mode", () => {
     const callback = jest.fn()
-    const effect = createEffect(() => callback, { global: true })
+    const effect = createEffect(() => callback, { shared: true })
 
     effect()
     effect()
@@ -204,7 +204,7 @@ describe("createEffect", () => {
   it("balances global locks with async locks", async () => {
     const callback = jest.fn(() => Promise.resolve())
     const effect = createEffect(() => callback, {
-      global: true,
+      shared: true,
     })
 
     effect()
