@@ -82,9 +82,7 @@ export const createMessageHandler = (world: World) => {
             schemaId,
           )
         } catch {}
-        if (component !== null) {
-          Pack.decode(buffer, model[schemaId], cursor, component)
-        }
+        Pack.decode(buffer, model[schemaId], cursor, component ?? undefined)
       }
       state.updated.add(entityLocal)
     }
