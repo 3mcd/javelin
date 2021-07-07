@@ -10,6 +10,7 @@
     "@javelin/pack": "1.0.0-alpha.7"
   },
   "changesets": [
-    "shy-hounds-bow"
+    "shy-hounds-bow",
+    "tame-timers-judge"
   ]
 }
