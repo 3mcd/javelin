@@ -1,4 +1,4 @@
-import { arrayOf, boolean, number, registerSchema } from "@javelin/ecs"
+import { boolean, number, registerSchema } from "@javelin/ecs"
 
 export const Player = {
   clientId: number,
@@ -19,7 +19,9 @@ export const Transform = {
   extra8: number,
 }
 
-export const Big = {}
+export const Big = {
+  placeholder: number,
+}
 
 export const Shell = {
   value: number,

@@ -5,9 +5,9 @@ export const createWorld = jest.fn((): World => {
   let e = 0
   return {
     id: 1,
-    latestStep: 0,
-    latestStepData: null,
-    latestSystem: 0,
+    latestTick: 0,
+    latestTickData: null,
+    latestSystemId: 0,
     storage: createStorage(),
     addSystem: jest.fn(),
     addTopic: jest.fn(),

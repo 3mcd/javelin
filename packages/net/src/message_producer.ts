@@ -55,10 +55,10 @@ export function createMessageProducer(
       Message.MessagePartKind.Model,
     )
   }
-  function snapshot(entity: Entity, components: Component[]) {
+  function attach(entity: Entity, components: Component[]) {
     enqueue(
       MessageOp.snapshot(Message.getEnhancedModel(), entity, components),
-      Message.MessagePartKind.Snapshot,
+      Message.MessagePartKind.Attach,
     )
   }
   function update(entity: Entity, components: Component[], amplify = Infinity) {
@@ -130,7 +130,7 @@ export function createMessageProducer(
 
   return {
     model,
-    attach: snapshot,
+    attach,
     update,
     patch,
     detach,
