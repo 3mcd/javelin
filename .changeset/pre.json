@@ -1,0 +1,15 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@javelin/spin": "1.0.0-alpha.7",
+    "@javelin/core": "1.0.0-alpha.7",
+    "@javelin/ecs": "1.0.0-alpha.7",
+    "@javelin/hrtime-loop": "1.0.0-alpha.3",
+    "@javelin/net": "1.0.0-alpha.7",
+    "@javelin/pack": "1.0.0-alpha.7"
+  },
+  "changesets": [
+    "shy-hounds-bow"
+  ]
+}
