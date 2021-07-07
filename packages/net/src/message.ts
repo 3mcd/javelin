@@ -15,6 +15,7 @@ export type Message = {
 
 export enum MessagePartKind {
   Model,
+  Attach,
   Snapshot,
   Patch,
   Detach,
@@ -95,6 +96,18 @@ export function overwrite(
 
 export function model(message: Message) {
   overwrite(message, MessagePartKind.Model, Ops.model(enhancedModel))
+}
+
+export function attach(
+  message: Message,
+  entity: Entity,
+  components: Component[],
+) {
+  insert(
+    message,
+    MessagePartKind.Attach,
+    Ops.snapshot(enhancedModel, entity, components),
+  )
 }
 
 export function snapshot(

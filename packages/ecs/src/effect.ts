@@ -106,16 +106,16 @@ export function createEffect<
   let previousSystem: number
 
   let currentWorld: number
-  let latestSystem: number
+  let latestSystemId: number
   let cellCount: number = -1
 
   return function effect(...args: A) {
     currentWorld = UNSAFE_internals.currentWorldId
 
     const world = UNSAFE_internals.worlds[currentWorld] as World<W>
-    const step = world.latestStep
+    const step = world.latestTick
 
-    latestSystem = global ? 0 : world.latestSystem
+    latestSystemId = global ? 0 : world.latestSystemId
 
     let currentWorldSystemEffectData = systemEffectDataByWorldId[currentWorld]
 
@@ -124,10 +124,10 @@ export function createEffect<
         []
     }
 
-    let currentSystemEffect = currentWorldSystemEffectData[latestSystem]
+    let currentSystemEffect = currentWorldSystemEffectData[latestSystemId]
 
     if (currentSystemEffect === undefined) {
-      currentSystemEffect = currentWorldSystemEffectData[latestSystem] = {
+      currentSystemEffect = currentWorldSystemEffectData[latestSystemId] = {
         cells: [],
         cellCount: -1,
       }
@@ -140,7 +140,7 @@ export function createEffect<
       cellCount = 0
     } else if (
       previousSystem !== undefined &&
-      (previousStep !== step || previousSystem !== latestSystem)
+      (previousStep !== step || previousSystem !== latestSystemId)
     ) {
       let previousSystemEffectData =
         currentWorldSystemEffectData[previousSystem]
@@ -175,9 +175,9 @@ export function createEffect<
     }
 
     if (global) {
-      if (cell.lockShareTick !== world.latestStep) {
+      if (cell.lockShareTick !== world.latestTick) {
         cell.lockShare = false
-        cell.lockShareTick = world.latestStep
+        cell.lockShareTick = world.latestTick
       } else {
         cell.lockShare = true
       }
@@ -203,7 +203,7 @@ export function createEffect<
 
     previousStep = step
     previousWorld = currentWorld
-    previousSystem = latestSystem
+    previousSystem = latestSystemId
 
     return cell.state
   }

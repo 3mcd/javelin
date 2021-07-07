@@ -35,17 +35,17 @@ export type World<T = unknown> = {
   /**
    * Latest step number.
    */
-  readonly latestStep: number
+  readonly latestTick: number
 
   /**
    * Latest step data passed to world.step().
    */
-  readonly latestStepData: T
+  readonly latestTickData: T
 
   /**
    * Id of the latest invoked system.
    */
-  readonly latestSystem: number
+  readonly latestSystemId: number
 
   /**
    * Process operations from previous step and execute all systems.
@@ -208,11 +208,9 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
 
   function createDeferredOp<T extends WorldOp>(...args: T): T {
     const deferred = deferredOpsPool.retain() as T
-
     for (let i = 0; i < args.length; i++) {
       deferred[i] = args[i]
     }
-
     return deferred
   }
 
@@ -348,9 +346,9 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     // reset entity id counter
     entityIds = 0
     // reset step data
-    world.latestStep = -1
-    world.latestStepData = null as unknown as T
-    world.latestSystem = -1
+    world.latestTick = -1
+    world.latestTickData = null as unknown as T
+    world.latestSystemId = -1
     // release components
     for (let i = 0; i < storage.archetypes.length; i++) {
       const archetype = storage.archetypes[i]
@@ -408,7 +406,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
   function step(data: T) {
     let prevWorld = UNSAFE_internals.currentWorldId
     UNSAFE_internals.currentWorldId = id
-    world.latestStepData = data
+    world.latestTickData = data
     for (let i = 0; i < deferredOps.length; i++) {
       applyDeferredOp(deferredOps[i])
     }
@@ -420,11 +418,11 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     // Execute systems
     for (let i = 0; i < systems.length; i++) {
       const system = systems[i]
-      world.latestSystem = system[$systemId]!
+      world.latestSystemId = system[$systemId]!
       system(world)
     }
     destroyed.clear()
-    world.latestStep++
+    world.latestTick++
     UNSAFE_internals.currentWorldId = prevWorld
   }
 
@@ -432,9 +430,9 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
   const world = {
     id,
     storage,
-    latestStep: -1,
-    latestStepData: null as unknown as T,
-    latestSystem: -1,
+    latestTick: -1,
+    latestTickData: null as unknown as T,
+    latestSystemId: -1,
     attach,
     attachImmediate,
     addSystem,

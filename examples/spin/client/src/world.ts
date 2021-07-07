@@ -124,7 +124,7 @@ world.addSystem(({ attach }) => {
 })
 
 world.addSystem(world => {
-  const { create, attachImmediate, latestStepData: canvas } = world
+  const { create, attachImmediate, latestTickData: canvas } = world
   const net = useNet()
   const rate = useRef(0)
   const update = useInterval(1000)

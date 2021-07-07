@@ -3,13 +3,15 @@
   "version": "1.0.0-alpha.7",
   "private": true,
   "scripts": {
-    "start": "vite --config client/vite.config.ts & ts-node server/index.ts",
+    "start": "run-p start:*",
+    "start:client": "vite --config client/vite.config.ts",
     "start:server": "ts-node server/index.ts"
   },
   "dependencies": {
-    "@javelin/ecs": "1.0.0-alpha.7",
-    "@javelin/net": "1.0.0-alpha.7",
-    "@javelin/pack": "1.0.0-alpha.7",
+    "@javelin/ecs": "workspace:*",
+    "@javelin/net": "workspace:*",
+    "@javelin/pack": "workspace:*",
+    "@javelin/hrtime-loop": "workspace:*",
     "@web-udp/client": "^4.2.1",
     "@web-udp/server": "^4.2.1",
     "react": "^17.0.0",

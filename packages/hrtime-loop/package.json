@@ -7,7 +7,7 @@
   "types": "dist/esm/index.d.ts",
   "scripts": {
     "clean": "rm -f *.tsbuildinfo && rm -rf dist",
-    "build": "tsc -b && esbuild dist/esm/index.js --outdir=dist/cjs --bundle --platform=node",
+    "build": "tsc -b && tsc -b tsconfig.cjs.json",
     "prepare": "npm run clean && npm run build"
   },
   "files": [

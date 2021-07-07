@@ -110,7 +110,7 @@ const sysFibonacci = () => {
 
 ### Global Effects
 
-The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS. Global effects are a good candidate for encapsulating this type of dependency. They are only executed once per tick and share the same state between systems.
+The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS. Shared effects are a good candidate for encapsulating this type of dependency. They are only executed once per tick and share the same state between systems.
 
 Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.
 
@@ -125,7 +125,7 @@ const useSimulation = createEffect(world => {
     return sim
   }
 }, {
-  global: true
+  shared: true
 });
 
 const jump = () => {

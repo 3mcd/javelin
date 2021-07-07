@@ -7,10 +7,10 @@ function flushPromises() {
 }
 
 describe("createEffect", () => {
-  const reset = (latestStep = 0, currentWorld = 0, latestSystem = 0) => {
+  const reset = (latestTick = 0, currentWorld = 0, latestSystemId = 0) => {
     ;(UNSAFE_internals as any).worlds = [
-      { id: 0, latestStep, latestSystem } as World,
-      { id: 1, latestStep, latestSystem } as World,
+      { id: 0, latestTick, latestSystemId } as World,
+      { id: 1, latestTick, latestSystemId } as World,
     ]
     UNSAFE_internals.currentWorldId = currentWorld
   }

@@ -40,7 +40,7 @@ export const createMessageHandler = (world: World) => {
     }
     return entityLocal
   }
-  function decodeSnapshotPart(dataView: DataView, end: number, cursor: Cursor) {
+  function decodeAttachPart(dataView: DataView, end: number, cursor: Cursor) {
     const { buffer } = dataView
     while (cursor.offset < end) {
       const toAttach: Component[] = []
@@ -63,6 +63,28 @@ export const createMessageHandler = (world: World) => {
       }
       if (toAttach.length > 0) {
         world.attachImmediate(entityLocal, toAttach)
+      }
+      state.updated.add(entityLocal)
+    }
+  }
+  function decodeSnapshotPart(dataView: DataView, end: number, cursor: Cursor) {
+    const { buffer } = dataView
+    while (cursor.offset < end) {
+      const entityRemote = Pack.read(dataView, Pack.uint32, cursor)
+      const entityLocal = findOrCreateLocalEntity(entityRemote)
+      const count = Pack.read(dataView, Pack.uint8, cursor)
+      for (let i = 0; i < count; i++) {
+        const schemaId = Pack.read(dataView, Pack.uint8, cursor)
+        let component: Component | null = null
+        try {
+          component = world.storage.getComponentBySchemaId(
+            entityLocal,
+            schemaId,
+          )
+        } catch {}
+        if (component !== null) {
+          Pack.decode(buffer, model[schemaId], cursor, component)
+        }
       }
       state.updated.add(entityLocal)
     }
@@ -161,6 +183,9 @@ export const createMessageHandler = (world: World) => {
         case MessagePartKind.Model:
           decodeModelPart(dataView, partEnd, cursor)
           break
+        case MessagePartKind.Attach:
+          decodeAttachPart(dataView, partEnd, cursor)
+          break
         case MessagePartKind.Snapshot:
           decodeSnapshotPart(dataView, partEnd, cursor)
           break
@@ -185,7 +210,7 @@ export const createMessageHandler = (world: World) => {
     }
   }
   const useInfo = createEffect(() => () => state, {
-    global: true,
+    shared: true,
   })
 
   return {

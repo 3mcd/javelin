@@ -44,13 +44,13 @@ world.addSystem(render)
 
 Systems have a signature of `(world: World) => void`, where the only argument is the world that's currently mid-step. Calling `world.step()` will execute each system in the order that it was registered.
 
-You may have noticed that `World<T>` is generic. `T` is a type that represents some data common to each step. Often times this value captures the amount of time elapsed since the previous step, but it can be any value. You can set this value via a single argument passed to `world.step(data: T)`. This value is assigned to `world.latestStepData` at the beginning of each step.
+You may have noticed that `World<T>` is generic. `T` is a type that represents some data common to each step. Often times this value captures the amount of time elapsed since the previous step, but it can be any value. You can set this value via a single argument passed to `world.step(data: T)`. This value is assigned to `world.latestTickData` at the beginning of each step.
 
 The following is a world that will log the time elapsed since the last step, 60 times per second:
 
 ```ts
 const world = createWorld<number>()
-world.addSystem(world => console.log(world.latestStepData))
+world.addSystem(world => console.log(world.latestTickData))
 
 let t1: number
 
