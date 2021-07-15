@@ -1,5 +1,15 @@
 # @javelin/net
 
+## 1.0.0-alpha.10
+
+### Patch Changes
+
+- A few minor API tweaks and performance improvements to priority accumulator
+- Updated dependencies [undefined]
+  - @javelin/core@1.0.0-alpha.9
+  - @javelin/ecs@1.0.0-alpha.9
+  - @javelin/pack@1.0.0-alpha.9
+
 ## 1.0.0-alpha.9
 
 ### Patch Changes
