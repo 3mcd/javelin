@@ -46,9 +46,9 @@ Topics are simple FIFO buffers that hold on to messages between ticks that can b
 Topics are created using the `createTopic<T>()` function, where `T` is the type (e.g. a union type) of message managed by the topic. The `createTopic` function is defined in [topic.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/topic.ts).
 
 ```ts
-import { createTopic } from "@javelin/ecs"
+import { createTopic, Entity } from "@javelin/ecs"
 
-type ImpulseCommand = [type: "impulse", entity: number, force: [number, number]]
+type ImpulseCommand = [type: "impulse", entity: Entity, force: [number, number]]
 
 const physicsTopic = createTopic<ImpulseCommand>()
 ```

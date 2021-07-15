@@ -1,8 +1,9 @@
 import {
-  clear,
+  clearObservedChanges,
   Component,
   component,
   createEffect,
+  createImmutableRef,
   createQuery,
   createWorld,
   Entity,
@@ -76,76 +77,74 @@ const useClients = createEffect(({ create, destroy }) => {
   }
 })
 
-const useMessage = createEffect(({ has }) => {
-  const producer = createMessageProducer({
-    maxByteLength: MESSAGE_MAX_BYTE_LENGTH,
-  })
-  return function useMessage(update = false) {
-    useMonitor(transformsInShell, producer.attach, producer.detach)
-    useMonitor(
-      transformsBig,
-      (e, _, [, b]) => b && producer.attach(e, [b]),
-      (e, _, [, b]) => b && producer.detach(e, [b]),
-    )
-    if (update) {
-      transforms((e, [t]) => {
-        const amplify = has(e, Big) ? BIG_PRIORITY : SMALL_PRIORITY
-        producer.patch(e, t, amplify)
-        // producer.update(e, [t], amplify)
-        clear(t)
-      })
-    }
-    return producer
-  }
-})
+const useProducer = createImmutableRef(() =>
+  createMessageProducer({ maxByteLength: MESSAGE_MAX_BYTE_LENGTH }),
+)
 
 world.addSystem(world => {
   const send = useInterval((1 / SEND_RATE) * 1000)
   const clients = useClients()
-  const producer = useMessage(send)
-  if (!send) return
-  const message = producer.take()
-  players((e, [p]) => {
-    let packet
-    if (p.initialized) {
-      packet = message
-    } else {
-      packet = getInitialMessage(world)
-      p.initialized = true
-    }
-    if (packet) {
-      clients.send_u(e, encode(packet))
-    }
-  })
-})
+  const producer = useProducer()
 
-world.addSystem(world => {
-  if (!useInterval(SWAP_INTERVAL)) return
-  let count = 0
-  transforms(e => {
-    const random = Math.random()
-    if (random > 0.9) {
-      world.destroy(e)
-      count++
-    } else if (random > 0.5) {
-      if (world.has(e, Big)) {
-        world.detach(e, Big)
-      } else {
-        world.attach(e, component(Big))
-      }
-    }
+  useMonitor(transformsInShell, producer.attach, producer.detach)
+  useMonitor(
+    transformsBig,
+    (e, _, [, b]) => b && producer.attach(e, [b]),
+    (e, _, [, b]) => b && producer.detach(e, [b]),
+  )
+  transforms((e, [t]) => {
+    const amplify = world.has(e, Big) ? BIG_PRIORITY : SMALL_PRIORITY
+    // update:
+    producer.update(e, [t], amplify)
+    // or patch:
+    // producer.patch(e, t, amplify)
+    // clearObservedChanges(t)
   })
-  for (let i = 0; i < count; i++) {
-    const a = Math.random() * Math.PI * 2
-    world.create(
-      component(Transform, {
-        x: Math.cos(a) * 50,
-        y: Math.sin(a) * 50,
-      }),
-      component(Shell, { value: (i % 6) + 1 }),
-    )
+
+  if (send) {
+    const message = producer.take()
+    players((e, [p]) => {
+      let packet
+      if (p.initialized) {
+        packet = message
+      } else {
+        packet = getInitialMessage(world)
+        p.initialized = true
+      }
+      if (packet) {
+        clients.send_u(e, encode(packet))
+      }
+    })
   }
 })
+
+// world.addSystem(world => {
+//   if (!useInterval(SWAP_INTERVAL)) return
+//   let count = 0
+//   transforms(e => {
+//     const random = Math.random()
+//     if (random > 0.9) {
+//       world.destroy(e)
+//       count++
+//     } else if (random > 0.5) {
+//       if (world.has(e, Big)) {
+//         world.detach(e, Big)
+//       } else {
+//         world.attach(e, component(Big))
+//       }
+//     }
+//   })
+//   for (let i = 0; i < count; i++) {
+//     const a = Math.random() * Math.PI * 2
+//     world.create(
+//       component(Transform, {
+//         x: Math.cos(a) * 50,
+//         y: Math.sin(a) * 50,
+//       }),
+//       component(Shell, { value: (i % 6) + 1 }),
+//     )
+//   }
+// })
 
 world.addSystem(() =>
   transformsInShell((e, [t, s]) => {
