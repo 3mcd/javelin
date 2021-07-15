@@ -7,23 +7,52 @@ import {
   resetPatch,
   UNSAFE_internals,
 } from "@javelin/ecs"
+import { createEntityMap } from "./entity_map"
+import EntityPriorityQueue from "./entity_priority_queue"
 import * as Message from "./message"
 import * as MessageOp from "./message_op"
 
 export type MessageProducer = {
-  model(): void
+  /**
+   * Increase the likelihood the specified entity will be included in the next
+   * message by some factor.
+   */
+  amplify(entity: Entity, priority: number): void
+
+  /**
+   * Enqueue an attach operation.
+   */
   attach(entity: Entity, components: Component[]): void
+
+  /**
+   * Enqueue an update (component data) operation.
+   */
   update(entity: Entity, components: Component[], amplify?: number): void
+
+  /**
+   * Enqueue a patch operation.
+   */
   patch(entity: Entity, component: Component, amplify?: number): void
+
+  /**
+   * Enqueue a detach operation.
+   */
   detach(entity: Entity, components: Component[]): void
+
+  /**
+   * Enqueue a destroy operation.
+   */
   destroy(entity: Entity): void
+
+  /**
+   * Dequeue a message.
+   */
   take(includeModel?: boolean): Message.Message | null
 }
+
 export type MessageProducerOptions = {
   maxByteLength?: number
 }
-
-type EntityMap<T> = T[]
 
 export function createMessageProducer(
   options: MessageProducerOptions = {},
@@ -31,11 +60,12 @@ export function createMessageProducer(
   const { maxByteLength = Infinity } = options
   let previousModel: Model | null = null
   const queue: Message.Message[] = [Message.createMessage()]
-  const entityPriorities: EntityMap<number> = []
-  const entityUpdates: EntityMap<Map<number, Component>> = []
-  const entityPatches: EntityMap<Patch> = []
-  function entityPriorityComparator(a: Entity, b: Entity) {
-    return (entityPriorities[b] ?? 0) - (entityPriorities[a] ?? 0)
+  const entityPriorities = new EntityPriorityQueue()
+  const entityUpdates = createEntityMap<Map<number, Component>>()
+  const entityPatches = createEntityMap<Patch>()
+  function amplify(entity: Entity, priority: number) {
+    const current = entityPriorities.getPriority(entity) ?? 0
+    entityPriorities.changePriority(entity, current + priority)
   }
   function enqueue(op: MessageOp.MessageOp, kind: Message.MessagePartKind) {
     let message = queue[0]
@@ -49,19 +79,13 @@ export function createMessageProducer(
     Message.insert(message, kind, op)
     return message
   }
-  function model() {
-    enqueue(
-      MessageOp.model(Message.getEnhancedModel()),
-      Message.MessagePartKind.Model,
-    )
-  }
   function attach(entity: Entity, components: Component[]) {
     enqueue(
       MessageOp.snapshot(Message.getEnhancedModel(), entity, components),
       Message.MessagePartKind.Attach,
     )
   }
-  function update(entity: Entity, components: Component[], amplify = Infinity) {
+  function update(entity: Entity, components: Component[], priority = 1) {
     let updates = entityUpdates[entity]
     if (updates === undefined) {
       updates = entityUpdates[entity] = new Map()
@@ -70,11 +94,11 @@ export function createMessageProducer(
       const component = components[i]
       updates.set(component.__type__, component)
     }
-    entityPriorities[entity] = (entityPriorities[entity] ?? 0) + amplify
+    amplify(entity, priority)
   }
-  function patch(entity: Entity, component: Component, amplify = Infinity) {
+  function patch(entity: Entity, component: Component, priority = 1) {
     entityPatches[entity] = createPatch(component, entityPatches[entity])
-    entityPriorities[entity] = (entityPriorities[entity] ?? 0) + amplify
+    amplify(entity, priority)
   }
   function detach(entity: Entity, components: Component[]) {
     enqueue(
@@ -87,6 +111,7 @@ export function createMessageProducer(
   }
   function destroy(entity: Entity) {
     enqueue(MessageOp.destroy(entity), Message.MessagePartKind.Destroy)
+    entityPriorities.remove(entity)
   }
   function take(includeModel = previousModel !== UNSAFE_internals.model) {
     const message = queue.pop() || Message.createMessage()
@@ -94,42 +119,37 @@ export function createMessageProducer(
       Message.model(message)
       previousModel = UNSAFE_internals.model
     }
-    const entities = Array.from(entityPriorities.keys())
-    const prioritized = entities.sort(entityPriorityComparator)
-    for (let i = 0; i < prioritized.length; i++) {
-      const entity = prioritized[i]
-      const patch = entityPatches[entity]
-      const update = entityUpdates[entity]
-      if (update !== undefined && update.size > 0) {
-        const components = Array.from(update.values())
-        const op = MessageOp.snapshot(
-          Message.getEnhancedModel(),
-          entity,
-          components,
-        )
-        if (op.byteLength + message?.byteLength < maxByteLength) {
-          Message.insert(message, Message.MessagePartKind.Snapshot, op)
-          update.clear()
-          entityPriorities[entity] = 0
-        }
+    while (true) {
+      const entity = entityPriorities.poll()
+      if (entity === null || entity === undefined) {
+        break
       }
-      if (
-        patch !== undefined &&
-        (patch.changes.size > 0 || patch.children.size > 0)
-      ) {
-        const op = MessageOp.patch(Message.getEnhancedModel(), entity, patch)
-        if (op.byteLength + message?.byteLength < maxByteLength) {
-          Message.insert(message, Message.MessagePartKind.Patch, op)
-          resetPatch(patch)
-          entityPriorities[entity] = 0
+      const update = entityUpdates[entity]
+      const patch = entityPatches[entity]
+      const model = Message.getEnhancedModel()
+      if (update && update.size > 0) {
+        const components = Array.from(update.values())
+        const op = MessageOp.snapshot(model, entity, components)
+        if (op.byteLength + message?.byteLength >= maxByteLength) {
+          break
         }
+        Message.insert(message, Message.MessagePartKind.Snapshot, op)
+        update.clear()
+      }
+      if (patch && (patch.changes.size > 0 || patch.children.size > 0)) {
+        const op = MessageOp.patch(model, entity, patch)
+        if (op.byteLength + message?.byteLength >= maxByteLength) {
+          break
+        }
+        Message.insert(message, Message.MessagePartKind.Patch, op)
+        resetPatch(patch)
       }
     }
     return message
   }
 
   return {
-    model,
+    amplify,
     attach,
     update,
     patch,

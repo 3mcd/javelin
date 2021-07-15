@@ -3,7 +3,7 @@ import { component } from "./component"
 import {
   $changes,
   $delete,
-  clear,
+  clearObservedChanges,
   observe,
   ObservedArray,
   ObservedMap,
@@ -178,7 +178,7 @@ describe("reset", () => {
     o.map.set(k, { x, y })
     o.map.get(k)!.x++
     o.map.get(k)!.y++
-    clear(o)
+    clearObservedChanges(o)
     const { changes, dirty } = (o.map.get(k) as unknown as ObservedStruct)[
       $changes
     ]

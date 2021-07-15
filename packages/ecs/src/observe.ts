@@ -249,7 +249,7 @@ export function observe<T extends Component>(component: T): T {
     )) as unknown as T
 }
 
-function clearInner(object: Observed, node: CollatedNode) {
+function clearObservedChangesInner(object: Observed, node: CollatedNode) {
   if (object[$touched] !== true) {
     return
   }
@@ -259,7 +259,7 @@ function clearInner(object: Observed, node: CollatedNode) {
       delete (changes as StructChanges).changes[prop]
     }
     for (let i = 0; i < node.fields.length; i++) {
-      clearInner(
+      clearObservedChangesInner(
         (object as Record<string, Observed>)[node.keys[i]],
         node.fields[i],
       )
@@ -272,7 +272,10 @@ function clearInner(object: Observed, node: CollatedNode) {
           delete (changes as ArrayChanges).changes[prop]
         }
         for (let i = 0; i < (object as unknown as Observed[]).length; i++) {
-          clearInner((object as unknown as Observed[])[i], element)
+          clearObservedChangesInner(
+            (object as unknown as Observed[])[i],
+            element,
+          )
         }
         break
       }
@@ -281,7 +284,10 @@ function clearInner(object: Observed, node: CollatedNode) {
           delete (changes as ObjectChanges).changes[prop]
         }
         for (const prop in object) {
-          clearInner((object as Record<string, Observed>)[prop], element)
+          clearObservedChangesInner(
+            (object as Record<string, Observed>)[prop],
+            element,
+          )
         }
         break
       }
@@ -293,7 +299,7 @@ function clearInner(object: Observed, node: CollatedNode) {
       case FieldKind.Map: {
         ;(changes as MapChanges).changes.clear()
         ;(object as ObservedMap).forEach(value =>
-          clearInner(value as Observed, element),
+          clearObservedChangesInner(value as Observed, element),
         )
         break
       }
@@ -303,10 +309,12 @@ function clearInner(object: Observed, node: CollatedNode) {
   object[$touched] = false
 }
 
-export function clear(component: Component | Observed<Component, unknown>) {
+export function clearObservedChanges(
+  component: Component | Observed<Component, unknown>,
+) {
   const self = $self in component ? (component as Observed)[$self] : component
   const node = UNSAFE_internals.model[(self as Component).__type__]
-  return clearInner(self as unknown as Observed, node)
+  return clearObservedChangesInner(self as unknown as Observed, node)
 }
 
 export function getFieldValue(

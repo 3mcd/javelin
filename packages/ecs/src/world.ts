@@ -81,14 +81,14 @@ export type World<T = unknown> = {
    * Create an entity and optionally attach components.
    * @param components The new entity's components
    */
-  create(...components: ReadonlyArray<Component>): number
+  create(...components: ReadonlyArray<Component>): Entity
 
   /**
    * Attach components to an entity. Deferred until next tick.
    * @param entity Entity
    * @param components Components to attach to `entity`
    */
-  attach(entity: number, ...components: ReadonlyArray<Component>): void
+  attach(entity: Entity, ...components: ReadonlyArray<Component>): void
 
   /**
    * Attach components to an entity.
@@ -102,7 +102,7 @@ export type World<T = unknown> = {
    * @param entity Entity
    * @param components Components to detach from `entity`
    */
-  detach(entity: number, ...components: (Schema | Component | number)[]): void
+  detach(entity: Entity, ...components: (Schema | Component | number)[]): void
 
   /**
    * Remove attached components from an entity.
@@ -115,7 +115,7 @@ export type World<T = unknown> = {
    * Remove all components from an entity. Deferred until next tick.
    * @param entity Entity
    */
-  destroy(entity: number): void
+  destroy(entity: Entity): void
 
   /**
    * Remove all components from an entity.
@@ -128,21 +128,21 @@ export type World<T = unknown> = {
    * @param entity
    * @param schema
    */
-  get<T extends Schema>(entity: number, schema: T): ComponentOf<T>
+  get<T extends Schema>(entity: Entity, schema: T): ComponentOf<T>
 
   /**
    * Find the component of an entity by type, or null if a component is not found.
    * @param entity
    * @param schema
    */
-  tryGet<T extends Schema>(entity: number, schema: T): ComponentOf<T> | null
+  tryGet<T extends Schema>(entity: Entity, schema: T): ComponentOf<T> | null
 
   /**
    * Check if an entity has a component of a specified schema.
    * @param entity
    * @param schema
    */
-  has(entity: number, schema: Schema): boolean
+  has(entity: Entity, schema: Schema): boolean
 
   /**
    * Reset the world to its initial state, removing all entities, components,
@@ -193,11 +193,6 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
   const { topics = [] } = options
   const systems: System<T>[] = []
   const deferredOps: WorldOp[] = []
-  const deferredOpsPool = createStackPool<WorldOp>(
-    () => [] as any as WorldOp,
-    mutableEmpty,
-    1000,
-  )
   const destroyed = new Set<number>()
   const storage = createStorage({ snapshot: options.snapshot?.storage })
 
@@ -207,7 +202,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
   options.systems?.forEach(addSystem)
 
   function createDeferredOp<T extends WorldOp>(...args: T): T {
-    const deferred = deferredOpsPool.retain() as T
+    const deferred = [] as unknown as T
     for (let i = 0; i < args.length; i++) {
       deferred[i] = args[i]
     }
@@ -254,7 +249,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     return entity
   }
 
-  function attach(entity: number, ...components: Component[]) {
+  function attach(entity: Entity, ...components: Component[]) {
     deferredOps.push(
       createDeferredOp(DeferredOpType.Attach, entity, components),
     )
@@ -265,7 +260,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function detach(
-    entity: number,
+    entity: Entity,
     ...components: (Component | Schema | number)[]
   ) {
     if (components.length === 0) {
@@ -295,7 +290,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     components.forEach(maybeReleaseComponent)
   }
 
-  function destroy(entity: number) {
+  function destroy(entity: Entity) {
     if (destroyed.has(entity)) {
       return
     }
@@ -307,12 +302,12 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     storage.clearComponents(entity)
   }
 
-  function has(entity: number, schema: Schema) {
+  function has(entity: Entity, schema: Schema) {
     registerSchema(schema)
     return storage.hasComponentOfSchema(entity, schema)
   }
 
-  function get<T extends Schema>(entity: number, schema: T): ComponentOf<T> {
+  function get<T extends Schema>(entity: Entity, schema: T): ComponentOf<T> {
     registerSchema(schema)
     const component = storage.getComponentBySchema(entity, schema)
 
@@ -324,7 +319,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function tryGet<T extends Schema>(
-    entity: number,
+    entity: Entity,
     schema: T,
   ): ComponentOf<T> | null {
     registerSchema(schema)
@@ -334,9 +329,6 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
   function reset() {
     destroyed.clear()
     // clear deferred ops
-    while (deferredOps.length > 0) {
-      deferredOpsPool.release(deferredOps.pop()!)
-    }
     mutableEmpty(deferredOps)
     // remove all systems
     mutableEmpty(systems)
@@ -400,7 +392,6 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
         applyDestroyOp(deferred)
         break
     }
-    deferredOpsPool.release(deferred)
   }
 
   function step(data: T) {
@@ -415,7 +406,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     for (let i = 0; i < topics.length; i++) {
       topics[i].flush()
     }
-    // Execute systems
+    // execute systems
     for (let i = 0; i < systems.length; i++) {
       const system = systems[i]
       world.latestSystemId = system[$systemId]!

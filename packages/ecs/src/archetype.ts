@@ -1,6 +1,6 @@
 import { PackedSparseArray, Schema, unpackSparseArray } from "@javelin/core"
 import { Component, ComponentOf } from "./component"
-import { createSignal, Signal } from "./signal"
+import { Entity } from "./entity"
 import { Type } from "./type"
 
 export type ArchetypeTableColumn<S extends Schema> = ComponentOf<S>[]
@@ -31,11 +31,10 @@ export type ArchetypeData<T extends Schema[]> = {
   readonly signature: Type
 }
 
-export type ArchetypeSnapshot<
-  T extends Schema[] = Schema[]
-> = ArchetypeData<T> & {
-  indices: PackedSparseArray<number>
-}
+export type ArchetypeSnapshot<T extends Schema[] = Schema[]> =
+  ArchetypeData<T> & {
+    indices: PackedSparseArray<number>
+  }
 
 /**
  * An Archetype is a collection of entities that share components of the same
@@ -49,7 +48,7 @@ export type Archetype<T extends Schema[] = Schema[]> = ArchetypeData<T> & {
    * @param components Array of components
    * @returns void
    */
-  insert(entity: number, components: Component[]): void
+  insert(entity: Entity, components: Component[]): void
 
   /**
    * Remove an entity from the Archetype.
@@ -57,7 +56,7 @@ export type Archetype<T extends Schema[] = Schema[]> = ArchetypeData<T> & {
    * @param entity Subject entity
    * @returns void
    */
-  remove(entity: number): void
+  remove(entity: Entity): void
 
   /**
    * Array where each index is a component type and the corresponding index is
@@ -69,7 +68,7 @@ export type Archetype<T extends Schema[] = Schema[]> = ArchetypeData<T> & {
    * Array of entities tracked by this archetype. Not used internally:
    * primarily a convenience for iteration/checks by consumers.
    */
-  readonly entities: ReadonlyArray<number>
+  readonly entities: ReadonlyArray<Entity>
 
   /**
    * Array where each index corresponds to an entity, and each value
@@ -97,15 +96,14 @@ function createArchetypeState<T extends Schema[]>(
   const snapshot = "snapshot" in options ? options.snapshot : null
   const entities = snapshot ? Object.keys(snapshot.indices).map(Number) : []
   const indices = snapshot ? unpackSparseArray(snapshot.indices) : []
-  const signature = ("signature" in options
-    ? options.signature
-    : options.snapshot.signature
+  const signature = (
+    "signature" in options ? options.signature : options.snapshot.signature
   )
     .slice()
     .sort((a, b) => a - b)
-  const table = ((snapshot
+  const table = (snapshot
     ? snapshot.table.map(column => column.slice())
-    : signature.map(() => [])) as unknown) as ArchetypeTable<T>
+    : signature.map(() => [])) as unknown as ArchetypeTable<T>
   const signatureInverse = signature.reduce((a, x, i) => {
     a[x] = i
     return a
@@ -123,14 +121,9 @@ function createArchetypeState<T extends Schema[]>(
 export function createArchetype<T extends Schema[]>(
   options: ArchetypeOptions<T>,
 ): Archetype<T> {
-  const {
-    signature,
-    signatureInverse,
-    entities,
-    indices,
-    table,
-  } = createArchetypeState<T>(options)
-  function insert(entity: number, components: Component[]) {
+  const { signature, signatureInverse, entities, indices, table } =
+    createArchetypeState<T>(options)
+  function insert(entity: Entity, components: Component[]) {
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
       const schemaIndex = signatureInverse[component.__type__]
@@ -140,7 +133,7 @@ export function createArchetype<T extends Schema[]>(
 
     indices[entity] = entities.push(entity) - 1
   }
-  function remove(entity: number) {
+  function remove(entity: Entity) {
     const length = entities.length
     const index = indices[entity]
     const head = entities.pop()

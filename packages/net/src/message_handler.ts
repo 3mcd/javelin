@@ -168,7 +168,6 @@ export const createMessageHandler = (world: World) => {
       world.destroyImmediate(entityLocal)
     }
   }
-
   function decode(message: ArrayBuffer) {
     cursor.offset = 0
     const messageLength = message.byteLength
