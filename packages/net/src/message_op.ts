@@ -115,7 +115,8 @@ function patchInner(
     insert(op, traverse?.length ?? 0, uint8)
     if (traverse !== undefined) {
       for (let i = 0; i < traverse.length; i++) {
-        insert(op, traverse[i][0], traverse[i][1])
+        const [traverseKey, traverseView] = traverse[i]
+        insert(op, traverseKey, traverseView)
       }
     }
     insert(op, size, uint8)

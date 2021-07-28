@@ -19,9 +19,7 @@ export const Transform = {
   extra8: number,
 }
 
-export const Big = {
-  placeholder: number,
-}
+export const Big = {}
 
 export const Shell = {
   value: number,

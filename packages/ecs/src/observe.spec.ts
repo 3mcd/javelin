@@ -168,7 +168,7 @@ describe("observe", () => {
   })
 })
 
-describe("reset", () => {
+describe("clearObservedChanges", () => {
   it("resets changes", () => {
     const c = component({ map: mapOf(number, Vec2) })
     const o = observe(c)
@@ -188,7 +188,7 @@ describe("reset", () => {
   })
 })
 
-describe("ChangeRecord", () => {
+describe("createPatch", () => {
   it("takes a record of an observed component's changes", () => {
     const c = component({ map: mapOf(number, Vec2) })
     const o = observe(c)
@@ -198,12 +198,12 @@ describe("ChangeRecord", () => {
     o.map.set(k, { x, y })
     o.map.get(k)!.x++
     o.map.get(k)!.y++
-    const record = createPatch(o)
-    const { changes } = record.children.get("map")!.children.get(k)!
+    const patch = createPatch(o)
+    const { changes } = patch.children.get("map")!.children.get(k)!
     expect(changes.get("x")).toBe(5)
     expect(changes.get("y")).toBe(3)
   })
-  it("applies changes to existing record", () => {
+  it("applies changes to existing patch", () => {
     const c = component({ vec: Vec2 })
     const o = observe(c)
     o.vec.x = 1
@@ -213,14 +213,17 @@ describe("ChangeRecord", () => {
     createPatch(o, s1)
     expect(s1.children.get("vec")!.changes.get("x")).toBe(3)
   })
-  it("clears change records", () => {
+})
+
+describe("resetPatch", () => {
+  it("clears patch changes", () => {
     const c = component({ vec: Vec2 })
     const o = observe(c)
     o.vec.x = 1
     o.vec.y = 2
-    const record = createPatch(o)
-    resetPatch(record)
-    expect(record.changes.size).toBe(0)
-    expect(record.children.size).toBe(0)
+    const patch = createPatch(o)
+    resetPatch(patch)
+    expect(patch.changes.size).toBe(0)
+    expect(patch.children.size).toBe(0)
   })
 })

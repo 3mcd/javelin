@@ -118,33 +118,33 @@ world.addSystem(world => {
   }
 })
 
-// world.addSystem(world => {
-//   if (!useInterval(SWAP_INTERVAL)) return
-//   let count = 0
-//   transforms(e => {
-//     const random = Math.random()
-//     if (random > 0.9) {
-//       world.destroy(e)
-//       count++
-//     } else if (random > 0.5) {
-//       if (world.has(e, Big)) {
-//         world.detach(e, Big)
-//       } else {
-//         world.attach(e, component(Big))
-//       }
-//     }
-//   })
-//   for (let i = 0; i < count; i++) {
-//     const a = Math.random() * Math.PI * 2
-//     world.create(
-//       component(Transform, {
-//         x: Math.cos(a) * 50,
-//         y: Math.sin(a) * 50,
-//       }),
-//       component(Shell, { value: (i % 6) + 1 }),
-//     )
-//   }
-// })
+world.addSystem(world => {
+  if (!useInterval(SWAP_INTERVAL)) return
+  let count = 0
+  transforms(e => {
+    const random = Math.random()
+    if (random > 0.9) {
+      world.destroy(e)
+      count++
+    } else if (random > 0.5) {
+      if (world.has(e, Big)) {
+        world.detach(e, Big)
+      } else {
+        world.attach(e, component(Big))
+      }
+    }
+  })
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2
+    world.create(
+      component(Transform, {
+        x: Math.cos(a) * 50,
+        y: Math.sin(a) * 50,
+      }),
+      component(Shell, { value: (i % 6) + 1 }),
+    )
+  }
+})
 
 world.addSystem(() =>
   transformsInShell((e, [t, s]) => {

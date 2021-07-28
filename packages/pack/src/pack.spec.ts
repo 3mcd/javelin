@@ -53,10 +53,7 @@ describe("pack", () => {
       a: { b: 1, c: { d: 999 } },
     }
 
-    const result = decode(
-      encode(object, model[0] as CollatedNode<ByteView>),
-      model[0] as CollatedNode<ByteView>,
-    )
+    const result = decode(encode(object, model[0]), model[0])
     expect(result).toEqual(object)
   })
 
@@ -88,10 +85,7 @@ describe("pack", () => {
       ],
     }
 
-    const result = decode(
-      encode(object, model[0] as CollatedNode<ByteView>),
-      model[0] as CollatedNode<ByteView>,
-    )
+    const result = decode(encode(object, model[0]), model[0])
     expect(object).toEqual(result)
   })
 
@@ -120,10 +114,7 @@ describe("pack", () => {
       ],
     }
 
-    const result = decode(
-      encode(object, model[0] as CollatedNode<ByteView>),
-      model[0] as CollatedNode<ByteView>,
-    )
+    const result = decode(encode(object, model[0]), model[0])
     expect(object).toEqual(result)
   })
 
@@ -150,10 +141,14 @@ describe("pack", () => {
         },
       },
     }
-    const result = decode(
-      encode(object, model[0] as CollatedNode<ByteView>),
-      model[0] as CollatedNode<ByteView>,
-    )
+    const result = decode(encode(object, model[0]), model[0])
+    expect(object).toEqual(result)
+  })
+
+  it("encodes empty objects", () => {
+    const model = enhanceModel(createModel(new Map([[0, {}]])))
+    const object = {}
+    const result = decode(encode(object, model[0]), model[0])
     expect(object).toEqual(result)
   })
 
@@ -164,10 +159,7 @@ describe("pack", () => {
     const object = {
       set: new Set([{ x: 1.23 }, { x: 4.56 }, { x: 7.89 }]),
     }
-    const result = decode(
-      encode(object, model[0] as CollatedNode<ByteView>),
-      model[0] as CollatedNode<ByteView>,
-    )
+    const result = decode(encode(object, model[0]), model[0])
     expect(object).toEqual(result)
   })
 
@@ -181,10 +173,7 @@ describe("pack", () => {
         [3, { x: 4 }],
       ]),
     }
-    const result = decode(
-      encode(object, model[0] as CollatedNode<ByteView>),
-      model[0] as CollatedNode<ByteView>,
-    )
+    const result = decode(encode(object, model[0]), model[0])
     expect(object).toEqual(result)
   })
 
@@ -206,10 +195,7 @@ describe("pack", () => {
       str: "bckjdlkjfasdf",
       map: new Map([[1.2, { x: 99.9 }]]),
     }
-    const result = decode(
-      encode(object, model[0] as CollatedNode<ByteView>),
-      model[0] as CollatedNode<ByteView>,
-    )
+    const result = decode(encode(object, model[0]), model[0])
     expect(object).toEqual(result)
   })
 })
