@@ -68,7 +68,7 @@ Visit https://javelin.games
 
 ## Packages
 
-| Package                                        | Description                                        |
+| Name                                           | Description                                        |
 | ---------------------------------------------- | -------------------------------------------------- |
 | [@javelin/core](./packages/core)               | Core types, utilities, and data model              |
 | [@javelin/ecs](./packages/ecs)                 | Build games using the ECS pattern                  |
@@ -78,10 +78,10 @@ Visit https://javelin.games
 
 ## Examples
 
-| Example                       | Description                                               |
-| ----------------------------- | --------------------------------------------------------- |
-| [spin](./examples/spin)       | Entity/component synchronization over WebRTC datachannels |
-| [interop](./examples/interop) | Interop with Cannon and Three.js objects                  |
+| Name                          | Description                                               | NPM Script        |
+| ----------------------------- | --------------------------------------------------------- | ----------------- |
+| [spin](./examples/spin)       | Entity/component synchronization over WebRTC datachannels | `example:spin`    |
+| [interop](./examples/interop) | Interop with Cannon and Three.js objects                  | `example:interop` |
 
 ## Development
 
