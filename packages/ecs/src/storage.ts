@@ -1,9 +1,10 @@
 import { assert, mutableEmpty, packSparseArray, Schema } from "@javelin/core"
 import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
-import { Component, ComponentOf, getComponentId } from "./component"
+import { Component, ComponentOf, getSchemaId } from "./component"
 import { Entity } from "./entity"
 import { UNSAFE_internals } from "./internal"
 import { createSignal, Signal } from "./signal"
+import { Type } from "./type"
 
 const ERROR_ENTITY_NOT_CREATED =
   "Failed to locate entity: entity has not been created"
@@ -38,28 +39,28 @@ export type Storage = {
 
   /**
    * Attach components to an entity.
-   * @param entity Entity
-   * @param components Components to attach
+   * @param entity
+   * @param components
    */
   attachComponents(entity: Entity, components: Component[]): void
 
   /**
    * Attach or update an entity's components.
-   * @param entity Entity
-   * @param components Components to either attach or update
+   * @param entity
+   * @param components
    */
   attachOrUpdateComponents(entity: Entity, components: Component[]): void
 
   /**
    * Detach components from an entity via schema ids.
-   * @param entity Entity
-   * @param schemaIds Components to detach
+   * @param entity
+   * @param type
    */
-  detachBySchemaId(entity: Entity, schemaIds: number[]): void
+  detachBySchemaId(entity: Entity, type: number[]): void
 
   /**
    * Remove all components from an entity.
-   * @param entity Entity
+   * @param entity
    */
   clearComponents(entity: Entity): void
 
@@ -72,34 +73,34 @@ export type Storage = {
 
   /**
    * Locate an entity's component by schema.
-   * @param entity Entity
-   * @param schema Component schema
+   * @param entity
+   * @param schema
    */
-  getComponentBySchema<S extends Schema>(
+  getComponentBySchema<$Schema extends Schema>(
     entity: Entity,
-    schema: S,
-  ): ComponentOf<S> | null
+    schema: $Schema,
+  ): ComponentOf<$Schema> | null
 
   /**
    * Locate an entity's component by schema id.
-   * @param entity Entity
-   * @param schema Component schema id
+   * @param entity
+   * @param schema
    */
   getComponentBySchemaId(entity: Entity, schemaId: number): Component | null
 
   /**
    * Get all components of an entity.
-   * @param entity Entity
+   * @param entity
    */
   getAllComponents(entity: Entity): Component[]
 
   /**
-   * Reset all entity-component data.
+   * Clear all entity-component data.
    */
-  reset(): void
+  clear(): void
 
   /**
-   * Take a serializable snapshot of the storage's entity-component data.
+   * Create a JSON-serializable snapshot of the storage instance.
    */
   getSnapshot(): StorageSnapshot
 }
@@ -111,7 +112,7 @@ export type StorageOptions = {
 export function createStorage(options: StorageOptions = {}): Storage {
   const archetypes: Archetype[] = options.snapshot
     ? options.snapshot.archetypes.map(snapshot => createArchetype({ snapshot }))
-    : [createArchetype({ signature: [] })]
+    : [createArchetype({ type: [] })]
   const entityIndex: (Archetype | null)[] = []
   const entityRelocating = createSignal<
     Entity,
@@ -131,12 +132,12 @@ export function createStorage(options: StorageOptions = {}): Storage {
     const length = components.length
     outer: for (let i = 0; i < archetypes.length; i++) {
       const archetype = archetypes[i]
-      const { signature, signatureInverse } = archetype
-      if (signature.length !== length) {
+      const { type, typeInverse } = archetype
+      if (type.length !== length) {
         continue
       }
       for (let j = 0; j < length; j++) {
-        if (signatureInverse[getComponentId(components[j])] === undefined) {
+        if (typeInverse[getSchemaId(components[j])] === undefined) {
           continue outer
         }
       }
@@ -149,7 +150,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     let archetype = findArchetype(components)
     if (archetype === null) {
       archetype = createArchetype({
-        signature: components.map(getComponentId),
+        type: components.map(getSchemaId),
       })
       archetypes.push(archetype)
       archetypeCreated.dispatch(archetype)
@@ -189,9 +190,9 @@ export function createStorage(options: StorageOptions = {}): Storage {
     } else {
       const index = source.indices[entity]
       const final = components.slice()
-      for (let i = 0; i < source.signature.length; i++) {
-        const schemaId = source.signature[i]
-        if (components.find(c => getComponentId(c) === schemaId)) {
+      for (let i = 0; i < source.type.length; i++) {
+        const schemaId = source.type[i]
+        if (components.find(c => getSchemaId(c) === schemaId)) {
           // take inserted component
           continue
         }
@@ -201,22 +202,22 @@ export function createStorage(options: StorageOptions = {}): Storage {
     }
   }
 
-  function detachBySchemaId(entity: Entity, schemaIds: number[]) {
+  function detachBySchemaId(entity: Entity, type: Type) {
     const source = getEntityArchetype(entity)
     const removed: Component[] = []
     const final: Component[] = []
     const index = source.indices[entity]
-    for (let i = 0; i < source.signature.length; i++) {
-      const type = source.signature[i]
+    for (let i = 0; i < source.type.length; i++) {
+      const schemaId = source.type[i]
       const component = source.table[i][index]! as Component
-      ;(schemaIds.includes(type) ? removed : final).push(component)
+      ;(type.includes(schemaId) ? removed : final).push(component)
     }
     relocate(source, entity, final, removed)
   }
 
   function clearComponents(entity: Entity) {
     const archetype = getEntityArchetype(entity)
-    detachBySchemaId(entity, archetype.signature)
+    detachBySchemaId(entity, archetype.type)
     entityIndex[entity] = null
   }
 
@@ -228,7 +229,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     mutableEmpty(tmpComponentsToInsert)
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const column = archetype.signatureInverse[getComponentId(component)]
+      const column = archetype.typeInverse[getSchemaId(component)]
       if (column === undefined) {
         // Entity component makeup does not match patch component, insert the new
         // component.
@@ -247,7 +248,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     const archetype = getEntityArchetype(entity)
     const type = UNSAFE_internals.schemaIndex.get(schema)
     assert(type !== undefined, ERROR_NO_SCHEMA)
-    return archetype.signature.includes(type)
+    return archetype.type.includes(type)
   }
 
   function getComponentBySchema<T extends Schema>(entity: Entity, schema: T) {
@@ -261,7 +262,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     schemaId: number,
   ) {
     const archetype = getEntityArchetype(entity)
-    const column = archetype.signatureInverse[schemaId]
+    const column = archetype.typeInverse[schemaId]
     if (column === undefined) {
       return null
     }
@@ -287,7 +288,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
   function getSnapshot() {
     return {
       archetypes: archetypes.map(archetype => ({
-        signature: archetype.signature.slice(),
+        type: archetype.type.slice(),
         table: archetype.table.map(column =>
           column.map(component => ({ ...component })),
         ),
@@ -301,7 +302,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     archetypes,
     attachComponents,
     attachOrUpdateComponents,
-    reset: clear,
+    clear,
     clearComponents,
     detachBySchemaId,
     entityRelocated,

@@ -5,16 +5,16 @@ import {
   mutableEmpty,
   Schema,
 } from "@javelin/core"
-import { Archetype, ArchetypeTableColumn } from "./archetype"
+import { Archetype, ComponentStoreColumn } from "./archetype"
 import {
   Component,
   ComponentOf,
-  getComponentId,
+  getSchemaId,
   registerSchema,
 } from "./component"
 import { Entity } from "./entity"
 import { UNSAFE_internals } from "./internal"
-import { Type, typeIsSuperset } from "./type"
+import { normalizeType, Type, typeIsSuperset } from "./type"
 import { World } from "./world"
 
 const ERROR_MSG_UNBOUND_QUERY =
@@ -35,8 +35,10 @@ export type Selector = Schema[]
  *   { value: 0xff0000 }
  * ]
  */
-export type SelectorResult<S extends Selector> = {
-  [K in keyof S]: S[K] extends Schema ? ComponentOf<S[K]> : Component
+export type SelectorResult<$Selector extends Selector> = {
+  [K in keyof $Selector]: $Selector[K] extends Schema
+    ? ComponentOf<$Selector[K]>
+    : Component
 }
 
 /**
@@ -47,27 +49,30 @@ export type SelectorResult<S extends Selector> = {
  *   { value: 0xff0000 }
  * ]
  */
-export type SelectorResultSparse<S extends Selector> = {
-  [K in keyof S]: (S[K] extends Schema ? ComponentOf<S[K]> : Component) | null
+export type SelectorResultSparse<$Selector extends Selector> = {
+  [K in keyof $Selector]:
+    | ($Selector[K] extends Schema ? ComponentOf<$Selector[K]> : Component)
+    | null
 }
 
 /**
- * A subset of selector `S`.
+ * A subset of selector `$Selector`.
  * @example
  * const subset: SelectorSubset<[Position, Color]> = [Color]
  */
-export type SelectorSubset<S extends Selector> = (S extends Array<infer _>
-  ? _
-  : never)[]
+export type SelectorSubset<$Selector extends Selector> =
+  ($Selector extends Array<infer _> ? _ : never)[]
 
 /**
  * A record generated from an archetype with live references to the
  * archetype's entities and component data.
  */
-export type QueryRecord<S extends Selector> = [
+export type QueryRecord<$Selector extends Selector> = [
   entities: ReadonlyArray<number>,
   columns: {
-    [K in keyof S]: S[K] extends Schema ? ArchetypeTableColumn<S[K]> : never
+    [K in keyof $Selector]: $Selector[K] extends Schema
+      ? ComponentStoreColumn<$Selector[K]>
+      : never
   },
   entityLookup: ReadonlyArray<number>,
 ]
@@ -79,39 +84,49 @@ export type QueryRecord<S extends Selector> = [
  *   // ...
  * }
  */
-export type QueryIteratee<S extends Selector> = (
+export type QueryIteratee<$Selector extends Selector> = (
   entity: Entity,
-  components: SelectorResult<S>,
+  components: SelectorResult<$Selector>,
 ) => unknown
 
 /**
  * A live-updating, iterable collection of entity-components records that match
  * a provided selector (list of schemas).
  */
-export type Query<S extends Selector = Selector> = ((
-  callback: QueryIteratee<S>,
+export type Query<$Selector extends Selector = Selector> = ((
+  callback: QueryIteratee<$Selector>,
 ) => void) & {
-  signature: number[]
+  /**
+   * The type signature of the query.
+   */
+  type: Type
+
+  /**
+   * Query filters.
+   */
   filters: QueryFilters
 
-  [Symbol.iterator](): IterableIterator<QueryRecord<S>>
+  [Symbol.iterator](): IterableIterator<QueryRecord<$Selector>>
 
   /**
    * Create a new query that excludes entities with components of provided
    * component type(s) from this query's results.
    */
-  not(...selector: Selector): Query<S>
+  not(...selector: Selector): Query<$Selector>
 
   /**
    * Create a new query that behaves the same as this query, but yields a
    * specified subset of components.
    */
-  select<T extends SelectorSubset<S>>(...include: T): Query<T>
+  select<T extends SelectorSubset<$Selector>>(...include: T): Query<T>
 
   /**
    * Get the results of a query for a specific entity.
    */
-  get(entity: Entity, out?: SelectorResult<S>): SelectorResult<S>
+  get(
+    entity: Entity,
+    out?: SelectorResult<$Selector>,
+  ): SelectorResult<$Selector>
 
   /**
    * Check if an entity matches the query.
@@ -121,7 +136,7 @@ export type Query<S extends Selector = Selector> = ((
   /**
    * Bind the results of this query to a specific world.
    */
-  bind(world: World): Query<S>
+  bind(world: World): Query<$Selector>
 
   /**
    * Check if this query matches a type signature.
@@ -151,8 +166,8 @@ export type Query<S extends Selector = Selector> = ((
    */
   match(
     components: Component[],
-    out?: SelectorResultSparse<S>,
-  ): SelectorResultSparse<S>
+    out?: SelectorResultSparse<$Selector>,
+  ): SelectorResultSparse<$Selector>
 }
 
 type QueryFilters = {
@@ -163,33 +178,33 @@ type QueryFilters = {
  * Check if a query signature (type) matches a type signature, accounting for
  * query filters (if any).
  */
-function matchesType(typeA: Type, typeB: Type, filters: QueryFilters) {
+function matchesTypeInner(typeA: Type, typeB: Type, filters: QueryFilters) {
   return typeIsSuperset(typeB, typeA) && typeB.every(c => !filters.not.has(c))
 }
 
-type QueryFactoryOptions<S extends Selector> = {
-  select: S
-  include?: SelectorSubset<S>
+type QueryFactoryOptions<$Selector extends Selector> = {
+  select: $Selector
+  include?: SelectorSubset<$Selector>
   filters?: {
     not: Set<number>
   }
-  context?: number
+  boundWorldId?: number
 }
 
-function createQueryInternal<S extends Selector>(
-  options: QueryFactoryOptions<S>,
+function createQueryInternal<$Selector extends Selector>(
+  options: QueryFactoryOptions<$Selector>,
 ) {
   const length = options.select.length
   const filters = options.filters ?? { not: new Set() }
-  const signature = options.select
-    .map(schema => registerSchema(schema))
-    .sort((a, b) => a - b)
+  const type = normalizeType(
+    options.select.map(schema => registerSchema(schema)),
+  )
   const layout = (options.include ?? options.select).map(schema =>
     registerSchema(schema),
   )
-  const recordsIndex = [] as QueryRecord<S>[][]
-  const pool = createStackPool<SelectorResult<S>>(
-    () => [] as unknown as SelectorResult<S>,
+  const recordsIndex = [] as QueryRecord<$Selector>[][]
+  const pool = createStackPool<SelectorResult<$Selector>>(
+    () => [] as unknown as SelectorResult<$Selector>,
     components => {
       mutableEmpty(components)
       return components
@@ -197,7 +212,7 @@ function createQueryInternal<S extends Selector>(
     1000,
   )
 
-  let context = options.context
+  let boundWorldId = options.boundWorldId
 
   /**
    * Attempt to register an archetype with this query. If the archetype is
@@ -206,15 +221,15 @@ function createQueryInternal<S extends Selector>(
    */
   function maybeRegisterArchetype(
     archetype: Archetype,
-    records: QueryRecord<S>[],
+    records: QueryRecord<$Selector>[],
   ) {
-    if (matchesType(signature, archetype.signature, filters)) {
+    if (matchesTypeInner(type, archetype.type, filters)) {
       const columns = layout.map(
-        schemaId => archetype.table[archetype.signature.indexOf(schemaId)],
+        schemaId => archetype.table[archetype.type.indexOf(schemaId)],
       )
       records.push([
         archetype.entities,
-        columns as QueryRecord<S>[1],
+        columns as QueryRecord<$Selector>[1],
         archetype.indices,
       ])
     }
@@ -226,7 +241,7 @@ function createQueryInternal<S extends Selector>(
    */
   function registerWorld(worldId: number) {
     const world = UNSAFE_internals.worlds[worldId]
-    const records: QueryRecord<S>[] = []
+    const records: QueryRecord<$Selector>[] = []
     recordsIndex[worldId] = records
     world.storage.archetypes.forEach(archetype =>
       maybeRegisterArchetype(archetype, records),
@@ -237,10 +252,14 @@ function createQueryInternal<S extends Selector>(
     return records
   }
 
-  function forEach(iteratee: QueryIteratee<S>) {
-    const c = context ?? UNSAFE_internals.currentWorldId
-    assert(c !== null && c !== -1, ERROR_MSG_UNBOUND_QUERY, ErrorType.Query)
-    const records = recordsIndex[c] || registerWorld(c)
+  function forEach(iteratee: QueryIteratee<$Selector>) {
+    const worldId = boundWorldId ?? UNSAFE_internals.currentWorldId
+    assert(
+      worldId !== null && worldId !== -1,
+      ERROR_MSG_UNBOUND_QUERY,
+      ErrorType.Query,
+    )
+    const records = recordsIndex[worldId] || registerWorld(worldId)
     const components = pool.retain()
 
     for (let i = 0; i < records.length; i++) {
@@ -257,9 +276,13 @@ function createQueryInternal<S extends Selector>(
   }
 
   function iterator() {
-    const c = context ?? UNSAFE_internals.currentWorldId
-    assert(c !== null && c !== -1, ERROR_MSG_UNBOUND_QUERY, ErrorType.Query)
-    return (recordsIndex[c] || registerWorld(c))[Symbol.iterator]()
+    const worldId = boundWorldId ?? UNSAFE_internals.currentWorldId
+    assert(
+      worldId !== null && worldId !== -1,
+      ERROR_MSG_UNBOUND_QUERY,
+      ErrorType.Query,
+    )
+    return (recordsIndex[worldId] || registerWorld(worldId))[Symbol.iterator]()
   }
 
   function not(...exclude: Selector) {
@@ -275,19 +298,16 @@ function createQueryInternal<S extends Selector>(
     })
   }
 
-  function select<T extends SelectorSubset<S>>(...include: T) {
-    return createQueryInternal({
-      ...options,
-      include,
-    }) as unknown as Query<T>
+  function select<T extends SelectorSubset<$Selector>>(...include: T) {
+    return createQueryInternal({ ...options, include }) as unknown as Query<T>
   }
 
   function get(
     entity: Entity,
-    out: SelectorResult<S> = [] as unknown as SelectorResult<S>,
+    out: SelectorResult<$Selector> = [] as unknown as SelectorResult<$Selector>,
   ) {
-    const c = context ?? UNSAFE_internals.currentWorldId
-    const records = recordsIndex[c]
+    const worldId = boundWorldId ?? UNSAFE_internals.currentWorldId
+    const records = recordsIndex[worldId]
     for (let i = 0; i < records.length; i++) {
       const [, columns, indices] = records[i]
       const index = indices[entity]
@@ -306,13 +326,13 @@ function createQueryInternal<S extends Selector>(
   function bind(world: World) {
     return createQueryInternal({
       ...options,
-      context: world.id,
+      boundWorldId: world.id,
     })
   }
 
   function test(entity: Entity) {
-    const c = context ?? UNSAFE_internals.currentWorldId
-    const records = recordsIndex[c]
+    const worldId = boundWorldId ?? UNSAFE_internals.currentWorldId
+    const records = recordsIndex[worldId]
     for (let i = 0; i < records.length; i++) {
       const record = records[i]
       if (record[2][entity] !== undefined) {
@@ -322,16 +342,17 @@ function createQueryInternal<S extends Selector>(
     return false
   }
 
-  function matches(type: Type) {
-    return matchesType(signature, type, filters)
+  let _type = type
+  function matchesType(type: Type) {
+    return matchesTypeInner(_type, type, filters)
   }
 
   function equals(query: Query) {
-    if (query.signature.length !== signature.length) {
+    if (query.type.length !== type.length) {
       return false
     }
-    for (let i = 0; i < query.signature.length; i++) {
-      if (query.signature[i] !== signature[i]) {
+    for (let i = 0; i < query.type.length; i++) {
+      if (query.type[i] !== type[i]) {
         return false
       }
     }
@@ -347,31 +368,31 @@ function createQueryInternal<S extends Selector>(
 
   function match(
     components: Component[],
-    out: SelectorResultSparse<S> = [] as unknown as SelectorResultSparse<S>,
-  ): SelectorResultSparse<S> {
+    out: SelectorResultSparse<$Selector> = [] as unknown as SelectorResultSparse<$Selector>,
+  ): SelectorResultSparse<$Selector> {
     for (let i = 0; i < layout.length; i++) {
       out[i] = null
     }
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const index = layout.indexOf(getComponentId(component))
+      const index = layout.indexOf(getSchemaId(component))
       if (index !== -1) {
         out[index] = component
       }
     }
-    return out as SelectorResultSparse<S>
+    return out as SelectorResultSparse<$Selector>
   }
 
-  const query = forEach as Query<S>
+  const query = forEach as Query<$Selector>
   query[Symbol.iterator] = iterator
-  query.signature = signature
+  query.type = type
   query.filters = filters
   query.not = not
   query.select = select
   query.get = get
   query.bind = bind
   query.test = test
-  query.matchesType = matches
+  query.matchesType = matchesType
   query.equals = equals
   query.match = match
 
@@ -394,6 +415,8 @@ function createQueryInternal<S extends Selector>(
  *   }
  * }
  */
-export function createQuery<S extends Selector>(...select: S): Query<S> {
+export function createQuery<$Selector extends Selector>(
+  ...select: $Selector
+): Query<$Selector> {
   return createQueryInternal({ select })
 }

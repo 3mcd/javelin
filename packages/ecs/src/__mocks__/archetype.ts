@@ -1,9 +1,9 @@
 import { Archetype } from "../archetype"
 
-export const createArchetype = jest.fn(({ signature }): Archetype => {
+export const createArchetype = jest.fn(({ type }): Archetype => {
   return {
-    signature,
-    signatureInverse: [],
+    type,
+    typeInverse: [],
     table: [],
     indices: [],
     entities: [],

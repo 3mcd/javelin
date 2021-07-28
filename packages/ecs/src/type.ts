@@ -1,4 +1,8 @@
-export type Type = number[]
+export type Type = ReadonlyArray<number>
+
+export function normalizeType(type: Type): Type {
+  return type.slice().sort((a, b) => a - b)
+}
 
 export function typeIsSuperset(right: Type, left: Type) {
   let i = 0

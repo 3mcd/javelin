@@ -1,10 +1,10 @@
 import { Comparator, CompareFunction } from "./comparator"
 
-export class Heap<T> {
-  heapContainer: T[]
-  compare: Comparator<T>
+export class Heap<$Value> {
+  heapContainer: $Value[]
+  compare: Comparator<$Value>
 
-  constructor(comparatorFunction?: CompareFunction<T>) {
+  constructor(comparatorFunction?: CompareFunction<$Value>) {
     if (new.target === Heap) {
       throw new TypeError("Cannot construct Heap instance directly")
     }
@@ -82,13 +82,13 @@ export class Heap<T> {
     return item
   }
 
-  add(item: T) {
+  add(item: $Value) {
     this.heapContainer.push(item)
     this.heapifyUp()
     return this
   }
 
-  remove(item: T, comparator = this.compare) {
+  remove(item: $Value, comparator = this.compare) {
     const numberOfItemsToRemove = this.find(item, comparator).length
 
     for (let iteration = 0; iteration < numberOfItemsToRemove; iteration += 1) {
@@ -119,7 +119,7 @@ export class Heap<T> {
     return this
   }
 
-  find(item: T, comparator = this.compare) {
+  find(item: $Value, comparator = this.compare) {
     const foundItemIndices = []
 
     for (
@@ -187,7 +187,7 @@ export class Heap<T> {
     }
   }
 
-  pairIsInCorrectOrder(firstElement: T, secondElement: T): boolean {
+  pairIsInCorrectOrder(firstElement: $Value, secondElement: $Value): boolean {
     throw new Error(`
       You have to implement heap pair comparision method
       for ${firstElement} and ${secondElement} values.

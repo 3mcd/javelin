@@ -11,17 +11,17 @@ import { UNSAFE_internals, UNSAFE_setModel } from "./internal"
 export const $type = Symbol("javelin_component_type")
 export const $pool = Symbol("javelin_component_pool")
 
-export type InternalComponentProps = {
-  [$type]: number
-  [$pool]: boolean
-}
-export type ComponentProps = {
-  readonly [K in keyof InternalComponentProps]: InternalComponentProps[K]
+export type ComponentMetadata = {
+  [$type]?: number
+  [$pool]?: boolean
 }
 
-export type ComponentOf<S extends Schema> = FieldExtract<S>
-export type ComponentsOf<C extends Schema[]> = {
-  [K in keyof C]: C[K] extends Schema ? ComponentOf<C[K]> : never
+export type ComponentOf<$Schema extends Schema> = FieldExtract<$Schema> &
+  ComponentMetadata
+export type ComponentsOf<$Signature extends Schema[]> = {
+  [K in keyof $Signature]: $Signature[K] extends Schema
+    ? ComponentOf<$Signature[K]>
+    : never
 }
 export type Component = ComponentOf<Schema>
 
@@ -29,10 +29,10 @@ const { schemaIndex, schemaPools, instanceTypeLookup } = UNSAFE_internals
 
 let schemaIds = 0
 
-function createComponentBase<S extends Schema>(
-  schema: S,
+function createComponentBase<$Schema extends Schema>(
+  schema: $Schema,
   pool = true,
-): ComponentOf<S> {
+): ComponentOf<$Schema> {
   return Object.defineProperties(
     {},
     {
@@ -47,7 +47,7 @@ function createComponentBase<S extends Schema>(
         enumerable: false,
       },
     },
-  ) as ComponentOf<S>
+  ) as ComponentOf<$Schema>
 }
 
 /**
@@ -62,28 +62,28 @@ function createComponentBase<S extends Schema>(
  * isComponentOf(a, A) // true
  * isComponentOf(a, B) // false
  */
-export function isComponentOf<S extends Schema>(
+export function isComponentOf<$Schema extends Schema>(
   component: Component,
-  schema: S,
-): component is ComponentOf<S> {
-  return getComponentId(component) === schemaIndex.get(schema)
+  schema: $Schema,
+): component is ComponentOf<$Schema> {
+  return getSchemaId(component) === schemaIndex.get(schema)
 }
 
-export function createComponentPool<S extends Schema>(
-  schema: S,
+export function createComponentPool<$Schema extends Schema>(
+  schema: $Schema,
   poolSize: number,
 ) {
-  const componentPool = createStackPool<ComponentOf<S>>(
+  const componentPool = createStackPool<ComponentOf<$Schema>>(
     () =>
       createSchemaInstance(
         schema,
-        createComponentBase(schema) as FieldExtract<S>,
-      ) as ComponentOf<S>,
+        createComponentBase(schema) as FieldExtract<$Schema>,
+      ) as ComponentOf<$Schema>,
     component =>
       resetSchemaInstance(
-        component as FieldExtract<S>,
+        component as FieldExtract<$Schema>,
         schema,
-      ) as ComponentOf<S>,
+      ) as ComponentOf<$Schema>,
     poolSize,
   )
 
@@ -144,14 +144,16 @@ export function registerSchema(
   return type
 }
 
-function createComponentInner<S extends Schema>(schema: S): ComponentOf<S> {
+function createComponentInner<$Schema extends Schema>(
+  schema: $Schema,
+): ComponentOf<$Schema> {
   const type = registerSchema(schema)
   const pool = UNSAFE_internals.schemaPools.get(type)
   return (
     pool
       ? pool.retain()
       : createSchemaInstance(schema, createComponentBase(schema, false))
-  ) as ComponentOf<S>
+  ) as ComponentOf<$Schema>
 }
 
 /**
@@ -167,15 +169,26 @@ function createComponentInner<S extends Schema>(schema: S): ComponentOf<S> {
  * const quaternion = component(Quaternion, { w: 1 })
  * ```
  */
-export function component<S extends Schema>(
-  schema: S,
-  props?: Partial<FieldExtract<S>>,
-): ComponentOf<S> {
+export function component<$Schema extends Schema>(
+  schema: $Schema,
+  props?: Partial<FieldExtract<$Schema>>,
+): ComponentOf<$Schema> {
   const instance = createComponentInner(schema)
   if (props !== undefined) {
     Object.assign(instance, props)
   }
   return instance
+}
+
+export function toComponentFromType(object: object, type: number) {
+  try {
+    ;(object as ComponentMetadata)[$type] = type
+    ;(object as ComponentMetadata)[$pool] = false
+  } catch {}
+  if ((object as ComponentMetadata)[$type] !== type) {
+    instanceTypeLookup.set(object as ComponentMetadata, type)
+  }
+  return object as Component
 }
 
 /**
@@ -185,19 +198,12 @@ export function component<S extends Schema>(
  * @param schema
  * @returns
  */
-export function toComponent<S extends Schema>(
-  object: FieldExtract<S>,
-  schema: S,
-): ComponentOf<S> {
+export function toComponent<$Schema extends Schema>(
+  object: FieldExtract<$Schema>,
+  schema: $Schema,
+): ComponentOf<$Schema> {
   const type = registerSchema(schema, undefined, 0)
-  try {
-    ;(object as InternalComponentProps)[$type] = type
-    ;(object as InternalComponentProps)[$pool] = false
-  } catch {}
-  if ((object as InternalComponentProps)[$type] !== type) {
-    instanceTypeLookup.set(object as InternalComponentProps, type)
-  }
-  return object as ComponentOf<S>
+  return toComponentFromType(object, type) as ComponentOf<$Schema>
 }
 
 /**
@@ -206,10 +212,9 @@ export function toComponent<S extends Schema>(
  * @param component
  * @returns
  */
-export function getComponentId(component: object) {
+export function getSchemaId(component: object) {
   const type =
-    (component as InternalComponentProps)[$type] ??
-    instanceTypeLookup.get(component)
+    (component as ComponentMetadata)[$type] ?? instanceTypeLookup.get(component)
   if (type === undefined) {
     throw new Error(
       "Failed to get component type id: object is not a component",

@@ -18,17 +18,26 @@ export enum ByteViewKind {
   Boolean,
 }
 
-export type ByteViewField =
+export type PrimitiveField =
   | Model.FieldNumber
   | Model.FieldString
   | Model.FieldBoolean
 
-export type ByteView<T extends ByteViewField = ByteViewField> = T & {
-  [$byteView]: ByteViewKind
-  byteLength: number
-  read(dataView: DataView, offset: number, length?: number): Model.FieldGet<T>
-  write(dataView: DataView, offset: number, data: Model.FieldGet<T>): void
-}
+export type ByteView<$Field extends PrimitiveField = PrimitiveField> =
+  $Field & {
+    [$byteView]: ByteViewKind
+    byteLength: number
+    read(
+      dataView: DataView,
+      offset: number,
+      length?: number,
+    ): Model.FieldGet<$Field>
+    write(
+      dataView: DataView,
+      offset: number,
+      data: Model.FieldGet<$Field>,
+    ): void
+  }
 
 export type StringView = ByteView<Model.FieldString> & {
   [$byteView]: ByteViewKind.String16 | ByteViewKind.String8
@@ -43,39 +52,43 @@ export function isStringView(object: object): object is StringView {
   return isByteView(object) && object[$kind] === Model.FieldKind.String
 }
 
-export function read<T extends ByteView>(
+export function read<$View extends ByteView>(
   dataView: DataView,
-  byteView: T,
+  byteView: $View,
   cursor: Cursor,
   length = (byteView as StringView).length ?? 1,
 ) {
   const data = byteView.read(dataView, cursor.offset, length)
   cursor.offset += byteView.byteLength * length
-  return data as Model.FieldGet<T>
+  return data as Model.FieldGet<$View>
 }
 
-export function write<T extends ByteView>(
+export function write<$View extends ByteView>(
   dataView: DataView,
-  byteView: T,
+  byteView: $View,
   cursor: Cursor,
-  data: Model.FieldGet<T>,
+  data: Model.FieldGet<$View>,
 ) {
   const length = (byteView as StringView).length ?? 1
   byteView.write(dataView, cursor.offset, data)
   cursor.offset += byteView.byteLength * length
 }
 
-function createByteView<T extends ByteViewField>(
+function createByteView<$Field extends PrimitiveField>(
   kind: ByteViewKind,
-  field: T,
+  field: $Field,
   byteLength: number,
   read: (
     dataView: DataView,
     offset: number,
     length?: number,
-  ) => Model.FieldGet<T>,
-  write: (dataView: DataView, offset: number, data: Model.FieldGet<T>) => void,
-): ByteView<T> {
+  ) => Model.FieldGet<$Field>,
+  write: (
+    dataView: DataView,
+    offset: number,
+    data: Model.FieldGet<$Field>,
+  ) => void,
+): ByteView<$Field> {
   return {
     ...field,
     [$byteView]: kind,

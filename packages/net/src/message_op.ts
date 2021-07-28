@@ -9,13 +9,7 @@ import {
   isSimple,
   mutableEmpty,
 } from "@javelin/core"
-import {
-  Component,
-  Entity,
-  getComponentId,
-  Patch,
-  PatchNode,
-} from "@javelin/ecs"
+import { Component, Entity, getSchemaId, Patch, PatchNode } from "@javelin/ecs"
 import {
   ByteView,
   encode,
@@ -93,7 +87,7 @@ export function snapshot(
   insert(op, count, uint8)
   for (let i = 0; i < count; i++) {
     const component = components[i]
-    const schemaId = getComponentId(component)
+    const schemaId = getSchemaId(component)
     const encoded = encode(component, model[schemaId])
     insert(op, schemaId, uint8)
     insert(op, encoded)

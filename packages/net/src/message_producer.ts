@@ -3,7 +3,7 @@ import {
   Component,
   createPatch,
   Entity,
-  getComponentId,
+  getSchemaId,
   Patch,
   resetPatch,
   UNSAFE_internals,
@@ -105,7 +105,7 @@ export function createMessageProducer(
     // was attached)
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      updates.set(getComponentId(component), component)
+      updates.set(getSchemaId(component), component)
     }
     amplify(entity, priority)
   }
@@ -118,7 +118,7 @@ export function createMessageProducer(
 
   function detach(entity: Entity, components: Component[]) {
     enqueue(
-      MessageOp.detach(entity, components.map(getComponentId)),
+      MessageOp.detach(entity, components.map(getSchemaId)),
       Message.MessagePartKind.Detach,
     )
   }

@@ -33,11 +33,11 @@ export type Topic<D = unknown> = {
 /**
  * Create a topic.
  */
-export const createTopic = <E = unknown>(): Topic<E> => {
-  const staged: E[] = []
-  const ready: E[] = []
-  const push = (event: E) => staged.push(event)
-  const pushImmediate = (event: E) => ready.push(event)
+export const createTopic = <$Event = unknown>(): Topic<$Event> => {
+  const staged: $Event[] = []
+  const ready: $Event[] = []
+  const push = (event: $Event) => staged.push(event)
+  const pushImmediate = (event: $Event) => ready.push(event)
   const flush = () => {
     mutableEmpty(ready)
     const len = staged.length

@@ -5,16 +5,18 @@ import { World } from "./world"
  * The effect executor is a function type that captures the return value and
  * an arbitrary list of arguments.
  */
-export type EffectExecutor<S, A extends unknown[]> = (...args: A) => S
+export type EffectExecutor<$Return, $Args extends unknown[]> = (
+  ...args: $Args
+) => $Return
 
 /**
  * The effect's API is the contract that the effect and system operate under.
  * It extends the interface of the effect executor by also unwrapping resolved
  * promise values.
  */
-export type EffectApi<S, A extends unknown[]> = EffectExecutor<
-  UnwrappedEffectState<S>,
-  A
+export type EffectApi<$Return, $Args extends unknown[]> = EffectExecutor<
+  UnwrappedEffectState<$Return>,
+  $Args
 >
 
 /**
@@ -30,9 +32,11 @@ export type EffectApi<S, A extends unknown[]> = EffectExecutor<
  *   return () => i++
  * }
  */
-export type EffectFactory<S, A extends unknown[] = [], T = unknown> = (
-  world: World<T>,
-) => EffectExecutor<S, A>
+export type EffectFactory<
+  $Return,
+  $Args extends unknown[] = [],
+  T = unknown,
+> = (world: World<T>) => EffectExecutor<$Return, $Args>
 
 export type EffectOptions = {
   /**
@@ -46,22 +50,26 @@ export type EffectOptions = {
   shared?: boolean
 }
 
-type UnwrappedEffectState<S> = S extends Promise<infer PS> ? PS | null : S
+type UnwrappedEffectState<$Return> = $Return extends Promise<infer $Resolve>
+  ? $Resolve | null
+  : $Return
 
-type CellEffectData<S, A extends unknown[]> = {
-  executor: EffectExecutor<S, A>
+type CellEffectData<$Return, $Args extends unknown[]> = {
+  executor: EffectExecutor<$Return, $Args>
   lockAsync: boolean
   lockShare: boolean
   lockShareTick: number | null
-  state: UnwrappedEffectState<S>
+  state: UnwrappedEffectState<$Return>
 }
 
-type SystemEffectData<S = unknown, A extends unknown[] = []> = {
+type SystemEffectData<$Return = unknown, $Args extends unknown[] = []> = {
   cellCount: number
-  cells: CellEffectData<S, A>[]
+  cells: CellEffectData<$Return, $Args>[]
 }
 
-function isPromise<T = unknown>(object: unknown): object is Promise<T> {
+function isPromise<$Resolve = unknown>(
+  object: unknown,
+): object is Promise<$Resolve> {
   return typeof object === "object" && object !== null && "then" in object
 }
 
@@ -91,13 +99,13 @@ function isPromise<T = unknown>(object: unknown): object is Promise<T> {
  * const b = useCounter(10) // 11
  */
 export function createEffect<
-  S = unknown,
-  A extends unknown[] = [],
-  W extends unknown = void,
+  $Return = unknown,
+  $Args extends unknown[] = [],
+  $Tick extends unknown = void,
 >(
-  factory: EffectFactory<S, A, W>,
+  factory: EffectFactory<$Return, $Args, $Tick>,
   options: EffectOptions = { shared: false },
-): EffectApi<S, A> {
+): EffectApi<$Return, $Args> {
   const { shared: global } = options
   const systemEffectDataByWorldId: SystemEffectData[][] = []
 
@@ -109,10 +117,10 @@ export function createEffect<
   let latestSystemId: number
   let cellCount: number = -1
 
-  return function effect(...args: A) {
+  return function effect(...args: $Args) {
     currentWorld = UNSAFE_internals.currentWorldId
 
-    const world = UNSAFE_internals.worlds[currentWorld] as World<W>
+    const world = UNSAFE_internals.worlds[currentWorld] as World<$Tick>
     const step = world.latestTick
 
     latestSystemId = global ? 0 : world.latestSystemId
@@ -162,7 +170,10 @@ export function createEffect<
       cellCount++
     }
 
-    let cell = currentSystemEffect.cells[cellCount] as CellEffectData<S, A>
+    let cell = currentSystemEffect.cells[cellCount] as CellEffectData<
+      $Return,
+      $Args
+    >
 
     if (!cell) {
       cell = currentSystemEffect.cells[cellCount] = {
@@ -170,7 +181,7 @@ export function createEffect<
         lockShare: false,
         lockAsync: false,
         lockShareTick: null,
-        state: null as UnwrappedEffectState<S>,
+        state: null as UnwrappedEffectState<$Return>,
       }
     }
 
@@ -189,7 +200,7 @@ export function createEffect<
 
     const result = cell.executor(...args)
 
-    if (isPromise<UnwrappedEffectState<S>>(result)) {
+    if (isPromise<UnwrappedEffectState<$Return>>(result)) {
       cell.lockAsync = true
       result
         .then(result => (cell.state = result))
@@ -198,7 +209,7 @@ export function createEffect<
         )
         .then(() => (cell.lockAsync = false))
     } else {
-      cell.state = result as UnwrappedEffectState<S>
+      cell.state = result as UnwrappedEffectState<$Return>
     }
 
     previousStep = step

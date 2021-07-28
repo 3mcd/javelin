@@ -1,10 +1,10 @@
-export type CompareFunction<T> = (a: T, b: T) => number
+export type CompareFunction<$Value> = (a: $Value, b: $Value) => number
 
-export class Comparator<T> {
-  compare: CompareFunction<T>
+export class Comparator<$Value> {
+  compare: CompareFunction<$Value>
 
   constructor(
-    compareFunction: CompareFunction<T> = Comparator.defaultCompareFunction,
+    compareFunction: CompareFunction<$Value> = Comparator.defaultCompareFunction,
   ) {
     this.compare = compareFunction
   }
@@ -17,23 +17,23 @@ export class Comparator<T> {
     return Number(a) < Number(b) ? -1 : 1
   }
 
-  equal(a: T, b: T) {
+  equal(a: $Value, b: $Value) {
     return this.compare(a, b) === 0
   }
 
-  lessThan(a: T, b: T) {
+  lessThan(a: $Value, b: $Value) {
     return this.compare(a, b) < 0
   }
 
-  greaterThan(a: T, b: T) {
+  greaterThan(a: $Value, b: $Value) {
     return this.compare(a, b) > 0
   }
 
-  lessThanOrEqual(a: T, b: T) {
+  lessThanOrEqual(a: $Value, b: $Value) {
     return this.lessThan(a, b) || this.equal(a, b)
   }
 
-  greaterThanOrEqual(a: T, b: T) {
+  greaterThanOrEqual(a: $Value, b: $Value) {
     return this.greaterThan(a, b) || this.equal(a, b)
   }
 

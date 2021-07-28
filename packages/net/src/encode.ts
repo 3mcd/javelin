@@ -9,17 +9,22 @@ function encodePart(dataView: DataView, part: MessagePart, cursor: Cursor) {
   for (let i = 0; i < part.ops.length; i++) {
     const { data, view } = part.ops[i]
     for (let j = 0; j < data.length; j++) {
-      const d = data[j]
-      const v = view[j]
-      if (v === $buffer) {
-        const byteLength = (d as ArrayBuffer).byteLength
+      const dataElement = data[j]
+      const viewElement = view[j]
+      if (viewElement === $buffer) {
+        const byteLength = (dataElement as ArrayBuffer).byteLength
         new Uint8Array(dataView.buffer, 0, dataView.buffer.byteLength).set(
-          new Uint8Array(d as ArrayBuffer),
+          new Uint8Array(dataElement as ArrayBuffer),
           cursor.offset,
         )
         cursor.offset += byteLength
       } else {
-        Pack.write(dataView, v, cursor, d as string | number | boolean)
+        Pack.write(
+          dataView,
+          viewElement,
+          cursor,
+          dataElement as string | number | boolean,
+        )
       }
     }
   }

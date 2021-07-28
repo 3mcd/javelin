@@ -14,10 +14,10 @@ import {
   SelectorResultSparse,
 } from "../../query"
 
-type MonitorCallback<S extends Selector> = (
+type MonitorCallback<$Selector extends Selector> = (
   entity: Entity,
-  results: SelectorResult<S>,
-  diff: SelectorResultSparse<S>,
+  results: SelectorResult<$Selector>,
+  diff: SelectorResultSparse<$Selector>,
 ) => unknown
 
 const snapshots = createStackPool<EntitySnapshotWithDiff>(
@@ -108,8 +108,8 @@ export const useMonitor = createEffect(world => {
   ) {
     if (_query === null) return
     const matchCurr = matched.has(entity)
-    const matchPrev = _query.matchesType(prev.signature)
-    const matchNext = _query.matchesType(next.signature)
+    const matchPrev = _query.matchesType(prev.type)
+    const matchNext = _query.matchesType(next.type)
     const isExit = matchPrev && (!matchNext || next === rootArchetype)
     if (!isExit) return
     if (matchCurr) {
@@ -132,8 +132,8 @@ export const useMonitor = createEffect(world => {
     diff,
   ) {
     if (_query === null) return
-    const matchPrev = _query.matchesType(prev.signature)
-    const matchNext = _query.matchesType(next.signature)
+    const matchPrev = _query.matchesType(prev.type)
+    const matchNext = _query.matchesType(next.type)
     if (!matchPrev && matchNext) {
       const snapshot = snapshots.retain()
       snapshot[0] = entity
@@ -144,10 +144,10 @@ export const useMonitor = createEffect(world => {
     }
   })
 
-  return function useMonitor<S extends Selector>(
-    query: Query<S>,
-    onEnter?: MonitorCallback<S>,
-    onExit?: MonitorCallback<S>,
+  return function useMonitor<$Selector extends Selector>(
+    query: Query<$Selector>,
+    onEnter?: MonitorCallback<$Selector>,
+    onExit?: MonitorCallback<$Selector>,
   ) {
     if (_query !== query && !_query?.equals(query)) {
       register(query)
@@ -172,8 +172,8 @@ export const useMonitor = createEffect(world => {
         const snapshot = readyEnter[i]
         onEnter(
           snapshot[0],
-          snapshot[1] as SelectorResult<S>,
-          snapshot[2] as SelectorResultSparse<S>,
+          snapshot[1] as SelectorResult<$Selector>,
+          snapshot[2] as SelectorResultSparse<$Selector>,
         )
         snapshots.release(snapshot)
       }
@@ -184,8 +184,8 @@ export const useMonitor = createEffect(world => {
         const snapshot = readyExit[i]
         onExit(
           snapshot[0],
-          snapshot[1] as SelectorResult<S>,
-          snapshot[2] as SelectorResultSparse<S>,
+          snapshot[1] as SelectorResult<$Selector>,
+          snapshot[2] as SelectorResultSparse<$Selector>,
         )
         snapshots.release(snapshot)
       }

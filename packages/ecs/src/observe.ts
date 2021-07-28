@@ -8,7 +8,7 @@ import {
   isSimple,
   mutableEmpty,
 } from "@javelin/core"
-import { Component, getComponentId } from "./component"
+import { Component, getSchemaId } from "./component"
 import { UNSAFE_internals } from "./internal"
 
 export const $self = Symbol("javelin_proxy_self")
@@ -41,11 +41,11 @@ export type Changes =
   | SetChanges
   | MapChanges
 
-type Observed<T = unknown, C = Changes> = {
+type Observed<$Type = unknown, $Changes = Changes> = {
   [$touched]: boolean
-  [$changes]: C
-  [$self]: Observed<T, C>
-} & T
+  [$changes]: $Changes
+  [$self]: Observed<$Type, $Changes>
+} & $Type
 export type ObservedStruct = Observed<{ [key: string]: unknown }, StructChanges>
 export type ObservedArray = Observed<unknown[], ArrayChanges>
 export type ObservedObject = Observed<{ [key: string]: unknown }, ObjectChanges>
@@ -240,13 +240,13 @@ function proxify(object: object, parent: Observed, key: string) {
   return proxies.get(object) ?? register(object, node)
 }
 
-export function observe<T extends Component>(component: T): T {
+export function observe<$Type extends Component>(component: $Type): $Type {
   ;(component as unknown as Observed)[$touched] = true
   return (proxies.get(component) ??
     register(
       component,
-      UNSAFE_internals.model[getComponentId(component)],
-    )) as unknown as T
+      UNSAFE_internals.model[getSchemaId(component)],
+    )) as unknown as $Type
 }
 
 function clearObservedChangesInner(object: Observed, node: CollatedNode) {
@@ -313,7 +313,7 @@ export function clearObservedChanges(
   component: Component | Observed<Component, unknown>,
 ) {
   const self = $self in component ? (component as Observed)[$self] : component
-  const node = UNSAFE_internals.model[getComponentId(self)]
+  const node = UNSAFE_internals.model[getSchemaId(self)]
   return clearObservedChangesInner(self as unknown as Observed, node)
 }
 
@@ -439,7 +439,7 @@ function createPatchInner(
 export function createPatch(
   component: Component,
   patch: Patch = {
-    schemaId: getComponentId(component),
+    schemaId: getSchemaId(component),
     children: new Map(),
     changes: new Map(),
   },

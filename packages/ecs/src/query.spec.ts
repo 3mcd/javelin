@@ -31,9 +31,9 @@ describe("createQuery", () => {
 
     ;(world.storage.archetypes as Archetype[]) = [
       {
-        ...createArchetype({ signature: [0] }),
-        signature: [0, 1],
-        signatureInverse: [0, 1],
+        ...createArchetype({ type: [0] }),
+        type: [0, 1],
+        typeInverse: [0, 1],
         entities: [1, 2, 0],
         indices: [2, 0, 1],
         table,

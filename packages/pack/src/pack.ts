@@ -31,10 +31,10 @@ type BufferField = {
   byteLength: number
 }
 
-function pushBufferField<T>(
+function pushBufferField<$Value>(
   out: BufferField[],
   byteView: ByteView | StringView,
-  value: T,
+  value: $Value,
   length = (byteView as StringView).length ?? 1,
 ) {
   const byteLength = length * byteView.byteLength
@@ -179,12 +179,12 @@ function getTarget(node: CollatedNode) {
   return null
 }
 
-const decodeInner = (
+function decodeInner(
   dataView: DataView,
   node: CollatedNode<ByteView>,
   cursor: Cursor,
   target = getTarget(node) as unknown,
-) => {
+) {
   if (isSchema(node)) {
     for (let i = 0; i < node.fields.length; i++) {
       const key = node.keys[i]
@@ -270,13 +270,13 @@ const decodeInner = (
   }
 }
 
-export function decode<T extends ReturnType<typeof decodeInner>>(
+export function decode<$Return>(
   buffer: ArrayBuffer,
   node: CollatedNode<ByteView>,
   cursor: Cursor = { offset: 0 },
   target?: unknown,
 ) {
-  return decodeInner(new DataView(buffer), node, cursor, target) as T
+  return decodeInner(new DataView(buffer), node, cursor, target) as $Return
 }
 
 export type ModelEnhanced = Model<ByteView>

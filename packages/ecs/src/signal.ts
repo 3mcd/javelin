@@ -1,30 +1,37 @@
 import { mutableRemoveUnordered } from "@javelin/core"
 
-export type SignalSubscriber<T, T2, T3, T4> = T extends void
+export type SignalSubscriber<$Arg1, $Arg2, $Arg3, $Arg4> = $Arg1 extends void
   ? () => void
-  : (t: T, t2: T2, t3: T3, t4: T4) => void
+  : (arg1: $Arg1, arg2: $Arg2, arg3: $Arg3, arg4: $Arg4) => void
 export type SignalUnsubscribeCallback = () => void
-export type Signal<T = unknown, T2 = unknown, T3 = unknown, T4 = unknown> = {
+export type Signal<
+  $Arg1 = unknown,
+  $Arg2 = unknown,
+  $Arg3 = unknown,
+  $Arg4 = unknown,
+> = {
   subscribe(
-    subscriber: SignalSubscriber<T, T2, T3, T4>,
+    subscriber: SignalSubscriber<$Arg1, $Arg2, $Arg3, $Arg4>,
   ): SignalUnsubscribeCallback
-  dispatch(t?: T, t2?: T2, t3?: T3, t4?: T4): void
+  dispatch(arg1?: $Arg1, arg2?: $Arg2, arg3?: $Arg3, arg4?: $Arg4): void
 }
 
 export const createSignal = <
-  T = void,
-  T2 = void,
-  T3 = void,
-  T4 = void
->(): Signal<T, T2, T3, T4> => {
-  const subscribers: SignalSubscriber<T, T2, T3, T4>[] = []
-  const subscribe = (subscriber: SignalSubscriber<T, T2, T3, T4>) => {
+  $Arg1 = void,
+  $Arg2 = void,
+  $Arg3 = void,
+  $Arg4 = void,
+>(): Signal<$Arg1, $Arg2, $Arg3, $Arg4> => {
+  const subscribers: SignalSubscriber<$Arg1, $Arg2, $Arg3, $Arg4>[] = []
+  const subscribe = (
+    subscriber: SignalSubscriber<$Arg1, $Arg2, $Arg3, $Arg4>,
+  ) => {
     subscribers.push(subscriber)
     return () => mutableRemoveUnordered(subscribers, subscriber)
   }
-  const dispatch = (t: T, t2: T2, t3: T3, t4: T4) => {
+  const dispatch = (arg1: $Arg1, arg2: $Arg2, arg3: $Arg3, arg4: $Arg4) => {
     for (let i = 0; i < subscribers.length; i++) {
-      subscribers[i](t, t2, t3, t4)
+      subscribers[i](arg1, arg2, arg3, arg4)
     }
   }
 

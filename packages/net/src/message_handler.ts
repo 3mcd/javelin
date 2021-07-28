@@ -14,7 +14,7 @@ import {
   createEffect,
   Entity,
   getFieldValue,
-  InternalComponentProps,
+  ComponentMetadata,
   World,
 } from "@javelin/ecs"
 import * as Pack from "@javelin/pack"
@@ -57,7 +57,7 @@ export const createMessageHandler = (world: World) => {
         } catch {}
         if (local === null) {
           const remote = Pack.decode<Component>(buffer, model[schemaId], cursor)
-          ;(remote as InternalComponentProps)[$type] = schemaId
+          ;(remote as ComponentMetadata)[$type] = schemaId
           toAttach.push(remote)
         } else {
           Pack.decode(buffer, model[schemaId], cursor, local)

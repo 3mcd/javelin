@@ -3,10 +3,9 @@ import { createSignal } from "../signal"
 import { Storage } from "../storage"
 
 export const createStorage = jest.fn((): Storage => {
-  let e = 0
   return {
     archetypeCreated: createSignal(),
-    archetypes: [createArchetype({ signature: [] })],
+    archetypes: [createArchetype({ type: [] })],
     entityRelocated: createSignal(),
     entityRelocating: createSignal(),
     attachComponents: jest.fn(),
@@ -18,6 +17,6 @@ export const createStorage = jest.fn((): Storage => {
     getAllComponents: jest.fn(() => []),
     getSnapshot: jest.fn(),
     hasComponentOfSchema: jest.fn(),
-    reset: jest.fn(),
+    clear: jest.fn(),
   }
 })

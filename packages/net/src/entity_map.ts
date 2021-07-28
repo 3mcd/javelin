@@ -1,4 +1,4 @@
-export type EntityMap<T> = T[]
-export function createEntityMap<T>(): EntityMap<T> {
+export type EntityMap<$Value> = $Value[]
+export function createEntityMap<$Value>(): EntityMap<$Value> {
   return []
 }

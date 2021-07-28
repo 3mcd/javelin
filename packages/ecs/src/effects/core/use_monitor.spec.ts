@@ -46,7 +46,7 @@ describe("useMonitor", () => {
   it("emits entity-component pairs that were added prior to the first execution", () => {
     const results: EntitySnapshotWithDiff[] = []
     const archetype = {
-      ...createArchetype({ signature: [1, 2] }),
+      ...createArchetype({ type: [1, 2] }),
       entities: [2, 4, 6],
     }
     ;(world.storage.archetypes as Archetype[]).push(archetype)
@@ -68,9 +68,9 @@ describe("useMonitor", () => {
   it("emits entities that were relocated last step", () => {
     const resultsEnter: number[] = []
     const resultsExit: number[] = []
-    const prev = createArchetype({ signature: [1] })
+    const prev = createArchetype({ type: [1] })
     const next = createArchetype({
-      signature: [1, 2],
+      type: [1, 2],
     })
     ;(world.storage.archetypes as Archetype[]).push(prev)
     ;(world.storage.archetypes as Archetype[]).push(next)
@@ -98,11 +98,11 @@ describe("useMonitor", () => {
   it("clears buffer and subscribes to new component type when swapped", () => {
     const resultsEnter: number[] = []
     const resultsExit: number[] = []
-    const prev = createArchetype({ signature: [1] })
+    const prev = createArchetype({ type: [1] })
     const next = createArchetype({
-      signature: [1, 2],
+      type: [1, 2],
     })
-    const changed = createArchetype({ signature: [3] })
+    const changed = createArchetype({ type: [3] })
     ;(world.storage.archetypes as Archetype[]).push(changed)
     ;(changed as any).table = [[{ __type__: 1 }], [{ __type__: 2 }]]
     ;(changed as any).indices = [-1, -1, -1, -1, 0]
@@ -133,9 +133,9 @@ describe("useMonitor", () => {
   it("excludes entities that matched and no longer match during the same step", () => {
     const resultsEnter: number[] = []
     const resultsExit: number[] = []
-    const prev = createArchetype({ signature: [1] })
+    const prev = createArchetype({ type: [1] })
     const next = createArchetype({
-      signature: [1, 2],
+      type: [1, 2],
     })
     ;(world.storage.archetypes as Archetype[]).push(prev)
     ;(world.storage.archetypes as Archetype[]).push(next)

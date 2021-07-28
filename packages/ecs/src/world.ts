@@ -3,7 +3,7 @@ import {
   $pool,
   Component,
   ComponentOf,
-  getComponentId,
+  getSchemaId,
   registerSchema,
 } from "./component"
 import { Entity } from "./entity"
@@ -26,7 +26,7 @@ export type Detach = [DeferredOpType.Detach, number, number[]]
 export type Destroy = [DeferredOpType.Destroy, number]
 
 export type WorldOp = Create | Attach | Detach | Destroy
-export type World<T = unknown> = {
+export type World<$Tick = unknown> = {
   /**
    * Unique world identifier.
    */
@@ -45,7 +45,7 @@ export type World<T = unknown> = {
   /**
    * Latest step data passed to world.step().
    */
-  readonly latestTickData: T
+  readonly latestTickData: $Tick
 
   /**
    * Id of the latest invoked system.
@@ -56,19 +56,19 @@ export type World<T = unknown> = {
    * Process deferred operations from previous step and execute all systems.
    * @param data Step data
    */
-  step(data: T): void
+  step(data: $Tick): void
 
   /**
    * Register a system to be executed each step.
    * @param system
    */
-  addSystem(system: System<T>): void
+  addSystem(system: System<$Tick>): void
 
   /**
    * Remove a system.
    * @param system
    */
-  removeSystem(system: System<T>): void
+  removeSystem(system: System<$Tick>): void
 
   /**
    * Register a topic to be flushed each step.
@@ -133,14 +133,17 @@ export type World<T = unknown> = {
    * @param entity
    * @param schema
    */
-  get<T extends Schema>(entity: Entity, schema: T): ComponentOf<T>
+  get<$Tick extends Schema>(entity: Entity, schema: $Tick): ComponentOf<$Tick>
 
   /**
    * Find the component of an entity by type, or null if a component is not found.
    * @param entity
    * @param schema
    */
-  tryGet<T extends Schema>(entity: Entity, schema: T): ComponentOf<T> | null
+  tryGet<$Tick extends Schema>(
+    entity: Entity,
+    schema: $Tick,
+  ): ComponentOf<$Tick> | null
 
   /**
    * Check if an entity has a component of a specified schema.
@@ -173,11 +176,11 @@ export type WorldSnapshot = {
  * them as their first and only parameter. They can call effects in their
  * implementations.
  */
-export type System<T> = ((world: World<T>) => void) & {
+export type System<$Tick> = ((world: World<$Tick>) => void) & {
   [$systemId]?: number
 }
 
-export type WorldOptions<T> = {
+export type WorldOptions<$Tick> = {
   /**
    * Initial number of components in a component pool. Can be overriden
    * for a specific component type via an argument passed to `registerSchema`.
@@ -190,7 +193,7 @@ export type WorldOptions<T> = {
   /**
    * Systems to execute each step.
    */
-  systems?: System<T>[]
+  systems?: System<$Tick>[]
   /**
    * Topics to flush at the end of each step.
    */
@@ -202,9 +205,11 @@ export type WorldOptions<T> = {
  * @param options WorldOptions
  * @returns World
  */
-export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
+export function createWorld<$Tick = void>(
+  options: WorldOptions<$Tick> = {},
+): World<$Tick> {
   const { topics = [] } = options
-  const systems: System<T>[] = []
+  const systems: System<$Tick>[] = []
   const deferredOps: WorldOp[] = []
   const destroyed = new Set<number>()
   const storage = createStorage({ snapshot: options.snapshot?.storage })
@@ -214,8 +219,8 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
 
   options.systems?.forEach(addSystem)
 
-  function createDeferredOp<T extends WorldOp>(...args: T): T {
-    const deferred = [] as unknown as T
+  function createDeferredOp<$Tick extends WorldOp>(...args: $Tick): $Tick {
+    const deferred = [] as unknown as $Tick
     for (let i = 0; i < args.length; i++) {
       deferred[i] = args[i]
     }
@@ -223,18 +228,18 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function maybeReleaseComponent(component: Component) {
-    const pool = UNSAFE_internals.schemaPools.get(getComponentId(component))
+    const pool = UNSAFE_internals.schemaPools.get(getSchemaId(component))
     if (pool && Reflect.get(component, $pool)) {
       pool.release(component)
     }
   }
 
-  function addSystem(system: System<T>) {
+  function addSystem(system: System<$Tick>) {
     systems.push(system)
     system[$systemId] = systemIds++
   }
 
-  function removeSystem(system: System<T>) {
+  function removeSystem(system: System<$Tick>) {
     const index = systems.indexOf(system)
     if (index > -1) {
       systems.splice(index, 1)
@@ -282,7 +287,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     const schemaIds = components.map(c =>
       typeof c === "number"
         ? c
-        : UNSAFE_internals.schemaIndex.get(c as Schema) ?? getComponentId(c),
+        : UNSAFE_internals.schemaIndex.get(c as Schema) ?? getSchemaId(c),
     )
     deferredOps.push(createDeferredOp(DeferredOpType.Detach, entity, schemaIds))
   }
@@ -319,7 +324,10 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     return storage.hasComponentOfSchema(entity, schema)
   }
 
-  function get<T extends Schema>(entity: Entity, schema: T): ComponentOf<T> {
+  function get<$Tick extends Schema>(
+    entity: Entity,
+    schema: $Tick,
+  ): ComponentOf<$Tick> {
     registerSchema(schema)
     const component = storage.getComponentBySchema(entity, schema)
 
@@ -330,10 +338,10 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     return component
   }
 
-  function tryGet<T extends Schema>(
+  function tryGet<$Tick extends Schema>(
     entity: Entity,
-    schema: T,
-  ): ComponentOf<T> | null {
+    schema: $Tick,
+  ): ComponentOf<$Tick> | null {
     registerSchema(schema)
     return storage.getComponentBySchema(entity, schema)
   }
@@ -351,15 +359,15 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     entityIds = 0
     // reset step data
     world.latestTick = -1
-    world.latestTickData = null as unknown as T
+    world.latestTickData = null as unknown as $Tick
     world.latestSystemId = -1
     // release components
     for (let i = 0; i < storage.archetypes.length; i++) {
       const archetype = storage.archetypes[i]
-      for (let j = 0; j < archetype.signature.length; j++) {
+      for (let j = 0; j < archetype.type.length; j++) {
         const column = archetype.table[j]
         const componentPool = UNSAFE_internals.schemaPools.get(
-          archetype.signature[j],
+          archetype.type[j],
         )
         for (let k = 0; k < column.length; k++) {
           const component = column[k]
@@ -368,7 +376,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
       }
     }
     // reset entity-component storage
-    storage.reset()
+    storage.clear()
   }
 
   function getSnapshot(): WorldSnapshot {
@@ -406,7 +414,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     }
   }
 
-  function step(data: T) {
+  function step(data: $Tick) {
     let prevWorld = UNSAFE_internals.currentWorldId
     UNSAFE_internals.currentWorldId = id
     world.latestTickData = data
@@ -434,7 +442,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     id,
     storage,
     latestTick: -1,
-    latestTickData: null as unknown as T,
+    latestTickData: null as unknown as $Tick,
     latestSystemId: -1,
     attach,
     attachImmediate,

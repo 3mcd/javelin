@@ -2,10 +2,10 @@ import { createEffect, EffectOptions } from "./effect"
 import { useRef } from "./effects/core/use_ref"
 import { World } from "./world"
 
-export type RefInitializer<T> = (world: World) => T
+export type RefInitializer<$Type> = (world: World) => $Type
 
-export const createRef = <T>(
-  initializer: RefInitializer<T>,
+export const createRef = <$Type>(
+  initializer: RefInitializer<$Type>,
   options: EffectOptions = {},
 ) =>
   createEffect(world => {
@@ -13,8 +13,8 @@ export const createRef = <T>(
     return () => useRef(initialValue)
   }, options)
 
-export function createImmutableRef<T>(
-  initializer: RefInitializer<T>,
+export function createImmutableRef<$Type>(
+  initializer: RefInitializer<$Type>,
   options: EffectOptions = {},
 ) {
   return createEffect(world => {

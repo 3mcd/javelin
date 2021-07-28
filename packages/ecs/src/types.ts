@@ -1,11 +1,13 @@
-export type Mutable<T> = {
-  -readonly [P in keyof T]: T[P] extends ReadonlyArray<infer U> ? U[] : T[P]
+export type Mutable<$Type> = {
+  -readonly [P in keyof $Type]: $Type[P] extends ReadonlyArray<infer $Element>
+    ? $Element[]
+    : $Type[P]
 }
 
-export type MutableDeep<T> = {
-  -readonly [P in keyof T]: T[P] extends {}
-    ? MutableDeep<T[P]>
-    : T[P] extends ReadonlyArray<infer U>
-    ? U[]
-    : T[P]
+export type MutableDeep<$Type> = {
+  -readonly [P in keyof $Type]: $Type[P] extends {}
+    ? MutableDeep<$Type[P]>
+    : $Type[P] extends ReadonlyArray<infer $Element>
+    ? $Element[]
+    : $Type[P]
 }

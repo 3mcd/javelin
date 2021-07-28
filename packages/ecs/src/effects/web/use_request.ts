@@ -6,15 +6,15 @@ type RequestStateInitial = {
   done: false
 }
 
-type RequestStateDone<T> = {
+type RequestStateDone<$Response> = {
   error: null
-  response: T
+  response: $Response
   done: true
 }
 
-type RequestStateInvalidated<T> = {
+type RequestStateInvalidated<$Response> = {
   error: null
-  response: T
+  response: $Response
   done: false
 }
 
@@ -24,18 +24,18 @@ type RequestStateError = {
   done: true
 }
 
-type RequestStateErrorAfterInvalidate<T> = {
+type RequestStateErrorAfterInvalidate<$Response> = {
   error: string
-  response: T
+  response: $Response
   done: true
 }
 
-export type RequestEffectApi<T = Response> =
+export type RequestEffectApi<$Response = Response> =
   | RequestStateInitial
-  | RequestStateDone<T>
-  | RequestStateInvalidated<T>
+  | RequestStateDone<$Response>
+  | RequestStateInvalidated<$Response>
   | RequestStateError
-  | RequestStateErrorAfterInvalidate<T>
+  | RequestStateErrorAfterInvalidate<$Response>
 
 export const useRequest = createEffect(() => {
   let state: RequestEffectApi = { response: null, error: null, done: false }

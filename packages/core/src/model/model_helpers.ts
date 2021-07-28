@@ -63,9 +63,9 @@ export const boolean: FieldBoolean = {
  * @example <caption>complex element</caption>
  * const Shape = { vertices: arrayOf(arrayOf(number)) }
  */
-export function arrayOf<T extends Field | Schema>(
-  element: T,
-): FieldArray<FieldExtract<T>> {
+export function arrayOf<$Value extends Field | Schema>(
+  element: $Value,
+): FieldArray<FieldExtract<$Value>> {
   return {
     [$kind]: FieldKind.Array,
     get: (array = []) => mutableEmpty(array),
@@ -84,10 +84,10 @@ export function arrayOf<T extends Field | Schema>(
  * const Stat = { min: number, max: number, value: number }
  * const Stats = { values: objectOf(Stat, { ...string, length: 20 }) }
  */
-export function objectOf<T extends Field | Schema>(
-  element: T,
+export function objectOf<$Value extends Field | Schema>(
+  element: $Value,
   key: FieldString = string,
-): FieldObject<FieldExtract<T>> {
+): FieldObject<FieldExtract<$Value>> {
   return {
     [$kind]: FieldKind.Object,
     get: (object = {}) => {
@@ -109,9 +109,9 @@ export function objectOf<T extends Field | Schema>(
  * @example <caption>complex element</caption>
  * const Body = { colliders: setOf(Collider) }
  */
-export function setOf<T extends Field | Schema>(
-  element: T,
-): FieldSet<FieldExtract<T>> {
+export function setOf<$Value extends Field | Schema>(
+  element: $Value,
+): FieldSet<FieldExtract<$Value>> {
   return {
     [$kind]: FieldKind.Set,
     get: (set = new Set()) => {
@@ -131,10 +131,10 @@ export function setOf<T extends Field | Schema>(
  * @example <caption>complex element</caption>
  * const PrivateChat = { messagesByClientId: mapOf(string, arrayOf(ChatMessage)) }
  */
-export function mapOf<K, V extends Field | Schema>(
-  key: FieldOf<K>,
-  element: V,
-): FieldMap<K, FieldExtract<V>> {
+export function mapOf<$Key, $Value extends Field | Schema>(
+  key: FieldOf<$Key>,
+  element: $Value,
+): FieldMap<$Key, FieldExtract<$Value>> {
   return {
     [$kind]: FieldKind.Map,
     get: (map = new Map()) => {
@@ -155,9 +155,9 @@ export function mapOf<K, V extends Field | Schema>(
  * @example <caption>library type</caption>
  * const RigidBody = { value: dynamic(() => new Rapier.RigidBody()) }
  */
-export function dynamic<T>(
-  get: FieldData<T>["get"] = () => null as unknown as T,
-): FieldDynamic<T> {
+export function dynamic<$Value>(
+  get: FieldData<$Value>["get"] = () => null as unknown as $Value,
+): FieldDynamic<$Value> {
   return {
     [$kind]: FieldKind.Dynamic,
     get,
@@ -167,7 +167,7 @@ export function dynamic<T>(
 /**
  * Determine if an object is a Javelin model field.
  */
-export function isField<T>(object: object): object is FieldData<T> {
+export function isField<$Type>(object: object): object is FieldData<$Type> {
   return $kind in object
 }
 
@@ -190,9 +190,9 @@ export function isPrimitiveField(object: object): object is FieldPrimitive {
 /**
  * Determine if a Javelin model node represents a schema.
  */
-export function isSchema<T>(
-  node: CollatedNode<T>,
-): node is CollatedNodeSchema<T> {
+export function isSchema<$Type>(
+  node: CollatedNode<$Type>,
+): node is CollatedNodeSchema<$Type> {
   return !($kind in node)
 }
 
@@ -218,11 +218,11 @@ type Cursor = { id: number }
  * addressed by an integer id, indexed using `lo` and `hi` fields, and
  * annotated with useful metadata.
  */
-function collate<T>(
+function collate<$Props>(
   visiting: Schema | FieldAny,
   cursor: Cursor,
   traverse: (FieldString | FieldNumber)[] = [],
-): CollatedNode<T> {
+): CollatedNode<$Props> {
   let base: CollatedNodeBase = {
     id: cursor.id,
     lo: cursor.id,
@@ -231,7 +231,7 @@ function collate<T>(
     traverse,
   }
   cursor.id++
-  let node: CollatedNode<T>
+  let node: CollatedNode<$Props>
   if (isField(visiting)) {
     node = { ...base, ...visiting }
     if ("element" in node) {
@@ -246,8 +246,8 @@ function collate<T>(
   } else {
     const keys = Object.keys(visiting)
     const keysByFieldId: string[] = []
-    const fields: CollatedNode<T>[] = []
-    const fieldsByKey: { [key: string]: CollatedNode<T> } = {}
+    const fields: CollatedNode<$Props>[] = []
+    const fieldsByKey: { [key: string]: CollatedNode<$Props> } = {}
     const fieldIdsByKey: { [key: string]: number } = {}
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]
@@ -294,7 +294,9 @@ function flattenModelNode(node: CollatedNode, flat: Model[typeof $flat]) {
  * Recursively flatten a model, creating a new object containing key/value
  * pairs where keys are field ids and values are corresponding model nodes.
  */
-function flattenModel<T>(model: Omit<Model, typeof $flat>): ModelFlat<T> {
+function flattenModel<$Props>(
+  model: Omit<Model, typeof $flat>,
+): ModelFlat<$Props> {
   const flat: Model[typeof $flat] = {}
   for (const prop in model) {
     flattenModelNode(model[prop], (flat[prop] = {}))
@@ -306,14 +308,14 @@ function flattenModel<T>(model: Omit<Model, typeof $flat>): ModelFlat<T> {
  * Produce a graph from a model and assign each writable field a unique integer
  * id.
  */
-export function createModel<T>(config: ModelConfig): Model<T> {
+export function createModel<$Props>(config: ModelConfig): Model<$Props> {
   const model: Omit<Model, typeof $flat> = {}
   config.forEach((schema, t) => (model[t] = collate(schema, { id: 0 })))
   return Object.defineProperty(model, $flat, {
     enumerable: false,
     writable: false,
     value: flattenModel(model),
-  }) as Model<T>
+  }) as Model<$Props>
 }
 
 type SchemaKey<T extends Schema> = FieldExtract<T>[Extract<keyof T, string>]
@@ -321,10 +323,10 @@ type SchemaKey<T extends Schema> = FieldExtract<T>[Extract<keyof T, string>]
 /**
  * Create an instance of a schema.
  */
-export function createSchemaInstance<T extends Schema>(
-  schema: T,
-  object: FieldExtract<T> = {} as FieldExtract<T>,
-): FieldExtract<T> {
+export function createSchemaInstance<$Type extends Schema>(
+  schema: $Type,
+  object: FieldExtract<$Type> = {} as FieldExtract<$Type>,
+): FieldExtract<$Type> {
   for (const prop in schema) {
     const type = schema[prop]
     let value: unknown
@@ -333,7 +335,7 @@ export function createSchemaInstance<T extends Schema>(
     } else {
       value = createSchemaInstance({}, type as Schema)
     }
-    object[prop] = value as SchemaKey<T>
+    object[prop] = value as SchemaKey<$Type>
   }
   return object
 }
@@ -341,16 +343,16 @@ export function createSchemaInstance<T extends Schema>(
 /**
  * Reset an instance of a schema.
  */
-export function resetSchemaInstance<T extends Schema>(
-  object: FieldExtract<T>,
-  schema: T,
+export function resetSchemaInstance<$Type extends Schema>(
+  object: FieldExtract<$Type>,
+  schema: $Type,
 ) {
   for (const prop in schema) {
     const type = schema[prop]
     if (isField(type)) {
-      object[prop] = type.get(object[prop]) as SchemaKey<T>
+      object[prop] = type.get(object[prop]) as SchemaKey<$Type>
     } else {
-      resetSchemaInstance(object[prop] as FieldExtract<T>, type as Schema)
+      resetSchemaInstance(object[prop] as FieldExtract<$Type>, type as Schema)
     }
   }
   return object

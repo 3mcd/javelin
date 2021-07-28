@@ -1,15 +1,15 @@
-export type StackPool<T> = {
+export type StackPool<$Value> = {
   allocate(): void
-  retain(): T
-  release(obj: T): void
+  retain(): $Value
+  release(obj: $Value): void
 }
 
-export function createStackPool<T>(
-  type: (pool: StackPool<T>) => T,
-  reset: (obj: T) => T,
+export function createStackPool<$Value>(
+  type: (pool: StackPool<$Value>) => $Value,
+  reset: (obj: $Value) => $Value,
   size: number,
-): StackPool<T> {
-  const heap: T[] = []
+): StackPool<$Value> {
+  const heap: $Value[] = []
   const allocate = () => {
     for (let i = 0; i < size; i++) {
       heap.push(type(pool))
@@ -20,9 +20,9 @@ export function createStackPool<T>(
       allocate()
     }
 
-    return heap.pop() as T
+    return heap.pop() as $Value
   }
-  const release = (obj: T) => {
+  const release = (obj: $Value) => {
     heap.push(reset(obj))
   }
 
