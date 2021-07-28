@@ -14,7 +14,7 @@ Join us on [Discord](https://discord.gg/AbEWH3taWU)!
 
 Javelin is a collection of JavaScript packages that provide the means to create multiplayer games for Node and web browsers. It's comprised of an Entity-Component System (ECS), an efficient networking protocol, and other helpful utilities like a high-precision game loop for Node.
 
-Javelin doesn't make many decisions for you. Its lack of opinions makes Javelin a good candidate for building many kinds of multiplayer games, but you'll need to bring your own network transport (WebSockets, WebRTC, etc.), database, auth strategy, controller support, matchmaking, etc.
+Javelin's lack of opinions makes it a good candidate for building many kinds of multiplayer games, but you'll need to bring your own network transport (WebSockets, WebRTC, etc.), database, auth strategy, controller support, matchmaking, etc.
 
 ## API Sample
 
@@ -57,7 +57,7 @@ world.addSystem(() => {
   }
 })
 // start a high-precision game loop
-createHrtimeLoop((1 / 60) * 1000, world.step).start()
+createHrtimeLoop(world.step, (1 / 60) * 1000).start()
 ```
 
 There's a lot more that goes into building a game, but hopefully this example demonstrates the unobtrusive and consise nature of Javelin's API.
