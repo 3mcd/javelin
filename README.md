@@ -10,6 +10,8 @@
 
 # javelin
 
+Join us on [Discord](https://discord.com/invite/utP7Ep9m)!
+
 > v.1.0.0 is releasing soon! You can check it out with `npm i @javelin/ecs@1.0.0-alpha.7` and review the progress in the [`next`](https://github.com/3mcd/javelin/tree/next) branch.
 
 Javelin is a collection of packages used to build multiplayer games for the web.
