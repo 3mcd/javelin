@@ -1,6 +1,6 @@
 import { assert, mutableEmpty, packSparseArray, Schema } from "@javelin/core"
 import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
-import { $type, Component, ComponentOf, getComponentId } from "./component"
+import { Component, ComponentOf, getComponentId } from "./component"
 import { Entity } from "./entity"
 import { UNSAFE_internals } from "./internal"
 import { createSignal, Signal } from "./signal"

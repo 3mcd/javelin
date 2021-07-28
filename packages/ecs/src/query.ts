@@ -7,7 +7,6 @@ import {
 } from "@javelin/core"
 import { Archetype, ArchetypeTableColumn } from "./archetype"
 import {
-  $type,
   Component,
   ComponentOf,
   getComponentId,

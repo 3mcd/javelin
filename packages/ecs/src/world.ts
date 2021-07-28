@@ -1,7 +1,6 @@
 import { assert, mutableEmpty, Schema } from "@javelin/core"
 import {
   $pool,
-  $type,
   Component,
   ComponentOf,
   getComponentId,
@@ -15,19 +14,18 @@ import { Topic } from "./topic"
 const $systemId = Symbol("javelin_system_id")
 
 export enum DeferredOpType {
-  Spawn,
+  Create,
   Attach,
   Detach,
-  Mutate,
   Destroy,
 }
 
-export type Spawn = [DeferredOpType.Spawn, number, Component[]]
+export type Create = [DeferredOpType.Create, number, Component[]]
 export type Attach = [DeferredOpType.Attach, number, Component[]]
 export type Detach = [DeferredOpType.Detach, number, number[]]
 export type Destroy = [DeferredOpType.Destroy, number]
 
-export type WorldOp = Spawn | Attach | Detach | Destroy
+export type WorldOp = Create | Attach | Detach | Destroy
 export type World<T = unknown> = {
   /**
    * Unique world identifier.
@@ -55,7 +53,7 @@ export type World<T = unknown> = {
   readonly latestSystemId: number
 
   /**
-   * Process operations from previous step and execute all systems.
+   * Process deferred operations from previous step and execute all systems.
    * @param data Step data
    */
   step(data: T): void
@@ -163,22 +161,30 @@ export type World<T = unknown> = {
   getSnapshot(): WorldSnapshot
 }
 
+/**
+ * A JSON-serializable world.
+ */
 export type WorldSnapshot = {
   storage: StorageSnapshot
 }
 
+/**
+ * A function executed each tick. Systems are passed the world which executed
+ * them as their first and only parameter. They can call effects in their
+ * implementations.
+ */
 export type System<T> = ((world: World<T>) => void) & {
   [$systemId]?: number
 }
 
 export type WorldOptions<T> = {
   /**
-   * Number of components to initialize component pools with. Can be overriden
-   * for a specific component type via `registerSchema`.
+   * Initial number of components in a component pool. Can be overriden
+   * for a specific component type via an argument passed to `registerSchema`.
    */
   componentPoolSize?: number
   /**
-   * Snapshot to hydrate world from.
+   * Snapshot to restore world from.
    */
   snapshot?: WorldSnapshot
   /**

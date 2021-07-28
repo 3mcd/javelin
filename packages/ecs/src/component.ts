@@ -5,7 +5,6 @@ import {
   FieldExtract,
   resetSchemaInstance,
   Schema,
-  StackPool,
 } from "@javelin/core"
 import { UNSAFE_internals, UNSAFE_setModel } from "./internal"
 

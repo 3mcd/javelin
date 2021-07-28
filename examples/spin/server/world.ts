@@ -1,5 +1,4 @@
 import {
-  clearObservedChanges,
   Component,
   component,
   createEffect,
