@@ -1,0 +1,18 @@
+{
+  "name": "@javelin/interop",
+  "version": "1.0.0-alpha.7",
+  "private": true,
+  "scripts": {
+    "start": "vite"
+  },
+  "dependencies": {
+    "@javelin/ecs": "workspace:*",
+    "cannon-es": "^0.18.0",
+    "three": "^0.130.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.130.1",
+    "typescript": "^4.1.2",
+    "vite": "^2.1.3"
+  }
+}

@@ -1,6 +1,6 @@
 import { assert, mutableEmpty, packSparseArray, Schema } from "@javelin/core"
 import { Archetype, ArchetypeSnapshot, createArchetype } from "./archetype"
-import { Component, ComponentOf } from "./component"
+import { $type, Component, ComponentOf, getComponentId } from "./component"
 import { Entity } from "./entity"
 import { UNSAFE_internals } from "./internal"
 import { createSignal, Signal } from "./signal"
@@ -113,10 +113,18 @@ export function createStorage(options: StorageOptions = {}): Storage {
     ? options.snapshot.archetypes.map(snapshot => createArchetype({ snapshot }))
     : [createArchetype({ signature: [] })]
   const entityIndex: (Archetype | null)[] = []
-  const entityRelocating =
-    createSignal<Entity, Archetype, Archetype, Component[]>()
-  const entityRelocated =
-    createSignal<Entity, Archetype, Archetype, Component[]>()
+  const entityRelocating = createSignal<
+    Entity,
+    Archetype,
+    Archetype,
+    Component[]
+  >()
+  const entityRelocated = createSignal<
+    Entity,
+    Archetype,
+    Archetype,
+    Component[]
+  >()
   const archetypeCreated = createSignal<Archetype>()
 
   function findArchetype(components: Component[]) {
@@ -128,7 +136,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
         continue
       }
       for (let j = 0; j < length; j++) {
-        if (signatureInverse[components[j].__type__] === undefined) {
+        if (signatureInverse[getComponentId(components[j])] === undefined) {
           continue outer
         }
       }
@@ -141,7 +149,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     let archetype = findArchetype(components)
     if (archetype === null) {
       archetype = createArchetype({
-        signature: components.map(c => c.__type__),
+        signature: components.map(getComponentId),
       })
       archetypes.push(archetype)
       archetypeCreated.dispatch(archetype)
@@ -183,7 +191,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
       const final = components.slice()
       for (let i = 0; i < source.signature.length; i++) {
         const schemaId = source.signature[i]
-        if (components.find(c => c.__type__ === schemaId)) {
+        if (components.find(c => getComponentId(c) === schemaId)) {
           // take inserted component
           continue
         }
@@ -220,7 +228,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     mutableEmpty(tmpComponentsToInsert)
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const column = archetype.signatureInverse[component.__type__]
+      const column = archetype.signatureInverse[getComponentId(component)]
       if (column === undefined) {
         // Entity component makeup does not match patch component, insert the new
         // component.

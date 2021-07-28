@@ -9,10 +9,12 @@ import {
   mutableEmpty,
 } from "@javelin/core"
 import {
+  $type,
   Component,
   createEffect,
   Entity,
   getFieldValue,
+  InternalComponentProps,
   World,
 } from "@javelin/ecs"
 import * as Pack from "@javelin/pack"
@@ -55,7 +57,7 @@ export const createMessageHandler = (world: World) => {
         } catch {}
         if (local === null) {
           const remote = Pack.decode<Component>(buffer, model[schemaId], cursor)
-          ;(remote as any).__type__ = schemaId
+          ;(remote as InternalComponentProps)[$type] = schemaId
           toAttach.push(remote)
         } else {
           Pack.decode(buffer, model[schemaId], cursor, local)

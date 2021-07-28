@@ -1,5 +1,5 @@
 import { Archetype, createArchetype } from "./archetype"
-import { Component, registerSchema } from "./component"
+import { $type, Component, registerSchema } from "./component"
 import { UNSAFE_internals } from "./internal"
 import { createQuery } from "./query"
 import { createWorld, World } from "./world"
@@ -18,14 +18,14 @@ describe("createQuery", () => {
     const world = createWorld()
     const table = [
       [
-        { __type__: 0, foo: 4 },
-        { __type__: 0, foo: 5 },
-        { __type__: 0, foo: 6 },
+        { [$type]: 0, foo: 4 },
+        { [$type]: 0, foo: 5 },
+        { [$type]: 0, foo: 6 },
       ],
       [
-        { __type__: 1, foo: 1 },
-        { __type__: 1, foo: 2 },
-        { __type__: 1, foo: 3 },
+        { [$type]: 1, foo: 1 },
+        { [$type]: 1, foo: 2 },
+        { [$type]: 1, foo: 3 },
       ],
     ]
 

@@ -3,21 +3,7 @@ title = "Components"
 weight = 3
 +++
 
-Most data within a game is stored in components. Components are just plain objects; unremarkable, other than one reserved field: `__type__`, a unique integer that is shared between all components of the same kind.
-
-The `__type__` field establishes the taxonomy that Javelin uses to store and retrieve components. Take the following example:
-
-```ts
-const position = { __type__: 0, x: 2, y: 2 }
-const health = { __type__: 0, value: 100 }
-```
-
-Although the two objects represent different state, Javelin won't be able to tell the difference between the two because they share the same identifier. Using the same `__type__` for components with a different shape could result in catastrophic behavior in your game! Just make the types unique:
-
-```ts
-const position = { __type__: 0, ... }
-const health = { __type__: 1, ... }
-```
+Most data within a game is stored in components. Components are just plain objects!
 
 ## Schemas
 
@@ -80,3 +66,25 @@ registerSchema(Position, 4, 10000)
     <strong>Tip</strong> — the configured or default pool size will be used if a schema is encountered by <code>component()</code> prior to manual registration.
   </p>
 </aside>
+
+### External Objects
+
+You can use any object as a component. You should register the component like so:
+
+```ts
+const Mesh = registerComponent<Three.Mesh>({
+  position: {
+    x: number,
+    y: number,
+    z: number,
+  },
+})
+```
+
+You can instruct Javelin to treat a third-pary library object as a component using the `toComponent` method. Simply call `toComponent` with the object and the component schema you want to classify it with:
+
+```ts
+world.attach(entity, toComponent(new Three.Mesh(), Mesh))
+```
+
+`toComponent` does not create a new object, so referential integrity is maintained. There are no restrictions on the types of objects that can be used as components: they can even be sealed or frozen! External components are not pooled.

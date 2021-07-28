@@ -78,9 +78,10 @@ Visit https://javelin.games
 
 ## Examples
 
-| Example                 | Description                                               |
-| ----------------------- | --------------------------------------------------------- |
-| [spin](./examples/spin) | Entity/component synchronization over WebRTC datachannels |
+| Example                       | Description                                               |
+| ----------------------------- | --------------------------------------------------------- |
+| [spin](./examples/spin)       | Entity/component synchronization over WebRTC datachannels |
+| [interop](./examples/interop) | Interop with Cannon and Three.js objects                  |
 
 ## Development
 

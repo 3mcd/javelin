@@ -108,8 +108,8 @@ export const useMonitor = createEffect(world => {
   ) {
     if (_query === null) return
     const matchCurr = matched.has(entity)
-    const matchPrev = _query.matchesArchetype(prev)
-    const matchNext = _query.matchesArchetype(next)
+    const matchPrev = _query.matchesType(prev.signature)
+    const matchNext = _query.matchesType(next.signature)
     const isExit = matchPrev && (!matchNext || next === rootArchetype)
     if (!isExit) return
     if (matchCurr) {
@@ -132,8 +132,8 @@ export const useMonitor = createEffect(world => {
     diff,
   ) {
     if (_query === null) return
-    const matchPrev = _query.matchesArchetype(prev)
-    const matchNext = _query.matchesArchetype(next)
+    const matchPrev = _query.matchesType(prev.signature)
+    const matchNext = _query.matchesType(next.signature)
     if (!matchPrev && matchNext) {
       const snapshot = snapshots.retain()
       snapshot[0] = entity

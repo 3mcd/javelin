@@ -1,41 +1,58 @@
 import {
   createModel,
+  createSchemaInstance,
   createStackPool,
   FieldExtract,
-  createSchemaInstance,
   resetSchemaInstance,
   Schema,
   StackPool,
 } from "@javelin/core"
 import { UNSAFE_internals, UNSAFE_setModel } from "./internal"
 
-type ComponentProps = {
-  readonly __type__: number
+export const $type = Symbol("javelin_component_type")
+export const $pool = Symbol("javelin_component_pool")
+
+export type InternalComponentProps = {
+  [$type]: number
+  [$pool]: boolean
+}
+export type ComponentProps = {
+  readonly [K in keyof InternalComponentProps]: InternalComponentProps[K]
 }
 
-export type ComponentOf<S extends Schema> = ComponentProps & FieldExtract<S>
+export type ComponentOf<S extends Schema> = FieldExtract<S>
 export type ComponentsOf<C extends Schema[]> = {
   [K in keyof C]: C[K] extends Schema ? ComponentOf<C[K]> : never
 }
 export type Component = ComponentOf<Schema>
 
+const { schemaIndex, schemaPools, instanceTypeLookup } = UNSAFE_internals
+
 let schemaIds = 0
 
-function createComponentBase<S extends Schema>(schema: S): ComponentOf<S> {
+function createComponentBase<S extends Schema>(
+  schema: S,
+  pool = true,
+): ComponentOf<S> {
   return Object.defineProperties(
     {},
     {
-      __type__: {
-        value: UNSAFE_internals.schemaIndex.get(schema),
+      [$type]: {
+        value: schemaIndex.get(schema),
         writable: false,
-        enumerable: true,
+        enumerable: false,
+      },
+      [$pool]: {
+        value: pool,
+        writable: false,
+        enumerable: false,
       },
     },
   ) as ComponentOf<S>
 }
 
 /**
- * Determine if a component is an instance of the specified component type.
+ * Check if a component is an instance of a component type.
  * @param component
  * @param schema
  * @returns
@@ -50,23 +67,23 @@ export function isComponentOf<S extends Schema>(
   component: Component,
   schema: S,
 ): component is ComponentOf<S> {
-  return component.__type__ === UNSAFE_internals.schemaIndex.get(schema)
+  return getComponentId(component) === schemaIndex.get(schema)
 }
 
 export function createComponentPool<S extends Schema>(
-  Schema: S,
+  schema: S,
   poolSize: number,
 ) {
   const componentPool = createStackPool<ComponentOf<S>>(
     () =>
       createSchemaInstance(
-        Schema,
-        createComponentBase(Schema) as FieldExtract<S>,
+        schema,
+        createComponentBase(schema) as FieldExtract<S>,
       ) as ComponentOf<S>,
     component =>
       resetSchemaInstance(
         component as FieldExtract<S>,
-        Schema,
+        schema,
       ) as ComponentOf<S>,
     poolSize,
   )
@@ -77,13 +94,13 @@ export function createComponentPool<S extends Schema>(
 const modelConfig = new Map<number, Schema>()
 
 /**
- * Manually register a Schema as a component type. Optionally specify an id and
- * size for the component type's object pool.
+ * Manually register a component type. Optionally specify a unique, integer id
+ * and/or size for the component type's object pool.
  * @param schema
  * @param schemaId
  * @param [poolSize=1000]
  * @returns
- * @example <caption>register a schema as a component type</caption>
+ * @example <caption>register a schema as a component type (optional)</caption>
  * ```ts
  * const Vehicle = { torque: number }
  * registerSchema(Vehicle)
@@ -103,8 +120,8 @@ export function registerSchema(
   schema: Schema,
   schemaId?: number,
   poolSize = 1000,
-) {
-  let type: number | undefined = UNSAFE_internals.schemaIndex.get(schema)
+): number {
+  let type: number | undefined = schemaIndex.get(schema)
   if (type !== undefined) {
     return type
   }
@@ -119,11 +136,23 @@ export function registerSchema(
       "Failed to register component type: a component with same id is already registered",
     )
   }
-  UNSAFE_internals.schemaPools.set(type, createComponentPool(schema, poolSize))
+  if (poolSize > 0) {
+    schemaPools.set(type, createComponentPool(schema, poolSize))
+  }
   modelConfig.set(type, schema)
-  UNSAFE_internals.schemaIndex.set(schema, type)
+  schemaIndex.set(schema, type)
   UNSAFE_setModel(createModel(modelConfig))
   return type
+}
+
+function createComponentInner<S extends Schema>(schema: S): ComponentOf<S> {
+  const type = registerSchema(schema)
+  const pool = UNSAFE_internals.schemaPools.get(type)
+  return (
+    pool
+      ? pool.retain()
+      : createSchemaInstance(schema, createComponentBase(schema, false))
+  ) as ComponentOf<S>
 }
 
 /**
@@ -136,19 +165,56 @@ export function registerSchema(
  * @example
  * ```ts
  * const Quaternion = { x: number, y: number, z: number, w: number }
- * const q = component(Quaternion, { w: 1 })
+ * const quaternion = component(Quaternion, { w: 1 })
  * ```
  */
 export function component<S extends Schema>(
   schema: S,
   props?: Partial<FieldExtract<S>>,
 ): ComponentOf<S> {
-  const type = registerSchema(schema)
-  const instance = (
-    UNSAFE_internals.schemaPools.get(type) as StackPool<ComponentOf<S>>
-  ).retain()
+  const instance = createComponentInner(schema)
   if (props !== undefined) {
     Object.assign(instance, props)
   }
   return instance
+}
+
+/**
+ * Instruct the ECS to treat an object as a component instance of a given
+ * schema.
+ * @param object
+ * @param schema
+ * @returns
+ */
+export function toComponent<S extends Schema>(
+  object: FieldExtract<S>,
+  schema: S,
+): ComponentOf<S> {
+  const type = registerSchema(schema, undefined, 0)
+  try {
+    ;(object as InternalComponentProps)[$type] = type
+    ;(object as InternalComponentProps)[$pool] = false
+  } catch {}
+  if ((object as InternalComponentProps)[$type] !== type) {
+    instanceTypeLookup.set(object as InternalComponentProps, type)
+  }
+  return object as ComponentOf<S>
+}
+
+/**
+ * Get the type id (number) of a component. Throws an error if the object is
+ * not a valid component.
+ * @param component
+ * @returns
+ */
+export function getComponentId(component: object) {
+  const type =
+    (component as InternalComponentProps)[$type] ??
+    instanceTypeLookup.get(component)
+  if (type === undefined) {
+    throw new Error(
+      "Failed to get component type id: object is not a component",
+    )
+  }
+  return type
 }

@@ -1,5 +1,12 @@
-import { assert, createStackPool, mutableEmpty, Schema } from "@javelin/core"
-import { Component, ComponentOf, registerSchema } from "./component"
+import { assert, mutableEmpty, Schema } from "@javelin/core"
+import {
+  $pool,
+  $type,
+  Component,
+  ComponentOf,
+  getComponentId,
+  registerSchema,
+} from "./component"
 import { Entity } from "./entity"
 import { UNSAFE_internals } from "./internal"
 import { createStorage, Storage, StorageSnapshot } from "./storage"
@@ -210,8 +217,8 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
   }
 
   function maybeReleaseComponent(component: Component) {
-    const pool = UNSAFE_internals.schemaPools.get(component.__type__)
-    if (pool) {
+    const pool = UNSAFE_internals.schemaPools.get(getComponentId(component))
+    if (pool && Reflect.get(component, $pool)) {
       pool.release(component)
     }
   }
@@ -269,8 +276,7 @@ export function createWorld<T = void>(options: WorldOptions<T> = {}): World<T> {
     const schemaIds = components.map(c =>
       typeof c === "number"
         ? c
-        : UNSAFE_internals.schemaIndex.get(c as Schema) ??
-          (c as Component).__type__,
+        : UNSAFE_internals.schemaIndex.get(c as Schema) ?? getComponentId(c),
     )
     deferredOps.push(createDeferredOp(DeferredOpType.Detach, entity, schemaIds))
   }

@@ -9,6 +9,7 @@ import {
   uint32,
   uint8,
 } from "@javelin/pack"
+import { getComponentId } from "../../ecs/src"
 import { $buffer, destroy, detach, patch, snapshot } from "./message_op"
 
 const Position = { x: float64, y: float64 }
@@ -34,14 +35,16 @@ function runSnapshotOpTest(
     component(Velocity),
     component(Rotation),
   ]
-  const componentsEncoded = components.map(c => encode(c, model[c.__type__]))
+  const componentsEncoded = components.map(c =>
+    encode(c, model[getComponentId(c)]),
+  )
   const op = snapshotOpFactory(model, entity, components)
   expect(op.data[0]).toBe(entity)
   expect(op.data[1]).toBe(components.length)
   let i = 2
   let j = 0
   while (i < op.data.length) {
-    expect(op.data[i]).toBe(components[j].__type__)
+    expect(op.data[i]).toBe(getComponentId(components[j]))
     expect(op.view[i]).toBe(uint8)
     i++
     expect(String(op.data[i])).toBe(String(componentsEncoded[j]))

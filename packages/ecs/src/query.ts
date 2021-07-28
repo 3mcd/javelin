@@ -6,7 +6,13 @@ import {
   Schema,
 } from "@javelin/core"
 import { Archetype, ArchetypeTableColumn } from "./archetype"
-import { Component, ComponentOf, registerSchema } from "./component"
+import {
+  $type,
+  Component,
+  ComponentOf,
+  getComponentId,
+  registerSchema,
+} from "./component"
 import { Entity } from "./entity"
 import { UNSAFE_internals } from "./internal"
 import { Type, typeIsSuperset } from "./type"
@@ -23,7 +29,7 @@ const ERROR_MSG_UNBOUND_QUERY =
 export type Selector = Schema[]
 
 /**
- * An array of schema instances that corresponds to a selector.
+ * An array of component instances that matches a selector.
  * @example
  * const results: SelectorResult<[Position, Color]> = [
  *   { x: 0, y: 0 },
@@ -35,7 +41,7 @@ export type SelectorResult<S extends Selector> = {
 }
 
 /**
- * A "sparse" `SelectorResult` where each value can be null.
+ * A "holey" `SelectorResult` where empty values are null.
  * @example
  * const results: SelectorResultSparse<[Position, Color]> = [
  *   null,
@@ -109,7 +115,7 @@ export type Query<S extends Selector = Selector> = ((
   get(entity: Entity, out?: SelectorResult<S>): SelectorResult<S>
 
   /**
-   * Determine if an entity matches the query.
+   * Check if an entity matches the query.
    */
   test(entity: Entity): boolean
 
@@ -119,15 +125,31 @@ export type Query<S extends Selector = Selector> = ((
   bind(world: World): Query<S>
 
   /**
-   * Determine if this query matches an archetype.
+   * Check if this query matches a type signature.
    */
-  matchesArchetype(archetype: Archetype): boolean
+  matchesType(type: Type): boolean
 
   /**
-   * Determine if this query equals another query.
+   * Check if this query equals another query.
+   * @example
+   * const a = createQuery(Enemy, EnemyAiState).not(Stun)
+   * const b = createQuery(Enemy, EnemyAiState).not(Stun)
+   * a.equals(b) // true
+   * @example
+   * const a = createQuery(Player)
+   * const b = createQuery(Player).not(Burn)
+   * a.equals(b) // false
    */
   equals(query: Query): boolean
 
+  /**
+   * Create a new array from a list of components where components that do
+   * not match the query are replaced with `null`.
+   * @example
+   * const moving = createQuery(Position, Velocity)
+   * const components = [component(Position), component(Health), component(Velocity)]
+   * moving.match(components) // [{}, null, {}]
+   */
   match(
     components: Component[],
     out?: SelectorResultSparse<S>,
@@ -139,14 +161,11 @@ type QueryFilters = {
 }
 
 /**
- * Determine if a query signature (type) matches an archetype signature,
- * accounting for query filters (if any).
+ * Check if a query signature (type) matches a type signature, accounting for
+ * query filters (if any).
  */
-function matches(type: Type, filters: QueryFilters, archetype: Archetype) {
-  return (
-    typeIsSuperset(archetype.signature, type) &&
-    archetype.signature.every(c => !filters.not.has(c))
-  )
+function matchesType(typeA: Type, typeB: Type, filters: QueryFilters) {
+  return typeIsSuperset(typeB, typeA) && typeB.every(c => !filters.not.has(c))
 }
 
 type QueryFactoryOptions<S extends Selector> = {
@@ -166,7 +185,7 @@ function createQueryInternal<S extends Selector>(
   const signature = options.select
     .map(schema => registerSchema(schema))
     .sort((a, b) => a - b)
-  const layout = (options.include ?? options.select).map((schema: Schema) =>
+  const layout = (options.include ?? options.select).map(schema =>
     registerSchema(schema),
   )
   const recordsIndex = [] as QueryRecord<S>[][]
@@ -190,7 +209,7 @@ function createQueryInternal<S extends Selector>(
     archetype: Archetype,
     records: QueryRecord<S>[],
   ) {
-    if (matches(signature, filters, archetype)) {
+    if (matchesType(signature, archetype.signature, filters)) {
       const columns = layout.map(
         schemaId => archetype.table[archetype.signature.indexOf(schemaId)],
       )
@@ -241,9 +260,7 @@ function createQueryInternal<S extends Selector>(
   function iterator() {
     const c = context ?? UNSAFE_internals.currentWorldId
     assert(c !== null && c !== -1, ERROR_MSG_UNBOUND_QUERY, ErrorType.Query)
-    const iterator = (recordsIndex[c] || registerWorld(c))[Symbol.iterator]()
-
-    return iterator
+    return (recordsIndex[c] || registerWorld(c))[Symbol.iterator]()
   }
 
   function not(...exclude: Selector) {
@@ -306,8 +323,8 @@ function createQueryInternal<S extends Selector>(
     return false
   }
 
-  function matchesArchetype(archetype: Archetype) {
-    return matches(signature, filters, archetype)
+  function matches(type: Type) {
+    return matchesType(signature, type, filters)
   }
 
   function equals(query: Query) {
@@ -338,7 +355,7 @@ function createQueryInternal<S extends Selector>(
     }
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const index = layout.indexOf(component.__type__)
+      const index = layout.indexOf(getComponentId(component))
       if (index !== -1) {
         out[index] = component
       }
@@ -355,7 +372,7 @@ function createQueryInternal<S extends Selector>(
   query.get = get
   query.bind = bind
   query.test = test
-  query.matchesArchetype = matchesArchetype
+  query.matchesType = matches
   query.equals = equals
   query.match = match
 
@@ -368,12 +385,16 @@ function createQueryInternal<S extends Selector>(
  * worlds.
  * @example
  * const burning = createQuery(Player, Burn)
- * burning.forEach((entity, [player, burn]) => {
+ * burning((entity, [player, burn]) => {
  *   player.health -= burn.damage
  * })
+ * @example
+ * for (const [entities, [p, b]] of burning) {
+ *   for (let i = 0; i < entities.length; i++) {
+ *     p[i].health -= b[i].damage
+ *   }
+ * }
  */
-export function createQuery<S extends Selector>(...selector: S): Query<S> {
-  return createQueryInternal({
-    select: selector,
-  })
+export function createQuery<S extends Selector>(...select: S): Query<S> {
+  return createQueryInternal({ select })
 }

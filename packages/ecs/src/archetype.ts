@@ -1,5 +1,5 @@
 import { PackedSparseArray, Schema, unpackSparseArray } from "@javelin/core"
-import { Component, ComponentOf } from "./component"
+import { Component, ComponentOf, getComponentId } from "./component"
 import { Entity } from "./entity"
 import { Type } from "./type"
 
@@ -126,7 +126,7 @@ export function createArchetype<T extends Schema[]>(
   function insert(entity: Entity, components: Component[]) {
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
-      const schemaIndex = signatureInverse[component.__type__]
+      const schemaIndex = signatureInverse[getComponentId(component)]
 
       table[schemaIndex].push(component)
     }

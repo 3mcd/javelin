@@ -1,4 +1,5 @@
 import { createArchetype } from "./archetype"
+import { $type } from "./component"
 import { createStorage } from "./storage"
 
 jest.mock("./archetype")
@@ -9,9 +10,9 @@ describe("createStorage", () => {
 
     ;(createArchetype as jest.Mock).mockClear()
 
-    storage.attachComponents(1, [{ __type__: 0 }])
-    storage.attachComponents(2, [{ __type__: 1 }])
-    storage.attachComponents(3, [{ __type__: 0 }, { __type__: 1 }])
+    storage.attachComponents(1, [{ [$type]: 0 }])
+    storage.attachComponents(2, [{ [$type]: 1 }])
+    storage.attachComponents(3, [{ [$type]: 0 }, { [$type]: 1 }])
 
     expect(createArchetype).toHaveBeenNthCalledWith(1, { signature: [0] })
     expect(createArchetype).toHaveBeenNthCalledWith(2, { signature: [1] })
@@ -19,12 +20,12 @@ describe("createStorage", () => {
   })
   it("also removes entity from archetype when removed", () => {
     const storage = createStorage()
-    storage.attachComponents(0, [{ __type__: 0 }])
+    storage.attachComponents(0, [{ [$type]: 0 }])
     const archetype = storage.archetypes[1]
 
     ;(archetype as any).entities = [0]
     ;(archetype as any).indices = [0]
-    ;(archetype as any).table = [[{ __type__: 0 }]]
+    ;(archetype as any).table = [[{ [$type]: 0 }]]
 
     storage.clearComponents(0)
 
@@ -32,7 +33,7 @@ describe("createStorage", () => {
   })
   it("moves entities into new archetypes when inserting components", () => {
     const storage = createStorage()
-    const components = [{ __type__: 0 }]
+    const components = [{ [$type]: 0 }]
     // The next archetype we create (via storage.insert) will encompass the
     // first component.
     ;(createArchetype as jest.Mock).mockClear()
@@ -55,7 +56,7 @@ describe("createStorage", () => {
       indices: [0, 1],
     }))
 
-    storage.attachComponents(0, [{ __type__: 1 }])
+    storage.attachComponents(0, [{ [$type]: 1 }])
 
     expect(storage.archetypes[1].remove).toHaveBeenCalledWith(0)
     expect(storage.archetypes.length).toBe(3)

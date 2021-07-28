@@ -35,6 +35,19 @@ const entity = world.create(
 )
 ```
 
+Use third-party objects as components.
+
+```ts
+const Mesh = {
+  position: {
+    x: number,
+    y: number,
+    z: number,
+  },
+}
+world.create(toComponent(new Three.Mesh(), Mesh))
+```
+
 ### Intuitive
 
 Query game state using familiar syntax.

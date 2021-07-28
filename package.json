@@ -19,6 +19,7 @@
     "docs:build": "yarn docs:assets && cd ./docs-src && ./zola build --output-dir ../docs",
     "docs": "yarn docs:assets && cd ./docs-src && ./zola serve",
     "example:spin": "pnpm start --filter=@javelin/spin",
+    "example:interop": "pnpm start --filter=@javelin/interop",
     "test": "jest"
   },
   "workspaces": [

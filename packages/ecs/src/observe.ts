@@ -8,7 +8,7 @@ import {
   isSimple,
   mutableEmpty,
 } from "@javelin/core"
-import { Component } from "./component"
+import { Component, getComponentId } from "./component"
 import { UNSAFE_internals } from "./internal"
 
 export const $self = Symbol("javelin_proxy_self")
@@ -245,7 +245,7 @@ export function observe<T extends Component>(component: T): T {
   return (proxies.get(component) ??
     register(
       component,
-      UNSAFE_internals.model[component.__type__],
+      UNSAFE_internals.model[getComponentId(component)],
     )) as unknown as T
 }
 
@@ -313,7 +313,7 @@ export function clearObservedChanges(
   component: Component | Observed<Component, unknown>,
 ) {
   const self = $self in component ? (component as Observed)[$self] : component
-  const node = UNSAFE_internals.model[(self as Component).__type__]
+  const node = UNSAFE_internals.model[getComponentId(self)]
   return clearObservedChangesInner(self as unknown as Observed, node)
 }
 
@@ -439,7 +439,7 @@ function createPatchInner(
 export function createPatch(
   component: Component,
   patch: Patch = {
-    schemaId: component.__type__,
+    schemaId: getComponentId(component),
     children: new Map(),
     changes: new Map(),
   },
