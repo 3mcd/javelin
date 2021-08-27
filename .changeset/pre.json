@@ -7,9 +7,12 @@
     "@javelin/ecs": "1.0.0-alpha.7",
     "@javelin/hrtime-loop": "1.0.0-alpha.3",
     "@javelin/net": "1.0.0-alpha.7",
-    "@javelin/pack": "1.0.0-alpha.7"
+    "@javelin/pack": "1.0.0-alpha.7",
+    "@javelin/interop": "1.0.0-alpha.7",
+    "@javelin/isomorphic-utils": "1.0.0-alpha.9"
   },
   "changesets": [
+    "eighty-drinks-thank",
     "shy-hounds-bow",
     "silent-knives-fold",
     "tame-timers-judge"
