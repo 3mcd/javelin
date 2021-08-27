@@ -2,19 +2,16 @@ import { usePerformance } from "./use_performance"
 import { useRef } from "./use_ref"
 
 export function useInterval(interval: number) {
-  const ref = useRef(interval)
   const performance = usePerformance()
+  const config = useRef(interval)
   const prev = useRef(0)
-  if (!performance) {
-    return
-  }
   const time = performance.now()
   if (!prev.value) {
     prev.value = time
   }
-  if (interval !== ref.value) {
+  if (interval !== config.value) {
     prev.value = time
-    ref.value = interval
+    config.value = interval
   }
   let hit = false
   if (time - prev.value >= interval) {

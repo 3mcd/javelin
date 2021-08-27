@@ -21,6 +21,7 @@
     "networking"
   ],
   "dependencies": {
-    "@javelin/core": "workspace:*"
+    "@javelin/core": "workspace:*",
+    "@javelin/isomorphic-utils": "workspace:*"
   }
 }

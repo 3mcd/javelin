@@ -1,4 +1,5 @@
 import {
+  clearObservedChanges,
   Component,
   component,
   createEffect,
@@ -94,10 +95,10 @@ world.addSystem(world => {
   transforms((e, [t]) => {
     const amplify = world.has(e, Big) ? BIG_PRIORITY : SMALL_PRIORITY
     // update:
-    producer.update(e, [t], amplify)
+    // producer.update(e, [t], amplify)
     // or patch:
-    // producer.patch(e, t, amplify)
-    // clearObservedChanges(t)
+    producer.patch(e, t, amplify)
+    clearObservedChanges(t)
   })
 
   if (send) {

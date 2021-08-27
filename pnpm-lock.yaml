@@ -78,10 +78,15 @@ importers:
   packages/ecs:
     specifiers:
       '@javelin/core': workspace:*
+      '@javelin/isomorphic-utils': workspace:*
     dependencies:
       '@javelin/core': link:../core
+      '@javelin/isomorphic-utils': link:../isomorphic-utils
 
   packages/hrtime-loop:
+    specifiers: {}
+
+  packages/isomorphic-utils:
     specifiers: {}
 
   packages/net:

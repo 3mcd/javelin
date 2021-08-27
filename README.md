@@ -61,7 +61,7 @@ world.addSystem(() => {
 createHrtimeLoop(world.step, (1 / 60) * 1000).start()
 ```
 
-There's a lot more that goes into building a game, but hopefully this example demonstrates the unobtrusive and consise nature of Javelin's API.
+There's a lot more that goes into building a game, but hopefully this example demonstrates the unobtrusive and consise nature of Javelin's APIs.
 
 ## Docs
 
@@ -69,13 +69,14 @@ Visit https://javelin.games
 
 ## Packages
 
-| Name                                           | Description                                        |
-| ---------------------------------------------- | -------------------------------------------------- |
-| [@javelin/core](./packages/core)               | Core types, utilities, and data model              |
-| [@javelin/ecs](./packages/ecs)                 | Build games using the ECS pattern                  |
-| [@javelin/net](./packages/net)                 | Synchronize ECS worlds                             |
-| [@javelin/pack](./packages/pack)               | Convert objects to and from binary arrays          |
-| [@javelin/hrtime-loop](./packages/hrtime-loop) | Create smooth, high-precision game loops in NodeJS |
+| Name                                                     | Description                                            |
+| -------------------------------------------------------- | ------------------------------------------------------ |
+| [@javelin/core](./packages/core)                         | Core types, utilities, and data model                  |
+| [@javelin/ecs](./packages/ecs)                           | Build games using the ECS pattern                      |
+| [@javelin/net](./packages/net)                           | Synchronize ECS worlds                                 |
+| [@javelin/pack](./packages/pack)                         | Convert objects to and from binary arrays              |
+| [@javelin/hrtime-loop](./packages/hrtime-loop)           | Create smooth, high-precision game loops in NodeJS     |
+| [@javelin/isomorphic-utils](./packages/isomorphic-utils) | Universal utils requiring separate browser/node builds |
 
 ## Examples
 

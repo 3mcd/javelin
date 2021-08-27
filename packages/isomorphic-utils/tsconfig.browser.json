@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src/browser",
+    "outDir": "dist/esm/browser"
+  },
+  "include": ["src/browser"],
+  "exclude": ["**/*.spec.ts", "**/__mocks__/**/*"]
+}

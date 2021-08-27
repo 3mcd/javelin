@@ -6,5 +6,5 @@
   },
   "include": ["src"],
   "exclude": ["**/*.spec.ts", "**/__mocks__/**/*"],
-  "references": [{ "path": "../core" }]
+  "references": [{ "path": "../core" }, { "path": "../isomorphic-utils" }]
 }

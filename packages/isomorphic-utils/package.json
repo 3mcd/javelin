@@ -1,0 +1,29 @@
+{
+  "name": "@javelin/isomorphic-utils",
+  "version": "1.0.0-alpha.9",
+  "license": "MIT",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/node/index.js",
+  "browser": "dist/esm/browser/index.js",
+  "types": "dist/esm/node/index.d.ts",
+  "exports": {
+    "require": "./dist/cjs/index.js",
+    "node": "./dist/esm/node/index.js",
+    "default": "./dist/esm/browser/index.js"
+  },
+  "scripts": {
+    "clean": "rm -f *.tsbuildinfo && rm -rf dist",
+    "build": "tsc -b && tsc -b tsconfig.browser.json && tsc -b tsconfig.cjs.json",
+    "prepare": "npm run clean && npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "game",
+    "mog",
+    "multiplayer",
+    "networking",
+    "isomorphic"
+  ]
+}
