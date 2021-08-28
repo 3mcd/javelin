@@ -1,5 +1,14 @@
 # @javelin/ecs
 
+## 1.0.0-alpha.12
+
+### Patch Changes
+
+- Force publishing new version to fix workspace dependencies
+- Updated dependencies [undefined]
+  - @javelin/core@1.0.0-alpha.12
+  - @javelin/isomorphic-utils@1.0.0-alpha.12
+
 ## 1.0.0-alpha.10
 
 ### Patch Changes

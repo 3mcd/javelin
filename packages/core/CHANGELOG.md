@@ -1,5 +1,11 @@
 # @javelin/core
 
+## 1.0.0-alpha.12
+
+### Patch Changes
+
+- Force publishing new version to fix workspace dependencies
+
 ## 1.0.0-alpha.10
 
 ### Patch Changes
