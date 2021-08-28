@@ -3,7 +3,8 @@
   "version": "1.0.0-alpha.7",
   "private": true,
   "scripts": {
-    "start": "vite"
+    "start": "vite",
+    "build": "vite build"
   },
   "dependencies": {
     "@javelin/ecs": "workspace:*",

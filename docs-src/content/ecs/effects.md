@@ -3,27 +3,25 @@ title = "Effects"
 weight = 5
 +++
 
-You'll often need to interact with some asynchronous code, third-party library, or API that doesn't fit into an ECS model. An **effect** is a container for one of these resources.
+You'll often need to interact with some asynchronous code, third-party library, or API that doesn't fit into a pure ECS model. An **effect** is a container for one of these resources.
 
 ## Handling Side-Effects
 
-The below example demonstrates a worker effect that might perform some expensive computation in a worker thread and return a result back to the system when finished.
+Below is an example of a ficticious effect that performs some expensive computation in a worker thread and returns a result back to the system when finished.
 
 ```ts
 const physics = () => {
-  const { result, doExpensiveComputation } = useWorker()
+  const { result, run } = useWorker()
 
-  if (shouldRun && !result) {
-    doExpensiveComputation()
-  }
-
-  if (result) {
+  if (!result) {
+    run()
+  } else {
     // do something with result
   }
 }
 ```
 
-Effects are created using the aptly named `createEffect`. This function accepts a callback as its first argument. The provided callback receives the active `World` as its first parameter, should define any state (variables) used by the effect, and return a function to be executed each tick.
+Effects are created using the aptly named `createEffect`. This function accepts a factory function as its first argument. This function receives a world as its first parameter. It should define any state (variables) used by the effect, and return a function to be executed each tick.
 
 Below is an effect that will return `false` until the provided duration passes:
 
@@ -50,7 +48,7 @@ const useTimer = createEffect(world => {
   </p>
 </aside>
 
-Effects have a single rule: they must be called in the same order order and at the same frequency every tick. This means that you shouldn't call effects conditionally (i.e. in a if/else statement or a loop).
+Effects have a single rule: they must be called in the same order order and at the same frequency every tick. This means that you shouldn't call effects variably (i.e. in a if/else statement or a loop).
 
 By default, Javelin will create a copy of the effect closure for each effect call. This lets you use multiple effects of the same type without conflict. Take the example below, where both timers run alongside eachother, with the second timer finishing one second after the first.
 
@@ -70,19 +68,19 @@ const sysA = () => {
 
 ## Effect Modes
 
-Effects can exist in either **local mode** or **global mode**. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure per local effect within a system. Global effects are executed a maximum of one time per tick. All calls to global effects refer to the same closure. Local mode is enabled by default.
+Effects can exist in either **local mode** or **shared mode**. Local effects are scoped to the system in which they were executed. Javelin instantiates one closure per local effect within a system. Shared effects are executed a maximum of one time per tick. All calls to shared effects refer to the same closure. Effects are local by default.
 
 ### Local Effects
 
-Local effects are useful if you want to perform a one-off task, like perform an API request:
+Local effects are useful if you want to perform an isolated task, like perform an API request:
 
 ```ts
-const questUI = () => {
+const renderQuests = () => {
   const context = useCanvas()
   const { done, quests } = useFetch("/quests?complete=false")
 
   if (done) {
-    // render quest log
+    drawQuestLog(quests)
   }
 }
 ```
@@ -90,7 +88,7 @@ const questUI = () => {
 Although you should strive to have all game state in components, it can be tedious to create a singleton component each time you need some state within a system. Effects can be used to wrap arbitrary values that persist between ticks.
 
 ```ts
-const sysFibonacci = () => {
+const fibonacci = () => {
   const a = useRef(0)
   const b = useRef(1)
   const bPrev = b.value
@@ -108,49 +106,39 @@ const sysFibonacci = () => {
   </p>
 </aside>
 
-### Global Effects
+### Shared Effects
 
-The most common use-case for effects is probably interacting with a third party, like a physics simulation. Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS. Shared effects are a good candidate for encapsulating this type of dependency. They are only executed once per tick and share the same state between systems.
+Effects can also execute queries just like systems, letting you update the external resource when things change within the ECS. Shared effects are a good candidate for encapsulating this type of dependency. They are only executed once per tick and share the same state between systems.
 
-Below is an example of a global effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.
+Below is an example of a shared effect that instantiates a third party physics simulation, keeps simulation bodies in sync with ECS entities, and steps the simulation in sync with the Javelin world.
 
 ```ts
 const useSimulation = createEffect(world => {
-  const sim = new Library.Simulation()
+  const simulation = new Library.Simulation()
   return () => {
-    queries.attached.forEach(...)  // add new bodies to simulation
-    queries.detached.forEach(...)  // remove detached bodies from simulation
-    queries.simulated.forEach(...) // copy simulation state to components
-    sim.step(world.state.currentTickData) // step simulation in sync with world
-    return sim
+    useMonitor(bodies, ...) // maintain simulation bodies
+    bodies(...) // copy simulation state to components
+    simulation.step(world.latestTickData) // step simulation in sync with world
+    return simulation
   }
-}, {
-  shared: true
-});
+}, { shared: true });
 
 const jump = () => {
-  const { applyImpulse } = useSimulation()
-  jumping((e, [body, input]) => {
-    applyImpulse(body.simulationId, ...)
-  })
+  const simulation = useSimulation()
+  jumping((e, [body, input]) =>
+    simulation.applyImpulse(body.simulationId, ...)
+  )
 }
 
 const move = () => {
   // references the same simulation as in `jump`
-  const sim = useSimulation()
-  ...
+  const simulation = useSimulation()
 }
 ```
 
 ## Built-in Effects
 
 Some useful effects are included with the core ECS package. A few are outlined below.
-
-<aside>
-  <p>
-    <strong>Tip</strong> — check the source code of this page to see a few effects in action.
-  </p>
-</aside>
 
 ### `useRef<T>(initialValue: T): { value: T }`
 
@@ -199,32 +187,3 @@ if (done) {
   }
 }
 ```
-
-<script>
-  const interval = () => {
-    const ref = Javelin.useRef(0)
-    const log = Javelin.useInterval(4000)
-
-    if (log) {
-      console.log("interval", ++ref.value)
-    }
-  }
-  const json = () => {
-    // start request after 1s
-    const timer = Javelin.useTimer(1000)
-    // cancel request after 5s
-    const cancel = Javelin.useTimer(5000)
-    const request = Javelin.useJson(
-      !cancel && timer ? `https://jsonplaceholder.typicode.com/todos/1` : null
-    )
-
-    console.log(request)
-  }
-  const world = Javelin.createWorld({
-    systems: [json, interval]
-  })
-
-  setInterval(() => {
-    world.step()
-  }, 2000);
-</script>

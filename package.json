@@ -16,9 +16,9 @@
   "repository": "git@github.com:3mcd/javelin",
   "scripts": {
     "build": "pnpm build -r",
-    "docs:assets": "cp ./packages/ecs/dist/javelin-ecs.bundle.min.js ./docs-src/static",
-    "docs:build": "yarn docs:assets && cd ./docs-src && ./zola build --output-dir ../docs",
-    "docs": "yarn docs:assets && cd ./docs-src && ./zola serve",
+    "docs:assets": "cp -r ./examples/interop/dist/assets/. ./docs-src/static",
+    "docs:build": "pnpm docs:assets && cd ./docs-src && zola build --output-dir ../docs",
+    "docs": "pnpm docs:assets && cd ./docs-src && zola serve",
     "example:spin": "pnpm start --filter=@javelin/spin",
     "example:interop": "pnpm start --filter=@javelin/interop",
     "test": "jest"

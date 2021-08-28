@@ -15,7 +15,7 @@ export const createStorage = jest.fn((): Storage => {
     getComponentBySchema: jest.fn(() => ({ type: 0 } as any)),
     getComponentBySchemaId: jest.fn(() => ({ type: 0 } as any)),
     getAllComponents: jest.fn(() => []),
-    getSnapshot: jest.fn(),
+    createSnapshot: jest.fn(),
     hasComponentOfSchema: jest.fn(),
     clear: jest.fn(),
   }

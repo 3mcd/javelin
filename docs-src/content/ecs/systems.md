@@ -26,7 +26,7 @@ Below is an example set of systems that could be found in a top-down ARPG.
 
 ### Registering a System
 
-A system is a void function that accepts a `World<T>` instance as its only parameter:
+A system is a void function that accepts a `World` instance as its only parameter:
 
 ```ts
 const enemyAI = (world: World) => {}
@@ -42,11 +42,9 @@ const world = createWorld({ systems: [physics] })
 world.addSystem(render)
 ```
 
-Systems have a signature of `(world: World) => void`, where the only argument is the world that's currently mid-step. Calling `world.step()` will execute each system in the order that it was registered.
+Systems have a signature of `(world: World) => void`, where the only argument is the world that's currently mid-step. The `world.step()` method executes systems in the same order in which they were registered.
 
-You may have noticed that `World<T>` is generic. `T` is a type that represents some data common to each step. Often times this value captures the amount of time elapsed since the previous step, but it can be any value. You can set this value via a single argument passed to `world.step(data: T)`. This value is assigned to `world.latestTickData` at the beginning of each step.
-
-The following is a world that will log the time elapsed since the last step, 60 times per second:
+`world.step` accepts a single argument, `tickData`, which will be assigned to `world.latestTickData` at the beginning of each step. To demonstrate, the following is a world that logs the time elapsed since the last step, 60 times per second:
 
 ```ts
 const world = createWorld<number>()
@@ -69,11 +67,11 @@ setInterval(() => {
 
 ## Querying and Iteration
 
-Systems query iterable lists of entities and operate on their data to produce the next game state. These lists are called **queries**.
+Systems query iterable lists of entities and modify them to produce the next game state. These lists are called **queries**.
 
-Depending on its archetype, an entity may be eligible for iteration by a system during one step, and ineligible the next. Querying is the cornerstone of ECS: modifying component makeup also modifies game behavior. In addition, the isolation of game logic into systems makes your game world easier to debug and provides a clear target for performance and unit tests.
+Depending on its component makeup, an entity may be eligible for iteration by a system during one step, and ineligible the next. Querying is the cornerstone of ECS: changes to entity-component composition implicitly changes game behavior. In addition, the isolation of game logic into systems makes your game world easier to debug and provides a clear target for performance and unit tests.
 
-Queries are created with the `createQuery` function, which accepts a one or more of component types. This list of component types is called a **selector**.
+Queries are created with the `createQuery` function, which accepts one or more schemas. This list of schemas is called a **selector**.
 
 ```ts
 import { createQuery } from "@javelin/ecs"
@@ -81,7 +79,7 @@ import { createQuery } from "@javelin/ecs"
 const bodies = createQuery(Position, Velocity)
 ```
 
-A query is an iterable object that produces tuples of `(entity, Component[])` for entities that meet the selector's criteria. There are two ways to iterate a query. The first (and fastest) way is to iterate the query directly with a `for..of` loop:
+There are two ways to iterate a query. The first (and fastest) way is to iterate the query directly with a `for..of` loop:
 
 ```ts
 const physics = () => {
@@ -94,13 +92,13 @@ const physics = () => {
 }
 ```
 
-Although fast, this method of iteration leaks the implementation details of how components are stored in archetypes. An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. If your game doesn't reach extremely high entity counts and you don't mind a 2-3x iteration performance hit, consider using the function form of a query:
+Although fast, this method of iteration leaks the implementation details of how components are stored in archetypes. An outer `for..of` loop iterates through each matching archetype, while an inner loop accesses components for each matching entity. If your game doesn't reach extremely high entity counts and you don't mind a 5x iteration performance hit, consider using the function form of a query:
 
 ```ts
 const physics = () =>
-  bodies((e, [p, v]) => {
-    p.x += v.x
-    p.y += v.y
+  bodies((entity, [position, velocity]) => {
+    position.x += velocity.x
+    position.y += velocity.y
   })
 ```
 
@@ -116,28 +114,29 @@ By default, queries will resolve entities and components of the world that is cu
 
 ```ts
 // Always executes against `world`
-bodies.bind(world)(e => {})
+bodies.bind(world)(entity => {})
 ```
 
 You can use a query's `test` method to check if an entity would match that query.
 
 ```ts
-bodies.test(e) // -> true
+world.attachImmediate(entity, [component(Position), component(Velocity)])
+bodies.test(entity) // -> true
 ```
 
 ### Result Ordering
 
-The order of component types in a query's selector will match the order of components in the query's results. That is, `createQuery(Position, Player)` will always yield tuples of components `(Position, Player)`:
+The order of component types in a query's selector will match the order of components in the query's results. That is, `createQuery(Position, Player)` always yields tuples of `(Position, Player)`:
 
 ```ts
 world.create(component(Player), component(Position))
 world.create(component(Position), component(Player))
 
 const render = () =>
-  players((e, [{ x, y }, { name }]) => {
+  players((entity, [position, player]) => {
     // render each player with a name tag
-    drawSprite(sprites.player, x, y)
-    drawText(name, x, y)
+    drawSprite(sprites.player, position)
+    drawText(player.name, position)
   })
 ```
 
@@ -146,20 +145,13 @@ const render = () =>
 The tuple of components yielded by queries is re-used each iteration. This means that you shouldn't store the results of a query for use later like this:
 
 ```ts
-const elements = () => {
-  const results = []
-  shocked((e, components) => {
-    results.push(components)
-  })
-  ...
-}
+const results = []
+shocked((entity, components) => results.push(components))
 ```
 
 Every index of `results` references the same array, which is the tuple of components attached to the entity of the last iteration. If you absolutely need to store components between queries (e.g. you're optimizing a nested query), you could push the components of interest into a temporary array, e.g.
 
 ```ts
 const results = []
-shocked((e, [a, b]) => {
-  results.push([a, b])
-})
+shocked((entity, [a, b]) => results.push([a, b]))
 ```

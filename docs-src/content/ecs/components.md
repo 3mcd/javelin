@@ -7,7 +7,13 @@ Most data within a game is stored in components. Components are just plain objec
 
 ## Schemas
 
-A **schema** is an object that defines the structure of a component.
+A **schema** is an object that defines the structure of a component. Component structure is expressed using a minimal syntax with only a few rules:
+
+1. an object `{}` represents a **struct** – an object with fixed keys
+2. structs are composed of members called **fields**
+3. a field may be a nested struct, a primitive data type, or a complex data type
+
+Below is an example of a simple vector schema comprised of two primitive fields:
 
 ```ts
 import { number } from "@javelin/ecs"
@@ -18,9 +24,11 @@ const Position = {
 }
 ```
 
-Schema may range from flat structures with few (or no) properties, to complex objects containing deeply nested structures.
+Schema may express components ranging from flat structures with few (or no) properties, to complex objects containing deeply nested structures, like the one found in the example below:
 
 ```ts
+import { number, arrayOf } from "@javelin/ecs"
+
 const Inventory = {
   bags: arrayOf({ items: arrayOf(number) }),
 }
@@ -28,16 +36,19 @@ const Inventory = {
 
 A schema is used to initialize component instances and reset them when they are detached from an entity.
 
-The schema currently supports the following data types:
+Javelin currently supports the following data types:
 
-```
-number  (default = 0)
-string  (default = "")
-boolean (default = false)
-arrayOf (default = [])
-```
+| Type    | Helper            | Default Value |
+| ------- | ----------------- | ------------- |
+| Number  | `number`          | `0`           |
+| String  | `string`          | `""`          |
+| Boolean | `boolean`         | `false`       |
+| Array   | `arrayOf(field)`  | `[]`          |
+| Object  | `objectOf(field)` | `{}`          |
+| Set     | `setOf(field)`    | `new Set`     |
+| Map     | `mapOf(field)`    | `new Map`     |
 
-When Javelin encounters a schema for the first time, it will automatically assign it a unique integer id. If you need to assign a specific id to a schema (e.g., you're synchronizing your component model in a multiplayer game), you can register the schema manually using `registerSchema`:
+Javelin will automatically assign schemas it encounters for the first time with a unique integer id. If you need to assign a specific id to a schema (e.g., you're synchronizing your component model in a multiplayer game), you can register the schema manually using `registerSchema`:
 
 ```ts
 import { registerSchema } from "@javelin/ecs"
@@ -47,7 +58,7 @@ registerSchema(Position, 4)
 
 ### Creating Components
 
-Components are created using the `component()` function.
+Components are created using the `component` function.
 
 ```ts
 import { component } from "@javelin/ecs"
@@ -55,7 +66,7 @@ import { component } from "@javelin/ecs"
 const position = component(Position)
 ```
 
-Components created using `component()` are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal for singleton or low-volume components. You may specify the pool size for a single schema when registering the it with `registerSchema`:
+Components created using `component` are automatically pooled. By default, the pool will initialize 10^3 components for use, and will grow by the same amount when the pool shinks to zero. This may not be ideal for singleton or low-volume components. You may specify the pool size for a single schema when registering the it with `registerSchema`:
 
 ```ts
 registerSchema(Position, 4, 10000)
@@ -68,18 +79,6 @@ registerSchema(Position, 4, 10000)
 </aside>
 
 ### External Objects
-
-You can use any object as a component. You should register the component like so:
-
-```ts
-const Mesh = registerComponent<Three.Mesh>({
-  position: {
-    x: number,
-    y: number,
-    z: number,
-  },
-})
-```
 
 You can instruct Javelin to treat a third-pary library object as a component using the `toComponent` method. Simply call `toComponent` with the object and the component schema you want to classify it with:
 

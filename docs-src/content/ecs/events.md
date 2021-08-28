@@ -7,17 +7,17 @@ You'll eventually need to detect when components are added, removed, or modified
 
 ## Monitors
 
-The easiest way to detect when an entity matches or no longer matches a query is with a **monitor**. `useMonitor` is an effect that accepts a query and executes callbacks when an entity meets or no longer meets the query's criteria.
+The best way to detect when an entity matches or no longer matches a query is with a **monitor**. `useMonitor` is an effect that accepts a query and executes callbacks when an entity meets or no longer meets the query's criteria.
 
-`useMonitor` accepts `onEnter` and `onExit` callback functions. An entity is only included in a monitor's results **once** while it continues to match the query. An entity is eligible again only if it is excluded (i.e. due to a change in its type) and re-included.
+`useMonitor` accepts `onEnter` and `onExit` callback functions. An entity is only included in a monitor's results **once** while it continues to match the query. An entity is eligible again only if it is excluded (i.e. due to a change in its archetype) and re-included.
 
 ```ts
 const spooky = createQuery(Enemy, Ghost)
 const controlAi = () => {
   useMonitor(
     spooky,
-    e => {}, // entity matches query `spooky`
-    e => {}, // entity no longer matches query `spooky`
+    entity => {}, // entity matches query `spooky`
+    entity => {}, // entity no longer matches query `spooky`
   )
 }
 ```
@@ -42,15 +42,22 @@ Below is an example of an entity transitioning between multiple archetypes, and 
 (Enemy, Ghost)           -> included
 ```
 
-Monitors can also be used to detect when a single component is added or removed from an entity by using a query with a single component type.
+### Component Changes
+
+The `onEnter` and `onExit` callbacks are also provided query results as well as a diff containing the components whose changes triggered the monitor.
 
 ```ts
-const bodies = createQuery(Body)
-const simulate = () => {
-  useMonitor(
-    bodies,
-    e => {}, // Body component attached to entity
-    e => {}, // Body component detached from entity
-  )
-}
+useMonitor(
+  bodies,
+  (entity, [position, velocity], diff) => {
+    if (diff[0]) {
+      /* position was attached */
+    }
+  },
+  (entity, [position, velocity], diff) => {
+    if (diff[0]) {
+      /* position was detached */
+    }
+  },
+)
 ```

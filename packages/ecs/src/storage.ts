@@ -102,7 +102,7 @@ export type Storage = {
   /**
    * Create a JSON-serializable snapshot of the storage instance.
    */
-  getSnapshot(): StorageSnapshot
+  createSnapshot(): StorageSnapshot
 }
 
 export type StorageOptions = {
@@ -285,7 +285,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     mutableEmpty(entityIndex)
   }
 
-  function getSnapshot() {
+  function createSnapshot() {
     return {
       archetypes: archetypes.map(archetype => ({
         type: archetype.type.slice(),
@@ -310,7 +310,7 @@ export function createStorage(options: StorageOptions = {}): Storage {
     getComponentBySchemaId,
     getComponentBySchema,
     getAllComponents,
-    getSnapshot,
+    createSnapshot,
     hasComponentOfSchema,
   }
 }

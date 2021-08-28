@@ -161,7 +161,7 @@ export type World<$Tick = unknown> = {
   /**
    * Create a serializable snapshot of the world that can be restored later.
    */
-  getSnapshot(): WorldSnapshot
+  createSnapshot(): WorldSnapshot
 }
 
 /**
@@ -379,9 +379,9 @@ export function createWorld<$Tick = void>(
     storage.clear()
   }
 
-  function getSnapshot(): WorldSnapshot {
+  function createSnapshot(): WorldSnapshot {
     return {
-      storage: storage.getSnapshot(),
+      storage: storage.createSnapshot(),
     }
   }
 
@@ -452,7 +452,7 @@ export function createWorld<$Tick = void>(
     destroy,
     destroyImmediate,
     get,
-    getSnapshot,
+    createSnapshot,
     has,
     detach,
     detachImmediate,

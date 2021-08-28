@@ -17,7 +17,7 @@ const messageHandler = createMessageHandler()
 Message handlers expose a `push` method for enqueuing new messages along with a system that drains the message queue and applies the operations encoded in each message to the world.
 
 ```ts
-const world = createWorld({ systems: [messageHandler.drain] })
+const world = createWorld({ systems: [messageHandler.system] })
 // subscribe to remote messages
 channel.listen(message => messageHandler.push(message))
 ```

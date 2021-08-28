@@ -59,8 +59,33 @@ world.destroy(entity)
 
 When an entity is destroyed, its components are automatically released back to their object pool if they were derived from a component type.
 
+### Component Lookup
+
+Entity data is traditionally accessed using iterable [queries](/ecs/systems/#querying-and-iteration). The capabilities of queries are limited, and occasionally you will need to write conditional logic based on an entity's component makeup.
+
+`world.tryGet` attempts to locate a component of an entity by component type, returning `null` if not found:
+
+```ts
+if (world.tryGet(entity, Invulnerable) === null) {
+  health.value -= burn.valuePerTick
+}
+```
+
+`world.get` will throw an error if the component is not found:
+
+```ts
+world.get(entity, Position) // Failed to get component: entity does not have component
+```
+
 ## World Operations
 
-In the example above, `world.step()` was called each time entity was modified. Operations like creating and destroying entities, as well as attaching and detaching components, are deferred until the next `world.step()` call. This is done to improve the predictability of systems, so that systems never miss changes to entities, discussed in the [Events](/ecs/events) section.
+In the example above, `world.step()` was called each time entity was modified. By default, operations like attaching and detaching components, are deferred until the next `world.step()` call. This is done to improve the predictability of systems, so that systems never miss changes to entities, discussed in the [Events](/ecs/events) section.
 
-Each of these changes is represented by a `WorldOp` object. You can review the types of operations in [world_op.ts](https://github.com/3mcd/javelin/blob/master/packages/ecs/src/world_op.ts). These objects are used in the Javelin network protocol to synchronize entities reliably between client and server.
+### Immediate Operations
+
+Each ECS operation has an **immediate** variant. For example, `attach` has an `attachImmediate` variant which attaches one or more components during the current tick:
+
+```ts
+world.attachImmediate(entity, [component(Position)])
+world.tryGet(entity, Position) // { x: 0, y: 0 }
+```

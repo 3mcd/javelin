@@ -3,7 +3,7 @@ title = "Protocol"
 weight = 2
 +++
 
-The Javelin protocol is slim by design. It's fundamentally a collection of functions used to build compact messages that can be handled either by your application directly, or by helpful utilities like [`MessageProducer`](/networking/message-producer) or [`MessageHandler`](/networking/message-handler).
+The Javelin protocol is a collection of functions used to build compact messages that can be handled either by your application directly, or by helpful utilities like [`MessageProducer`](/networking/message-producer) or [`MessageHandler`](/networking/message-handler).
 
 ## Messages
 

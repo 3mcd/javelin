@@ -18,4 +18,6 @@ Check out the code at the [GitHub repo](https://github.com/3mcd/javelin) or, mov
     height: 300px;
   }
 </style>
-<script type="text/javascript" src="/examples/space-junk.js"></script>
+<script type="module" crossorigin src="/index.js"></script>
+<link rel="modulepreload" href="/vendor.js">
+<link rel="stylesheet" href="/index.css">

@@ -22,7 +22,7 @@ export const createWorld = jest.fn((): World => {
     removeSystem: jest.fn(),
     removeTopic: jest.fn(),
     reset: jest.fn(),
-    getSnapshot: jest.fn(),
+    createSnapshot: jest.fn(),
     create: jest.fn(() => e++),
     step: jest.fn(),
     tryGet: jest.fn(),

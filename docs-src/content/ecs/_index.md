@@ -81,7 +81,7 @@ body   = { velocity: [number, number] }
 
 ### Entities
 
-In most ECS implementations (including Javelin) entities are integers that reference a unique array of components. An entity typically represents a game object (like a player, vehicle, or weapon) that could be made up of many components, but sometimes may only reference a single component with the purpose of holding global state. Entities do not store any data of their own, and are fully defined by their component makeup.
+In most ECS (including Javelin) entities are integers that reference a unique array of components. An entity typically represents a game object (like a player, vehicle, or weapon) that could be made up of many components. Entities do not store any data of their own, and are fully defined by their component makeup.
 
 ### Systems
 
@@ -93,7 +93,7 @@ for entity of (player, input, body)
     body[entity].y += 1
 ```
 
-This example shows a system which iterates all components that have a `Player`, `RigidBody`, and `Input` (e.g. a gamepad) component. Each player's input component is checked to determine if the jump key is pressed. If so, we locate the entity's body component and add to it's y-velocity.
+This example shows a system which iterates all components with `Player`, `RigidBody`, and `Input` (e.g. a gamepad) components. Each player's input component is checked to determine if the jump key is pressed. If so, we locate the entity's body component and add to it's y-velocity.
 
 Spectators can now be represented with a `(Player, Input)` entity. Even though they aren't controlling a physics body yet, the `Input` component might allow them to move the game camera around. If the player chooses to enter the fray, we can insert a `RigidBody` component into their entity, allowing them to control an actor in the scene.
 
