@@ -74,7 +74,7 @@ export function write<$View extends ByteView>(
   cursor.offset += byteView.byteLength * length
 }
 
-function createByteView<$Field extends PrimitiveField>(
+export function createByteView<$Field extends PrimitiveField>(
   kind: ByteViewKind,
   field: $Field,
   byteLength: number,

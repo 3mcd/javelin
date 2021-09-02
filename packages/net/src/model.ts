@@ -1,7 +1,13 @@
 import * as Core from "@javelin/core"
 import { FieldNumber } from "@javelin/core"
 import * as Pack from "@javelin/pack"
-import { StringView } from "@javelin/pack"
+import { $byteView, StringView } from "@javelin/pack"
+
+const entityByteViewKind =
+  Object.values(Pack.ByteViewKind)
+    .filter((x): x is number => Number.isInteger(x))
+    .reduce((a, x) => (x > a ? x : a), 0) + 1
+export const entity = { ...Pack.uint32, [$byteView]: entityByteViewKind }
 
 const BYTE_VIEWS = [
   Pack.uint8,
@@ -15,6 +21,7 @@ const BYTE_VIEWS = [
   Pack.string8,
   Pack.string16,
   Pack.boolean,
+  entity,
 ]
 const BYTE_VIEWS_LOOKUP = BYTE_VIEWS.reduce((sparse, byteView) => {
   sparse[byteView[Pack.$byteView]] = byteView
