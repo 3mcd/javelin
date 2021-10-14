@@ -342,8 +342,12 @@ export function createWorld<$Tick = void>(
     entity: Entity,
     schema: $Tick,
   ): ComponentOf<$Tick> | null {
-    registerSchema(schema)
-    return storage.getComponentBySchema(entity, schema)
+    try {
+      registerSchema(schema)
+      return storage.getComponentBySchema(entity, schema)
+    } catch (error) {
+      return null
+    }
   }
 
   function reset() {
