@@ -1,2 +1,3 @@
 User-agent: *
+Allow: /
 Sitemap: https://javelin.games/sitemap.xml

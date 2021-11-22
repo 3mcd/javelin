@@ -23,7 +23,7 @@ Entities can have a single instance of a given component type.
 
 <aside>
   <p>
-    <strong>Tip</strong> — although entities are simply auto-incrementing integers (starting at <code>0</code>), they should be treated as opaque values.
+    <strong>Tip</strong> — although entities are simply auto-incrementing integers (starting at <code>0</code>), they should be treated as opaque values, meaning their type should be ignored.
   </p>
 </aside>
 

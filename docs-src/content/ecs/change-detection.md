@@ -22,4 +22,4 @@ positionObserved.x = 1
 positionObserved.y = 2
 ```
 
-The only immediate use for `observe` is in conjunction with `@javelin/net` to serialize patches to be sent over the network. At a later time, you will be able to produce your own patches and apply them to other components. This eventual feature provide the means to write code which implicitly keep multiple components in sync.
+The only immediate use for `observe` is in conjunction with `@javelin/net` to serialize patches to be sent over the network. You will be able to produce your own patches and apply them to other components in a future version of Javelin.

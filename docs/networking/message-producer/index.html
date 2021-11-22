@@ -65,7 +65,7 @@
                                 </li>
                             
                                 
-                                <li class="active">
+                                <li >
                                     
                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;networking&#x2F;">
                                         <span>3. </span>
@@ -81,7 +81,7 @@
                                                     </a>
                                                 </li>
                                             
-                                                <li >
+                                                <li class="active">
                                                     <a href="https:&#x2F;&#x2F;javelin.games&#x2F;networking&#x2F;message-producer&#x2F;">
                                                         
                                                         Message Producer
@@ -129,9 +129,108 @@
                     
                     <div class="book-content">
                         
-<h1>Networking</h1>
-<p><code>@javelin/net</code> provides the means to synchronize Javelin worlds over your network transport of choice.</p>
-<p>Currently, the Javelin protocol doesn't control any aspect of your networking layer, meaning it can work with either unreliable transports (WebRTC, WebTransport), reliable transports (WebSockets), or a combination of both. The only requirement is that your transport must support binary data (e.g. ArrayBuffers).</p>
+<h1>Message Producer</h1>
+<p>A <strong>message producer</strong> lets you build messages between ticks, prioritize updates to certain component types, and divide messages based on certain criteria (like a maximum size).</p>
+<h2 id="building-messages">Building Messages<a class="zola-anchor" href="#building-messages" aria-label="Anchor link for: building-messages"
+  >#</a
+>
+</h2>
+<p>Message producers maintain a queue of messages. New messages are enqueued when the most current message reaches a maximum byte length (default <code>Infinity</code>). The maxmum byte length is specified using the <code>options</code> argument to <code>createMessageProducer</code>.</p>
+<p>The easiest way to consume a message producer in a system is to wrap an instance in a ref:</p>
+<pre data-lang="ts" class="language-ts "><code class="language-ts" data-lang="ts">const useProducer = createRef(
+  () =&gt; createMessageProducer({ maxByteLength: 1000 }), &#x2F;&#x2F; limit each message to 1kb
+)
+</code></pre>
+<p>Message producers expose methods that correspond to each of the operations described in the <a href="./networking/../protocol.md">Javelin protocol</a>.</p>
+<pre data-lang="ts" class="language-ts "><code class="language-ts" data-lang="ts">const producer = useProducer()
+producer.attach(e, [c])
+producer.update(e, [c])
+producer.detach(e, [b])
+producer.destroy(e)
+</code></pre>
+<p>The <code>take</code> method will dequeue a message, or null, if no changes were written.</p>
+<pre data-lang="ts" class="language-ts "><code class="language-ts" data-lang="ts">const message = producer.take() &#x2F;&#x2F; Message | null
+</code></pre>
+<p><code>useMonitor</code> can be used to conveniently write attach and destroy operations.</p>
+<pre data-lang="ts" class="language-ts "><code class="language-ts" data-lang="ts">const net = () =&gt; {
+  const { attach, destroy, take } = useProducer().value
+  &#x2F;&#x2F; write attach&#x2F;destroy operations for players
+  useMonitor(players, attach, destroy)
+  &#x2F;&#x2F; every 50ms
+  if (useInterval(1 &#x2F; 20) * 1000) {
+    &#x2F;&#x2F; dequeue and encode a message
+    const encoded = encode(take())
+    &#x2F;&#x2F; and send it to each client
+    send(encoded)
+  }
+}
+</code></pre>
+<h3 id="component-model">Component Model<a class="zola-anchor" href="#component-model" aria-label="Anchor link for: component-model"
+  >#</a
+>
+</h3>
+<p><code>take</code> accepts a single boolean parameter that instructs the message producer to include a serialized component model in the next message. This must be done at least once, usually in the first message sent to a client. For example:</p>
+<pre data-lang="ts" class="language-ts "><code class="language-ts" data-lang="ts">const getInitialMessage = () =&gt; {
+  producer.attach(...)
+  &#x2F;&#x2F; ...
+  return producer.take(true) &#x2F;&#x2F; include component model
+}
+</code></pre>
+<p>The component model does not have to be included with each message. <code>MessageHandler</code> will re-use the last encountered component model if a message is not self-describing.</p>
+<h3 id="sending-entity-changes">Sending Entity Changes<a class="zola-anchor" href="#sending-entity-changes" aria-label="Anchor link for: sending-entity-changes"
+  >#</a
+>
+</h3>
+<p>Below is example that demonstrates how you might write attach/detach operations while an entity continues to match a query:</p>
+<pre data-lang="ts" class="language-ts "><code class="language-ts" data-lang="ts">const players = createQuery(Player)
+const burning = createQuery(Player, Burn)
+const net = () =&gt; {
+  const { destroy, attach, detach, take } = useProducer().value
+  &#x2F;&#x2F; spawn newly created players on client
+  useMonitor(players, attach, destroy)
+  &#x2F;&#x2F; a burn effect may be attached&#x2F;detached frequently, so we control the
+  &#x2F;&#x2F; synchronization with a separate monitor
+  useMonitor(
+    burning,
+    (e, [, b]) =&gt; b &amp;&amp; attach(e, b),
+    (e, [, b]) =&gt; b &amp;&amp; detach(e, b),
+  )
+
+  if (useInterval(1 &#x2F; 20) * 1000) {
+    send(encode(take()))
+  }
+}
+</code></pre>
+<h2 id="updating-components">Updating Components<a class="zola-anchor" href="#updating-components" aria-label="Anchor link for: updating-components"
+  >#</a
+>
+</h2>
+<h3 id="update">Update<a class="zola-anchor" href="#update" aria-label="Anchor link for: update"
+  >#</a
+>
+</h3>
+<p>Two strategies exist for synchronizing component state: updates and patches. Updates send the entire component state, which is simple to implement but uses more bandwidth.</p>
+<pre data-lang="ts" class="language-ts "><code class="language-ts" data-lang="ts">transforms((e, [t]) =&gt; producer.update(e, [t]))
+</code></pre>
+<p><code>MessageHandler</code> simply uses <code>Object.assign</code> to apply component updates in a message to their local counterparts.</p>
+<h3 id="patch">Patch<a class="zola-anchor" href="#patch" aria-label="Anchor link for: patch"
+  >#</a
+>
+</h3>
+<p>A patch operation effeciently serializes fields contained in a <a href="./ecs/change-detection.md"><code>ChangeSet</code></a> component.</p>
+<pre data-lang="ts" class="language-ts "><code class="language-ts" data-lang="ts">import { set } from &quot;@javelin&#x2F;track&quot;
+trackedTransforms((e, [t, changes]) =&gt; {
+  set(t, changes, &quot;x&quot;, 3)
+  set(t, changes, &quot;y&quot;, 4)
+})
+</code></pre>
+<p>A patch operation can then be written to a message producer <code>patch</code>:</p>
+<pre data-lang="ts" class="language-ts "><code class="language-ts" data-lang="ts">import { reset } from &quot;@javelin&#x2F;track&quot;
+trackedTransforms((e, [t, changes]) =&gt; {
+  producer.patch(e, changes)
+  reset(changes)
+})
+</code></pre>
  
                     </div>
                 </div>

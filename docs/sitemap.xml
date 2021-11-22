@@ -43,6 +43,15 @@
         <loc>https://javelin.games/networking/</loc>
     </url>
     <url>
+        <loc>https://javelin.games/networking/message-handler/</loc>
+    </url>
+    <url>
+        <loc>https://javelin.games/networking/message-producer/</loc>
+    </url>
+    <url>
+        <loc>https://javelin.games/networking/protocol/</loc>
+    </url>
+    <url>
         <loc>https://javelin.games/resources/</loc>
     </url>
 </urlset>

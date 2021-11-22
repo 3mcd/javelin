@@ -10,7 +10,6 @@ import {
 import * as Cannon from "cannon-es"
 import * as Three from "three"
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
-import "./index.css"
 
 const Vec3 = { x: number, y: number, z: number }
 const Quaternion = { x: number, y: number, z: number, w: number }
@@ -29,30 +28,30 @@ scene.add(
 )
 
 function scale() {
-  camera.aspect = window.innerWidth / window.innerHeight
+  const parent = canvas.parentElement!
+  const { width, height } = parent.getBoundingClientRect()
+  camera.aspect = width / height
   camera.updateProjectionMatrix()
-  renderer.setSize(window.innerWidth, window.innerHeight)
+  renderer.setSize(width, height)
 }
 
 window.addEventListener("resize", scale, false)
 scale()
 
+const boxShape = new Cannon.Box(new Cannon.Vec3(0.5, 0.5, 0.5))
+const boxGeometry = new Three.BoxGeometry(1, 1, 1)
+const groundShape = new Cannon.Box(new Cannon.Vec3(10, 0.5, 10))
+const groundGeometry = new Three.BoxGeometry(20, 1, 20)
+
 function createBox(
   position = new Cannon.Vec3(0, 0, 0),
-  halfExtents = new Cannon.Vec3(0.5, 0.5, 0.5),
   type: Cannon.BodyType = Cannon.Body.DYNAMIC,
   color = 0xff0000,
   mass = 1,
 ) {
-  const shape = new Cannon.Box(halfExtents)
-  const body = new Cannon.Body({ mass, type, position, shape })
-  const geometry = new Three.BoxGeometry(
-    halfExtents.x * 2,
-    halfExtents.y * 2,
-    halfExtents.z * 2,
-  )
+  const body = new Cannon.Body({ mass, type, position, shape: boxShape })
   const material = new Three.MeshLambertMaterial({ color })
-  const mesh = new Three.Mesh(geometry, material)
+  const mesh = new Three.Mesh(boxGeometry, material)
   return [
     // identify our third-party objects as Javelin components
     toComponent(body, Body),
@@ -61,13 +60,19 @@ function createBox(
 }
 
 function createGround() {
-  return createBox(
-    new Cannon.Vec3(0, 0, 0),
-    new Cannon.Vec3(10, 0.1, 10),
-    Cannon.Body.STATIC,
-    0xffffff,
-    0,
-  )
+  const body = new Cannon.Body({
+    mass: 0,
+    type: Cannon.Body.STATIC,
+    position: new Cannon.Vec3(0, 0, 0),
+    shape: groundShape,
+  })
+  const material = new Three.MeshLambertMaterial({ color: 0x333333 })
+  const mesh = new Three.Mesh(groundGeometry, material)
+  return [
+    // identify our third-party objects as Javelin components
+    toComponent(body, Body),
+    toComponent(mesh, Mesh),
+  ]
 }
 
 function copyBodyToMesh(
@@ -95,7 +100,7 @@ world.addSystem(function spawn({ create }) {
     // spawn the ground
     create(...createGround())
     // spawn boxes at semi-random points
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 100; i++) {
       create(...createBox(new Cannon.Vec3(random(20), 20, random(20))))
     }
   }
