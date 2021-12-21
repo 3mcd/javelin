@@ -28,8 +28,7 @@ scene.add(
 )
 
 function scale() {
-  const parent = canvas.parentElement!
-  const { width, height } = parent.getBoundingClientRect()
+  const { innerWidth: width, innerHeight: height } = window
   camera.aspect = width / height
   camera.updateProjectionMatrix()
   renderer.setSize(width, height)
