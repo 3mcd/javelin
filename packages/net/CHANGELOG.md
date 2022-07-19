@@ -1,5 +1,11 @@
 # @javelin/net
 
+## 1.0.0-alpha.13
+
+### Patch Changes
+
+- Fixed issue where patches from multiple components are rolled into the same patch
+
 ## 1.0.0-alpha.12
 
 ### Patch Changes

@@ -12,6 +12,7 @@
     "@javelin/isomorphic-utils": "1.0.0-alpha.9"
   },
   "changesets": [
+    "bright-guests-travel",
     "eighty-drinks-thank",
     "proud-horses-ring",
     "rich-melons-carry",
