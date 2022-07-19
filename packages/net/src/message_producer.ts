@@ -62,7 +62,7 @@ export function createMessageProducer(
   const queue: Message.Message[] = [Message.createMessage()]
   const entityPriorities = new EntityPriorityQueue()
   const entityUpdates = createEntityMap<Map<number, Component>>()
-  const entityPatches = createEntityMap<Patch>()
+  const entityPatches = createEntityMap<Map<number, Patch>>()
 
   let previousModel: Model | null = null
 
@@ -111,8 +111,14 @@ export function createMessageProducer(
   }
 
   function patch(entity: Entity, component: Component, priority = 1) {
-    // merge entity changes into existing patch (if any)
-    entityPatches[entity] = createPatch(component, entityPatches[entity])
+    const id = getSchemaId(component)
+    const patches = (entityPatches[entity] ??= new Map())
+    const patch = patches.get(id)
+    if (patch === undefined) {
+      patches.set(id, createPatch(component))
+    } else {
+      createPatch(component, patch)
+    }
     amplify(entity, priority)
   }
 
@@ -146,29 +152,34 @@ export function createMessageProducer(
       if (entity === null || entity === undefined) {
         break
       }
-      const update = entityUpdates[entity]
-      const patch = entityPatches[entity]
+      const updates = entityUpdates[entity]
+      const patches = entityPatches[entity]
       // include component updates
-      if (update && update.size > 0) {
-        const components = Array.from(update.values())
+      if (updates && updates.size > 0) {
+        const components = Array.from(updates.values())
         const op = MessageOp.snapshot(model, entity, components)
         // message would exceed max byte length
         if (op.byteLength + message?.byteLength >= maxByteLength) {
           break
         }
         Message.insert(message, Message.MessagePartKind.Snapshot, op)
-        update.clear()
+        updates.clear()
       }
       // include component patches
-      if (patch && (patch.changes.size > 0 || patch.children.size > 0)) {
-        const op = MessageOp.patch(model, entity, patch)
-        // message would exceed max byte length
-        if (op.byteLength + message?.byteLength >= maxByteLength) {
-          break
+      if (patches && patches.size > 0) {
+        for (const patch of patches.values()) {
+          if (patch.changes.size === 0) {
+            continue
+          }
+          const op = MessageOp.patch(model, entity, patch)
+          // message would exceed max byte length
+          if (op.byteLength + message?.byteLength >= maxByteLength) {
+            break
+          }
+          Message.insert(message, Message.MessagePartKind.Patch, op)
+          // reset the patch since it was incorporated into a message
+          resetPatch(patch)
         }
-        Message.insert(message, Message.MessagePartKind.Patch, op)
-        // reset the patch since it was incorporated into a message
-        resetPatch(patch)
       }
     }
     return message

@@ -100,6 +100,10 @@ world.addSystem(world => {
     producer.patch(e, t, amplify)
     clearObservedChanges(t)
   })
+  transformsInShell((e, [, s]) => {
+    producer.patch(e, s)
+    clearObservedChanges(s)
+  })
 
   if (send) {
     const message = producer.take()
@@ -145,6 +149,14 @@ world.addSystem(world => {
     )
   }
 })
+
+world.addSystem(() =>
+  transformsInShell((_, [, s]) => {
+    if (Math.random() > 0.95) {
+      observe(s).value = s.value + (Math.random() > 0.5 ? 1 : -1)
+    }
+  }),
+)
 
 world.addSystem(() =>
   transformsInShell((e, [t, s]) => {
