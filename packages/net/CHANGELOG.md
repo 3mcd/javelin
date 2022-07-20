@@ -1,5 +1,11 @@
 # @javelin/net
 
+## 1.0.0-alpha.14
+
+### Patch Changes
+
+- upgrade pnpm to fix releases on node 18
+
 ## 1.0.0-alpha.13
 
 ### Patch Changes

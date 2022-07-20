@@ -15,7 +15,7 @@
   },
   "repository": "git@github.com:3mcd/javelin",
   "scripts": {
-    "build": "pnpm build -r",
+    "build": "pnpm -r build",
     "docs:assets": "cp -r ./examples/interop/dist/assets/. ./docs-src/static",
     "docs:build": "pnpm docs:assets && cd ./docs-src && zola build --output-dir ../docs",
     "docs": "pnpm docs:assets && cd ./docs-src && zola serve",
