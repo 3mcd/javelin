@@ -1,5 +1,11 @@
 # @javelin/net
 
+## 1.0.0-alpha.15
+
+### Patch Changes
+
+- fix bug in patch messages where string view length was not considered
+
 ## 1.0.0-alpha.14
 
 ### Patch Changes
