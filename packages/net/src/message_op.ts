@@ -14,6 +14,7 @@ import {
   ByteView,
   encode,
   ModelEnhanced,
+  StringView,
   uint16,
   uint32,
   uint8,
@@ -50,7 +51,9 @@ export function insert(op: MessageOp, data: unknown, view: ByteView): number
 export function insert(op: MessageOp, data: unknown, view?: ByteView) {
   op.data.push(data)
   op.view.push(view ?? $buffer)
-  op.byteLength += view ? view.byteLength : (data as ArrayBuffer).byteLength
+  op.byteLength += view
+    ? view.byteLength * ((view as StringView).length ?? 1)
+    : (data as ArrayBuffer).byteLength
   return op.data.length - 1
 }
 
