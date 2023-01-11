@@ -1,11 +1,11 @@
 import {
-  component,
+  value,
   Monitor,
   Node,
   Term,
   Type,
   World,
-  PhaseId,
+  Phase,
 } from "@javelin/ecs"
 import {exists} from "@javelin/lib"
 import {NetworkModel} from "../network_resources.js"
@@ -14,8 +14,8 @@ import {WriteStream} from "../stream/write_stream.js"
 
 const UPDATE = 0
 
-export let Awareness = component<Awareness>()
-export let AwarenessState = component<AwarenessState>()
+export let Awareness = value<Awareness>()
+export let AwarenessState = value<AwarenessState>()
 
 export interface Awareness {
   readonly interests: Interest[]
@@ -31,12 +31,8 @@ export class InterestState {
   #stream
   #monitor
 
-  constructor(
-    node: Node,
-    excludedTerms: Term[],
-    interest: Interest,
-  ) {
-    this.#monitor = new Monitor(node, PhaseId.Commit, excludedTerms) // get exclcuded terms and final type?!
+  constructor(node: Node, excludedTerms: Term[], interest: Interest) {
+    this.#monitor = new Monitor(node, Phase.Apply, excludedTerms) // get exclcuded terms and final type?!
     this.#interest = interest
     this.#stream = new WriteStream(
       1 + 4 + 4 + 4 + interest.type.components.length * 4,
@@ -52,6 +48,9 @@ export class InterestState {
     networkModel: NetworkModel,
     networkTransport: NetworkTransport,
   ) {
+    if (!this.#monitor) {
+      return
+    }
     let {includedSize, excludedSize} = this.#monitor
     if (includedSize > 0 || excludedSize > 0) {
       let sortedTerms = this.#interest.type.components

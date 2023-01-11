@@ -15,14 +15,16 @@ import {
 export let Client = type(NetworkTransport, Awareness)
 
 let initializeAwarenessSystem = (world: World) => {
+  world.monitor(Client).eachIncluded(entity => {
+    console.log("creating client ", entity, " awareness state")
+    let awareness = expect(world.get(entity, Awareness))
+    let awarenessState = new AwarenessStateImpl(world, awareness)
+    world.add(entity, type(AwarenessState), awarenessState)
+  })
   world
-    .monitor(Client)
-    .eachIncluded(entity => {
-      let awareness = expect(world.get(entity, Awareness))
-      let awarenessState = new AwarenessStateImpl(world, awareness)
-      world.add(entity, type(AwarenessState), awarenessState)
-    })
+    .monitorImmediate(Client, AwarenessState)
     .eachExcluded(entity => {
+      console.log("removing client ", entity, " awareness state")
       let awarenessState = expect(world.get(entity, AwarenessState))
       awarenessState.dispose()
       world.remove(entity, type(AwarenessState))
@@ -46,6 +48,6 @@ export let serverPlugin = (app: App) => {
   let networkModel = new NetworkModelImpl(networkTerms)
   app
     .addResource(NetworkModel, networkModel)
-    .addSystemToGroup(Group.Early, initializeAwarenessSystem)
+    .addSystemToGroup(Group.EarlyUpdate, initializeAwarenessSystem)
     .addSystemToGroup(Group.Late, sendClientMessagesSystem)
 }

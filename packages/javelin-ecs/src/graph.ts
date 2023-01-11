@@ -8,7 +8,6 @@ import {
   SparseSet,
 } from "@javelin/lib"
 import {Entity} from "./entity.js"
-import {PhaseEvent} from "./phase.js"
 import {isRelationship} from "./relation.js"
 import {Signal} from "./signal.js"
 import {Component} from "./term.js"
@@ -324,7 +323,10 @@ export class Graph {
    * Create and insert a node whose type is a union of a node's type and
    * another type.
    */
-  #createNodeAnd(node: Node, type: Type) {
+  #createNodeAdd(node: Node, type: Type) {
+    if (node === this.root) {
+      return this.#createNode(type.components)
+    }
     let addTerms: Component[] = []
     let nodeTermIndex = 0
     let typeTermIndex = 0
@@ -362,7 +364,10 @@ export class Graph {
    * Create and insert a node whose type is the symmetric difference of a
    * node's type and another type.
    */
-  #createNodeRemove(node: Node, type: Type) {
+  #createNodeRem(node: Node, type: Type) {
+    if (node === this.root) {
+      return node
+    }
     let remTerms: Component[] = []
     let nodeTermIndex = 0
     let typeTermIndex = 0
@@ -480,8 +485,7 @@ export class Graph {
    */
   nodeAddType(node: Node, type: Type): Node {
     return (
-      node.edgesAdd.get(type.hash) ??
-      this.#createNodeAnd(node, type)
+      node.edgesAdd.get(type.hash) ?? this.#createNodeAdd(node, type)
     )
   }
 
@@ -491,8 +495,7 @@ export class Graph {
    */
   nodeRemoveType(node: Node, type: Type): Node {
     return (
-      node.edgesRem.get(type.hash) ??
-      this.#createNodeRemove(node, type)
+      node.edgesRem.get(type.hash) ?? this.#createNodeRem(node, type)
     )
   }
 }

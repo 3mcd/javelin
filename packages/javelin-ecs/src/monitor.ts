@@ -5,33 +5,6 @@ import {TransactionEvent} from "./transaction.js"
 
 type MonitorIteratee = (entity: Entity) => void
 
-class MonitorBatchBuffer {
-  #old
-  #new
-
-  constructor() {
-    this.#old = [] as Set<Entity>[]
-    this.#new = [] as Set<Entity>[]
-  }
-
-  swap() {
-    let ready = this.#old
-    this.#old = this.#new
-    this.#new = ready
-    while (ready.length > 0) {
-      ready.pop()
-    }
-  }
-
-  push(batch: Set<Entity>) {
-    this.#new.push(batch)
-  }
-
-  get() {
-    return this.#old
-  }
-}
-
 export class Monitor {
   #excludedComponents
   #excludedEntityBatches
@@ -46,8 +19,8 @@ export class Monitor {
     excludedComponents: Component[] = [],
   ) {
     this.#excludedComponents = excludedComponents
-    this.#excludedEntityBatches = new MonitorBatchBuffer()
-    this.#includedEntityBatches = new MonitorBatchBuffer()
+    this.#excludedEntityBatches = [] as Set<Entity>[]
+    this.#includedEntityBatches = [] as Set<Entity>[]
     this.#phase = phase
     node.traverseAdd(node => {
       if (this.#matchesNode(node)) {
@@ -95,44 +68,40 @@ export class Monitor {
   }
 
   eachIncluded(iteratee: MonitorIteratee) {
-    let batches = this.#includedEntityBatches.get()
-    for (let i = 0; i < batches.length; i++) {
-      let batch = batches[i]
+    for (let i = 0; i < this.#includedEntityBatches.length; i++) {
+      let batch = this.#includedEntityBatches[i]
       batch.forEach(iteratee)
     }
     return this
   }
 
   eachExcluded(iteratee: MonitorIteratee) {
-    let batches = this.#excludedEntityBatches.get()
-    for (let i = 0; i < batches.length; i++) {
-      let batch = batches[i]
+    for (let i = 0; i < this.#excludedEntityBatches.length; i++) {
+      let batch = this.#excludedEntityBatches[i]
       batch.forEach(iteratee)
     }
     return this
   }
 
   get includedSize() {
-    let batches = this.#includedEntityBatches.get()
     let size = 0
-    for (let i = 0; i < batches.length; i++) {
-      size += batches[i].size
+    for (let i = 0; i < this.#includedEntityBatches.length; i++) {
+      size += this.#includedEntityBatches[i].size
     }
     return size
   }
 
   get excludedSize() {
-    let batches = this.#excludedEntityBatches.get()
     let size = 0
-    for (let i = 0; i < batches.length; i++) {
-      size += batches[i].size
+    for (let i = 0; i < this.#excludedEntityBatches.length; i++) {
+      size += this.#excludedEntityBatches[i].size
     }
     return size
   }
 
   drain() {
-    this.#includedEntityBatches.swap()
-    this.#excludedEntityBatches.swap()
+    while (this.#includedEntityBatches.pop()) {}
+    while (this.#excludedEntityBatches.pop()) {}
   }
 
   dispose() {

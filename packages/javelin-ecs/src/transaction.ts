@@ -99,7 +99,7 @@ export class Transaction {
     this.#entityBatches = new Map<bigint, Set<Entity>>()
   }
 
-  find(entity: Entity) {
+  locateEntity(entity: Entity) {
     let currBatchKey = this.#entityIndex.get(entity)
     if (!exists(currBatchKey)) {
       return
@@ -107,7 +107,7 @@ export class Transaction {
     return decomposeBatchKeyNext(currBatchKey)
   }
 
-  reloc(entity: Entity, prevHash: number, nextHash: number) {
+  relocateEntity(entity: Entity, prevHash: number, nextHash: number) {
     let prevBatchKey = this.#entityIndex.get(entity) ?? 0n
     let prevBatch = this.#entityBatches.get(prevBatchKey)
     if (exists(prevBatch)) {
@@ -123,11 +123,12 @@ export class Transaction {
     this.#entityIndex.set(entity, nextBatchKey)
   }
 
-  drain(graph: Graph, phase: string, iteratee?: TransactionIteratee) {
-    this.#entityBatches.forEach(function emitBatch(
-      batch,
-      batchKey,
-    ) {
+  drainEntities(
+    graph: Graph,
+    phase: string,
+    iteratee?: TransactionIteratee,
+  ) {
+    this.#entityBatches.forEach(function emitBatch(batch, batchKey) {
       let prevHash = decomposeBatchKeyPrev(batchKey)
       let nextHash = decomposeBatchKeyNext(batchKey)
       let prevNode = graph.findNode(prevHash)

@@ -172,11 +172,11 @@ export class App {
           ) {
             this.world.setResource(CurrentSystem, system)
             let monitors = system.monitors.values()
+            system.run(this.world)
             for (let k = 0; k < monitors.length; k++) {
               let monitor = monitors[k]
               monitor.drain()
             }
-            system.run(this.world)
             this.world.emitStagedChanges()
           }
         }

@@ -1,3 +1,3 @@
-import {component} from "@javelin/ecs"
+import {value} from "@javelin/ecs"
 
-export let NetworkId = component("f32")
+export let NetworkId = value("f32")

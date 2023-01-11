@@ -10,6 +10,7 @@ import {makeSelector, Selector, Type} from "./type.js"
 import {World, Values} from "./world.js"
 import {slot} from "./slot.js"
 
+export {Phase} from "./world"
 export type {Entity} from "./entity.js"
 export {Monitor} from "./monitor.js"
 export {Node} from "./graph.js"

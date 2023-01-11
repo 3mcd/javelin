@@ -1,4 +1,4 @@
-import {app, Group, type} from "@javelin/ecs"
+import {app, Entity, Group, type} from "@javelin/ecs"
 import {
   awareness,
   Client,
@@ -16,9 +16,7 @@ import {Transform} from "./transform.js"
 let httpServer = createServer()
 
 let websocketServer = new WebSocketServer({server: httpServer})
-let websocketTransport = (
-  websocket: WebSocket,
-): NetworkTransport => {
+let websocketTransport = (websocket: WebSocket): NetworkTransport => {
   let inbox: Uint8Array[] = []
   websocket.binaryType = "arraybuffer"
   websocket.on("message", data => {
@@ -33,7 +31,8 @@ let websocketTransport = (
     },
   }
 }
-let websocketQueue: WebSocket[] = []
+let openedWebsocketQueue: WebSocket[] = []
+let closedClientQueue: Entity[] = []
 
 let transformInterest = interest(type(Transform).type)
 
@@ -44,28 +43,30 @@ let game = app()
   })
   .addSystemToGroup(Group.Early, world => {
     let websocket: WebSocket | undefined
-    while ((websocket = websocketQueue.pop())) {
+    while ((websocket = openedWebsocketQueue.pop())) {
       if (websocket.readyState !== websocket.OPEN) {
         continue
       }
       let clientTransport = websocketTransport(websocket)
-      let clientAwareness = awareness().addInterest(
-        transformInterest,
-      )
+      let clientAwareness = awareness().addInterest(transformInterest)
       let client = world.create(
         Client,
         clientTransport,
         clientAwareness,
       )
       websocket.on("close", () => {
-        world.delete(client)
+        closedClientQueue.push(client)
       })
+    }
+    let client: Entity | undefined
+    while ((client = closedClientQueue.pop()) !== undefined) {
+      world.delete(client)
     }
   })
   .use(serverPlugin)
 
 websocketServer.on("connection", websocket => {
-  websocketQueue.push(websocket)
+  openedWebsocketQueue.push(websocket)
 })
 
 httpServer.listen(8080)
