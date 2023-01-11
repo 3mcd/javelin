@@ -1,1 +1,0 @@
-# `@javelin/isomorphic-utils`

@@ -1,0 +1,28 @@
+{
+  "name": "@javelin/shooty",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "pnpm run start:client & pnpm run start:server",
+    "start:client": "vite",
+    "start:server": "node --loader ts-node/esm --experimental-specifier-resolution=node ./server/index.ts"
+  },
+  "keywords": [],
+  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@javelin/ecs": "workspace:*",
+    "@javelin/net": "workspace:*",
+    "ts-node": "^10.9.1",
+    "vite": "^3.2.3",
+    "ws": "^8.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.17",
+    "@types/ws": "^8.5.3",
+    "typescript": "^4.9.4"
+  }
+}

@@ -1,31 +1,31 @@
 {
   "name": "javelin",
   "private": true,
-  "license": "MIT",
-  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
-  "description": "Monorepo for Javelin – a toolkit for building multiplayer games in JavaScript",
-  "dependencies": {
-    "@changesets/cli": "^2.16.0",
-    "@types/jest": "^26.0.20",
-    "jest": "^27.0.4",
-    "npm-run-all": "^4.1.5",
-    "ts-jest": "^27.0.3",
-    "ts-node": "^10.0.0",
-    "typescript": "^4.3.2"
-  },
-  "repository": "git@github.com:3mcd/javelin",
+  "version": "2.0.0-alpha.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "build": "pnpm -r build",
-    "docs:assets": "cp -r ./examples/interop/dist/assets/. ./docs-src/static",
-    "docs:build": "pnpm docs:assets && cd ./docs-src && zola build --output-dir ../docs",
-    "docs": "pnpm docs:assets && cd ./docs-src && zola serve",
-    "example:spin": "pnpm start --filter=@javelin/spin",
-    "example:interop": "pnpm start --filter=@javelin/interop",
-    "test": "jest"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "perf": "pnpm -r perf",
+    "build": "preconstruct build",
+    "postinstall": "preconstruct dev"
   },
-  "workspaces": [
-    "packages/*",
-    "examples/*"
-  ],
-  "version": "0.0.1"
+  "keywords": [],
+  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^3.2.3",
+    "vitest": "^0.25.1"
+  },
+  "preconstruct": {
+    "packages": [
+      "packages/*"
+    ]
+  },
+  "dependencies": {
+    "@babel/core": "^7.20.5",
+    "@babel/preset-typescript": "^7.18.6",
+    "@preconstruct/cli": "^2.2.2",
+    "typescript": "^4.9.4"
+  }
 }

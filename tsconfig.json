@@ -1,18 +1,14 @@
 {
   "compilerOptions": {
-    "composite": true,
-    "declaration": true,
-    "declarationMap": true,
-    "downlevelIteration": true,
-    "esModuleInterop": true,
+    "target": "esnext",
     "module": "esnext",
+    "composite": true,
+    "isolatedModules": true,
+    "downlevelIteration": true,
     "moduleResolution": "node",
-    "noImplicitAny": true,
-    "skipLibCheck": true,
-    "sourceMap": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "target": "es2019"
+    "strict": true
   },
-  "exclude": ["node_modules"]
+  "ts-node": {
+    "esm": true
+  }
 }

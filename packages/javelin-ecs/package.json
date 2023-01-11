@@ -1,0 +1,28 @@
+{
+  "name": "@javelin/ecs",
+  "type": "module",
+  "version": "2.0.0-alpha.0",
+  "description": "",
+  "main": "dist/javelin-ecs.cjs.js",
+  "module": "dist/javelin-ecs.esm.js",
+  "exports": {
+    "import": "./dist/javelin-ecs.esm.js",
+    "require": "./dist/javelin-ecs.cjs.js"
+  },
+  "scripts": {
+    "test": "vitest"
+  },
+  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
+  "license": "MIT",
+  "preconstruct": {
+    "entrypoints": [
+      "index.ts"
+    ]
+  },
+  "dependencies": {
+    "@javelin/lib": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^0.25.1"
+  }
+}
