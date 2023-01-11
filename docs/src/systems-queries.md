@@ -22,7 +22,7 @@ planets.each(planet => {
 })
 ```
 
-Query terms may include types, components (including [relation tags](http://localhost:3000/components-relationships.html), [relationships](http://localhost:3000/components-relationships.html), [slot tags](http://localhost:3000/components-enums.html), and [slot members](http://localhost:3000/components-enums.html)), and filters, discussed later in the chapter.
+Query terms may include types, components (including [relation tags](./components-relationships.md) and relationship components, [slot tags](./components-enums.md) and slot components), and filters, discussed later in the chapter.
 
 ## Query Views
 
