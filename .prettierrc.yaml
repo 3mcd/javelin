@@ -1,0 +1,11 @@
+arrowParens: "avoid"
+bracketSpacing: false
+insertPragma: false
+jsxBracketSameLine: false
+printWidth: 70
+proseWrap: "preserve"
+requirePragma: false
+semi: false
+tabWidth: 2
+trailingComma: "all"
+useTabs: false

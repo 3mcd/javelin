@@ -3,7 +3,7 @@ import {Node} from "./graph.js"
 import {Component} from "./term.js"
 import {TransactionEvent} from "./transaction.js"
 
-type MonitorIteratee = (entity: number) => void
+type MonitorIteratee = (entity: Entity) => void
 
 class MonitorBatchBuffer {
   #old
@@ -54,14 +54,12 @@ export class Monitor {
         this.#includeBatch(new Set(node.entities))
       }
     })
-    this.#unsubscribeEntitiesIncluded =
-      node.onEntitiesIncluded.add(event =>
-        this.#handleIncludeEvent(event),
-      )
-    this.#unsubscribeEntitiesExcluded =
-      node.onEntitiesExcluded.add(event =>
-        this.#handleExcludeEvent(event),
-      )
+    this.#unsubscribeEntitiesIncluded = node.onEntitiesIncluded.add(
+      event => this.#handleIncludeEvent(event),
+    )
+    this.#unsubscribeEntitiesExcluded = node.onEntitiesExcluded.add(
+      event => this.#handleExcludeEvent(event),
+    )
   }
 
   #matchesEvent(event: TransactionEvent) {

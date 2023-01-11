@@ -1,4 +1,4 @@
-import {App, component, Group, type, World} from "@javelin/ecs"
+import {App, value, Group, type, World} from "@javelin/ecs"
 import {Box} from "./box.js"
 import {DisposeTimer} from "./dispose.js"
 import {Enemy} from "./enemy.js"
@@ -9,9 +9,9 @@ import {Position} from "./position.js"
 
 const BULLET_SIZE = 1
 
-export let BulletDamage = component("f32")
-export let BulletPierce = component("f32")
-export let BulletCollisions = component<Set<number>>()
+export let BulletDamage = value("f32")
+export let BulletPierce = value("f32")
+export let BulletCollisions = value<Set<number>>()
 export let Bullet = type(
   Position,
   Box,
@@ -70,12 +70,7 @@ let collideBulletsSystem = (world: World) =>
           .each((enemy, enemyPos, enemyBox, enemyHealth) => {
             if (
               !bulletCollisions.has(enemy) &&
-              boxIntersects(
-                bulletPos,
-                bulletBox,
-                enemyPos,
-                enemyBox,
-              )
+              boxIntersects(bulletPos, bulletBox, enemyPos, enemyBox)
             ) {
               let nextBulletPierce = bulletPierce - 1
               if (nextBulletPierce <= 0) {

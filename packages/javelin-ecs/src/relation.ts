@@ -1,6 +1,6 @@
 import {assert} from "@javelin/lib"
 import {HI_MASK, idHi, idLo, makeId} from "./entity.js"
-import {makeTag, Component, Tag} from "./term.js"
+import {makeTagComponent, Component, Tag} from "./term.js"
 
 export interface Relation {
   relationId: number
@@ -13,7 +13,7 @@ let relations: Relation[] = []
 
 export let makeRelation = (): Relation => {
   let relationId = relationIds++
-  let relationTerm = makeTag()
+  let relationTerm = makeTagComponent()
   assert(relationId <= HI_MASK)
   let relationAttrs = {
     relationId: relationId,
@@ -33,8 +33,7 @@ export let makeRelation = (): Relation => {
   return relation
 }
 
-export let getRelation = (relationId: number) =>
-  relations[relationId]
+export let getRelation = (relationId: number) => relations[relationId]
 
 export let isRelation = (object: object): object is Relation =>
   "relation_id" in object

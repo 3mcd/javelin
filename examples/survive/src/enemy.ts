@@ -1,12 +1,4 @@
-import {
-  App,
-  component,
-  Group,
-  tag,
-  type,
-  slot,
-  World,
-} from "@javelin/ecs"
+import {App, value, Group, tag, type, slot, World} from "@javelin/ecs"
 import {AuraImmune} from "./aura.js"
 import {Box} from "./box.js"
 import {Clock} from "./clock.js"
@@ -21,13 +13,13 @@ export const ENEMY_HEIGHT = 2
 export const ENEMY_SPAWN_FREQUENCY = 1_000
 export const ENEMY_SPAWN_FACTOR = 100
 
-let Bat = component()
-let Rat = component()
+let Bat = value()
+let Rat = value()
 
 export let EnemyType = slot(Bat, Rat)
 
 export let IsEnemy = tag()
-export let EnemyAttackTime = component("f32")
+export let EnemyAttackTime = value("f32")
 export let Enemy = type(
   IsEnemy,
   Position,
@@ -161,12 +153,7 @@ let enemyAttackSystem = (world: World) => {
         .each((enemy, enemyPos, enemyBox, enemyAttackTime) => {
           if (
             clock.time >= enemyAttackTime &&
-            boxIntersects(
-              playerPos,
-              playerBox,
-              enemyPos,
-              enemyBox,
-            )
+            boxIntersects(playerPos, playerBox, enemyPos, enemyBox)
           ) {
             let nextPlayerHealth =
               playerHealth - Math.ceil(Math.random() * 2)

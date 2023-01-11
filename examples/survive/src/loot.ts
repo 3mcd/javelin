@@ -1,7 +1,7 @@
 import {
   App,
   ChildOf,
-  component,
+  value,
   Group,
   tag,
   type,
@@ -20,8 +20,8 @@ import {Position} from "./position.js"
 export let IsLoot = tag()
 export let LootBag = type(IsLoot, Position, Box, DisposeTimer)
 
-export let Quiver = component("f32")
-export let HealthPotion = component("f32")
+export let Quiver = value("f32")
+export let HealthPotion = value("f32")
 
 let makeLoot = (world: World, x: number, y: number) =>
   world.create(
@@ -61,9 +61,7 @@ let pickUpLootSystem = (world: World) =>
         playerAura,
       ) =>
         world.of(LootBag).each((lootBag, lootPos, lootBox) => {
-          if (
-            boxIntersects(playerPos, playerBox, lootPos, lootBox)
-          ) {
+          if (boxIntersects(playerPos, playerBox, lootPos, lootBox)) {
             world
               .of(ChildOf(lootBag), HealthPotion)
               .each((_, healthPotion) => {

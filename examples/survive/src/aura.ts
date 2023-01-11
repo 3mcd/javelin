@@ -1,4 +1,4 @@
-import {App, component, tag, type, Without, World} from "@javelin/ecs"
+import {App, value, tag, type, Without, World} from "@javelin/ecs"
 import {Box} from "./box.js"
 import {Health} from "./health.js"
 import {circleBoxIntersects, normalize, subtract} from "./math.js"
@@ -7,7 +7,7 @@ import {Position} from "./position.js"
 export const AURA_DAMAGE = 1
 export const AURA_SCALE_FACTOR = 0.1
 
-export let Aura = component("f32")
+export let Aura = value("f32")
 export let AuraImmune = tag()
 export let AuraSource = type(Aura, Position)
 export let AuraTarget = type(Position, Box, Health)
@@ -43,5 +43,4 @@ export let pushAuraSystem = (world: World) =>
       })
   })
 
-export let auraPlugin = (app: App) =>
-  app.addSystem(pushAuraSystem)
+export let auraPlugin = (app: App) => app.addSystem(pushAuraSystem)

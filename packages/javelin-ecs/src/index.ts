@@ -1,13 +1,11 @@
-import {
-  App,
-  DefaultGroup,
-  Plugin,
-  Constrain,
-  makeApp,
-} from "./app.js"
+import {App, DefaultGroup, Plugin, Constrain, makeApp} from "./app.js"
 import {ChildOf, makeRelation, Without} from "./relation.js"
 import {resource} from "./resource.js"
-import {makeComponent, makeTag, Component} from "./term.js"
+import {
+  makeValueComponent,
+  makeTagComponent,
+  Component,
+} from "./term.js"
 import {makeSelector, Selector, Type} from "./type.js"
 import {World, Values} from "./world.js"
 import {slot} from "./slot.js"
@@ -21,11 +19,11 @@ export {
   makeApp as app,
   slot,
   ChildOf,
-  makeComponent as component,
+  makeValueComponent as value,
   DefaultGroup as Group,
   makeRelation as relation,
   resource,
-  makeTag as tag,
+  makeTagComponent as tag,
   makeSelector as type,
   Without,
   World,

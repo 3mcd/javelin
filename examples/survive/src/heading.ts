@@ -1,8 +1,8 @@
-import {component} from "@javelin/ecs"
+import {value} from "@javelin/ecs"
 
 type Heading = {
   x: number
   y: number
 }
 
-export let Heading = component<Heading>({x: "f32", y: "f32"})
+export let Heading = value<Heading>({x: "f32", y: "f32"})

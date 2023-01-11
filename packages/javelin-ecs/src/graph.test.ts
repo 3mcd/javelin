@@ -1,12 +1,12 @@
 import {Maybe} from "@javelin/lib"
 import {suite, test, expect} from "vitest"
 import {Graph, Node} from "./graph.js"
-import {makeTag} from "./term.js"
+import {makeTagComponent} from "./term.js"
 import {Type} from "./type.js"
 
-let a = makeTag()
-let b = makeTag()
-let c = makeTag()
+let a = makeTagComponent()
+let b = makeTagComponent()
+let c = makeTagComponent()
 
 suite("Graph", () => {
   test("node links", () => {

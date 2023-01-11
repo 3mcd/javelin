@@ -50,21 +50,21 @@ export let expressComponent = <T>(
   return value as unknown as ComponentValue<T>
 }
 
-export function makeTag(): Component<Tag> {
+export function makeTagComponent(): Component<Tag> {
   let component = componentIds++ as Component<Tag>
   assert(component <= LO_MASK)
   return component
 }
 
-export function makeComponent<T>(
+export function makeValueComponent<T>(
   schema: SchemaOf<T>,
 ): Component<SchemaOf<T>>
-export function makeComponent<T>(): Component<T>
-export function makeComponent<T extends Schema>(
+export function makeValueComponent<T>(): Component<T>
+export function makeValueComponent<T extends Schema>(
   schema: T,
 ): Component<T>
-export function makeComponent(schema?: Schema) {
-  let component = makeTag() as Component
+export function makeValueComponent(schema?: Schema) {
+  let component = makeTagComponent() as Component
   setSchema(component, schema ?? Dynamic)
   componentSchemas[component] = schema ?? Dynamic
   return component

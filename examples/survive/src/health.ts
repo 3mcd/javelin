@@ -1,6 +1,6 @@
-import {App, component, Group, World} from "@javelin/ecs"
+import {App, value, Group, World} from "@javelin/ecs"
 
-export let Health = component("f32")
+export let Health = value("f32")
 
 export let pruneDeadSystem = (world: World) =>
   world.of(Health).each((e, health) => {

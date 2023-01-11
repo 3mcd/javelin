@@ -1,7 +1,7 @@
-import {App, component, Group, World} from "@javelin/ecs"
+import {App, value, Group, World} from "@javelin/ecs"
 import {Clock} from "./clock.js"
 
-export let DisposeTimer = component("f32")
+export let DisposeTimer = value("f32")
 
 let pruneExpiredDisposablesSystem = (world: World) => {
   let clock = world.getResource(Clock)
