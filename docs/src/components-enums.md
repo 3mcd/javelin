@@ -22,8 +22,8 @@ world.of(MovementState).each((entity) => {
 })
 ```
 
-Slots are implemented as [relation components](./components-relationships.md), so they follow the same semantics. This also means that a slot produces unique components that are independent of those it was defined with. Below is an example of an type that uses a slot to ensure the entity has at most one element (e.g. water, fire, poison), while also integrating another `Poison` component value for a separate use.
+Slots are implemented as [relation components](./components-relationships.md), so they follow the same semantics. This also means that a slot produces unique components that are independent of those it was defined with. Below is an example of a type that uses a slot to ensure the entity has at most one element (e.g. water, fire, poison), while also integrating another `Poison` component value for a separate use.
 
 ```ts
-world.create(type(Element(Poison), Poison))
+type(Element(Poison), Poison)
 ```
