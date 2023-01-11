@@ -76,7 +76,7 @@ Groups are run in the order they appear in the above enum. There are no rules ar
 1. `Group.Early` can be used for detecting device input, processing incoming network messages, and any additional housekeeping that doesn't touch the primary entities in your game.
 2. `Group.EarlyUpdate` might be used for behaviors that have important implications for most entities in your game, like applying player input and updating a physics simulation.
 3. `Group.Update` can be used for core game logic, like handling entity collision events, applying damage-over-time effects, spawning entities, etc.
-4. `Group.LateUpdate` can be used to spawn and destroy entities because entity operations are [deferred until the end of a step](./entities.md#transactions) anyways.
+4. `Group.LateUpdate` can be used to spawn and destroy entities because entity operations are [deferred until the end of a step](./entities.md#entity-transaction) anyways.
 5. `Group.Late` might be used to render the scene, send outgoing network messages, serialize game state, etc.
 
 Systems are grouped using an app's `addSystemToGroup` method:

@@ -33,7 +33,7 @@ In plain terms, monitors execute the callback provided to `eachIncluded` for eac
 
 ## Data Transience
 
-Because [entity operations are deferred](./entities.md#transactions) to the end of a step, component values are no longer available to a system by the time a monitor executes it's `eachExcluded` callback.
+Because [entity operations are deferred](./entities.md#entity-transaction) to the end of a step, component values are no longer available to a system by the time a monitor executes it's `eachExcluded` callback.
 
 If you wish to access component values of an entity that no longer matches a monitor's terms, you can use a world's `monitorImmediate` method. `monitorImmediate` returns a monitor that is configured to run within the current step.
 
