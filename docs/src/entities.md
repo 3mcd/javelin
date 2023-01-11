@@ -66,7 +66,7 @@ world.delete(entity)
 Entity operations are deferred until the end of each step. Take the following example where a `systemB` downstream of `systemA` fails to locate a newly created entity within a single step.
 
 ```ts
-app
+game
   // systemA
   .addSystem(world => {
     world.create(Hippo)

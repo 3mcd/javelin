@@ -201,7 +201,7 @@ game.addSystemToGroup(Group.LateUpdate, drawBoxSystem, _ => _.after(clearCanvasS
 Our final app initialization statement should look like this:
 
 ```ts
-app
+game
   .addResource(Context2D, context)
   .addInitSystem(createBoxSystem)
   .addSystem(moveBoxSystem)
@@ -209,11 +209,11 @@ app
   .addSystemToGroup(Group.LateUpdate, drawBoxSystem, _ => _.after(clearCanvasSystem))
 ```
 
-Once we call `game.step()` at a regular interval, you should see our box move when the arrow keys are pressed.
+We can execute all of our app's registered systems using the app's `step` method. If we call `step` at a regular interval, the box should move in response to arrow key presses.
 
 ```ts
 function loop() {
-  app.step()
+  game.step()
   requestAnimationFrame(loop)
 }
 loop()
