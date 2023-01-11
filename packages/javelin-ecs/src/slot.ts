@@ -1,29 +1,29 @@
 import {assert} from "@javelin/lib"
-import {make_relation, Relation} from "./relation.js"
-import {Component, get_schema, has_schema, set_schema} from "./term"
+import {makeRelation, Relation} from "./relation.js"
+import {Component, getSchema, hasSchema, setSchema} from "./term"
 
 let slots = [] as Relation[]
 
-export let is_slot = (component: number) => component in slots
+export let isSlot = (component: number) => component in slots
 
 export function slot<T extends Component[]>(...components: T) {
-  let slot_relation = make_relation()
-  let slot_relationships = [] as number[]
-  let slot_components = new Set(components)
-  slots[slot_relation.relation_id] = slot_relation
+  let slotRelation = makeRelation()
+  let slotRelationships = [] as number[]
+  let slotComponents = new Set(components)
+  slots[slotRelation.relationId] = slotRelation
   for (let i = 0; i < components.length; i++) {
     let component = components[i]
-    let relationship = slot_relation(component)
-    slot_relationships[component] = relationship
-    if (has_schema(component)) {
-      set_schema(relationship, get_schema(component))
+    let relationship = slotRelation(component)
+    slotRelationships[component] = relationship
+    if (hasSchema(component)) {
+      setSchema(relationship, getSchema(component))
     }
   }
   return Object.assign(<U extends T[number]>(component: U): U => {
     assert(
-      slot_components.has(component),
+      slotComponents.has(component),
       "A slot only accepts components defined in its enum",
     )
-    return slot_relation(component) as U
-  }, slot_relation)
+    return slotRelation(component) as U
+  }, slotRelation)
 }

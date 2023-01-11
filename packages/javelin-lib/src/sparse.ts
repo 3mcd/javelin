@@ -10,21 +10,21 @@ export class SparseSet<T = unknown> {
   }
 
   get(key: number): Maybe<T> {
-    let dense_index = this.#sparse[key]
-    if (dense_index === undefined) {
+    let denseIndex = this.#sparse[key]
+    if (denseIndex === undefined) {
       return undefined
     }
-    return this.#dense[dense_index]
+    return this.#dense[denseIndex]
   }
 
   set(key: number, value: T): void {
-    let dense_index = this.#sparse[key]
-    if (dense_index === undefined) {
+    let denseIndex = this.#sparse[key]
+    if (denseIndex === undefined) {
       this.#sparse[key] = this.#dense.length
       this.#dense.push(value)
       this.#indices.push(key)
     } else {
-      this.#dense[dense_index] = value
+      this.#dense[denseIndex] = value
     }
   }
 
@@ -33,15 +33,15 @@ export class SparseSet<T = unknown> {
   }
 
   delete(key: number): void {
-    let dense_index = this.#sparse[key]
-    if (dense_index !== undefined) {
+    let denseIndex = this.#sparse[key]
+    if (denseIndex !== undefined) {
       let value = this.#dense[this.#dense.length - 1]
-      let sparse_index = this.#indices[this.#indices.length - 1]
-      this.#dense[dense_index] = value
+      let sparseIndex = this.#indices[this.#indices.length - 1]
+      this.#dense[denseIndex] = value
       this.#dense.pop()
-      this.#indices[dense_index] = sparse_index
+      this.#indices[denseIndex] = sparseIndex
       this.#indices.pop()
-      this.#sparse[sparse_index] = dense_index
+      this.#sparse[sparseIndex] = denseIndex
       this.#sparse[key] = undefined!
     }
   }

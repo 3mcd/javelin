@@ -1,143 +1,143 @@
-let load_sprite_sheet = (
-  image_element: HTMLImageElement,
-  column_widths: number | number[],
-  row_heights: number | number[],
+let loadSpriteSheet = (
+  imageElement: HTMLImageElement,
+  columnWidths: number | number[],
+  rowHeights: number | number[],
   scale?: number,
-  column_padding = 0,
-  row_padding = 0,
+  columnPadding = 0,
+  rowPadding = 0,
 ) => {
-  let src_canvas: HTMLCanvasElement
+  let srcCanvas: HTMLCanvasElement
   if (scale !== undefined) {
-    src_canvas = resize_image_element(image_element, scale)
+    srcCanvas = resizeImageElement(imageElement, scale)
   } else {
-    src_canvas = document.createElement("canvas")
-    src_canvas.width = image_element.width
-    src_canvas.height = image_element.height
-    src_canvas
+    srcCanvas = document.createElement("canvas")
+    srcCanvas.width = imageElement.width
+    srcCanvas.height = imageElement.height
+    srcCanvas
       .getContext("2d")!
       .drawImage(
-        image_element,
+        imageElement,
         0,
         0,
-        image_element.width,
-        image_element.height,
+        imageElement.width,
+        imageElement.height,
       )
   }
 
-  let normalized_scale = scale ?? 1
-  let normalized_scaled_column_widths: number[]
-  let normalized_scaled_row_heights: number[]
+  let normalizedScale = scale ?? 1
+  let normalizedScaledColumnWidths: number[]
+  let normalizedScaledRowHeights: number[]
 
-  let scaled_column_padding = column_padding * normalized_scale
-  let scaled_row_padding = row_padding * normalized_scale
+  let scaledColumnPadding = columnPadding * normalizedScale
+  let scaledRowPadding = rowPadding * normalizedScale
 
   let columns: number
   let rows: number
 
-  if (typeof column_widths === "number") {
-    let scaled_column_width = column_widths * normalized_scale
+  if (typeof columnWidths === "number") {
+    let scaledColumnWidth = columnWidths * normalizedScale
     columns =
-      src_canvas.width / (scaled_column_width + scaled_column_padding)
-    normalized_scaled_column_widths = Array(columns)
+      srcCanvas.width / (scaledColumnWidth + scaledColumnPadding)
+    normalizedScaledColumnWidths = Array(columns)
       .fill(0)
-      .map(() => scaled_column_width)
+      .map(() => scaledColumnWidth)
   } else {
-    normalized_scaled_column_widths = column_widths.map(
-      column_width => column_width * normalized_scale,
+    normalizedScaledColumnWidths = columnWidths.map(
+      columnWidth => columnWidth * normalizedScale,
     )
-    columns = normalized_scaled_column_widths.length
+    columns = normalizedScaledColumnWidths.length
   }
 
-  if (typeof row_heights === "number") {
-    let scaled_row_heights = row_heights * normalized_scale
+  if (typeof rowHeights === "number") {
+    let scaledRowHeights = rowHeights * normalizedScale
     rows =
-      src_canvas.height / (scaled_row_heights + scaled_column_padding)
-    normalized_scaled_row_heights = Array(rows)
+      srcCanvas.height / (scaledRowHeights + scaledColumnPadding)
+    normalizedScaledRowHeights = Array(rows)
       .fill(0)
-      .map(() => scaled_row_heights)
+      .map(() => scaledRowHeights)
   } else {
-    normalized_scaled_row_heights = row_heights.map(
-      row_height => row_height * normalized_scale,
+    normalizedScaledRowHeights = rowHeights.map(
+      rowHeight => rowHeight * normalizedScale,
     )
-    rows = normalized_scaled_row_heights.length
+    rows = normalizedScaledRowHeights.length
   }
 
   let sprites: HTMLCanvasElement[][] = []
-  for (let i = 0; i < normalized_scaled_row_heights.length; i++) {
-    let sprites_row = [] as HTMLCanvasElement[]
-    sprites.push(sprites_row)
-    for (let j = 0; j < normalized_scaled_column_widths.length; j++) {
-      let sprite_canvas = document.createElement("canvas")
-      let sprite_canvas_context = sprite_canvas.getContext("2d")!
-      let normalized_scaled_row_height =
-        normalized_scaled_row_heights[i]
-      let normalized_scaled_column_width =
-        normalized_scaled_column_widths[j]
-      sprite_canvas.height = normalized_scaled_row_height
-      sprite_canvas.width = normalized_scaled_column_width
-      sprite_canvas_context.drawImage(
-        src_canvas,
+  for (let i = 0; i < normalizedScaledRowHeights.length; i++) {
+    let spritesRow = [] as HTMLCanvasElement[]
+    sprites.push(spritesRow)
+    for (let j = 0; j < normalizedScaledColumnWidths.length; j++) {
+      let spriteCanvas = document.createElement("canvas")
+      let spriteCanvasContext = spriteCanvas.getContext("2d")!
+      let normalizedScaledRowHeight =
+        normalizedScaledRowHeights[i]
+      let normalizedScaledColumnWidth =
+        normalizedScaledColumnWidths[j]
+      spriteCanvas.height = normalizedScaledRowHeight
+      spriteCanvas.width = normalizedScaledColumnWidth
+      spriteCanvasContext.drawImage(
+        srcCanvas,
         j *
-          (normalized_scaled_column_width +
-            scaled_column_padding * j),
-        i * (normalized_scaled_row_height + scaled_row_padding * i),
-        normalized_scaled_column_width,
-        normalized_scaled_row_height,
+          (normalizedScaledColumnWidth +
+            scaledColumnPadding * j),
+        i * (normalizedScaledRowHeight + scaledRowPadding * i),
+        normalizedScaledColumnWidth,
+        normalizedScaledRowHeight,
         0,
         0,
-        normalized_scaled_column_width,
-        normalized_scaled_row_height,
+        normalizedScaledColumnWidth,
+        normalizedScaledRowHeight,
       )
-      sprites_row.push(sprite_canvas)
+      spritesRow.push(spriteCanvas)
     }
   }
   return sprites
 }
 
-let resize_image_element = (
-  image_element: HTMLImageElement,
+let resizeImageElement = (
+  imageElement: HTMLImageElement,
   scale: number,
 ) => {
-  let src_canvas = document.createElement("canvas")
-  let src_canvas_width = (src_canvas.width = image_element.width)
-  let src_canvas_height = (src_canvas.height = image_element.height)
-  let src_canvas_context = src_canvas.getContext("2d")!
-  src_canvas_context.drawImage(image_element, 0, 0)
-  let src_img_data = src_canvas_context.getImageData(
+  let srcCanvas = document.createElement("canvas")
+  let srcCanvasWidth = (srcCanvas.width = imageElement.width)
+  let srcCanvasHeight = (srcCanvas.height = imageElement.height)
+  let srcCanvasContext = srcCanvas.getContext("2d")!
+  srcCanvasContext.drawImage(imageElement, 0, 0)
+  let srcImgData = srcCanvasContext.getImageData(
     0,
     0,
-    src_canvas_width,
-    src_canvas_height,
+    srcCanvasWidth,
+    srcCanvasHeight,
   )
-  let dst_canvas = document.createElement("canvas")
-  let dst_canvas_width = (dst_canvas.width = src_canvas_width * scale)
-  let dst_canvas_height = (dst_canvas.height =
-    src_canvas_height * scale)
-  let dst_canvas_context = dst_canvas.getContext("2d")!
-  let dst_img_data = dst_canvas_context.getImageData(
+  let dstCanvas = document.createElement("canvas")
+  let dstCanvasWidth = (dstCanvas.width = srcCanvasWidth * scale)
+  let dstCanvasHeight = (dstCanvas.height =
+    srcCanvasHeight * scale)
+  let dstCanvasContext = dstCanvas.getContext("2d")!
+  let dstImgData = dstCanvasContext.getImageData(
     0,
     0,
-    dst_canvas_width,
-    dst_canvas_height,
+    dstCanvasWidth,
+    dstCanvasHeight,
   )
-  for (let y = 0; y < dst_canvas_height; y++) {
-    for (let x = 0; x < dst_canvas_width; x++) {
+  for (let y = 0; y < dstCanvasHeight; y++) {
+    for (let x = 0; x < dstCanvasWidth; x++) {
       let i =
-        (Math.floor(y / scale) * src_canvas_width +
+        (Math.floor(y / scale) * srcCanvasWidth +
           Math.floor(x / scale)) *
         4
-      let j = (y * dst_canvas_width + x) * 4
-      dst_img_data.data[j] = src_img_data.data[i]
-      dst_img_data.data[j + 1] = src_img_data.data[i + 1]
-      dst_img_data.data[j + 2] = src_img_data.data[i + 2]
-      dst_img_data.data[j + 3] = src_img_data.data[i + 3]
+      let j = (y * dstCanvasWidth + x) * 4
+      dstImgData.data[j] = srcImgData.data[i]
+      dstImgData.data[j + 1] = srcImgData.data[i + 1]
+      dstImgData.data[j + 2] = srcImgData.data[i + 2]
+      dstImgData.data[j + 3] = srcImgData.data[i + 3]
     }
   }
-  dst_canvas_context.putImageData(dst_img_data, 0, 0)
-  return dst_canvas
+  dstCanvasContext.putImageData(dstImgData, 0, 0)
+  return dstCanvas
 }
 
-export let bat_sprites = load_sprite_sheet(
+export let batSprites = loadSpriteSheet(
   document.getElementById("bat") as HTMLImageElement,
   16,
   [16, 16],
@@ -145,20 +145,20 @@ export let bat_sprites = load_sprite_sheet(
   0,
   8,
 )
-export let rat_sprites = load_sprite_sheet(
+export let ratSprites = loadSpriteSheet(
   document.getElementById("rat") as HTMLImageElement,
   32,
   32,
   2,
 )
 
-export let orb_sprites = load_sprite_sheet(
+export let orbSprites = loadSpriteSheet(
   document.getElementById("orb") as HTMLImageElement,
   14,
   14,
 )
 
-export let loot_sprites = load_sprite_sheet(
+export let lootSprites = loadSpriteSheet(
   document.getElementById("loot") as HTMLImageElement,
   16,
   14,

@@ -3,9 +3,9 @@ import {
   exists,
   expect,
   HASH_BASE,
-  hash_word,
+  hashWord,
   Maybe,
-  normalize_hash,
+  normalizeHash,
 } from "@javelin/lib"
 import {
   NetworkConfig,
@@ -15,50 +15,50 @@ import {
 import {ReadStream} from "../stream/read_stream.js"
 import {ServerTransport} from "./client_resources.js"
 
-let read_stream = new ReadStream(new Uint8Array(0))
+let readStream = new ReadStream(new Uint8Array(0))
 
-let process_server_messages_system = (world: World) => {
-  let server_transport = expect(world.get_resource(ServerTransport))
-  let network_model = expect(world.get_resource(NetworkModel))
+let processServerMessagesSystem = (world: World) => {
+  let serverTransport = expect(world.getResource(ServerTransport))
+  let networkModel = expect(world.getResource(NetworkModel))
   let message: Maybe<Uint8Array>
-  while ((message = server_transport.recv())) {
-    read_stream.reset(message)
-    let message_type = read_stream.read_u8()
-    switch (message_type) {
+  while ((message = serverTransport.recv())) {
+    readStream.reset(message)
+    let messageType = readStream.readU8()
+    switch (messageType) {
       case 0: {
-        let terms_size = read_stream.read_u32()
-        let terms_hash = HASH_BASE
-        for (let i = 0; i < terms_size; i++) {
-          let term = read_stream.read_u32()
-          terms_hash = hash_word(
-            terms_hash,
-            network_model.to_local(term),
+        let termsSize = readStream.readU32()
+        let termsHash = HASH_BASE
+        for (let i = 0; i < termsSize; i++) {
+          let term = readStream.readU32()
+          termsHash = hashWord(
+            termsHash,
+            networkModel.toLocal(term),
           )
         }
-        terms_hash = normalize_hash(terms_hash)
-        let type = Type.cache[terms_hash]
+        termsHash = normalizeHash(termsHash)
+        let type = Type.cache[termsHash]
         if (!exists(type)) {
           let terms = [] as Term[]
-          for (let i = 0; i < terms_size; i++) {
-            let term = read_stream.peek_u32(-terms_size + i)
-            terms.push(network_model.to_local(term))
+          for (let i = 0; i < termsSize; i++) {
+            let term = readStream.peekU32(-termsSize + i)
+            terms.push(networkModel.toLocal(term))
           }
           type = Type.of(terms)
         }
-        let included_size = read_stream.read_u32()
-        let excluded_size = read_stream.read_u32()
-        for (let i = 0; i < included_size; i++) {
-          let entity_id = read_stream.read_u32()
-          let entity = world.qualify(entity_id)
+        let includedSize = readStream.readU32()
+        let excludedSize = readStream.readU32()
+        for (let i = 0; i < includedSize; i++) {
+          let entityId = readStream.readU32()
+          let entity = world.qualify(entityId)
           if (exists(entity)) {
             world.add(entity, new Selector(type.components))
           } else {
-            world.reserve(entity_id, new Selector(type.components))
+            world.reserve(entityId, new Selector(type.components))
           }
         }
-        for (let i = 0; i < excluded_size; i++) {
-          let entity_id = read_stream.read_u32()
-          let entity = world.qualify(entity_id)
+        for (let i = 0; i < excludedSize; i++) {
+          let entityId = readStream.readU32()
+          let entity = world.qualify(entityId)
           if (exists(entity)) {
             world.remove(entity, new Selector(type.components))
           }
@@ -66,15 +66,15 @@ let process_server_messages_system = (world: World) => {
         break
       }
       default:
-        throw new Error(`Unknown message type ${message_type}`)
+        throw new Error(`Unknown message type ${messageType}`)
     }
   }
 }
 
-export let client_plugin = (app: App) => {
-  let network_terms = expect(app.get_resource(NetworkConfig))
-  let network_model = new NetworkModelImpl(network_terms)
+export let clientPlugin = (app: App) => {
+  let networkTerms = expect(app.getResource(NetworkConfig))
+  let networkModel = new NetworkModelImpl(networkTerms)
   app
-    .add_resource(NetworkModel, network_model)
-    .add_system_to_group(Group.Early, process_server_messages_system)
+    .addResource(NetworkModel, networkModel)
+    .addSystemToGroup(Group.Early, processServerMessagesSystem)
 }

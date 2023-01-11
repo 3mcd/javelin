@@ -20,7 +20,7 @@ export class ReadStream {
     return this.#buffer.u8.subarray(this.#offset, this.#length)
   }
 
-  #check_bounds() {
+  #checkBounds() {
     assert(this.#offset <= this.#length)
   }
 
@@ -30,38 +30,38 @@ export class ReadStream {
     this.#length = u8.byteLength + u8.byteOffset
   }
 
-  read_u8() {
+  readU8() {
     let offset = this.#offset
     this.#offset += 1
-    this.#check_bounds()
+    this.#checkBounds()
     return this.#buffer.dv.getUint8(offset)
   }
 
-  read_u32() {
+  readU32() {
     let offset = this.#offset
     this.#offset += 4
-    this.#check_bounds()
+    this.#checkBounds()
     return this.#buffer.dv.getUint32(offset, LE)
   }
 
-  peek_u32(relative_offset: number) {
+  peekU32(relativeOffset: number) {
     return this.#buffer.dv.getUint32(
-      this.#offset - relative_offset,
+      this.#offset - relativeOffset,
       LE,
     )
   }
 
-  read_f32() {
+  readF32() {
     let offset = this.#offset
     this.#offset += 4
-    this.#check_bounds()
+    this.#checkBounds()
     return this.#buffer.dv.getFloat32(offset, LE)
   }
 
-  read_f64() {
+  readF64() {
     let offset = this.#offset
     this.#offset += 8
-    this.#check_bounds()
+    this.#checkBounds()
     return this.#buffer.dv.getFloat64(offset, LE)
   }
 }

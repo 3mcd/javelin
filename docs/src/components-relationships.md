@@ -65,8 +65,8 @@ world.create(type(ChildOf(spaceship), ChildOf(planet)))
 // Error: a type may have only one ChildOf relationship
 ```
 
-The parent of an entity can be resolved using `world.parent_of`:
+The parent of an entity can be resolved using `world.parentOf`:
 
 ```ts
-world.parent_of(sword) // `bag`
+world.parentOf(sword) // `bag`
 ```

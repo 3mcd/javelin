@@ -9,7 +9,7 @@ A system may query entities using it's world's `of` method.
 ```ts
 let Planet = type(PlanetGeometry, PlanetType, ...)
 
-function orbit_planets_system(world: World) {
+function orbitPlanetsSystem(world: World) {
   let planets = world.of(Planet)
 }
 ```
@@ -32,7 +32,7 @@ Systems are often highly specific about the entities they resolve while only uti
 world
   .of(ElectrifiedHipposStandingInWater)
   .as(Health)
-  .each((hippo, hippo_health) => {
+  .each((hippo, hippoHealth) => {
     // (do something with just the hippo's health)
   })
 ```
@@ -54,7 +54,7 @@ world.of(Planet, Not(Atmosphere)).each(planet => {
 `Without` can be used with more complex component types like [relationships](./components-relationships.md) and [slots](./components-enums.md). The following query could be expressed in plain terms as _"all gas planets that are not in the Sol system"_:
 
 ```ts
-world.of(Planet, PlanetType(Gas), Not(ChildOf(sol_system)))
+world.of(Planet, PlanetType(Gas), Not(ChildOf(solSystem)))
 ```
 
 Another example: _"all non-gas planets"_:

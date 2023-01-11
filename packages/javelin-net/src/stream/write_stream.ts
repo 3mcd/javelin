@@ -3,12 +3,12 @@ import {Buffer, LE} from "./buffer.js"
 export class WriteStream {
   #buffer
   #offset
-  #initial_capacity
+  #initialCapacity
 
-  constructor(initial_capacity = 0) {
-    this.#buffer = Buffer.alloc(initial_capacity)
+  constructor(initialCapacity = 0) {
+    this.#buffer = Buffer.alloc(initialCapacity)
     this.#offset = 0
-    this.#initial_capacity = initial_capacity
+    this.#initialCapacity = initialCapacity
   }
 
   get offset() {
@@ -23,46 +23,46 @@ export class WriteStream {
 
   reset() {
     Buffer.free(this.#buffer)
-    this.#buffer = Buffer.alloc(this.#initial_capacity)
+    this.#buffer = Buffer.alloc(this.#initialCapacity)
     this.#offset = 0
   }
 
-  grow(grow_amount: number) {
-    let new_size = this.#offset + grow_amount
-    if (this.#buffer.u8.length < new_size) {
-      let buffer = Buffer.alloc(new_size)
+  grow(growAmount: number) {
+    let newSize = this.#offset + growAmount
+    if (this.#buffer.u8.length < newSize) {
+      let buffer = Buffer.alloc(newSize)
       buffer.u8.set(this.#buffer.u8)
       Buffer.free(this.#buffer)
       this.#buffer = buffer
     }
   }
 
-  write_u8(n: number) {
+  writeU8(n: number) {
     let offset = this.#offset
     this.#buffer.dv.setUint8(this.#offset, n)
     this.#offset = offset + 1
     return offset
   }
 
-  write_u32(n: number) {
+  writeU32(n: number) {
     let offset = this.#offset
     this.#buffer.dv.setUint32(this.#offset, n, LE)
     this.#offset = offset + 4
     return offset
   }
 
-  write_u32_at(n: number, offset: number) {
+  writeU32At(n: number, offset: number) {
     this.#buffer.dv.setUint32(offset, n, LE)
   }
 
-  write_f32(n: number) {
+  writeF32(n: number) {
     let offset = this.#offset
     this.#buffer.dv.setFloat32(this.#offset, n, LE)
     this.#offset = offset + 4
     return offset
   }
 
-  write_f64(n: number) {
+  writeF64(n: number) {
     let offset = this.#offset
     this.#buffer.dv.setFloat64(this.#offset, n, LE)
     this.#offset = offset + 8

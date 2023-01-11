@@ -1,8 +1,8 @@
 import {exists, SparseSet} from "@javelin/lib"
 import {Entity} from "./entity.js"
 import {Node} from "./graph.js"
-import {Component, ComponentValue, has_schema} from "./term.js"
-import {ComponentsOf, hash_spec, Selector, Spec} from "./type.js"
+import {Component, ComponentValue, hasSchema} from "./term.js"
+import {ComponentsOf, hashSpec, Selector, Spec} from "./type.js"
 
 export type QueryEachIteratee<T extends Spec> = (
   entity: Entity,
@@ -31,7 +31,7 @@ export type QueryEachResults<
     : never
   : never
 
-let compile_each_iterator = <T extends Component[]>(
+let compileEachIterator = <T extends Component[]>(
   query: Query,
   components: T,
 ): QueryEachIterator<T> => {
@@ -41,7 +41,7 @@ let compile_each_iterator = <T extends Component[]>(
     components
       .map((component, i) => `let s${i}=S[${component}];`)
       .join("") +
-      "return function each_compiled(f){" +
+      "return function eachCompiled(f){" +
       "for(let i=0;i<N.length;i++){" +
       // TODO: make this compatible with property mangling
       "let e=N[i].entities;" +
@@ -68,9 +68,9 @@ export class QueryView<T extends Spec = Spec> implements QueryAPI<T> {
 
   constructor(query: Query, components: Component[]) {
     this.#query = query
-    this.#iterator = compile_each_iterator(
+    this.#iterator = compileEachIterator(
       query,
-      components.filter(has_schema),
+      components.filter(hasSchema),
     )
   }
 
@@ -102,27 +102,27 @@ export class Query<T extends Spec = Spec> implements QueryAPI<T> {
     this.#selector = selector
     this.#view = new QueryView(
       this,
-      selector.included_components,
+      selector.includedComponents,
     ) as QueryView<any>
     this.#views = [] as QueryAPI[]
     this.#views[selector.hash] = this.#view
   }
 
-  include_node(node: Node) {
+  includeNode(node: Node) {
     for (
       let i = 0;
-      i < this.#selector.excluded_components.length;
+      i < this.#selector.excludedComponents.length;
       i++
     ) {
-      let term = this.#selector.excluded_components[i]
-      if (node.has_component(term)) {
+      let term = this.#selector.excludedComponents[i]
+      if (node.hasComponent(term)) {
         return
       }
     }
     this.nodes.set(node.type.hash, node)
   }
 
-  exclude_node(node: Node) {
+  excludeNode(node: Node) {
     this.nodes.delete(node.type.hash)
   }
 
@@ -138,7 +138,7 @@ export class Query<T extends Spec = Spec> implements QueryAPI<T> {
   as<T extends Component[]>(...components: T): QueryAPI<T>
   as() {
     let components = arguments as unknown as Component[]
-    let hash = hash_spec.apply(null, components)
+    let hash = hashSpec.apply(null, components)
     let view = this.#views[hash]
     if (!exists(view)) {
       view = new QueryView(this, Array.from(components))

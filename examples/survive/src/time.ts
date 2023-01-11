@@ -7,8 +7,8 @@ export type Time = {
 }
 export let Time = resource<Time>()
 
-export let advance_time_system = (world: World) => {
-  let time = world.get_resource(Time)
+export let advanceTimeSystem = (world: World) => {
+  let time = world.getResource(Time)
   let current = performance.now() / 1_000
   let previous = time.current
   time.previous = previous
@@ -16,7 +16,7 @@ export let advance_time_system = (world: World) => {
   time.delta = current - previous
 }
 
-export let time_plugin = (app: App) =>
+export let timePlugin = (app: App) =>
   app
-    .add_resource(Time, {previous: 0, current: 0, delta: 0})
-    .add_system_to_group(Group.Early, advance_time_system)
+    .addResource(Time, {previous: 0, current: 0, delta: 0})
+    .addSystemToGroup(Group.Early, advanceTimeSystem)

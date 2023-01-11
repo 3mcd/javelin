@@ -5,18 +5,18 @@ import {
   interest,
   NetworkConfig,
   NetworkId,
-  server_plugin,
+  serverPlugin,
   NetworkTransport,
 } from "@javelin/net"
 import {createServer} from "http"
 import {WebSocket, WebSocketServer} from "ws"
-import {network_config} from "../config.js"
+import {networkConfig} from "../config.js"
 import {Transform} from "./transform.js"
 
-let http_server = createServer()
+let httpServer = createServer()
 
-let websocket_server = new WebSocketServer({server: http_server})
-let websocket_transport = (
+let websocketServer = new WebSocketServer({server: httpServer})
+let websocketTransport = (
   websocket: WebSocket,
 ): NetworkTransport => {
   let inbox: Uint8Array[] = []
@@ -33,42 +33,42 @@ let websocket_transport = (
     },
   }
 }
-let websocket_queue: WebSocket[] = []
+let websocketQueue: WebSocket[] = []
 
-let transform_interest = interest(type(Transform).type)
+let transformInterest = interest(type(Transform).type)
 
 let game = app()
-  .add_resource(NetworkConfig, network_config)
-  .add_system_to_group(Group.Init, world => {
+  .addResource(NetworkConfig, networkConfig)
+  .addSystemToGroup(Group.Init, world => {
     world.create(type(Transform, NetworkId))
   })
-  .add_system_to_group(Group.Early, world => {
+  .addSystemToGroup(Group.Early, world => {
     let websocket: WebSocket | undefined
-    while ((websocket = websocket_queue.pop())) {
+    while ((websocket = websocketQueue.pop())) {
       if (websocket.readyState !== websocket.OPEN) {
         continue
       }
-      let client_transport = websocket_transport(websocket)
-      let client_awareness = awareness().add_interest(
-        transform_interest,
+      let clientTransport = websocketTransport(websocket)
+      let clientAwareness = awareness().addInterest(
+        transformInterest,
       )
       let client = world.create(
         Client,
-        client_transport,
-        client_awareness,
+        clientTransport,
+        clientAwareness,
       )
       websocket.on("close", () => {
         world.delete(client)
       })
     }
   })
-  .use(server_plugin)
+  .use(serverPlugin)
 
-websocket_server.on("connection", websocket => {
-  websocket_queue.push(websocket)
+websocketServer.on("connection", websocket => {
+  websocketQueue.push(websocket)
 })
 
-http_server.listen(8080)
+httpServer.listen(8080)
 
 console.log(`
 call of

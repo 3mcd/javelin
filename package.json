@@ -1,5 +1,6 @@
 {
   "name": "javelin",
+  "type": "module",
   "private": true,
   "version": "2.0.0-alpha.0",
   "description": "",
@@ -18,9 +19,7 @@
     "vitest": "^0.25.1"
   },
   "preconstruct": {
-    "packages": [
-      "packages/*"
-    ]
+    "packages": ["packages/*"]
   },
   "dependencies": {
     "@babel/core": "^7.20.5",

@@ -1,15 +1,15 @@
 import {
   exists,
   HASH_BASE,
-  hash_word,
-  hash_words,
+  hashWord,
+  hashWords,
   Maybe,
-  normalize_hash,
+  normalizeHash,
   SparseSet,
 } from "@javelin/lib"
 import {Entity} from "./entity.js"
 import {PhaseEvent} from "./phase.js"
-import {is_relationship} from "./relation.js"
+import {isRelationship} from "./relation.js"
 import {Signal} from "./signal.js"
 import {Component} from "./term.js"
 import {TransactionEvent} from "./transaction.js"
@@ -24,147 +24,147 @@ type NodePredicate = (node: Node) => boolean
  */
 export class Node {
   readonly entities
-  readonly entity_indices
-  readonly edges_add
-  readonly edges_rem
-  readonly on_entities_excluded
-  readonly on_entities_included
-  readonly on_node_created
-  readonly on_node_deleted
-  readonly sparse_terms
+  readonly entityIndices
+  readonly edgesAdd
+  readonly edgesRem
+  readonly onEntitiesExcluded
+  readonly onEntitiesIncluded
+  readonly onNodeCreated
+  readonly onNodeDeleted
+  readonly sparseTerms
   readonly type
 
   /**
    * Compute the hash of the difference in terms between two nodes.
    */
-  static diff(node_a: Node, node_b: Node) {
-    let diff_hash = HASH_BASE
-    let term_a_index = 0
-    let term_b_index = 0
+  static diff(nodeA: Node, nodeB: Node) {
+    let diffHash = HASH_BASE
+    let termAIndex = 0
+    let termBIndex = 0
     while (
-      term_a_index < node_a.type.components.length &&
-      term_b_index < node_b.type.components.length
+      termAIndex < nodeA.type.components.length &&
+      termBIndex < nodeB.type.components.length
     ) {
-      let term_a = node_a.type.components[term_a_index]
-      let term_b = node_b.type.components[term_b_index]
-      if (term_a === term_b) {
-        term_a_index++
-        term_b_index++
-      } else if (term_a < term_b) {
-        diff_hash = hash_word(diff_hash, term_a)
-        term_a_index++
-      } else if (term_a > term_b) {
-        diff_hash = hash_word(diff_hash, term_b)
-        term_b_index++
+      let termA = nodeA.type.components[termAIndex]
+      let termB = nodeB.type.components[termBIndex]
+      if (termA === termB) {
+        termAIndex++
+        termBIndex++
+      } else if (termA < termB) {
+        diffHash = hashWord(diffHash, termA)
+        termAIndex++
+      } else if (termA > termB) {
+        diffHash = hashWord(diffHash, termB)
+        termBIndex++
       }
     }
-    if (term_a_index > node_a.type.components.length - 1) {
-      while (term_b_index < node_b.type.components.length) {
-        diff_hash = hash_word(
-          diff_hash,
-          node_b.type.components[term_b_index],
+    if (termAIndex > nodeA.type.components.length - 1) {
+      while (termBIndex < nodeB.type.components.length) {
+        diffHash = hashWord(
+          diffHash,
+          nodeB.type.components[termBIndex],
         )
-        term_b_index++
+        termBIndex++
       }
-    } else if (term_b_index > node_b.type.components.length - 1) {
-      while (term_a_index < node_a.type.components.length) {
-        diff_hash = hash_word(
-          diff_hash,
-          node_a.type.components[term_a_index],
+    } else if (termBIndex > nodeB.type.components.length - 1) {
+      while (termAIndex < nodeA.type.components.length) {
+        diffHash = hashWord(
+          diffHash,
+          nodeA.type.components[termAIndex],
         )
-        term_a_index++
+        termAIndex++
       }
     }
-    return normalize_hash(diff_hash)
+    return normalizeHash(diffHash)
   }
 
   /**
    * Compare two nodes. The possible results are:
-   * * `1` - `node_a` is a proper superset of `node_b`
-   * * `2` - `node_b` is a proper superset of `node_a`
-   * * `3` - descendants of `node_b` could be proper subsets of `node_a`
+   * * `1` - `nodeA` is a proper superset of `nodeB`
+   * * `2` - `nodeB` is a proper superset of `nodeA`
+   * * `3` - descendants of `nodeB` could be proper subsets of `nodeA`
    * * `0` - none of the above
    */
-  static match(node_a: Node, node_b: Node) {
-    if (node_a === node_b) return 0
-    let term_a_not_superset = false
-    let term_a_index = 0
-    let term_b_index = 0
-    let term_matches = 0
+  static match(nodeA: Node, nodeB: Node) {
+    if (nodeA === nodeB) return 0
+    let termANotSuperset = false
+    let termAIndex = 0
+    let termBIndex = 0
+    let termMatches = 0
     while (
-      term_a_index < node_a.type.components.length &&
-      term_b_index < node_b.type.components.length
+      termAIndex < nodeA.type.components.length &&
+      termBIndex < nodeB.type.components.length
     ) {
-      let term_a = node_a.type.components[term_a_index]
-      let term_b = node_b.type.components[term_b_index]
-      if (term_a > term_b) {
-        term_b_index++
-      } else if (term_a < term_b) {
-        term_a_not_superset = true
-        term_a_index++
+      let termA = nodeA.type.components[termAIndex]
+      let termB = nodeB.type.components[termBIndex]
+      if (termA > termB) {
+        termBIndex++
+      } else if (termA < termB) {
+        termANotSuperset = true
+        termAIndex++
       } else {
-        term_matches++
-        term_a_index++
-        term_b_index++
+        termMatches++
+        termAIndex++
+        termBIndex++
       }
     }
-    if (term_matches === node_a.type.components.length) return 1
-    if (term_matches === node_b.type.components.length) return 2
-    return term_a_not_superset ? 0 : 3
+    if (termMatches === nodeA.type.components.length) return 1
+    if (termMatches === nodeB.type.components.length) return 2
+    return termANotSuperset ? 0 : 3
   }
 
   /**
    * Connect a node of lower specificity to a node of higher specificity.
    */
   static link(
-    node_rem: Node,
-    node_add: Node,
-    diff_hash = Node.diff(node_rem, node_add),
+    nodeRem: Node,
+    nodeAdd: Node,
+    diffHash = Node.diff(nodeRem, nodeAdd),
   ) {
     if (
-      node_rem.edges_add.has(diff_hash) ||
-      node_add.edges_rem.has(diff_hash)
+      nodeRem.edgesAdd.has(diffHash) ||
+      nodeAdd.edgesRem.has(diffHash)
     ) {
       return
     }
-    node_rem.edges_add.set(diff_hash, node_add)
-    node_add.edges_rem.set(diff_hash, node_rem)
+    nodeRem.edgesAdd.set(diffHash, nodeAdd)
+    nodeAdd.edgesRem.set(diffHash, nodeRem)
   }
 
-  static unlink(node_rem: Node, node_add: Node) {
-    let diff_hash = Node.diff(node_rem, node_add)
-    node_rem.edges_add.delete(diff_hash)
-    node_add.edges_rem.delete(diff_hash)
+  static unlink(nodeRem: Node, nodeAdd: Node) {
+    let diffHash = Node.diff(nodeRem, nodeAdd)
+    nodeRem.edgesAdd.delete(diffHash)
+    nodeAdd.edgesRem.delete(diffHash)
   }
 
-  constructor(sorted_terms: Component[] = []) {
-    let sparse_terms = [] as number[]
-    for (let i = 0; i < sorted_terms.length; i++) {
-      sparse_terms[sorted_terms[i]] = i
+  constructor(sortedTerms: Component[] = []) {
+    let sparseTerms = [] as number[]
+    for (let i = 0; i < sortedTerms.length; i++) {
+      sparseTerms[sortedTerms[i]] = i
     }
-    this.edges_add = new SparseSet<Node>()
-    this.edges_rem = new SparseSet<Node>()
+    this.edgesAdd = new SparseSet<Node>()
+    this.edgesRem = new SparseSet<Node>()
     this.entities = [] as Entity[]
-    this.entity_indices = [] as number[]
-    this.on_entities_excluded = new Signal<TransactionEvent>()
-    this.on_entities_included = new Signal<TransactionEvent>()
-    this.on_node_created = new Signal<Node>()
-    this.on_node_deleted = new Signal<Node>()
-    this.sparse_terms = sparse_terms
-    this.type = Type.of(sorted_terms)
+    this.entityIndices = [] as number[]
+    this.onEntitiesExcluded = new Signal<TransactionEvent>()
+    this.onEntitiesIncluded = new Signal<TransactionEvent>()
+    this.onNodeCreated = new Signal<Node>()
+    this.onNodeDeleted = new Signal<Node>()
+    this.sparseTerms = sparseTerms
+    this.type = Type.of(sortedTerms)
   }
 
   /**
    * Check if the node's entities have a term.
    */
-  has_component(term: Component) {
-    return exists(this.sparse_terms[term])
+  hasComponent(term: Component) {
+    return exists(this.sparseTerms[term])
   }
 
-  has_any_relationship() {
+  hasAnyRelationship() {
     for (let i = 0; i < this.type.components.length; i++) {
       let term = this.type.components[i]
-      if (is_relationship(term)) {
+      if (isRelationship(term)) {
         return true
       }
     }
@@ -174,13 +174,13 @@ export class Node {
   /**
    * Check if the node has all terms of another node.
    */
-  is_superset_of(node: Node) {
+  isSupersetOf(node: Node) {
     if (node.type.components.length === 0) {
       return false
     }
     for (let i = 0; i < node.type.components.length; i++) {
       let term = node.type.components[i]
-      if (!this.has_component(term)) {
+      if (!this.hasComponent(term)) {
         return false
       }
     }
@@ -190,43 +190,43 @@ export class Node {
   /**
    * Add an entity to the node.
    */
-  add_entity(entity: Entity) {
-    this.entity_indices[entity] = this.entities.push(entity) - 1
+  addEntity(entity: Entity) {
+    this.entityIndices[entity] = this.entities.push(entity) - 1
   }
 
   /**
    * Remove an entity from the node.
    */
-  remove_entity(entity: Entity) {
-    let entity_count = this.entities.length
-    let entity_index = this.entity_indices[entity]
-    let last_entity = this.entities.pop()
-    if (entity_index !== entity_count - 1) {
-      this.entity_indices[last_entity!] = entity_index
-      this.entities[entity_index] = last_entity!
+  removeEntity(entity: Entity) {
+    let entityCount = this.entities.length
+    let entityIndex = this.entityIndices[entity]
+    let lastEntity = this.entities.pop()
+    if (entityIndex !== entityCount - 1) {
+      this.entityIndices[lastEntity!] = entityIndex
+      this.entities[entityIndex] = lastEntity!
     }
-    this.entity_indices[entity] = undefined!
+    this.entityIndices[entity] = undefined!
   }
 
   /**
    * Execute a function recursively for each of the node's ancestors, including
    * the node itself.
    */
-  traverse_rem(iteratee: NodeIteratee) {
-    let visited_nodes = new Set<Node>()
+  traverseRem(iteratee: NodeIteratee) {
+    let visitedNodes = new Set<Node>()
     let stack: (Node | number)[] = [this]
-    let stack_index = 1
-    while (stack_index > 0) {
-      let node = stack[--stack_index] as Node
+    let stackIndex = 1
+    while (stackIndex > 0) {
+      let node = stack[--stackIndex] as Node
       iteratee(node)
-      let node_rem_values = node.edges_rem.values()
-      for (let i = 0; i < node_rem_values.length; i++) {
-        let node_rem = node_rem_values[i]
-        if (visited_nodes.has(node_rem)) {
+      let nodeRemValues = node.edgesRem.values()
+      for (let i = 0; i < nodeRemValues.length; i++) {
+        let nodeRem = nodeRemValues[i]
+        if (visitedNodes.has(nodeRem)) {
           continue
         }
-        visited_nodes.add(node_rem)
-        stack[stack_index++] = node_rem
+        visitedNodes.add(nodeRem)
+        stack[stackIndex++] = nodeRem
       }
     }
   }
@@ -235,24 +235,24 @@ export class Node {
    * Execute a function recursively for each of the node's ancestors that also
    * match a predicate function, including the node itself.
    */
-  traverse_rem_with_filter(
+  traverseRemWithFilter(
     iteratee: NodeIteratee,
     predicate: NodePredicate,
   ) {
-    let visited_nodes = new Set<Node>()
+    let visitedNodes = new Set<Node>()
     let stack: (Node | number)[] = [this]
-    let stack_index = 1
-    while (stack_index > 0) {
-      let node = stack[--stack_index] as Node
+    let stackIndex = 1
+    while (stackIndex > 0) {
+      let node = stack[--stackIndex] as Node
       iteratee(node)
-      let node_rem_values = node.edges_rem.values()
-      for (let i = 0; i < node_rem_values.length; i++) {
-        let node_rem = node_rem_values[i]
-        if (visited_nodes.has(node_rem) || !predicate(node_rem)) {
+      let nodeRemValues = node.edgesRem.values()
+      for (let i = 0; i < nodeRemValues.length; i++) {
+        let nodeRem = nodeRemValues[i]
+        if (visitedNodes.has(nodeRem) || !predicate(nodeRem)) {
           continue
         }
-        visited_nodes.add(node_rem)
-        stack[stack_index++] = node_rem
+        visitedNodes.add(nodeRem)
+        stack[stackIndex++] = nodeRem
       }
     }
   }
@@ -261,42 +261,42 @@ export class Node {
    * Execute a function recursively for each of the node's descendants,
    * including the node itself.
    */
-  traverse_add(iteratee: NodeIteratee) {
-    let visited_nodes = new Set<Node>()
+  traverseAdd(iteratee: NodeIteratee) {
+    let visitedNodes = new Set<Node>()
     let stack: (Node | number)[] = [this]
-    let stack_index = 1
-    while (stack_index > 0) {
-      let node = stack[--stack_index] as Node
+    let stackIndex = 1
+    while (stackIndex > 0) {
+      let node = stack[--stackIndex] as Node
       iteratee(node)
-      let node_add_values = node.edges_add.values()
-      for (let i = 0; i < node_add_values.length; i++) {
-        let node_add = node_add_values[i]
-        if (visited_nodes.has(node_add)) {
+      let nodeAddValues = node.edgesAdd.values()
+      for (let i = 0; i < nodeAddValues.length; i++) {
+        let nodeAdd = nodeAddValues[i]
+        if (visitedNodes.has(nodeAdd)) {
           continue
         }
-        visited_nodes.add(node_add)
-        stack[stack_index++] = node_add
+        visitedNodes.add(nodeAdd)
+        stack[stackIndex++] = nodeAdd
       }
     }
   }
 
-  is_empty() {
-    let visited_nodes = new Set<Node>()
+  isEmpty() {
+    let visitedNodes = new Set<Node>()
     let stack: (Node | number)[] = [this]
-    let stack_index = 1
-    while (stack_index > 0) {
-      let node = stack[--stack_index] as Node
+    let stackIndex = 1
+    while (stackIndex > 0) {
+      let node = stack[--stackIndex] as Node
       if (node.entities.length > 0) {
         return false
       }
-      let node_add_values = node.edges_add.values()
-      for (let i = 0; i < node_add_values.length; i++) {
-        let node_add = node_add_values[i]
-        if (visited_nodes.has(node_add)) {
+      let nodeAddValues = node.edgesAdd.values()
+      for (let i = 0; i < nodeAddValues.length; i++) {
+        let nodeAdd = nodeAddValues[i]
+        if (visitedNodes.has(nodeAdd)) {
           continue
         }
-        visited_nodes.add(node_add)
-        stack[stack_index++] = node_add
+        visitedNodes.add(nodeAdd)
+        stack[stackIndex++] = nodeAdd
       }
     }
     return true
@@ -315,7 +315,7 @@ export class Graph {
   constructor() {
     this.nodes = [] as Node[]
     this.root = new Node([])
-    this.root.on_node_deleted.add(node => {
+    this.root.onNodeDeleted.add(node => {
       this.nodes[node.type.hash] = undefined!
     })
   }
@@ -324,72 +324,72 @@ export class Graph {
    * Create and insert a node whose type is a union of a node's type and
    * another type.
    */
-  #create_node_and(node: Node, type: Type) {
-    let add_terms: Component[] = []
-    let node_term_index = 0
-    let type_term_index = 0
+  #createNodeAnd(node: Node, type: Type) {
+    let addTerms: Component[] = []
+    let nodeTermIndex = 0
+    let typeTermIndex = 0
     while (
-      node_term_index < node.type.components.length &&
-      type_term_index < type.components.length
+      nodeTermIndex < node.type.components.length &&
+      typeTermIndex < type.components.length
     ) {
-      let node_term = node.type.components[node_term_index]
-      let type_term = type.components[type_term_index]
-      if (node_term === type_term) {
-        add_terms.push(node_term)
-        node_term_index++
-        type_term_index++
-      } else if (node_term < type_term) {
-        add_terms.push(node_term)
-        node_term_index++
-      } else if (node_term > type_term) {
-        add_terms.push(type_term)
-        type_term_index++
+      let nodeTerm = node.type.components[nodeTermIndex]
+      let typeTerm = type.components[typeTermIndex]
+      if (nodeTerm === typeTerm) {
+        addTerms.push(nodeTerm)
+        nodeTermIndex++
+        typeTermIndex++
+      } else if (nodeTerm < typeTerm) {
+        addTerms.push(nodeTerm)
+        nodeTermIndex++
+      } else if (nodeTerm > typeTerm) {
+        addTerms.push(typeTerm)
+        typeTermIndex++
       }
     }
-    if (node_term_index > node.type.components.length - 1) {
-      while (type_term_index < type.components.length) {
-        add_terms.push(type.components[type_term_index++])
+    if (nodeTermIndex > node.type.components.length - 1) {
+      while (typeTermIndex < type.components.length) {
+        addTerms.push(type.components[typeTermIndex++])
       }
-    } else if (type_term_index > type.components.length - 1) {
-      while (node_term_index < node.type.components.length) {
-        add_terms.push(node.type.components[node_term_index++])
+    } else if (typeTermIndex > type.components.length - 1) {
+      while (nodeTermIndex < node.type.components.length) {
+        addTerms.push(node.type.components[nodeTermIndex++])
       }
     }
-    return this.#create_node(add_terms)
+    return this.#createNode(addTerms)
   }
 
   /**
    * Create and insert a node whose type is the symmetric difference of a
    * node's type and another type.
    */
-  #create_node_remove(node: Node, type: Type) {
-    let rem_terms: Component[] = []
-    let node_term_index = 0
-    let type_term_index = 0
+  #createNodeRemove(node: Node, type: Type) {
+    let remTerms: Component[] = []
+    let nodeTermIndex = 0
+    let typeTermIndex = 0
     while (
-      node_term_index < node.type.components.length &&
-      type_term_index < type.components.length
+      nodeTermIndex < node.type.components.length &&
+      typeTermIndex < type.components.length
     ) {
-      let node_term = node.type.components[node_term_index]
-      let type_term = type.components[type_term_index]
-      if (node_term === type_term) {
-        node_term_index++
-        type_term_index++
-      } else if (node_term < type_term) {
-        rem_terms.push(node_term)
-        node_term_index++
-      } else if (node_term > type_term) {
-        rem_terms.push(type_term)
-        type_term_index++
+      let nodeTerm = node.type.components[nodeTermIndex]
+      let typeTerm = type.components[typeTermIndex]
+      if (nodeTerm === typeTerm) {
+        nodeTermIndex++
+        typeTermIndex++
+      } else if (nodeTerm < typeTerm) {
+        remTerms.push(nodeTerm)
+        nodeTermIndex++
+      } else if (nodeTerm > typeTerm) {
+        remTerms.push(typeTerm)
+        typeTermIndex++
       }
     }
-    if (type_term_index > type.components.length - 1) {
-      while (node_term_index < node.type.components.length) {
-        let term = node.type.components[node_term_index++]
-        rem_terms.push(term)
+    if (typeTermIndex > type.components.length - 1) {
+      while (nodeTermIndex < node.type.components.length) {
+        let term = node.type.components[nodeTermIndex++]
+        remTerms.push(term)
       }
     }
-    return this.#create_node(rem_terms)
+    return this.#createNode(remTerms)
   }
 
   /**
@@ -397,14 +397,14 @@ export class Graph {
    * - the visited node is a superset of the node being linked
    * - neither the visisted node nor its descendants are a subset or superset of the node being linked
    */
-  #traverse_link_inner(
+  #traverseLinkInner(
     node: Node,
-    node_visiting = this.root,
+    nodeVisiting = this.root,
     visited = new Set<Node>([node]),
   ) {
-    let node_visiting_add = node_visiting.edges_add.values()
-    for (let i = 0; i < node_visiting_add.length; i++) {
-      let next = node_visiting_add[i]
+    let nodeVisitingAdd = nodeVisiting.edgesAdd.values()
+    for (let i = 0; i < nodeVisitingAdd.length; i++) {
+      let next = nodeVisitingAdd[i]
       if (visited.has(next)) continue
       visited.add(next)
       switch (Node.match(node, next)) {
@@ -415,7 +415,7 @@ export class Graph {
           Node.link(next, node)
         // fallthrough:
         case 3:
-          this.#traverse_link_inner(node, next, visited)
+          this.#traverseLinkInner(node, next, visited)
           break
       }
     }
@@ -425,38 +425,38 @@ export class Graph {
    * Posture a node in the graph by ensuring a path of intermediate nodes
    * between it and the root, and linking it to related nodes.
    */
-  #traverse_link(node: Node) {
-    let add_terms = [] as Component[]
-    let node_rem: Node = this.root
+  #traverseLink(node: Node) {
+    let addTerms = [] as Component[]
+    let nodeRem: Node = this.root
     // build a path from the base node to the new node
     // e.g. () -> (1) -> (1,5) -> (1,5,104977)
     for (let i = 0; i < node.type.components.length; i++) {
       let term = node.type.components[i]
-      let term_hash = normalize_hash(hash_word(HASH_BASE, term))
-      let node_add = node_rem.edges_add.get(term_hash)
-      add_terms.push(term)
-      if (node_add === undefined) {
-        let next_hash = hash_words.apply(null, add_terms)
-        node_add = this.nodes[next_hash] ??= new Node(
-          Array.from(add_terms),
+      let termHash = normalizeHash(hashWord(HASH_BASE, term))
+      let nodeAdd = nodeRem.edgesAdd.get(termHash)
+      addTerms.push(term)
+      if (nodeAdd === undefined) {
+        let nextHash = hashWords.apply(null, addTerms)
+        nodeAdd = this.nodes[nextHash] ??= new Node(
+          Array.from(addTerms),
         )
-        Node.link(node_rem, node_add, term_hash)
+        Node.link(nodeRem, nodeAdd, termHash)
       }
-      node_rem = node_add!
+      nodeRem = nodeAdd!
     }
     // link the new node to related paths
-    this.#traverse_link_inner(node)
+    this.#traverseLinkInner(node)
   }
 
   /**
    * Create and insert the node of a given list of components into the graph.
    */
-  #create_node(terms: Component[]) {
+  #createNode(terms: Component[]) {
     let node = new Node(terms)
     this.nodes[node.type.hash] = node
-    this.#traverse_link(node)
-    node.traverse_rem(prev => {
-      prev.on_node_created.emit(node)
+    this.#traverseLink(node)
+    node.traverseRem(prev => {
+      prev.onNodeCreated.emit(node)
     })
     return node
   }
@@ -464,24 +464,24 @@ export class Graph {
   /**
    * Find the node of a given hash within the graph.
    */
-  find_node(node_hash: number): Maybe<Node> {
-    return this.nodes[node_hash]
+  findNode(nodeHash: number): Maybe<Node> {
+    return this.nodes[nodeHash]
   }
 
   /**
    * Get the node of a given type within the graph.
    */
-  node_of_type(type: Type) {
-    return this.nodes[type.hash] ?? this.#create_node(type.components)
+  nodeOfType(type: Type) {
+    return this.nodes[type.hash] ?? this.#createNode(type.components)
   }
 
   /**
    * Get the node whose type is a union of a node's type and another type.
    */
-  node_add_type(node: Node, type: Type): Node {
+  nodeAddType(node: Node, type: Type): Node {
     return (
-      node.edges_add.get(type.hash) ??
-      this.#create_node_and(node, type)
+      node.edgesAdd.get(type.hash) ??
+      this.#createNodeAnd(node, type)
     )
   }
 
@@ -489,10 +489,10 @@ export class Graph {
    * Get the node whose type is the symmetric difference of a node's type and
    * another type.
    */
-  node_remove_type(node: Node, type: Type): Node {
+  nodeRemoveType(node: Node, type: Type): Node {
     return (
-      node.edges_rem.get(type.hash) ??
-      this.#create_node_remove(node, type)
+      node.edgesRem.get(type.hash) ??
+      this.#createNodeRemove(node, type)
     )
   }
 }

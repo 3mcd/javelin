@@ -1,41 +1,41 @@
 import {app, Group} from "@javelin/ecs"
-import {aura_plugin} from "./aura.js"
-import {bullet_plugin} from "./bullet.js"
-import {clock_plugin} from "./clock.js"
-import {dispose_plugin} from "./dispose.js"
-import {enemy_plugin} from "./enemy.js"
-import {health_plugin} from "./health.js"
-import {loot_plugin} from "./loot.js"
-import {player_plugin} from "./player.js"
-import {render_plugin} from "./render.js"
-import {time_plugin} from "./time.js"
+import {auraPlugin} from "./aura.js"
+import {bulletPlugin} from "./bullet.js"
+import {clockPlugin} from "./clock.js"
+import {disposePlugin} from "./dispose.js"
+import {enemyPlugin} from "./enemy.js"
+import {healthPlugin} from "./health.js"
+import {lootPlugin} from "./loot.js"
+import {playerPlugin} from "./player.js"
+import {renderPlugin} from "./render.js"
+import {timePlugin} from "./time.js"
 
 let canvas = document.querySelector("canvas")!
-let canvas_context = canvas.getContext("2d")!
+let canvasContext = canvas.getContext("2d")!
 
-let on_resize = () => {
+let onResize = () => {
   canvas.width = window.innerWidth
   canvas.height = window.innerHeight
-  canvas_context.scale(10, 10)
+  canvasContext.scale(10, 10)
 }
-on_resize()
+onResize()
 
-window.addEventListener("resize", on_resize)
+window.addEventListener("resize", onResize)
 
 let game = app()
-  .add_group("render", _ =>
+  .addGroup("render", _ =>
     _.after(Group.LateUpdate).before(Group.Late),
   )
-  .use(time_plugin)
-  .use(clock_plugin)
-  .use(dispose_plugin)
-  .use(bullet_plugin)
-  .use(health_plugin)
-  .use(enemy_plugin)
-  .use(player_plugin)
-  .use(render_plugin)
-  .use(loot_plugin)
-  .use(aura_plugin)
+  .use(timePlugin)
+  .use(clockPlugin)
+  .use(disposePlugin)
+  .use(bulletPlugin)
+  .use(healthPlugin)
+  .use(enemyPlugin)
+  .use(playerPlugin)
+  .use(renderPlugin)
+  .use(lootPlugin)
+  .use(auraPlugin)
 
 let loop = () => {
   game.step()

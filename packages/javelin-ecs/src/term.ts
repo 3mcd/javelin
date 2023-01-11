@@ -23,22 +23,22 @@ export type Component<T extends ComponentSpec = unknown> = Opaque<
   T
 >
 
-let component_ids = 0
-let component_schemas: (Schema | Dynamic)[] = []
+let componentIds = 0
+let componentSchemas: (Schema | Dynamic)[] = []
 
-export let has_schema = (component: Component) =>
-  component in component_schemas
-export let get_schema = (component: Component) =>
-  component_schemas[component]
-export let set_schema = (
+export let hasSchema = (component: Component) =>
+  component in componentSchemas
+export let getSchema = (component: Component) =>
+  componentSchemas[component]
+export let setSchema = (
   component: Component,
   schema: Schema | Dynamic,
-) => (component_schemas[component] = schema)
+) => (componentSchemas[component] = schema)
 
-export let express_component = <T>(
+export let expressComponent = <T>(
   component: Component<T>,
 ): ComponentValue<T> => {
-  let schema = expect(get_schema(component))
+  let schema = expect(getSchema(component))
   assert(schema !== Dynamic)
   if (typeof schema === "string") {
     return 0 as unknown as ComponentValue<T>
@@ -50,22 +50,22 @@ export let express_component = <T>(
   return value as unknown as ComponentValue<T>
 }
 
-export function make_tag(): Component<Tag> {
-  let component = component_ids++ as Component<Tag>
+export function makeTag(): Component<Tag> {
+  let component = componentIds++ as Component<Tag>
   assert(component <= LO_MASK)
   return component
 }
 
-export function make_component<T>(
+export function makeComponent<T>(
   schema: SchemaOf<T>,
 ): Component<SchemaOf<T>>
-export function make_component<T>(): Component<T>
-export function make_component<T extends Schema>(
+export function makeComponent<T>(): Component<T>
+export function makeComponent<T extends Schema>(
   schema: T,
 ): Component<T>
-export function make_component(schema?: Schema) {
-  let component = make_tag() as Component
-  set_schema(component, schema ?? Dynamic)
-  component_schemas[component] = schema ?? Dynamic
+export function makeComponent(schema?: Schema) {
+  let component = makeTag() as Component
+  setSchema(component, schema ?? Dynamic)
+  componentSchemas[component] = schema ?? Dynamic
   return component
 }

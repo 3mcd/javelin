@@ -104,15 +104,15 @@ export class Schedule<T> {
 
 export class Group {
   #predicate
-  #system_schedule
-  #system_schedule_stale
+  #systemSchedule
+  #systemScheduleStale
   #systems
-  #systems_by_impl
+  #systemsByImpl
 
   constructor(predicate?: Maybe<Predicate>) {
-    this.#system_schedule_stale = false
-    this.#system_schedule = new Schedule<SystemImpl>()
-    this.#systems_by_impl = new Map<SystemImpl, System>()
+    this.#systemScheduleStale = false
+    this.#systemSchedule = new Schedule<SystemImpl>()
+    this.#systemsByImpl = new Map<SystemImpl, System>()
     this.#predicate = predicate
     this.#systems = [] as System[]
   }
@@ -121,24 +121,24 @@ export class Group {
     return this.#systems
   }
 
-  add_system(
+  addSystem(
     impl: SystemImpl,
     constraints = new Constraints<SystemImpl>(),
     predicate?: Maybe<Predicate>,
   ) {
     let system = new System(impl, predicate)
-    assert(!this.#systems_by_impl.has(impl))
-    this.#systems_by_impl.set(impl, system)
-    this.#system_schedule_stale = true
-    Constraints.insert(this.#system_schedule, impl, constraints)
+    assert(!this.#systemsByImpl.has(impl))
+    this.#systemsByImpl.set(impl, system)
+    this.#systemScheduleStale = true
+    Constraints.insert(this.#systemSchedule, impl, constraints)
   }
 
   check(world: World) {
-    if (this.#system_schedule_stale) {
-      this.#systems = this.#system_schedule
+    if (this.#systemScheduleStale) {
+      this.#systems = this.#systemSchedule
         .build()
-        .map(impl => expect(this.#systems_by_impl.get(impl)))
-      this.#system_schedule_stale = false
+        .map(impl => expect(this.#systemsByImpl.get(impl)))
+      this.#systemScheduleStale = false
     }
     return this.#predicate?.(world) ?? true
   }

@@ -7,9 +7,9 @@ Javelin is an [Entity Component System](https://github.com/SanderMertens/ecs-faq
 Systems with reactive entity queries.
 
 ```ts
-function loot_system() {
-  world.of(Player).each((player, player_box) => {
-    world.of(Loot).each((loot, loot_box) => {
+function lootSystem() {
+  world.of(Player).each((player, playerBox) => {
+    world.of(Loot).each((loot, lootBox) => {
       // (pick up loot bag)
     })
   })
@@ -19,14 +19,14 @@ function loot_system() {
 A scheduler with run criteria, ordering constraints, and system groups.
 
 ```ts
-function weather_enabled(world: World) {
-  return world.get_resource(Config).weather_enabled
+function weatherEnabled(world: World) {
+  return world.getResource(Config).weatherEnabled
 }
 game
-  .add_system(shoot_system)
-  .add_system(loot_system, _ => _.after(shoot_system))
-  .add_system(weather_system, null, weather_enabled)
-  .add_system_to_group(Group.Late, render_system)
+  .addSystem(shootSystem)
+  .addSystem(lootSystem, _ => _.after(shootSystem))
+  .addSystem(weatherSystem, null, weatherEnabled)
+  .addSystemToGroup(Group.Late, renderSystem)
 ```
 
 A type system used to create, add, and remove sets of components from entities. 

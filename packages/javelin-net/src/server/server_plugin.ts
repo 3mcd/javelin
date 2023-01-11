@@ -14,38 +14,38 @@ import {
 
 export let Client = type(NetworkTransport, Awareness)
 
-let initialize_awareness_system = (world: World) => {
+let initializeAwarenessSystem = (world: World) => {
   world
     .monitor(Client)
-    .each_included(entity => {
+    .eachIncluded(entity => {
       let awareness = expect(world.get(entity, Awareness))
-      let awareness_state = new AwarenessStateImpl(world, awareness)
-      world.add(entity, type(AwarenessState), awareness_state)
+      let awarenessState = new AwarenessStateImpl(world, awareness)
+      world.add(entity, type(AwarenessState), awarenessState)
     })
-    .each_excluded(entity => {
-      let awareness_state = expect(world.get(entity, AwarenessState))
-      awareness_state.dispose()
+    .eachExcluded(entity => {
+      let awarenessState = expect(world.get(entity, AwarenessState))
+      awarenessState.dispose()
       world.remove(entity, type(AwarenessState))
     })
 }
 
-let send_client_messages_system = (world: World) => {
-  let network_model = world.get_resource(NetworkModel)
+let sendClientMessagesSystem = (world: World) => {
+  let networkModel = world.getResource(NetworkModel)
   world
     .of(Client, AwarenessState)
     .as(NetworkTransport, AwarenessState)
-    .each((_, client_transport, client_awareness) => {
-      for (let interest of client_awareness.interests) {
-        interest.update(network_model, client_transport)
+    .each((_, clientTransport, clientAwareness) => {
+      for (let interest of clientAwareness.interests) {
+        interest.update(networkModel, clientTransport)
       }
     })
 }
 
-export let server_plugin = (app: App) => {
-  let network_terms = expect(app.get_resource(NetworkConfig))
-  let network_model = new NetworkModelImpl(network_terms)
+export let serverPlugin = (app: App) => {
+  let networkTerms = expect(app.getResource(NetworkConfig))
+  let networkModel = new NetworkModelImpl(networkTerms)
   app
-    .add_resource(NetworkModel, network_model)
-    .add_system_to_group(Group.Early, initialize_awareness_system)
-    .add_system_to_group(Group.Late, send_client_messages_system)
+    .addResource(NetworkModel, networkModel)
+    .addSystemToGroup(Group.Early, initializeAwarenessSystem)
+    .addSystemToGroup(Group.Late, sendClientMessagesSystem)
 }

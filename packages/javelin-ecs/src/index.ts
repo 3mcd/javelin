@@ -3,12 +3,12 @@ import {
   DefaultGroup,
   Plugin,
   Constrain,
-  make_app,
+  makeApp,
 } from "./app.js"
-import {ChildOf, make_relation, Without} from "./relation.js"
+import {ChildOf, makeRelation, Without} from "./relation.js"
 import {resource} from "./resource.js"
-import {make_component, make_tag, Component} from "./term.js"
-import {make_selector, Selector, Type} from "./type.js"
+import {makeComponent, makeTag, Component} from "./term.js"
+import {makeSelector, Selector, Type} from "./type.js"
 import {World, Values} from "./world.js"
 import {slot} from "./slot.js"
 
@@ -18,15 +18,15 @@ export {Node} from "./graph.js"
 export type {SystemImpl as System} from "./system.js"
 
 export {
-  make_app as app,
+  makeApp as app,
   slot,
   ChildOf,
-  make_component as component,
+  makeComponent as component,
   DefaultGroup as Group,
-  make_relation as relation,
+  makeRelation as relation,
   resource,
-  make_tag as tag,
-  make_selector as type,
+  makeTag as tag,
+  makeSelector as type,
   Without,
   World,
   Type,
@@ -41,4 +41,4 @@ export type {
   Constrain,
 }
 
-export {normalize_spec} from "./type.js"
+export {normalizeSpec} from "./type.js"

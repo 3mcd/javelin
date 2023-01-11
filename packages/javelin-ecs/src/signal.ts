@@ -9,9 +9,9 @@ export class Signal<T> {
   }
 
   add(listener: SignalListener<T>) {
-    let listener_index = this.#listener.push(listener) - 1
+    let listenerIndex = this.#listener.push(listener) - 1
     return () => {
-      this.#listener.splice(listener_index, 1)
+      this.#listener.splice(listenerIndex, 1)
     }
   }
 

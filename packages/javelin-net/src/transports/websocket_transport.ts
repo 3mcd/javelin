@@ -2,13 +2,13 @@ import {NetworkTransport} from "../network_transport.js"
 
 export class WebsocketTransport implements NetworkTransport {
   #websocket: WebSocket
-  #recv_queue: Uint8Array[] = []
+  #recvQueue: Uint8Array[] = []
 
   constructor(websocket: WebSocket) {
     this.#websocket = websocket
     this.#websocket.binaryType = "arraybuffer"
     this.#websocket.addEventListener("message", event => {
-      this.#recv_queue.push(new Uint8Array(event.data))
+      this.#recvQueue.push(new Uint8Array(event.data))
     })
   }
 
@@ -17,6 +17,6 @@ export class WebsocketTransport implements NetworkTransport {
   }
 
   recv(): Uint8Array | undefined {
-    return this.#recv_queue.shift()
+    return this.#recvQueue.shift()
   }
 }

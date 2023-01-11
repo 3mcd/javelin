@@ -39,49 +39,49 @@ export enum DefaultGroup {
   Late = "Late",
 }
 
-let default_plugin = (app: App) => {
-  let init_flag = true
+let defaultPlugin = (app: App) => {
+  let initFlag = true
   app
-    .add_group(
+    .addGroup(
       DefaultGroup.Init,
       _ => _.before(DefaultGroup.Early),
-      () => init_flag,
+      () => initFlag,
     )
-    .add_group(DefaultGroup.Early, _ =>
+    .addGroup(DefaultGroup.Early, _ =>
       _.after(DefaultGroup.Init).before(DefaultGroup.EarlyUpdate),
     )
-    .add_group(DefaultGroup.EarlyUpdate, _ =>
+    .addGroup(DefaultGroup.EarlyUpdate, _ =>
       _.after(DefaultGroup.Early).before(DefaultGroup.Update),
     )
-    .add_group(DefaultGroup.Update, _ =>
+    .addGroup(DefaultGroup.Update, _ =>
       _.after(DefaultGroup.EarlyUpdate).before(
         DefaultGroup.LateUpdate,
       ),
     )
-    .add_group(DefaultGroup.LateUpdate, _ =>
+    .addGroup(DefaultGroup.LateUpdate, _ =>
       _.after(DefaultGroup.Update).before(DefaultGroup.Late),
     )
-    .add_group(DefaultGroup.Late, _ =>
+    .addGroup(DefaultGroup.Late, _ =>
       _.after(DefaultGroup.LateUpdate),
     )
-    .add_system_to_group(DefaultGroup.Init, () => (init_flag = false))
+    .addSystemToGroup(DefaultGroup.Init, () => (initFlag = false))
 }
 
 export class App {
-  #group_schedule_stale
-  #group_schedule
+  #groupScheduleStale
+  #groupSchedule
   #groups
-  #groups_by_id
+  #groupsById
 
   readonly world: World
 
   constructor(world: World) {
-    this.#group_schedule = new Schedule<string>()
-    this.#groups_by_id = new Map<string, Group>()
+    this.#groupSchedule = new Schedule<string>()
+    this.#groupsById = new Map<string, Group>()
     this.#groups = [] as Group[]
-    this.#group_schedule_stale = true
+    this.#groupScheduleStale = true
     this.world = world
-    this.use(default_plugin)
+    this.use(defaultPlugin)
   }
 
   use(plugin: Plugin): App {
@@ -89,37 +89,37 @@ export class App {
     return this
   }
 
-  add_resource<T>(resource: Resource<T>, value: T): App {
-    assert(!this.world.has_resource(resource))
-    this.world.set_resource(resource, value)
+  addResource<T>(resource: Resource<T>, value: T): App {
+    assert(!this.world.hasResource(resource))
+    this.world.setResource(resource, value)
     return this
   }
 
-  get_resource<T>(resource: Resource<T>): Maybe<T> {
-    return this.world.get_resource(resource)
+  getResource<T>(resource: Resource<T>): Maybe<T> {
+    return this.world.getResource(resource)
   }
 
-  add_group(
-    group_id: string,
+  addGroup(
+    groupId: string,
     constrain?: Constrain<string>,
     criteria?: Maybe<Predicate>,
   ) {
-    expect(!this.#groups_by_id.has(group_id))
+    expect(!this.#groupsById.has(groupId))
     let group = new Group(criteria)
     let constraints = new Constraints<string>()
-    this.#groups_by_id.set(group_id, group)
+    this.#groupsById.set(groupId, group)
     constrain?.(constraints)
-    Constraints.insert(this.#group_schedule, group_id, constraints)
-    this.#group_schedule_stale = true
+    Constraints.insert(this.#groupSchedule, groupId, constraints)
+    this.#groupScheduleStale = true
     return this
   }
 
-  add_system(
+  addSystem(
     system: SystemImpl,
     constrain?: Maybe<Constrain<SystemImpl>>,
     criteria?: Maybe<Predicate>,
   ): App {
-    this.add_system_to_group(
+    this.addSystemToGroup(
       DefaultGroup.Update,
       system,
       constrain,
@@ -128,23 +128,23 @@ export class App {
     return this
   }
 
-  add_system_to_group(
-    group_id: string,
+  addSystemToGroup(
+    groupId: string,
     system: SystemImpl,
     constrain?: Maybe<Constrain<SystemImpl>>,
     criteria?: Maybe<Predicate>,
   ): App {
-    let group = expect(this.#groups_by_id.get(group_id))
-    group.add_system(system, constrain?.(new Constraints()), criteria)
+    let group = expect(this.#groupsById.get(groupId))
+    group.addSystem(system, constrain?.(new Constraints()), criteria)
     return this
   }
 
-  add_init_system(
+  addInitSystem(
     system: SystemImpl,
     constrain?: Maybe<Constrain<SystemImpl>>,
     criteria?: Maybe<Predicate>,
   ) {
-    this.add_system_to_group(
+    this.addSystemToGroup(
       DefaultGroup.Init,
       system,
       constrain,
@@ -154,12 +154,12 @@ export class App {
   }
 
   step(): void {
-    if (this.#group_schedule_stale) {
-      let groups = this.#group_schedule.build()
-      this.#groups = groups.map(group_id =>
-        expect(this.#groups_by_id.get(group_id)),
+    if (this.#groupScheduleStale) {
+      let groups = this.#groupSchedule.build()
+      this.#groups = groups.map(groupId =>
+        expect(this.#groupsById.get(groupId)),
       )
-      this.#group_schedule_stale = false
+      this.#groupScheduleStale = false
     }
     for (let i = 0; i < this.#groups.length; i++) {
       let group = this.#groups[i]
@@ -170,20 +170,20 @@ export class App {
             !exists(system.predicate) ||
             system.predicate(this.world)
           ) {
-            this.world.set_resource(CurrentSystem, system)
+            this.world.setResource(CurrentSystem, system)
             let monitors = system.monitors.values()
             for (let k = 0; k < monitors.length; k++) {
               let monitor = monitors[k]
               monitor.drain()
             }
             system.run(this.world)
-            this.world.emit_staged_changes()
+            this.world.emitStagedChanges()
           }
         }
       }
     }
-    this.world.commit_staged_changes()
+    this.world.commitStagedChanges()
   }
 }
 
-export let make_app = (world = new World()) => new App(world)
+export let makeApp = (world = new World()) => new App(world)

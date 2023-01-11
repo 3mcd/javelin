@@ -4,30 +4,30 @@ Systems are functions that modify a world. All game logic is implemented by syst
 
 An app executes each of it's systems each step. Systems may be optionally configured to run in a specific order through ordering constraints and system groups. They may also be conditionally disabled (and enabled) with run criteria.
 
-Systems are added to an app using the app's `add_system` method.
+Systems are added to an app using the app's `addSystem` method.
 
 ```ts
-function plant_growth_system(world: World) {
-  world.of(Plot).each((plot, plot_water) => {
-    world.of(Plant, ChildOf(plot)).each((plant, plant_mass) => {
-      // (grow plant using plot_water)
+function plantGrowthSystem(world: World) {
+  world.of(Plot).each((plot, plotWater) => {
+    world.of(Plant, ChildOf(plot)).each((plant, plantMass) => {
+      // (grow plant using plotWater)
     })
   })
 }
 
-game.add_system(plant_growth_system)
+game.addSystem(plantGrowthSystem)
 ```
 
 By default, an app will execute it's systems in the order they are added.
 
 ## Ordering Constraints
 
-The order in which an app executes systems can be configured using explicit ordering constraints. Ordering constraints are established using a constraint builder object passed to `add_system`'s optional second callback argument.
+The order in which an app executes systems can be configured using explicit ordering constraints. Ordering constraints are established using a constraint builder object passed to `addSystem`'s optional second callback argument.
 
 ```ts
 game
-  .add_system(plant_growth_system, _ => _.after(weather_system))
-  .add_system(weather_system)
+  .addSystem(plantGrowthSystem, _ => _.after(weatherSystem))
+  .addSystem(weatherSystem)
 ```
 
 The `after` constraint ensures a system will be run some time following a given system, while `before` ensures a system is executed earlier in the pipeline.
@@ -35,25 +35,25 @@ The `after` constraint ensures a system will be run some time following a given 
 Ordering constraints can be chained.
 
 ```ts
-game.add_system(
-  pest_system,
-  _ => _.after(weather_system).before(plant_growth_system),
+game.addSystem(
+  pestSystem,
+  _ => _.after(weatherSystem).before(plantGrowthSystem),
 )
 ```
 
 ## Run Criteria
 
-Systems can also be run conditionally based on the boolean result of a callback function. This predicate function is provided as the third argument to `add_system`.
+Systems can also be run conditionally based on the boolean result of a callback function. This predicate function is provided as the third argument to `addSystem`.
 
 ```ts
-function each_hundredth_tick(world: World) {
-  return world.get_resource(Clock).tick % 100 === 0
+function eachHundredthTick(world: World) {
+  return world.getResource(Clock).tick % 100 === 0
 }
 
-game.add_system(
-  plant_growth_system,
-  _ => _.after(weather_system),
-  each_hundredth_tick,
+game.addSystem(
+  plantGrowthSystem,
+  _ => _.after(weatherSystem),
+  eachHundredthTick,
 )
 ```
 
@@ -79,35 +79,35 @@ Groups are run in the order they appear in the above enum. There are no rules ar
 4. `Group.LateUpdate` can be used to spawn and destroy entities because entity operations are [deferred until the end of a step](./entities.md#transactions) anyways.
 5. `Group.Late` might be used to render the scene, send outgoing network messages, serialize game state, etc.
 
-Systems are grouped using an app's `add_system_to_group` method:
+Systems are grouped using an app's `addSystemToGroup` method:
 
 ```ts
-game.add_system_to_group(Group.Late, render_plot_system)
+game.addSystemToGroup(Group.Late, renderPlotSystem)
 ```
 
-Like `add_system`, `add_system_to_group` also accepts ordering constraints and run criteria through it's third and fourth arguments.
+Like `addSystem`, `addSystemToGroup` also accepts ordering constraints and run criteria through it's third and fourth arguments.
 
 ```ts
-game.add_system_to_group(
+game.addSystemToGroup(
   Group.Late,
-  render_plot_system, 
-  _ => _.before(render_grass_system),
+  renderPlotSystem, 
+  _ => _.before(renderGrassSystem),
 )
 ```
 
-Custom system groups can be created with an app's `add_group` method:
+Custom system groups can be created with an app's `addGroup` method:
 
 ```ts
-app.add_group("plot_sim")
+app.addGroup("plot_sim")
 ```
 
 Like systems, system groups can be ordered and toggled using ordering constraints and run criteria, respectively.
 
 ```ts
-game.add_group(
+game.addGroup(
   "plot_sim",
   _ => _.before(Group.LateUpdate).after(Group.Update),
-  each_hundredth_tick,
+  eachHundredthTick,
 ```
 
 
@@ -116,10 +116,10 @@ game.add_group(
 
 Javelin has a sixth built-in system group: `Group.Init`. This group has run criteria and ordering constraints that ensure it is executed only once at the beginning of the app's first step. `Group.Init` is useful when performing one-off initialization logic, like loading a map or spawning a player.
 
-Apps have a small convenience method for adding systems to `Group.Init`: `add_init_system`.
+Apps have a small convenience method for adding systems to `Group.Init`: `addInitSystem`.
 
 ```ts
-game.add_init_system(load_level_system)
+game.addInitSystem(loadLevelSystem)
 ```
 
-Of course, like each of the aformentioned system-related methods, `add_init_system` also accepts ordering constraints and run criteria.
+Of course, like each of the aformentioned system-related methods, `addInitSystem` also accepts ordering constraints and run criteria.

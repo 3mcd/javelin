@@ -3,8 +3,8 @@ import {Clock} from "./clock.js"
 
 export let DisposeTimer = component("f32")
 
-let prune_expired_disposables_system = (world: World) => {
-  let clock = world.get_resource(Clock)
+let pruneExpiredDisposablesSystem = (world: World) => {
+  let clock = world.getResource(Clock)
   world.of(DisposeTimer).each((e, timer) => {
     if (clock.time > timer) {
       world.delete(e)
@@ -12,8 +12,8 @@ let prune_expired_disposables_system = (world: World) => {
   })
 }
 
-export let dispose_plugin = (app: App) =>
-  app.add_system_to_group(
+export let disposePlugin = (app: App) =>
+  app.addSystemToGroup(
     Group.EarlyUpdate,
-    prune_expired_disposables_system,
+    pruneExpiredDisposablesSystem,
   )

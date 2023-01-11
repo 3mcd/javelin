@@ -63,16 +63,16 @@ world.delete(entity)
 
 ## Entity Transaction
 
-Entity operations are deferred until the end of each step. Take the following example where a `system_b` downstream of `system_a` fails to locate a newly created entity within a single step.
+Entity operations are deferred until the end of each step. Take the following example where a `systemB` downstream of `systemA` fails to locate a newly created entity within a single step.
 
 ```ts
 app
-  // system_a
-  .add_system(world => {
+  // systemA
+  .addSystem(world => {
     world.create(Hippo)
   })
-  // system_b
-  .add_system(world => {
+  // systemB
+  .addSystem(world => {
     world.of(Hippo).each(hippo => {
       // (not called, even though a hippo was created)
     })

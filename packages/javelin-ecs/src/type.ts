@@ -1,92 +1,92 @@
 import {
   assert,
   HASH_BASE,
-  hash_word,
-  hash_words,
-  normalize_hash,
+  hashWord,
+  hashWords,
+  normalizeHash,
 } from "@javelin/lib"
-import {id_hi, id_lo, LO_MASK} from "./entity.js"
+import {idHi, idLo, LO_MASK} from "./entity.js"
 import {
   ChildOf,
-  get_relation,
-  is_relation,
+  getRelation,
+  isRelation,
   Not,
   Relation,
 } from "./relation.js"
 import {Component} from "./term.js"
-import {is_slot} from "./slot.js"
+import {isSlot} from "./slot.js"
 
 export type Term = Selector | Component | Relation
 export type Spec = Term[]
 
-export function normalize_spec(spec: Spec) {
-  let includes_childof = false
+export function normalizeSpec(spec: Spec) {
+  let includesChildof = false
   let slots = new Set<number>()
-  let included_components: Component[] = []
-  let excluded_components: Component[] = []
+  let includedComponents: Component[] = []
+  let excludedComponents: Component[] = []
   for (let i = 0; i < spec.length; i++) {
     let term = spec[i]
     if (typeof term === "number") {
       if (term > LO_MASK) {
-        let term_hi = id_hi(term)
-        if (term_hi === Not.relation_id) {
-          excluded_components.push(id_lo(term) as Component)
+        let termHi = idHi(term)
+        if (termHi === Not.relationId) {
+          excludedComponents.push(idLo(term) as Component)
           continue
         } else {
-          let relation = get_relation(term_hi)
-          let relation_id = relation.relation_id
+          let relation = getRelation(termHi)
+          let relationId = relation.relationId
           if (relation === ChildOf) {
             assert(
-              !includes_childof,
+              !includesChildof,
               "A type may have only one ChildOf relationship",
             )
-            includes_childof = true
-          } else if (is_slot(relation_id)) {
+            includesChildof = true
+          } else if (isSlot(relationId)) {
             assert(
-              !slots.has(relation_id),
+              !slots.has(relationId),
               "A type may have at most one component for a given slot",
             )
-            slots.add(relation_id)
+            slots.add(relationId)
           }
-          included_components.push(relation.relation_term)
+          includedComponents.push(relation.relationTerm)
         }
       }
-      included_components.push(term)
-    } else if (is_relation(term)) {
-      included_components.push(term.relation_term as Component)
+      includedComponents.push(term)
+    } else if (isRelation(term)) {
+      includedComponents.push(term.relationTerm as Component)
     } else {
-      for (let j = 0; j < term.included_components.length; j++) {
-        included_components.push(term.included_components[j])
+      for (let j = 0; j < term.includedComponents.length; j++) {
+        includedComponents.push(term.includedComponents[j])
       }
     }
   }
-  return {included_components, excluded_components}
+  return {includedComponents, excludedComponents}
 }
 
-export function hash_spec(...query_spec: Spec): number
-export function hash_spec() {
-  let query_hash = HASH_BASE
-  let query_spec = arguments as unknown as Spec
-  for (let i = 0; i < query_spec.length; i++) {
-    let query_term = query_spec[i]
-    if (typeof query_term === "number") {
-      query_hash = hash_word(query_hash, query_term)
-    } else if (is_relation(query_term)) {
-      query_hash = hash_word(query_hash, query_term.relation_term)
+export function hashSpec(...querySpec: Spec): number
+export function hashSpec() {
+  let queryHash = HASH_BASE
+  let querySpec = arguments as unknown as Spec
+  for (let i = 0; i < querySpec.length; i++) {
+    let queryTerm = querySpec[i]
+    if (typeof queryTerm === "number") {
+      queryHash = hashWord(queryHash, queryTerm)
+    } else if (isRelation(queryTerm)) {
+      queryHash = hashWord(queryHash, queryTerm.relationTerm)
     } else {
       for (
         let j = 0;
-        j < query_term.included_components.length;
+        j < queryTerm.includedComponents.length;
         j++
       ) {
-        query_hash = hash_word(
-          query_hash,
-          query_term.included_components[j],
+        queryHash = hashWord(
+          queryHash,
+          queryTerm.includedComponents[j],
         )
       }
     }
   }
-  return normalize_hash(query_hash)
+  return normalizeHash(queryHash)
 }
 
 export class Type {
@@ -98,7 +98,7 @@ export class Type {
 
   static of(components: Component[]) {
     components = components.slice().sort(Type.sort)
-    let hash = hash_words.apply(null, components)
+    let hash = hashWords.apply(null, components)
     return (Type.cache[hash] ??= new Type(components, hash))
   }
 
@@ -114,16 +114,16 @@ export class Selector<T extends Spec = Spec> {
 
   readonly hash
   readonly type
-  readonly included_components
-  readonly excluded_components
+  readonly includedComponents
+  readonly excludedComponents
 
   constructor(spec: T) {
-    let {included_components, excluded_components} =
-      normalize_spec(spec)
-    this.hash = hash_words.apply(null, included_components)
-    this.type = Type.of(included_components)
-    this.included_components = included_components
-    this.excluded_components = excluded_components
+    let {includedComponents, excludedComponents} =
+      normalizeSpec(spec)
+    this.hash = hashWords.apply(null, includedComponents)
+    this.type = Type.of(includedComponents)
+    this.includedComponents = includedComponents
+    this.excludedComponents = excludedComponents
   }
 }
 
@@ -142,24 +142,24 @@ export type ComponentsOf<
     : never
   : never
 
-export function make_selector<T extends Spec>(
+export function makeSelector<T extends Spec>(
   ...spec: T
 ): Selector<ComponentsOf<T>>
-export function make_selector() {
+export function makeSelector() {
   let hash = HASH_BASE
   let spec = arguments as unknown as Spec
   for (let i = 0; i < spec.length; i++) {
     let term = spec[i]
     if (typeof term === "number") {
-      hash = hash_word(hash, term)
-    } else if (is_relation(term)) {
-      hash = hash_word(hash, term.relation_term)
+      hash = hashWord(hash, term)
+    } else if (isRelation(term)) {
+      hash = hashWord(hash, term.relationTerm)
     } else {
-      for (let j = 0; j < term.included_components.length; j++) {
-        hash = hash_word(hash, term.included_components[j])
+      for (let j = 0; j < term.includedComponents.length; j++) {
+        hash = hashWord(hash, term.includedComponents[j])
       }
     }
   }
-  hash = normalize_hash(hash)
+  hash = normalizeHash(hash)
   return (Selector.cache[hash] ??= new Selector(spec))
 }

@@ -33,71 +33,71 @@ class MonitorBatchBuffer {
 }
 
 export class Monitor {
-  #excluded_components
-  #excluded_entity_batches
-  #included_entity_batches
+  #excludedComponents
+  #excludedEntityBatches
+  #includedEntityBatches
   #phase
-  #unsubscribe_entities_included
-  #unsubscribe_entities_excluded
+  #unsubscribeEntitiesIncluded
+  #unsubscribeEntitiesExcluded
 
   constructor(
     node: Node,
     phase: string,
-    excluded_components: Component[] = [],
+    excludedComponents: Component[] = [],
   ) {
-    this.#excluded_components = excluded_components
-    this.#excluded_entity_batches = new MonitorBatchBuffer()
-    this.#included_entity_batches = new MonitorBatchBuffer()
+    this.#excludedComponents = excludedComponents
+    this.#excludedEntityBatches = new MonitorBatchBuffer()
+    this.#includedEntityBatches = new MonitorBatchBuffer()
     this.#phase = phase
-    node.traverse_add(node => {
-      if (this.#matches_node(node)) {
-        this.#include_batch(new Set(node.entities))
+    node.traverseAdd(node => {
+      if (this.#matchesNode(node)) {
+        this.#includeBatch(new Set(node.entities))
       }
     })
-    this.#unsubscribe_entities_included =
-      node.on_entities_included.add(event =>
-        this.#handle_include_event(event),
+    this.#unsubscribeEntitiesIncluded =
+      node.onEntitiesIncluded.add(event =>
+        this.#handleIncludeEvent(event),
       )
-    this.#unsubscribe_entities_excluded =
-      node.on_entities_excluded.add(event =>
-        this.#handle_exclude_event(event),
+    this.#unsubscribeEntitiesExcluded =
+      node.onEntitiesExcluded.add(event =>
+        this.#handleExcludeEvent(event),
       )
   }
 
-  #matches_event(event: TransactionEvent) {
+  #matchesEvent(event: TransactionEvent) {
     return (
-      this.#phase === event.phase && this.#matches_node(event.node)
+      this.#phase === event.phase && this.#matchesNode(event.node)
     )
   }
 
-  #matches_node(node: Node) {
-    for (let i = 0; i < this.#excluded_components.length; i++) {
-      let term = this.#excluded_components[i]
-      if (node.has_component(term)) {
+  #matchesNode(node: Node) {
+    for (let i = 0; i < this.#excludedComponents.length; i++) {
+      let term = this.#excludedComponents[i]
+      if (node.hasComponent(term)) {
         return false
       }
     }
     return true
   }
 
-  #include_batch(batch: Set<Entity>) {
-    this.#included_entity_batches.push(batch)
+  #includeBatch(batch: Set<Entity>) {
+    this.#includedEntityBatches.push(batch)
   }
 
-  #handle_include_event(event: TransactionEvent) {
-    if (this.#matches_event(event)) {
-      this.#included_entity_batches.push(event.batch)
+  #handleIncludeEvent(event: TransactionEvent) {
+    if (this.#matchesEvent(event)) {
+      this.#includedEntityBatches.push(event.batch)
     }
   }
 
-  #handle_exclude_event(event: TransactionEvent) {
-    if (this.#matches_event(event)) {
-      this.#excluded_entity_batches.push(event.batch)
+  #handleExcludeEvent(event: TransactionEvent) {
+    if (this.#matchesEvent(event)) {
+      this.#excludedEntityBatches.push(event.batch)
     }
   }
 
-  each_included(iteratee: MonitorIteratee) {
-    let batches = this.#included_entity_batches.get()
+  eachIncluded(iteratee: MonitorIteratee) {
+    let batches = this.#includedEntityBatches.get()
     for (let i = 0; i < batches.length; i++) {
       let batch = batches[i]
       batch.forEach(iteratee)
@@ -105,8 +105,8 @@ export class Monitor {
     return this
   }
 
-  each_excluded(iteratee: MonitorIteratee) {
-    let batches = this.#excluded_entity_batches.get()
+  eachExcluded(iteratee: MonitorIteratee) {
+    let batches = this.#excludedEntityBatches.get()
     for (let i = 0; i < batches.length; i++) {
       let batch = batches[i]
       batch.forEach(iteratee)
@@ -114,8 +114,8 @@ export class Monitor {
     return this
   }
 
-  get included_size() {
-    let batches = this.#included_entity_batches.get()
+  get includedSize() {
+    let batches = this.#includedEntityBatches.get()
     let size = 0
     for (let i = 0; i < batches.length; i++) {
       size += batches[i].size
@@ -123,8 +123,8 @@ export class Monitor {
     return size
   }
 
-  get excluded_size() {
-    let batches = this.#excluded_entity_batches.get()
+  get excludedSize() {
+    let batches = this.#excludedEntityBatches.get()
     let size = 0
     for (let i = 0; i < batches.length; i++) {
       size += batches[i].size
@@ -133,12 +133,12 @@ export class Monitor {
   }
 
   drain() {
-    this.#included_entity_batches.swap()
-    this.#excluded_entity_batches.swap()
+    this.#includedEntityBatches.swap()
+    this.#excludedEntityBatches.swap()
   }
 
   dispose() {
-    this.#unsubscribe_entities_included()
-    this.#unsubscribe_entities_excluded()
+    this.#unsubscribeEntitiesIncluded()
+    this.#unsubscribeEntitiesExcluded()
   }
 }

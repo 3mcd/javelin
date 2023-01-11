@@ -4,7 +4,7 @@ import {DisposeTimer} from "./dispose.js"
 import {Enemy} from "./enemy.js"
 import {Heading} from "./heading.js"
 import {Health} from "./health.js"
-import {box_intersects, normalize} from "./math.js"
+import {boxIntersects, normalize} from "./math.js"
 import {Position} from "./position.js"
 
 const BULLET_SIZE = 1
@@ -22,76 +22,76 @@ export let Bullet = type(
   BulletCollisions,
 )
 
-export let make_bullet = (
+export let makeBullet = (
   world: World,
-  pos_x: number,
-  pos_y: number,
-  target_x: number,
-  target_y: number,
-  dispose_time: number,
+  posX: number,
+  posY: number,
+  targetX: number,
+  targetY: number,
+  disposeTime: number,
   pierce = 0,
 ) =>
   world.create(
     Bullet,
-    {x: pos_x, y: pos_y},
+    {x: posX, y: posY},
     {x: BULLET_SIZE, y: BULLET_SIZE},
-    normalize({x: pos_x - target_x, y: pos_y - target_y}),
+    normalize({x: posX - targetX, y: posY - targetY}),
     3,
-    dispose_time,
+    disposeTime,
     pierce,
     new Set(),
   )
 
-let move_bullets_system = (world: World) =>
+let moveBulletsSystem = (world: World) =>
   world
     .of(Bullet)
     .as(Position, Heading)
-    .each((_, bullet_pos, bullet_heading) => {
-      bullet_pos.x += 0.5 * bullet_heading.x
-      bullet_pos.y += 0.5 * bullet_heading.y
+    .each((_, bulletPos, bulletHeading) => {
+      bulletPos.x += 0.5 * bulletHeading.x
+      bulletPos.y += 0.5 * bulletHeading.y
     })
 
-let collide_bullets_system = (world: World) =>
+let collideBulletsSystem = (world: World) =>
   world
     .of(Bullet)
     .as(Position, Box, BulletDamage, BulletPierce, BulletCollisions)
     .each(
       (
         bullet,
-        bullet_pos,
-        bullet_box,
-        bullet_damage,
-        bullet_pierce,
-        bullet_collisions,
+        bulletPos,
+        bulletBox,
+        bulletDamage,
+        bulletPierce,
+        bulletCollisions,
       ) =>
         world
           .of(Enemy)
           .as(Position, Box, Health)
-          .each((enemy, enemy_pos, enemy_box, enemy_health) => {
+          .each((enemy, enemyPos, enemyBox, enemyHealth) => {
             if (
-              !bullet_collisions.has(enemy) &&
-              box_intersects(
-                bullet_pos,
-                bullet_box,
-                enemy_pos,
-                enemy_box,
+              !bulletCollisions.has(enemy) &&
+              boxIntersects(
+                bulletPos,
+                bulletBox,
+                enemyPos,
+                enemyBox,
               )
             ) {
-              let next_bullet_pierce = bullet_pierce - 1
-              if (next_bullet_pierce <= 0) {
+              let nextBulletPierce = bulletPierce - 1
+              if (nextBulletPierce <= 0) {
                 world.delete(bullet)
               } else {
-                world.set(bullet, BulletPierce, next_bullet_pierce)
+                world.set(bullet, BulletPierce, nextBulletPierce)
               }
-              world.set(enemy, Health, enemy_health - bullet_damage)
-              bullet_collisions.add(enemy)
+              world.set(enemy, Health, enemyHealth - bulletDamage)
+              bulletCollisions.add(enemy)
             }
           }),
     )
 
-export let bullet_plugin = (app: App) =>
+export let bulletPlugin = (app: App) =>
   app
-    .add_system_to_group(Group.Update, move_bullets_system)
-    .add_system_to_group(Group.Update, collide_bullets_system, _ =>
-      _.after(move_bullets_system),
+    .addSystemToGroup(Group.Update, moveBulletsSystem)
+    .addSystemToGroup(Group.Update, collideBulletsSystem, _ =>
+      _.after(moveBulletsSystem),
     )

@@ -4,8 +4,8 @@ Giving an entity a `NetworkId` component immediately makes each of its blueprint
 
 ```ts
 app
-  .add_resource(NetComponents, [Position, Velocity])
-  .add_plugin(server_net_plugin)
+  .addResource(NetComponents, [Position, Velocity])
+  .addPlugin(serverNetPlugin)
 ```
 
 In this example, the positions and velocities of all entities with a `NetworkId` component are sent when changed.
@@ -14,36 +14,36 @@ The rate at which these values are sent to each client is configured using **awa
 
 ```ts
 // only ghosts can see other ghosts
-let ghost_interest = interest(type(Ghost), (world, entity) =>
+let ghostInterest = interest(type(Ghost), (world, entity) =>
   world.has(entity, Ghost) ? 1 : 0,
 )
 
-let body_interest = interest(
+let bodyInterest = interest(
   // for entities with a position, velocity and rotation
   type(Position, Velocity, Rotation),
   type(Position, Velocity, Rotation),
   // decrease the priority of p,v,r updates relative to distance
-  (world, entity, object, object_pos) =>
-    1 / distance(world.get(entity, Position), object_pos),
+  (world, entity, object, objectPos) =>
+    1 / distance(world.get(entity, Position), objectPos),
 )
 
-let client_awareness = awareness()
-  .add_interest(body_interest)
-  .add_interest(ghost_interest)
+let clientAwareness = awareness()
+  .addInterest(bodyInterest)
+  .addInterest(ghostInterest)
 
-app.add_startup_system(world => {
-  world.create(Client, client_transport, client_awareness)
+app.addStartupSystem(world => {
+  world.create(Client, clientTransport, clientAwareness)
 })
 ```
 
 A transport can receive many kinds of messages. You can route network messages to a transport's underlying stream based on the message type.
 
 ```ts
-let client_transport = {
+let clientTransport = {
   socket: new WebSocket("wss://..."),
   channel: peer.createDataChannel(),
-  send(message: Uint8Array, message_type: number) {
-    switch (message_type) {
+  send(message: Uint8Array, messageType: number) {
+    switch (messageType) {
       case MessageType.Update:
         this.socket.send(message)
         break

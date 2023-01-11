@@ -42,10 +42,10 @@ An app has a single world by default. A world manages all game state, primarily 
 Entities are created using a world's `create()` method. In order to create our box, we need to get a reference to the app's world. We can do this using a **startup system**, a function that is executed once when the app is initialized.
 
 ```ts
-function create_box_system(world: World) {
+function createBoxSystem(world: World) {
   let box = world.create()
 }
-game.add_init_system(create_box_system)
+game.addInitSystem(createBoxSystem)
 game.step()
 ```
 
@@ -65,7 +65,7 @@ let Color = component<string>()
 Component values are added to entities using a world's `add` method. Let's give our entity some position and color data:
 
 ```ts
-function create_box_system(world: World) {
+function createBoxSystem(world: World) {
   let box = world.world()
   world.add(box, Position, {x: 0, y: 0})
   world.add(box, Color, "#ff0000")
@@ -100,20 +100,20 @@ A system is a function that recieves a world as its sole argument. Typically a s
 
 This system will need to perform all three of these operations: get the input resource, find the box using a query, and update the box's position.
 
-We'll first get a reference to the device's keyboard state using `world.get_resource`:
+We'll first get a reference to the device's keyboard state using `world.getResource`:
 
 ```ts
-function move_box_system(world: World) {
-  let {key} = world.get_resource(Input)
+function moveBoxSystem(world: World) {
+  let {key} = world.getResource(Input)
 }
 ```
 
 Then we'll find and update the box using a query. `world.of` returns an iterable collection of entities that match a list of types and components to a callback function:
 
 ```ts
-world.of(Box).each((box, box_pos) => {
-  box_pos.x += Number(key("ArrowRight")) - Number(key("ArrowLeft"))
-  box_pos.y += Number(key("ArrowDown")) - Number(key("ArrowUp"))
+world.of(Box).each((box, boxPos) => {
+  boxPos.x += Number(key("ArrowRight")) - Number(key("ArrowLeft"))
+  boxPos.y += Number(key("ArrowDown")) - Number(key("ArrowUp"))
 })
 ```
 
@@ -129,20 +129,20 @@ We can define a **resource** for it. Resources let us provide arbitrary values t
 let Context2D = resource<CanvasRenderingContext2D>()
 ```
 
-Next, we'll provide the app a value for the `Context2D` resource using its `add_resource` method.
+Next, we'll provide the app a value for the `Context2D` resource using its `addResource` method.
 
 ```ts
 let context = document.querySelector("canvas")!.getContext("2d")
-game.add_resource(Context2D, context)
+game.addResource(Context2D, context)
 ```
 
-> Resources can provide _any_ value to systems. This includes third party library objects, singleton entities, and any other game state that doesn't clearly fit into entities and components.
+> Resources can provide Any_ value to systems. This includes third party library objects, singleton entities, and any other game state that doesn't clearly fit into entities and components.
 
 Image data is not automatically cleared from canvas elements, so we should write a system that erases the canvas so we don't draw our box on top of old pixels. We'll get the draw context using the `useResource` effect (which simply calls `world.getResource`), and call its `clearRect()` method:
 
 ```ts
-function clear_canvas_system(world: World) {
-  let context = world.get_resource(Context2D)
+function clearCanvasSystem(world: World) {
+  let context = world.getResource(Context2D)
   context.clearRect(0, 0, 300, 150) // default canvas width/height
 }
 ```
@@ -150,50 +150,50 @@ function clear_canvas_system(world: World) {
 Taking everything we've learned so far about systems, queries, and resources, we can write a system that draws our box to the canvas:
 
 ```ts
-function draw_box_system(world: World) {
-  let context = world.get_resource(Context2D)
-  world.of(Box).each((box, box_pos, box_color) => {
-    context.fillStyle = box_color
-    context.fillRect(pox_pos.x, box_pos.y, 50, 50)
+function drawBoxSystem(world: World) {
+  let context = world.getResource(Context2D)
+  world.of(Box).each((box, boxPos, boxColor) => {
+    context.fillStyle = boxColor
+    context.fillRect(poxPos.x, boxPos.y, 50, 50)
   })
 }
 ```
 
 ## Hook it Up
 
-Our movement and rendering systems are fully implemented! We just need to register them with our app. We'll use the app's `add_system` method to instruct the app to execute the system each time the app's `step` method is called.
+Our movement and rendering systems are fully implemented! We just need to register them with our app. We'll use the app's `addSystem` method to instruct the app to execute the system each time the app's `step` method is called.
 
 Systems are executed in the order in which they are added. So we could simply add them sequentially:
 
 ```ts
 game
   // Add our systems in order:
-  .add_system(move_box_system)
-  .add_system(clear_canvas_system)
-  .add_system(draw_box_system)
+  .addSystem(moveBoxSystem)
+  .addSystem(clearCanvasSystem)
+  .addSystem(drawBoxSystem)
 ```
 
-This practice doesn't work well for larger games with dozens of systems. At scale, adding and reordering systems becomes impractical because systems must be ordered _just right_ for the app to function predictably.
+This practice doesn't work well for larger games with dozens of systems. At scale, adding and reordering systems becomes impractical because systems must be ordered Just right_ for the app to function predictably.
 
 We want to ensure that our render systems are executed after our movement system so our players see the most up-to-date game state at the end of each frame. Javelin splits each step into a pipeline of **system groups**. We can ensure that our render systems execute after our behavior systems by moving them to a group that executes later in the pipeline.
 
-Systems are added to the `Group.Update` group by default. So we can add our rendering systems to a system group that follows, like `Group.LateUpdate`, to ensure they run after our game behavior. A system can be added to a group other than `App.Update` via an app's `add_system_to_group` method:
+Systems are added to the `Group.Update` group by default. So we can add our rendering systems to a system group that follows, like `Group.LateUpdate`, to ensure they run after our game behavior. A system can be added to a group other than `App.Update` via an app's `addSystemToGroup` method:
 
 ```ts
 game
-  .add_system(move_box_system)
-  .add_system_to_group(Group.LateUpdate, clear_canvas_system)
-  .add_system_to_group(Group.LateUpdate, draw_box_system)
+  .addSystem(moveBoxSystem)
+  .addSystemToGroup(Group.LateUpdate, clearCanvasSystem)
+  .addSystemToGroup(Group.LateUpdate, drawBoxSystem)
 ```
 
-Now, regardless of the order the systems are added in, `move_box_system` will always run before the box is drawn to the canvas.
+Now, regardless of the order the systems are added in, `moveBoxSystem` will always run before the box is drawn to the canvas.
 
 We can also add **constraints** to systems to ensure they execute in a deterministic order within a group. Each system registration method accepts a **constraint builder** that defines the ordering of systems within a group.
 
-We want to ensure our box is drawn to the canvas _only after_ the canvas is cleared, otherwise the user may see nothing each frame. We can accomplish this like so:
+We want to ensure our box is drawn to the canvas Only after_ the canvas is cleared, otherwise the user may see nothing each frame. We can accomplish this like so:
 
 ```ts
-game.add_system_to_group(Group.LateUpdate, draw_box_system, _ => _.after(clear_canvas_system))
+game.addSystemToGroup(Group.LateUpdate, drawBoxSystem, _ => _.after(clearCanvasSystem))
 ```
 
 ## Hello, Box!
@@ -202,11 +202,11 @@ Our final app initialization statement should look like this:
 
 ```ts
 app
-  .add_resource(Context2D, context)
-  .add_init_system(create_box_system)
-  .add_system(move_box_system)
-  .add_system_to_group(Group.LateUpdate, clear_canvas_system)
-  .add_system_to_group(Group.LateUpdate, draw_box_system, _ => _.after(clear_canvas_system))
+  .addResource(Context2D, context)
+  .addInitSystem(createBoxSystem)
+  .addSystem(moveBoxSystem)
+  .addSystemToGroup(Group.LateUpdate, clearCanvasSystem)
+  .addSystemToGroup(Group.LateUpdate, drawBoxSystem, _ => _.after(clearCanvasSystem))
 ```
 
 Once we call `game.step()` at a regular interval, you should see our box move when the arrow keys are pressed.

@@ -12,7 +12,7 @@ import {Box} from "./box.js"
 import {Clock} from "./clock.js"
 import {Heading} from "./heading.js"
 import {Health} from "./health.js"
-import {box_intersects, distance, normalize, Vector2} from "./math.js"
+import {boxIntersects, distance, normalize, Vector2} from "./math.js"
 import {Player} from "./player.js"
 import {Position} from "./position.js"
 
@@ -37,35 +37,35 @@ export let Enemy = type(
   EnemyAttackTime,
 )
 
-let enemy_spawn_bounds = {x: 100, y: 100}
-let enemy_spawn_points = [
-  [-enemy_spawn_bounds.x * 0.5, -enemy_spawn_bounds.y * 0.5],
-  [-enemy_spawn_bounds.x * 0.5, 0],
-  [-enemy_spawn_bounds.x * 0.5, enemy_spawn_bounds.y * 0.5],
-  [0, enemy_spawn_bounds.y * 0.5],
-  [enemy_spawn_bounds.x * 0.5, enemy_spawn_bounds.y * 0.5],
-  [enemy_spawn_bounds.x * 0.5, 0],
-  [enemy_spawn_bounds.x * 0.5, -enemy_spawn_bounds.y * 0.5],
-  [0, -enemy_spawn_bounds.y * 0.5],
+let enemySpawnBounds = {x: 100, y: 100}
+let enemySpawnPoints = [
+  [-enemySpawnBounds.x * 0.5, -enemySpawnBounds.y * 0.5],
+  [-enemySpawnBounds.x * 0.5, 0],
+  [-enemySpawnBounds.x * 0.5, enemySpawnBounds.y * 0.5],
+  [0, enemySpawnBounds.y * 0.5],
+  [enemySpawnBounds.x * 0.5, enemySpawnBounds.y * 0.5],
+  [enemySpawnBounds.x * 0.5, 0],
+  [enemySpawnBounds.x * 0.5, -enemySpawnBounds.y * 0.5],
+  [0, -enemySpawnBounds.y * 0.5],
 ]
 
-let make_enemy = (
+let makeEnemy = (
   world: World,
   x: number,
   y: number,
   heading: Vector2,
   health = 5,
-  aura_immune = false,
+  auraImmune = false,
 ) =>
   world.create(
     // @ts-ignore
-    aura_immune
+    auraImmune
       ? type(Enemy, EnemyType(Bat), AuraImmune)
       : type(Enemy, EnemyType(Bat)),
     {x, y},
     {
-      x: aura_immune ? ENEMY_WIDTH / 2 : ENEMY_WIDTH,
-      y: aura_immune ? ENEMY_HEIGHT / 2 : ENEMY_HEIGHT,
+      x: auraImmune ? ENEMY_WIDTH / 2 : ENEMY_WIDTH,
+      y: auraImmune ? ENEMY_HEIGHT / 2 : ENEMY_HEIGHT,
     },
     heading,
     health,
@@ -73,57 +73,57 @@ let make_enemy = (
     {},
   )
 
-let acquire_enemy_target = (
+let acquireEnemyTarget = (
   world: World,
-  enemy_pos: Vector2,
+  enemyPos: Vector2,
   heading: Vector2,
 ) => {
-  let target_pos: Vector2 | undefined
-  let target_distance = Infinity
+  let targetPos: Vector2 | undefined
+  let targetDistance = Infinity
   world
     .of(Player)
     .as(Position)
-    .each((_, player_pos) => {
-      let player_distance = distance(enemy_pos, player_pos)
-      if (player_distance < target_distance) {
-        target_pos = player_pos
-        target_distance = player_distance
+    .each((_, playerPos) => {
+      let playerDistance = distance(enemyPos, playerPos)
+      if (playerDistance < targetDistance) {
+        targetPos = playerPos
+        targetDistance = playerDistance
       }
     })
-  if (target_pos) {
-    heading.x = target_pos.x - enemy_pos.x
-    heading.y = target_pos.y - enemy_pos.y
+  if (targetPos) {
+    heading.x = targetPos.x - enemyPos.x
+    heading.y = targetPos.y - enemyPos.y
     normalize(heading, heading)
   }
   return heading
 }
 
-let spawn_enemies_system = (world: World) => {
-  let {tick} = world.get_resource(Clock)
-  let enemy_spawn_count = Math.ceil(tick / ENEMY_SPAWN_FACTOR)
+let spawnEnemiesSystem = (world: World) => {
+  let {tick} = world.getResource(Clock)
+  let enemySpawnCount = Math.ceil(tick / ENEMY_SPAWN_FACTOR)
   world
     .of(Player)
     .as(Position)
-    .each((_, player_pos) => {
-      while (enemy_spawn_count-- > 0) {
-        let spawn_point_index = Math.floor(
-          Math.random() * enemy_spawn_points.length,
+    .each((_, playerPos) => {
+      while (enemySpawnCount-- > 0) {
+        let spawnPointIndex = Math.floor(
+          Math.random() * enemySpawnPoints.length,
         )
-        let [enemy_spawn_offset_x, enemy_spawn_offset_y] =
-          enemy_spawn_points[spawn_point_index]
-        let enemy_x =
-          player_pos.x - enemy_spawn_offset_x * Math.random() * 10
-        let enemy_y =
-          player_pos.y - enemy_spawn_offset_y * Math.random() * 10
-        let heading = acquire_enemy_target(
+        let [enemySpawnOffsetX, enemySpawnOffsetY] =
+          enemySpawnPoints[spawnPointIndex]
+        let enemyX =
+          playerPos.x - enemySpawnOffsetX * Math.random() * 10
+        let enemyY =
+          playerPos.y - enemySpawnOffsetY * Math.random() * 10
+        let heading = acquireEnemyTarget(
           world,
-          {x: enemy_x, y: enemy_y},
+          {x: enemyX, y: enemyY},
           {x: 0, y: 0},
         )
-        make_enemy(
+        makeEnemy(
           world,
-          enemy_x,
-          enemy_y,
+          enemyX,
+          enemyY,
           heading,
           undefined,
           tick > 1000 && Math.random() > 0.9,
@@ -132,63 +132,63 @@ let spawn_enemies_system = (world: World) => {
     })
 }
 
-let acquire_enemy_targets_system = (world: World) =>
+let acquireEnemyTargetsSystem = (world: World) =>
   world
     .of(Enemy, EnemyType(Bat))
     .as(Position, Heading)
-    .each((_, enemy_pos, enemy_heading) =>
-      acquire_enemy_target(world, enemy_pos, enemy_heading),
+    .each((_, enemyPos, enemyHeading) =>
+      acquireEnemyTarget(world, enemyPos, enemyHeading),
     )
 
-let move_enemies_system = (world: World) =>
+let moveEnemiesSystem = (world: World) =>
   world
     .of(Enemy)
     .as(Position, Heading)
-    .each((_, enemy_pos, enemy_heading) => {
-      enemy_pos.x += enemy_heading.x * 0.1
-      enemy_pos.y += enemy_heading.y * 0.1
+    .each((_, enemyPos, enemyHeading) => {
+      enemyPos.x += enemyHeading.x * 0.1
+      enemyPos.y += enemyHeading.y * 0.1
     })
 
-let enemy_attack_system = (world: World) => {
-  let clock = world.get_resource(Clock)
+let enemyAttackSystem = (world: World) => {
+  let clock = world.getResource(Clock)
   world
     .of(Player)
     .as(Position, Box, Health)
-    .each((player, player_pos, player_box, player_health) => {
+    .each((player, playerPos, playerBox, playerHealth) => {
       world
         .of(Enemy)
         .as(Position, Box, EnemyAttackTime)
-        .each((enemy, enemy_pos, enemy_box, enemy_attack_time) => {
+        .each((enemy, enemyPos, enemyBox, enemyAttackTime) => {
           if (
-            clock.time >= enemy_attack_time &&
-            box_intersects(
-              player_pos,
-              player_box,
-              enemy_pos,
-              enemy_box,
+            clock.time >= enemyAttackTime &&
+            boxIntersects(
+              playerPos,
+              playerBox,
+              enemyPos,
+              enemyBox,
             )
           ) {
-            let next_player_health =
-              player_health - Math.ceil(Math.random() * 2)
-            let next_enemy_attack_time = clock.time + 4
-            world.set(player, Health, next_player_health)
-            world.set(enemy, EnemyAttackTime, next_enemy_attack_time)
+            let nextPlayerHealth =
+              playerHealth - Math.ceil(Math.random() * 2)
+            let nextEnemyAttackTime = clock.time + 4
+            world.set(player, Health, nextPlayerHealth)
+            world.set(enemy, EnemyAttackTime, nextEnemyAttackTime)
           }
         })
     })
 }
 
-export let enemy_plugin = (app: App) =>
+export let enemyPlugin = (app: App) =>
   app
-    .add_system_to_group(
+    .addSystemToGroup(
       Group.EarlyUpdate,
-      spawn_enemies_system,
+      spawnEnemiesSystem,
       null,
       world =>
-        world.get_resource(Clock).tick % ENEMY_SPAWN_FREQUENCY === 0,
+        world.getResource(Clock).tick % ENEMY_SPAWN_FREQUENCY === 0,
     )
-    .add_system(acquire_enemy_targets_system)
-    .add_system(move_enemies_system, _ =>
-      _.after(acquire_enemy_targets_system),
+    .addSystem(acquireEnemyTargetsSystem)
+    .addSystem(moveEnemiesSystem, _ =>
+      _.after(acquireEnemyTargetsSystem),
     )
-    .add_system(enemy_attack_system)
+    .addSystem(enemyAttackSystem)

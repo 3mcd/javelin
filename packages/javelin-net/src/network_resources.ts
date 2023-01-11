@@ -1,28 +1,28 @@
 import {resource, Term} from "@javelin/ecs"
 
 export interface NetworkModel {
-  to_local(iso_term: number): Term
-  to_iso(local_term: number): Term
+  toLocal(isoTerm: number): Term
+  toIso(localTerm: number): Term
 }
 
 export class NetworkModelImpl implements NetworkModel {
   #terms
-  #terms_sparse
+  #termsSparse
 
   constructor(terms: Term[]) {
     this.#terms = terms
-    this.#terms_sparse = [] as Term[]
+    this.#termsSparse = [] as Term[]
     for (let i = 0; i < terms.length; i++) {
-      this.#terms_sparse[terms[i]] = i as Term
+      this.#termsSparse[terms[i]] = i as Term
     }
   }
 
-  to_local(iso_term: number) {
-    return this.#terms[iso_term]
+  toLocal(isoTerm: number) {
+    return this.#terms[isoTerm]
   }
 
-  to_iso(local_term: number) {
-    return this.#terms_sparse[local_term]
+  toIso(localTerm: number) {
+    return this.#termsSparse[localTerm]
   }
 }
 

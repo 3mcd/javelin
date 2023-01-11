@@ -1,5 +1,5 @@
 import {assert, exists, expect, Maybe} from "@javelin/lib"
-import {Entity, id_hi, id_lo, LO_MASK, make_id} from "./entity.js"
+import {Entity, idHi, idLo, LO_MASK, makeId} from "./entity.js"
 import {Graph, Node} from "./graph.js"
 import {ChildOf} from "./index.js"
 import {Monitor} from "./monitor.js"
@@ -8,18 +8,18 @@ import {resource, Resource} from "./resource.js"
 import {Schema, Express} from "./schema.js"
 import {System} from "./system.js"
 import {
-  has_schema,
+  hasSchema,
   Component,
   Tag,
   ComponentValue,
-  get_schema,
-  express_component,
+  getSchema,
+  expressComponent,
   Dynamic,
 } from "./term.js"
 import {Transaction, TransactionIteratee} from "./transaction.js"
 import {
-  hash_spec,
-  normalize_spec,
+  hashSpec,
+  normalizeSpec,
   Selector,
   Spec,
   Type,
@@ -58,237 +58,237 @@ export type Values<
   : never
 
 export class World {
-  #entity_children
-  #entity_deltas
-  #entity_nodes
-  #entity_parents
-  #entity_versions
-  #free_entity_ids
-  #next_entity_id
-  #nodes_to_prune
+  #entityChildren
+  #entityDeltas
+  #entityNodes
+  #entityParents
+  #entityVersions
+  #freeEntityIds
+  #nextEntityId
+  #nodesToPrune
   #resources
   #stores
-  #apply_tx
-  #stage_tx
+  #applyTx
+  #stageTx
 
   readonly graph
 
   constructor() {
-    this.#stage_tx = new Transaction()
-    this.#apply_tx = new Transaction()
-    this.#entity_children = [] as Set<Entity>[]
-    this.#entity_deltas = [] as unknown[][]
-    this.#entity_nodes = [] as Node[]
-    this.#entity_parents = [] as Entity[]
-    this.#entity_versions = [] as number[]
-    this.#free_entity_ids = [] as number[]
-    this.#next_entity_id = 0
-    this.#nodes_to_prune = new Set<Node>()
+    this.#stageTx = new Transaction()
+    this.#applyTx = new Transaction()
+    this.#entityChildren = [] as Set<Entity>[]
+    this.#entityDeltas = [] as unknown[][]
+    this.#entityNodes = [] as Node[]
+    this.#entityParents = [] as Entity[]
+    this.#entityVersions = [] as number[]
+    this.#freeEntityIds = [] as number[]
+    this.#nextEntityId = 0
+    this.#nodesToPrune = new Set<Node>()
     this.#resources = [] as unknown[]
     this.#stores = [] as unknown[][]
     this.graph = new Graph()
   }
 
   #alloc(): Entity {
-    let entity_id: number
-    let entity_version: number
-    if (this.#free_entity_ids.length > 0) {
-      entity_id = this.#free_entity_ids.pop() as number
-      entity_version = this.#entity_versions[entity_id]
+    let entityId: number
+    let entityVersion: number
+    if (this.#freeEntityIds.length > 0) {
+      entityId = this.#freeEntityIds.pop() as number
+      entityVersion = this.#entityVersions[entityId]
     } else {
-      entity_id = this.#next_entity_id++
-      entity_version = this.#entity_versions[entity_id] = 0
-      assert(entity_id <= LO_MASK, "too many living entities")
+      entityId = this.#nextEntityId++
+      entityVersion = this.#entityVersions[entityId] = 0
+      assert(entityId <= LO_MASK, "too many living entities")
     }
-    return make_id(entity_id, entity_version) as Entity
+    return makeId(entityId, entityVersion) as Entity
   }
 
   #free(entity: Entity) {
-    let entity_id = id_lo(entity)
-    this.#free_entity_ids.push(entity_id)
-    this.#entity_versions[entity_id]++
-    this.#entity_nodes[entity_id] = undefined!
+    let entityId = idLo(entity)
+    this.#freeEntityIds.push(entityId)
+    this.#entityVersions[entityId]++
+    this.#entityNodes[entityId] = undefined!
   }
 
   #check(entity: Entity) {
-    let entity_id = id_lo(entity)
-    let entity_version = id_hi(entity)
+    let entityId = idLo(entity)
+    let entityVersion = idHi(entity)
     assert(
-      this.#entity_versions[entity_id] === entity_version,
-      `Entity handle ${entity} [${entity_id}] is invalid because it has been deleted`,
+      this.#entityVersions[entityId] === entityVersion,
+      `Entity handle ${entity} [${entityId}] is invalid because it has been deleted`,
     )
-    return entity_id
+    return entityId
   }
 
   #set(
     entity: Entity,
     component: Component,
-    component_value: unknown,
+    componentValue: unknown,
   ) {
-    let store = this.get_store(component)
-    store[entity] = component_value
+    let store = this.getStore(component)
+    store[entity] = componentValue
   }
 
   #unset(entity: Entity, component: Component) {
-    let store = this.get_store(component)
+    let store = this.getStore(component)
     store[entity] = undefined!
   }
 
-  #ensure_children(entity: Entity) {
-    let entity_id = id_lo(entity)
-    return (this.#entity_children[entity_id] ??= new Set())
+  #ensureChildren(entity: Entity) {
+    let entityId = idLo(entity)
+    return (this.#entityChildren[entityId] ??= new Set())
   }
 
-  #reparent_entity(child: Entity, parent: Entity) {
-    this.#ensure_children(parent).add(child)
-    this.#entity_parents[child] = parent
+  #reparentEntity(child: Entity, parent: Entity) {
+    this.#ensureChildren(parent).add(child)
+    this.#entityParents[child] = parent
   }
 
-  #unparent_entity(child: Entity, parent: Entity) {
-    this.#ensure_children(parent).delete(child)
-    this.#entity_parents[child] = undefined!
+  #unparentEntity(child: Entity, parent: Entity) {
+    this.#ensureChildren(parent).delete(child)
+    this.#entityParents[child] = undefined!
   }
 
-  #get_entity_node(entity: Entity) {
-    return this.#entity_nodes[entity]
+  #getEntityNode(entity: Entity) {
+    return this.#entityNodes[entity]
   }
 
-  #get_staged_entity_node(entity: Entity) {
-    let staged_node_hash = this.#stage_tx.find(entity)
-    if (exists(staged_node_hash)) {
-      let staged_node = this.graph.find_node(staged_node_hash)
-      if (exists(staged_node)) {
-        return staged_node
+  #getStagedEntityNode(entity: Entity) {
+    let stagedNodeHash = this.#stageTx.find(entity)
+    if (exists(stagedNodeHash)) {
+      let stagedNode = this.graph.findNode(stagedNodeHash)
+      if (exists(stagedNode)) {
+        return stagedNode
       }
     }
-    return this.#entity_nodes[entity]
+    return this.#entityNodes[entity]
   }
 
-  #get_entity_version(entity_id: number) {
-    return this.#entity_versions[entity_id]
+  #getEntityVersion(entityId: number) {
+    return this.#entityVersions[entityId]
   }
 
-  #commit_make(entity: Entity, next_node: Node) {
-    let delta = expect(this.#entity_deltas[entity])
-    for (let i = 0; i < next_node.type.components.length; i++) {
-      let component = next_node.type.components[i]
-      if (has_schema(component)) {
-        let component_value = expect(delta[component])
-        this.#set(entity, component, component_value)
+  #commitMake(entity: Entity, nextNode: Node) {
+    let delta = expect(this.#entityDeltas[entity])
+    for (let i = 0; i < nextNode.type.components.length; i++) {
+      let component = nextNode.type.components[i]
+      if (hasSchema(component)) {
+        let componentValue = expect(delta[component])
+        this.#set(entity, component, componentValue)
       } else {
-        let hi = id_hi(component)
-        if (hi === ChildOf.relation_id) {
-          let parent_entity_id = id_lo(component)
-          let parent_entity = expect(this.qualify(parent_entity_id))
-          this.#reparent_entity(entity, parent_entity)
+        let hi = idHi(component)
+        if (hi === ChildOf.relationId) {
+          let parentEntityId = idLo(component)
+          let parentEntity = expect(this.qualify(parentEntityId))
+          this.#reparentEntity(entity, parentEntity)
         }
       }
     }
-    next_node.add_entity(entity)
-    this.#entity_nodes[entity] = next_node
-    this.#entity_deltas[entity] = undefined!
+    nextNode.addEntity(entity)
+    this.#entityNodes[entity] = nextNode
+    this.#entityDeltas[entity] = undefined!
   }
 
-  #commit_update(entity: Entity, next_node: Node) {
-    let delta = expect(this.#entity_deltas[entity])
-    for (let i = 0; i < next_node.type.components.length; i++) {
-      let component = next_node.type.components[i]
-      if (has_schema(component)) {
-        let component_value = expect(delta[component])
-        this.#set(entity, component, component_value)
+  #commitUpdate(entity: Entity, nextNode: Node) {
+    let delta = expect(this.#entityDeltas[entity])
+    for (let i = 0; i < nextNode.type.components.length; i++) {
+      let component = nextNode.type.components[i]
+      if (hasSchema(component)) {
+        let componentValue = expect(delta[component])
+        this.#set(entity, component, componentValue)
       }
     }
-    this.#entity_deltas[entity] = undefined!
+    this.#entityDeltas[entity] = undefined!
   }
 
-  #commit_destroy(entity: Entity, prev_node: Node) {
-    let entity_id = id_lo(entity)
-    let entity_children = this.#entity_children[entity_id]
-    if (exists(entity_children)) {
-      for (let child_entity of entity_children) {
-        let child_node = expect(this.#entity_nodes[child_entity])
-        this.#commit_destroy(child_entity, child_node)
+  #commitDestroy(entity: Entity, prevNode: Node) {
+    let entityId = idLo(entity)
+    let entityChildren = this.#entityChildren[entityId]
+    if (exists(entityChildren)) {
+      for (let childEntity of entityChildren) {
+        let childNode = expect(this.#entityNodes[childEntity])
+        this.#commitDestroy(childEntity, childNode)
       }
-      entity_children.clear()
+      entityChildren.clear()
     }
-    for (let i = 0; i < prev_node.type.components.length; i++) {
-      let component = prev_node.type.components[i]
-      if (has_schema(component)) {
+    for (let i = 0; i < prevNode.type.components.length; i++) {
+      let component = prevNode.type.components[i]
+      if (hasSchema(component)) {
         this.#unset(entity, component)
       }
     }
-    prev_node.remove_entity(entity)
-    this.#entity_nodes[entity] = undefined!
-    this.#entity_deltas[entity] = undefined!
-    this.#entity_parents[entity] = undefined!
+    prevNode.removeEntity(entity)
+    this.#entityNodes[entity] = undefined!
+    this.#entityDeltas[entity] = undefined!
+    this.#entityParents[entity] = undefined!
     this.#free(entity)
     if (
-      prev_node.entities.length === 0 &&
-      prev_node.has_any_relationship()
+      prevNode.entities.length === 0 &&
+      prevNode.hasAnyRelationship()
     ) {
-      this.#nodes_to_prune.add(prev_node)
+      this.#nodesToPrune.add(prevNode)
     }
   }
 
-  #commit_move(entity: Entity, prev_node: Node, next_node: Node) {
-    let delta = expect(this.#entity_deltas[entity])
-    for (let i = 0; i < prev_node.type.components.length; i++) {
-      let component = prev_node.type.components[i]
-      if (!next_node.has_component(component)) {
-        if (has_schema(component)) {
+  #commitMove(entity: Entity, prevNode: Node, nextNode: Node) {
+    let delta = expect(this.#entityDeltas[entity])
+    for (let i = 0; i < prevNode.type.components.length; i++) {
+      let component = prevNode.type.components[i]
+      if (!nextNode.hasComponent(component)) {
+        if (hasSchema(component)) {
           this.#unset(entity, component)
         } else {
-          let hi = id_hi(component)
-          if (hi === ChildOf.relation_id) {
-            let parent_entity_id = id_lo(component)
-            let parent_entity = expect(this.qualify(parent_entity_id))
-            this.#unparent_entity(entity, parent_entity)
+          let hi = idHi(component)
+          if (hi === ChildOf.relationId) {
+            let parentEntityId = idLo(component)
+            let parentEntity = expect(this.qualify(parentEntityId))
+            this.#unparentEntity(entity, parentEntity)
           }
         }
       }
     }
-    for (let i = 0; i < next_node.type.components.length; i++) {
-      let component = next_node.type.components[i]
-      if (has_schema(component)) {
-        let component_value = delta?.[component]
-        if (exists(component_value)) {
-          this.#set(entity, component, component_value)
+    for (let i = 0; i < nextNode.type.components.length; i++) {
+      let component = nextNode.type.components[i]
+      if (hasSchema(component)) {
+        let componentValue = delta?.[component]
+        if (exists(componentValue)) {
+          this.#set(entity, component, componentValue)
         }
       } else {
-        let hi = id_hi(component)
-        if (hi === ChildOf.relation_id) {
-          let parent_entity_id = id_lo(component)
-          let parent_entity = expect(this.qualify(parent_entity_id))
-          this.#reparent_entity(entity, parent_entity)
+        let hi = idHi(component)
+        if (hi === ChildOf.relationId) {
+          let parentEntityId = idLo(component)
+          let parentEntity = expect(this.qualify(parentEntityId))
+          this.#reparentEntity(entity, parentEntity)
         }
       }
     }
-    this.#entity_nodes[entity] = next_node
-    this.#entity_deltas[entity] = undefined!
-    next_node.add_entity(entity)
-    prev_node.remove_entity(entity)
+    this.#entityNodes[entity] = nextNode
+    this.#entityDeltas[entity] = undefined!
+    nextNode.addEntity(entity)
+    prevNode.removeEntity(entity)
     if (
-      prev_node.entities.length === 0 &&
-      prev_node.has_any_relationship()
+      prevNode.entities.length === 0 &&
+      prevNode.hasAnyRelationship()
     ) {
-      this.#nodes_to_prune.add(prev_node)
+      this.#nodesToPrune.add(prevNode)
     }
   }
 
-  #update_entity_delta(
+  #updateEntityDelta(
     entity: Entity,
     selector: Selector,
     values: unknown[],
   ) {
-    let delta = (this.#entity_deltas[entity] ??= [])
+    let delta = (this.#entityDeltas[entity] ??= [])
     let j = 0
-    for (let i = 0; i < selector.included_components.length; i++) {
-      let component = selector.included_components[i]
-      let component_schema = get_schema(component)
-      if (exists(component_schema)) {
-        if (component_schema !== Dynamic) {
+    for (let i = 0; i < selector.includedComponents.length; i++) {
+      let component = selector.includedComponents[i]
+      let componentSchema = getSchema(component)
+      if (exists(componentSchema)) {
+        if (componentSchema !== Dynamic) {
           delta[component] =
-            values[j++] ?? express_component(component)
+            values[j++] ?? expressComponent(component)
         } else {
           delta[component] = values[j++]
         }
@@ -296,50 +296,50 @@ export class World {
     }
   }
 
-  #init_query(
+  #initQuery(
     query: Query,
     hash: number,
     node: Node,
     system: System,
   ) {
-    function include_existing_node(node: Node) {
-      query.include_node(node)
+    function includeExistingNode(node: Node) {
+      query.includeNode(node)
     }
-    function include_created_node(node: Node) {
-      query.include_node(node)
+    function includeCreatedNode(node: Node) {
+      query.includeNode(node)
     }
-    function unbind_query_or_exclude_node(node: Node) {
+    function unbindQueryOrExcludeNode(node: Node) {
       if (node === node) {
         system.queries.delete(hash)
       } else {
-        query.exclude_node(node)
+        query.excludeNode(node)
       }
     }
-    node.traverse_add(include_existing_node)
-    node.on_node_created.add(include_created_node)
-    node.on_node_deleted.add(unbind_query_or_exclude_node)
+    node.traverseAdd(includeExistingNode)
+    node.onNodeCreated.add(includeCreatedNode)
+    node.onNodeDeleted.add(unbindQueryOrExcludeNode)
     system.queries.set(hash, query)
   }
 
-  #init_monitor(
+  #initMonitor(
     monitor: Monitor,
     hash: number,
     node: Node,
     system: System,
   ) {
-    function unbind_monitor(deleted_node: Node) {
-      if (node === deleted_node) {
+    function unbindMonitor(deletedNode: Node) {
+      if (node === deletedNode) {
         system.monitors.delete(hash)
       }
     }
-    node.on_node_deleted.add(unbind_monitor)
+    node.onNodeDeleted.add(unbindMonitor)
     system.monitors.set(hash, monitor)
   }
 
   /**
    * Set the value of a resource.
    */
-  set_resource<T>(resource: Resource<T>, value: T) {
+  setResource<T>(resource: Resource<T>, value: T) {
     this.#resources[resource] = value
   }
 
@@ -347,7 +347,7 @@ export class World {
    * Check for the presence of a resource. Returns true if a value has been set
    * for the resource, otherwise returns false.
    */
-  has_resource<T>(resource: Resource<T>) {
+  hasResource<T>(resource: Resource<T>) {
     return resource in this.#resources
   }
 
@@ -355,7 +355,7 @@ export class World {
    * Get the value of a resource. Throws an error if no value has been set for
    * the resource.
    */
-  get_resource<T>(resource: Resource<T>) {
+  getResource<T>(resource: Resource<T>) {
     return expect(this.#resources[resource]) as T
   }
 
@@ -363,12 +363,12 @@ export class World {
    * Create an entity with a provided id.
    * @private
    */
-  reserve(entity_id: number, selector: Selector) {
-    let entity = make_id(entity_id, 0) as Entity
-    let next_node = this.graph.node_of_type(selector.type)
-    this.#entity_versions[entity_id] = 0
-    this.#apply_tx.reloc(entity, 0, next_node.type.hash)
-    this.#stage_tx.reloc(entity, 0, next_node.type.hash)
+  reserve(entityId: number, selector: Selector) {
+    let entity = makeId(entityId, 0) as Entity
+    let nextNode = this.graph.nodeOfType(selector.type)
+    this.#entityVersions[entityId] = 0
+    this.#applyTx.reloc(entity, 0, nextNode.type.hash)
+    this.#stageTx.reloc(entity, 0, nextNode.type.hash)
     return entity
   }
 
@@ -376,10 +376,10 @@ export class World {
    * Upgrade an entity id to a complete entity handle.
    * @private
    */
-  qualify(entity_id: number): Maybe<Entity> {
-    let entity_gen = this.#get_entity_version(entity_id)
-    if (entity_gen === undefined) return
-    return make_id(entity_id, entity_gen) as Entity
+  qualify(entityId: number): Maybe<Entity> {
+    let entityGen = this.#getEntityVersion(entityId)
+    if (entityGen === undefined) return
+    return makeId(entityId, entityGen) as Entity
   }
 
   /**
@@ -395,10 +395,10 @@ export class World {
     ...values: Values<T>
   ) {
     let entity = this.#alloc()
-    let next_node = this.graph.node_of_type(selector.type)
-    this.#apply_tx.reloc(entity, 0, next_node.type.hash)
-    this.#stage_tx.reloc(entity, 0, next_node.type.hash)
-    this.#update_entity_delta(entity, selector, values)
+    let nextNode = this.graph.nodeOfType(selector.type)
+    this.#applyTx.reloc(entity, 0, nextNode.type.hash)
+    this.#stageTx.reloc(entity, 0, nextNode.type.hash)
+    this.#updateEntityDelta(entity, selector, values)
     return entity
   }
 
@@ -411,13 +411,13 @@ export class World {
     ...values: Values<T>
   ) {
     this.#check(entity)
-    let prev_node = expect(this.#get_staged_entity_node(entity))
-    let prev_node_hash = prev_node.type.hash
-    let next_node = this.graph.node_add_type(prev_node, selector.type)
-    let next_node_hash = next_node.type.hash
-    this.#update_entity_delta(entity, selector, values)
-    this.#apply_tx.reloc(entity, prev_node_hash, next_node_hash)
-    this.#stage_tx.reloc(entity, prev_node_hash, next_node_hash)
+    let prevNode = expect(this.#getStagedEntityNode(entity))
+    let prevNodeHash = prevNode.type.hash
+    let nextNode = this.graph.nodeAddType(prevNode, selector.type)
+    let nextNodeHash = nextNode.type.hash
+    this.#updateEntityDelta(entity, selector, values)
+    this.#applyTx.reloc(entity, prevNodeHash, nextNodeHash)
+    this.#stageTx.reloc(entity, prevNodeHash, nextNodeHash)
   }
 
   /**
@@ -425,16 +425,16 @@ export class World {
    */
   remove(entity: Entity, selector: Selector) {
     this.#check(entity)
-    let prev_node = expect(this.#get_staged_entity_node(entity))
-    let prev_node_hash = prev_node.type.hash
-    let next_node = this.graph.node_remove_type(
-      prev_node,
+    let prevNode = expect(this.#getStagedEntityNode(entity))
+    let prevNodeHash = prevNode.type.hash
+    let nextNode = this.graph.nodeRemoveType(
+      prevNode,
       selector.type,
     )
-    let next_node_hash = next_node.type.hash
-    if (prev_node !== next_node) {
-      this.#apply_tx.reloc(entity, prev_node_hash, next_node_hash)
-      this.#stage_tx.reloc(entity, next_node_hash, next_node_hash)
+    let nextNodeHash = nextNode.type.hash
+    if (prevNode !== nextNode) {
+      this.#applyTx.reloc(entity, prevNodeHash, nextNodeHash)
+      this.#stageTx.reloc(entity, nextNodeHash, nextNodeHash)
     }
   }
 
@@ -446,10 +446,10 @@ export class World {
    */
   delete(entity: Entity) {
     this.#check(entity)
-    let prev_node = expect(this.#get_staged_entity_node(entity))
-    let prev_node_hash = prev_node.type.hash
-    this.#apply_tx.reloc(entity, prev_node_hash, 0)
-    this.#stage_tx.reloc(entity, prev_node_hash, 0)
+    let prevNode = expect(this.#getStagedEntityNode(entity))
+    let prevNodeHash = prevNode.type.hash
+    this.#applyTx.reloc(entity, prevNodeHash, 0)
+    this.#stageTx.reloc(entity, prevNodeHash, 0)
   }
 
   /**
@@ -465,9 +465,9 @@ export class World {
   get<T>(entity: Entity, component: Component<T>): ComponentValue<T>
   get(entity: Entity, component: Component) {
     this.#check(entity)
-    let node = this.#get_entity_node(entity)
-    return node.has_component(component)
-      ? !has_schema(component) || this.get_store(component)[entity]
+    let node = this.#getEntityNode(entity)
+    return node.hasComponent(component)
+      ? !hasSchema(component) || this.getStore(component)[entity]
       : undefined
   }
 
@@ -478,15 +478,15 @@ export class World {
   set<T>(
     entity: Entity,
     component: Component<T>,
-    component_value: ComponentValue<T>,
+    componentValue: ComponentValue<T>,
   ) {
     this.#check(entity)
-    let node = this.#get_entity_node(entity)
-    assert(node.has_component(component))
-    this.#set(entity, component, component_value)
+    let node = this.#getEntityNode(entity)
+    assert(node.hasComponent(component))
+    this.#set(entity, component, componentValue)
   }
 
-  get_store(component: Component) {
+  getStore(component: Component) {
     return (this.#stores[component] ??= [])
   }
 
@@ -494,53 +494,53 @@ export class World {
    * Dispatch transient entity modification events.
    * @private
    */
-  emit_staged_changes() {
-    this.#stage_tx.drain(this.graph, Phase.Stage)
+  emitStagedChanges() {
+    this.#stageTx.drain(this.graph, Phase.Stage)
   }
 
   /**
    * Write entity modifications to the world and dispatch final entity
    * modification events.
    */
-  commit_staged_changes() {
-    let commit_batch: TransactionIteratee = (
+  commitStagedChanges() {
+    let commitBatch: TransactionIteratee = (
       batch,
-      prev_node,
-      next_node,
+      prevNode,
+      nextNode,
     ) => {
-      if (!exists(prev_node)) {
-        /* @__PURE__ */ assert(exists(next_node))
+      if (!exists(prevNode)) {
+        /* @__PURE__ */ assert(exists(nextNode))
         batch.forEach(entity => {
-          this.#commit_make(entity, next_node)
+          this.#commitMake(entity, nextNode)
         })
-      } else if (!exists(next_node)) {
+      } else if (!exists(nextNode)) {
         batch.forEach(entity => {
-          this.#commit_destroy(entity, prev_node)
+          this.#commitDestroy(entity, prevNode)
         })
-      } else if (next_node === prev_node) {
+      } else if (nextNode === prevNode) {
         batch.forEach(entity => {
-          this.#commit_update(entity, next_node)
+          this.#commitUpdate(entity, nextNode)
         })
       } else {
         batch.forEach(entity => {
-          /* @__PURE__ */ assert(exists(prev_node))
-          /* @__PURE__ */ assert(exists(next_node))
-          this.#commit_move(entity, prev_node, next_node)
+          /* @__PURE__ */ assert(exists(prevNode))
+          /* @__PURE__ */ assert(exists(nextNode))
+          this.#commitMove(entity, prevNode, nextNode)
         })
       }
     }
-    this.#apply_tx.drain(this.graph, Phase.Apply, commit_batch)
-    this.#nodes_to_prune.forEach(node => {
-      if (node.is_empty()) {
-        node.traverse_add(node_add =>
-          node.traverse_rem(node_rem => {
-            node_rem.on_node_deleted.emit(node_add)
-            Node.unlink(node_rem, node_add)
+    this.#applyTx.drain(this.graph, Phase.Apply, commitBatch)
+    this.#nodesToPrune.forEach(node => {
+      if (node.isEmpty()) {
+        node.traverseAdd(nodeAdd =>
+          node.traverseRem(nodeRem => {
+            nodeRem.onNodeDeleted.emit(nodeAdd)
+            Node.unlink(nodeRem, nodeAdd)
           }),
         )
       }
     })
-    this.#nodes_to_prune.clear()
+    this.#nodesToPrune.clear()
   }
 
   /**
@@ -549,13 +549,13 @@ export class World {
    * let parent = world.make()
    * let child = world.make(type(ChildOf(parent)))
    * // world ops are deferred, so next tick:
-   * assert(world.parent_of(child) === parent)
+   * assert(world.parentOf(child) === parent)
    * @example <caption>Find all ancestors of an entity</caption>
-   * while (exists(e = world.parent_of(e))) parents.push(e)
+   * while (exists(e = world.parentOf(e))) parents.push(e)
    */
-  parent_of(entity: Entity) {
+  parentOf(entity: Entity) {
     this.#check(entity)
-    return this.#entity_parents[entity]
+    return this.#entityParents[entity]
   }
 
   /**
@@ -564,16 +564,16 @@ export class World {
    */
   of<T extends Spec>(...spec: T): QueryAPI<T>
   of() {
-    let system = this.get_resource(CurrentSystem)
+    let system = this.getResource(CurrentSystem)
     let spec = arguments as unknown as Spec
-    let hash = hash_spec.apply(null, spec)
+    let hash = hashSpec.apply(null, spec)
     let query = system.queries.get(hash)
     if (!exists(query)) {
       let selector = new Selector(spec)
-      let stores = get_query_stores(this, selector.type)
-      let node = this.graph.node_of_type(selector.type)
+      let stores = getQueryStores(this, selector.type)
+      let node = this.graph.nodeOfType(selector.type)
       query = new Query(selector, stores)
-      this.#init_query(query, hash, node, system)
+      this.#initQuery(query, hash, node, system)
     }
     return query
   }
@@ -585,17 +585,17 @@ export class World {
    */
   monitor(...spec: Spec): Monitor
   monitor() {
-    let system = this.get_resource(CurrentSystem)
+    let system = this.getResource(CurrentSystem)
     let spec = arguments as unknown as Spec
-    let hash = hash_spec.apply(null, spec)
+    let hash = hashSpec.apply(null, spec)
     let monitor = system.monitors.get(hash)
     if (!exists(monitor)) {
-      let {included_components, excluded_components} =
-        normalize_spec(spec)
-      let type = Type.of(included_components)
-      let node = this.graph.node_of_type(type)
-      monitor = new Monitor(node, Phase.Apply, excluded_components)
-      this.#init_monitor(monitor, hash, node, system)
+      let {includedComponents, excludedComponents} =
+        normalizeSpec(spec)
+      let type = Type.of(includedComponents)
+      let node = this.graph.nodeOfType(type)
+      monitor = new Monitor(node, Phase.Apply, excludedComponents)
+      this.#initMonitor(monitor, hash, node, system)
     }
     return monitor
   }
@@ -606,30 +606,30 @@ export class World {
    * end of a step, providing the means to intercept excluded component values
    * before they are garbage collected.
    */
-  monitor_immediate(...spec: Spec): Monitor
-  monitor_immediate() {
-    let system = this.get_resource(CurrentSystem)
+  monitorImmediate(...spec: Spec): Monitor
+  monitorImmediate() {
+    let system = this.getResource(CurrentSystem)
     let spec = arguments as unknown as Spec
-    let hash = hash_spec.apply(null, spec)
+    let hash = hashSpec.apply(null, spec)
     let monitor = system.monitors.get(hash)
     if (!exists(monitor)) {
-      let {included_components, excluded_components} =
-        normalize_spec(spec)
-      let type = Type.of(included_components)
-      let node = this.graph.node_of_type(type)
-      monitor = new Monitor(node, Phase.Stage, excluded_components)
-      this.#init_monitor(monitor, hash, node, system)
+      let {includedComponents, excludedComponents} =
+        normalizeSpec(spec)
+      let type = Type.of(includedComponents)
+      let node = this.graph.nodeOfType(type)
+      monitor = new Monitor(node, Phase.Stage, excludedComponents)
+      this.#initMonitor(monitor, hash, node, system)
     }
     return monitor
   }
 }
 
-let get_query_stores = (world: World, type: Type) => {
+let getQueryStores = (world: World, type: Type) => {
   let stores = [] as unknown[][]
   for (let i = 0; i < type.components.length; i++) {
     let component = type.components[i]
-    if (has_schema(component)) {
-      stores[component] = world.get_store(component)
+    if (hasSchema(component)) {
+      stores[component] = world.getStore(component)
     }
   }
   return stores

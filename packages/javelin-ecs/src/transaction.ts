@@ -9,23 +9,23 @@ export type TransactionEvent = {
 }
 export type TransactionIteratee = (
   batch: Set<Entity>,
-  prev_node: Maybe<Node>,
-  next_node: Maybe<Node>,
+  prevNode: Maybe<Node>,
+  nextNode: Maybe<Node>,
 ) => void
 
-function make_batch_key(prev_hash: number, next_hash: number) {
-  return (BigInt(next_hash) << 32n) | BigInt(prev_hash)
+function makeBatchKey(prevHash: number, nextHash: number) {
+  return (BigInt(nextHash) << 32n) | BigInt(prevHash)
 }
 
-function decompose_batch_key_next(key: bigint) {
+function decomposeBatchKeyNext(key: bigint) {
   return Number((key & 0xffffffff00000000n) >> 32n)
 }
 
-function decompose_batch_key_prev(key: bigint) {
+function decomposeBatchKeyPrev(key: bigint) {
   return Number(key & 0xffffffffn)
 }
 
-function make_transaction_event(
+function makeTransactionEvent(
   phase: string,
   batch: Set<Entity>,
   node: Node,
@@ -33,124 +33,124 @@ function make_transaction_event(
   return {phase, batch, node}
 }
 
-function emit_created_entities(
+function emitCreatedEntities(
   phase: string,
   batch: Set<Entity>,
-  next_node: Node,
+  nextNode: Node,
 ) {
-  let event = make_transaction_event(phase, batch, next_node)
-  next_node.traverse_rem(function emit_created_batch(node) {
-    node.on_entities_included.emit(event)
+  let event = makeTransactionEvent(phase, batch, nextNode)
+  nextNode.traverseRem(function emitCreatedBatch(node) {
+    node.onEntitiesIncluded.emit(event)
   })
 }
 
-function emit_included_entities(
+function emitIncludedEntities(
   phase: string,
   batch: Set<Entity>,
-  prev_node: Node,
-  next_node: Node,
+  prevNode: Node,
+  nextNode: Node,
 ) {
-  let event = make_transaction_event(phase, batch, next_node)
-  next_node.traverse_rem_with_filter(
-    function emit_included_batch(node) {
-      node.on_entities_included.emit(event)
+  let event = makeTransactionEvent(phase, batch, nextNode)
+  nextNode.traverseRemWithFilter(
+    function emitIncludedBatch(node) {
+      node.onEntitiesIncluded.emit(event)
     },
-    node => node !== prev_node && !prev_node.is_superset_of(node),
+    node => node !== prevNode && !prevNode.isSupersetOf(node),
   )
 }
 
-function emit_excluded_entities(
+function emitExcludedEntities(
   phase: string,
   batch: Set<Entity>,
-  prev_node: Node,
-  next_node: Node,
+  prevNode: Node,
+  nextNode: Node,
 ) {
-  let event = make_transaction_event(phase, batch, prev_node)
-  prev_node.traverse_rem_with_filter(
-    function emit_excluded_batch(node) {
-      node.on_entities_excluded.emit(event)
+  let event = makeTransactionEvent(phase, batch, prevNode)
+  prevNode.traverseRemWithFilter(
+    function emitExcludedBatch(node) {
+      node.onEntitiesExcluded.emit(event)
     },
-    node => node !== next_node && !node.is_superset_of(next_node),
+    node => node !== nextNode && !node.isSupersetOf(nextNode),
   )
 }
 
-function emit_moved_entities(
+function emitMovedEntities(
   phase: string,
   batch: Set<Entity>,
-  prev_node: Node,
-  next_node: Node,
+  prevNode: Node,
+  nextNode: Node,
 ) {
-  let included_event = make_transaction_event(phase, batch, next_node)
-  let excluded_event = make_transaction_event(phase, batch, prev_node)
-  next_node.traverse_rem(function emit_included_batch(node) {
-    node.on_entities_included.emit(included_event)
+  let includedEvent = makeTransactionEvent(phase, batch, nextNode)
+  let excludedEvent = makeTransactionEvent(phase, batch, prevNode)
+  nextNode.traverseRem(function emitIncludedBatch(node) {
+    node.onEntitiesIncluded.emit(includedEvent)
   })
-  prev_node.traverse_rem(function emit_excluded_batch(node) {
-    node.on_entities_included.emit(excluded_event)
+  prevNode.traverseRem(function emitExcludedBatch(node) {
+    node.onEntitiesIncluded.emit(excludedEvent)
   })
 }
 
 export class Transaction {
-  #entity_index
-  #entity_batches
+  #entityIndex
+  #entityBatches
 
   constructor() {
-    this.#entity_index = new SparseSet<bigint>()
-    this.#entity_batches = new Map<bigint, Set<Entity>>()
+    this.#entityIndex = new SparseSet<bigint>()
+    this.#entityBatches = new Map<bigint, Set<Entity>>()
   }
 
   find(entity: Entity) {
-    let curr_batch_key = this.#entity_index.get(entity)
-    if (!exists(curr_batch_key)) {
+    let currBatchKey = this.#entityIndex.get(entity)
+    if (!exists(currBatchKey)) {
       return
     }
-    return decompose_batch_key_next(curr_batch_key)
+    return decomposeBatchKeyNext(currBatchKey)
   }
 
-  reloc(entity: Entity, prev_hash: number, next_hash: number) {
-    let prev_batch_key = this.#entity_index.get(entity) ?? 0n
-    let prev_batch = this.#entity_batches.get(prev_batch_key)
-    if (exists(prev_batch)) {
-      prev_batch.delete(entity)
+  reloc(entity: Entity, prevHash: number, nextHash: number) {
+    let prevBatchKey = this.#entityIndex.get(entity) ?? 0n
+    let prevBatch = this.#entityBatches.get(prevBatchKey)
+    if (exists(prevBatch)) {
+      prevBatch.delete(entity)
     }
-    let next_batch_key = make_batch_key(prev_hash, next_hash)
-    let next_batch = this.#entity_batches.get(next_batch_key)
-    if (!exists(next_batch)) {
-      next_batch = new Set()
-      this.#entity_batches.set(next_batch_key, next_batch)
+    let nextBatchKey = makeBatchKey(prevHash, nextHash)
+    let nextBatch = this.#entityBatches.get(nextBatchKey)
+    if (!exists(nextBatch)) {
+      nextBatch = new Set()
+      this.#entityBatches.set(nextBatchKey, nextBatch)
     }
-    next_batch.add(entity)
-    this.#entity_index.set(entity, next_batch_key)
+    nextBatch.add(entity)
+    this.#entityIndex.set(entity, nextBatchKey)
   }
 
   drain(graph: Graph, phase: string, iteratee?: TransactionIteratee) {
-    this.#entity_batches.forEach(function emit_batch(
+    this.#entityBatches.forEach(function emitBatch(
       batch,
-      batch_key,
+      batchKey,
     ) {
-      let prev_hash = decompose_batch_key_prev(batch_key)
-      let next_hash = decompose_batch_key_next(batch_key)
-      let prev_node = graph.find_node(prev_hash)
-      let next_node = graph.find_node(next_hash)
-      iteratee?.(batch, prev_node, next_node)
-      if (exists(prev_node)) {
-        if (next_hash === 0) {
-          emit_excluded_entities(phase, batch, prev_node, graph.root)
+      let prevHash = decomposeBatchKeyPrev(batchKey)
+      let nextHash = decomposeBatchKeyNext(batchKey)
+      let prevNode = graph.findNode(prevHash)
+      let nextNode = graph.findNode(nextHash)
+      iteratee?.(batch, prevNode, nextNode)
+      if (exists(prevNode)) {
+        if (nextHash === 0) {
+          emitExcludedEntities(phase, batch, prevNode, graph.root)
         } else {
-          let next_node = expect(graph.find_node(next_hash))
-          if (next_node.is_superset_of(prev_node)) {
-            emit_included_entities(phase, batch, prev_node, next_node)
-          } else if (prev_node.is_superset_of(next_node)) {
-            emit_excluded_entities(phase, batch, prev_node, next_node)
+          let nextNode = expect(graph.findNode(nextHash))
+          if (nextNode.isSupersetOf(prevNode)) {
+            emitIncludedEntities(phase, batch, prevNode, nextNode)
+          } else if (prevNode.isSupersetOf(nextNode)) {
+            emitExcludedEntities(phase, batch, prevNode, nextNode)
           } else {
-            emit_moved_entities(phase, batch, prev_node, next_node)
+            emitMovedEntities(phase, batch, prevNode, nextNode)
           }
         }
       } else {
-        emit_created_entities(phase, batch, expect(next_node))
+        emitCreatedEntities(phase, batch, expect(nextNode))
       }
     })
-    this.#entity_index.clear()
-    this.#entity_batches.clear()
+    this.#entityIndex.clear()
+    this.#entityBatches.clear()
   }
 }

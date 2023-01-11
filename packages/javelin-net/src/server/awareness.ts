@@ -33,49 +33,49 @@ export class InterestState {
 
   constructor(
     node: Node,
-    excluded_terms: Term[],
+    excludedTerms: Term[],
     interest: Interest,
   ) {
-    this.#monitor = new Monitor(node, PhaseId.Commit, excluded_terms) // get exclcuded terms and final type?!
+    this.#monitor = new Monitor(node, PhaseId.Commit, excludedTerms) // get exclcuded terms and final type?!
     this.#interest = interest
     this.#stream = new WriteStream(
       1 + 4 + 4 + 4 + interest.type.components.length * 4,
     )
-    node.on_node_deleted.add(deleted_node => {
-      if (deleted_node == node) {
+    node.onNodeDeleted.add(deletedNode => {
+      if (deletedNode == node) {
         this.dispose()
       }
     })
   }
 
   update(
-    network_model: NetworkModel,
-    network_transport: NetworkTransport,
+    networkModel: NetworkModel,
+    networkTransport: NetworkTransport,
   ) {
-    let {included_size, excluded_size} = this.#monitor
-    if (included_size > 0 || excluded_size > 0) {
-      let sorted_terms = this.#interest.type.components
+    let {includedSize, excludedSize} = this.#monitor
+    if (includedSize > 0 || excludedSize > 0) {
+      let sortedTerms = this.#interest.type.components
       this.#stream.reset()
-      this.#stream.write_u8(UPDATE)
-      this.#stream.write_u32(sorted_terms.length)
-      for (let i = 0; i < sorted_terms.length; i++) {
-        let term = sorted_terms[i]
-        let term_iso = network_model.to_iso(term)
-        if (exists(term_iso)) {
-          this.#stream.write_u32(term_iso)
+      this.#stream.writeU8(UPDATE)
+      this.#stream.writeU32(sortedTerms.length)
+      for (let i = 0; i < sortedTerms.length; i++) {
+        let term = sortedTerms[i]
+        let termIso = networkModel.toIso(term)
+        if (exists(termIso)) {
+          this.#stream.writeU32(termIso)
         }
       }
-      this.#stream.write_u32(included_size)
-      this.#stream.write_u32(excluded_size)
-      this.#stream.grow(excluded_size * 4 + included_size * 4)
+      this.#stream.writeU32(includedSize)
+      this.#stream.writeU32(excludedSize)
+      this.#stream.grow(excludedSize * 4 + includedSize * 4)
       this.#monitor
-        .each_included(entity => {
-          this.#stream.write_u32(entity)
+        .eachIncluded(entity => {
+          this.#stream.writeU32(entity)
         })
-        .each_excluded(entity => {
-          this.#stream.write_u32(entity)
+        .eachExcluded(entity => {
+          this.#stream.writeU32(entity)
         })
-      network_transport.send(this.#stream.bytes, UPDATE)
+      networkTransport.send(this.#stream.bytes, UPDATE)
     }
     this.#monitor.drain()
   }
@@ -91,7 +91,7 @@ export class AwarenessStateImpl implements AwarenessState {
 
   constructor(world: World, awareness: Awareness) {
     this.interests = awareness.interests.map(interest => {
-      let node = world.graph.node_of_type(interest.type)
+      let node = world.graph.nodeOfType(interest.type)
       return new InterestState(node, [], interest)
     })
   }
@@ -119,7 +119,7 @@ export class AwarenessImpl implements Awareness {
     this.interests = [] as Interest[]
   }
 
-  add_interest(interest: Interest) {
+  addInterest(interest: Interest) {
     this.interests.push(interest)
     return this
   }

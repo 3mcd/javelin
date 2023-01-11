@@ -7,15 +7,15 @@ Javelin uses the term **plugin** for a reusable module. A plugin is a function t
 Here is a plugin that adds a resource to an app:
 
 ```ts
-export default function pause_plugin(app: App) {
-  app.add_resource(Paused, false)
+export default function pausePlugin(app: App) {
+  app.addResource(Paused, false)
 }
 ```
 
 Plugins are added to an app via the `use` method.
 
 ```ts
-app.use(pause_plugin)
+app.use(pausePlugin)
 ```
 
 ## Plugin Example
@@ -24,23 +24,23 @@ Plugins help organize game code. Take the following snippet from an example in t
 
 ```ts
 let game = app()
-  .add_group("render", _ =>
+  .addGroup("render", _ =>
     _.after(Group.LateUpdate).before(Group.Late),
   )
-  .use(time_plugin)
-  .use(clock_plugin)
-  .use(dispose_plugin)
-  .use(bullet_plugin)
+  .use(timePlugin)
+  .use(clockPlugin)
+  .use(disposePlugin)
+  .use(bulletPlugin)
   // ...
 ```
 
-Let's open up the `time_plugin` plugin. It modifies the app by adding a `Time` resource and a system that advances the clock each step.
+Let's open up the `timePlugin` plugin. It modifies the app by adding a `Time` resource and a system that advances the clock each step.
 
 ```ts
-export let time_plugin = (app: App) =>
+export let timePlugin = (app: App) =>
   app
-    .add_resource(Time, {previous: 0, current: 0, delta: 0})
-    .add_system_to_group(Group.Early, advance_time_system)
+    .addResource(Time, {previous: 0, current: 0, delta: 0})
+    .addSystemToGroup(Group.Early, advanceTimeSystem)
 ```
 
 This plugin isn't game-specific and could be easily shared with other Javelin projects. That's all there is to plugins!

@@ -12,8 +12,8 @@ import {Box} from "./box.js"
 import {Clock} from "./clock.js"
 import {DisposeTimer} from "./dispose.js"
 import {Enemy} from "./enemy.js"
-import {Health, prune_dead_system} from "./health.js"
-import {box_intersects} from "./math.js"
+import {Health, pruneDeadSystem} from "./health.js"
+import {boxIntersects} from "./math.js"
 import {Player, PLAYER_MAX_HEALTH} from "./player.js"
 import {Position} from "./position.js"
 
@@ -23,19 +23,19 @@ export let LootBag = type(IsLoot, Position, Box, DisposeTimer)
 export let Quiver = component("f32")
 export let HealthPotion = component("f32")
 
-let make_loot = (world: World, x: number, y: number) =>
+let makeLoot = (world: World, x: number, y: number) =>
   world.create(
     LootBag,
     {x, y},
     {x: 1, y: 1},
-    world.get_resource(Clock).time + 10,
+    world.getResource(Clock).time + 10,
   )
 
-let drop_loot_system = (world: World) =>
-  world.monitor_immediate(Enemy).each_excluded(enemy => {
+let dropLootSystem = (world: World) =>
+  world.monitorImmediate(Enemy).eachExcluded(enemy => {
     if (Math.random() > 0.2) {
       let {x, y} = world.get(enemy, Position)
-      let loot = make_loot(world, x, y)
+      let loot = makeLoot(world, x, y)
       world.create(
         type(ChildOf(loot), HealthPotion),
         Math.ceil(Math.random() * 3),
@@ -47,46 +47,46 @@ let drop_loot_system = (world: World) =>
     }
   })
 
-let pick_up_loot_system = (world: World) =>
+let pickUpLootSystem = (world: World) =>
   world
     .of(Player)
     .as(Position, Box, Health, Quiver, Aura)
     .each(
       (
         player,
-        player_pos,
-        player_box,
-        player_health,
-        player_quiver,
-        player_aura,
+        playerPos,
+        playerBox,
+        playerHealth,
+        playerQuiver,
+        playerAura,
       ) =>
-        world.of(LootBag).each((loot_bag, loot_pos, loot_box) => {
+        world.of(LootBag).each((lootBag, lootPos, lootBox) => {
           if (
-            box_intersects(player_pos, player_box, loot_pos, loot_box)
+            boxIntersects(playerPos, playerBox, lootPos, lootBox)
           ) {
             world
-              .of(ChildOf(loot_bag), HealthPotion)
-              .each((_, health_potion) => {
-                let next_player_health = Math.min(
-                  player_health + health_potion,
+              .of(ChildOf(lootBag), HealthPotion)
+              .each((_, healthPotion) => {
+                let nextPlayerHealth = Math.min(
+                  playerHealth + healthPotion,
                   PLAYER_MAX_HEALTH,
                 )
-                world.set(player, Health, next_player_health)
+                world.set(player, Health, nextPlayerHealth)
               })
-            world.of(ChildOf(loot_bag), Quiver).each((_, quiver) => {
-              world.set(player, Quiver, player_quiver + quiver)
+            world.of(ChildOf(lootBag), Quiver).each((_, quiver) => {
+              world.set(player, Quiver, playerQuiver + quiver)
             })
-            world.set(player, Aura, player_aura + 1)
-            world.delete(loot_bag)
+            world.set(player, Aura, playerAura + 1)
+            world.delete(lootBag)
           }
         }),
     )
 
-export let loot_plugin = (app: App) =>
+export let lootPlugin = (app: App) =>
   app
-    .add_system_to_group(Group.LateUpdate, drop_loot_system, _ =>
-      _.after(prune_dead_system),
+    .addSystemToGroup(Group.LateUpdate, dropLootSystem, _ =>
+      _.after(pruneDeadSystem),
     )
-    .add_system_to_group(Group.LateUpdate, pick_up_loot_system, _ =>
-      _.after(drop_loot_system),
+    .addSystemToGroup(Group.LateUpdate, pickUpLootSystem, _ =>
+      _.after(dropLootSystem),
     )
