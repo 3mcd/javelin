@@ -188,7 +188,7 @@ game
 
 Now, regardless of the order the systems are added in, `moveBoxSystem` will always run before the box is drawn to the canvas.
 
-We can also add **constraints** to systems to ensure they execute in a deterministic order within a group. Each system registration method accepts a **constraint builder** that defines the ordering of systems within a group.
+We can also add **ordering constraints** to systems to ensure they execute in a deterministic order within a group. Each system registration method accepts a **constraint builder** that defines the ordering of systems within a group.
 
 We want to ensure our box is drawn to the canvas Only after_ the canvas is cleared, otherwise the user may see nothing each frame. We can accomplish this like so:
 
