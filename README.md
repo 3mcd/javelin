@@ -1,109 +1,47 @@
+<p align="center">
+  <img src="./logo.png" width="120px">
+</p>
+
+<p align="center">
+  <a href="https://codecov.io/gh/3mcd/javelin"><img src="https://codecov.io/gh/3mcd/javelin/branch/master/graph/badge.svg?token=8UMA33S9UL" alt="codecov"></a>
+  <a href="https://discord.gg/AbEWH3taWU"><img src="https://img.shields.io/discord/844566064281026600?logo=discord" alt="discord"></a>
+</p>
+
 # Javelin
+
+Join us on [Discord](https://discord.gg/AbEWH3taWU)!
+
+Javelin is an ECS framework for JavaScript and Typescript that provides the means to create multiplayer games for Node and web browsers.
+
+## Docs
+
+Visit https://javelin.dev
+
+## Packages
+
+| Name                                                     | Description                                            |
+| -------------------------------------------------------- | ------------------------------------------------------ |
+| [@javelin/ecs](./packages/javelin-ecs)                   | Core ECS library                                       |
+| [@javelin/net](./packages/javelin-net)                   | Authoritative game server and client                   |
+| [@javelin/lib](./packages/javelin-lib)                   | Shared helpers and types                               |
+
+## Examples
+
+| Name                          | Description                                               |
+| ----------------------------- | --------------------------------------------------------- |
+| [survive](./examples/survive) | Single-player vampire survivors clone                     | 
+| [shooty](./examples/shooty)   | Multi-player first-person shooter                         |
 
 ## Development
 
-Install dependencies
+You can bootstrap all monorepo and package dependencies using the following command:
 
 ```sh
 pnpm i
 ```
 
-Run the example
+You can build all packages like so:
 
-```ts
-pnpx vite
-```
-
-## Getting Started
-
-```ts
-import {app, component, type} from "@javelin/ecs"
-
-type Vector2 = {x: number; y: number}
-let Position = component<Vector2>()
-let Velocity = component<Vector2>()
-let Body = type(Position, Velocity)
-
-let game = app()
-  .add_init_system(world => {
-    let p = {x: 0, y: 0}
-    let v = {x: 1, y: 1}
-    world.create(Body, p, v)
-  })
-  .add_system(world => {
-    world.of(Body).each((e, p, v) => {
-      p.x += v.x
-      p.y += v.y
-    })
-  })
-
-setInterval(() => app.step(), (1 / 60) * 1_000)
-```
-
-### Schemas
-
-```ts
-let Position = component({x: "f32", y: "f32"})
-let Health = "u32"
-// create an entity with position {x: 0, y: 0} and mass 0
-world.create(type(Position, Mass))
-```
-
-### Relationships
-
-Parent/child hierarchies
-
-```ts
-let parent = world.create()
-let child = world.create(ChildOf(parent))
-world.parent_of(child) // -> `parent`
-world.delete(parent) // also deletes `child`
-```
-
-Custom relationships
-
-```ts
-let DockedTo = relation()
-
-let docking_system = (world: World) => {
-  let ships = world.of(Ship, Not(DockedTo))
-  let stations = world.of(Station)
-  ships.each((ship, ship_transform) => {
-    stations.each((station, station_transform) => {
-      if (should_dock(station_transform, ship_transform)) {
-        world.add(ship, DockedTo(station))
-      }
-    })
-  })
-}
-
-let render_docked_system = (world: World) => {
-  let stations = world.query(Station)
-  stations.each(station => {
-    world.query(Ship, DockedTo(station)).each(docked_ship => {
-      // draw list item
-    })
-  })
-}
-```
-
-### Enums
-
-```ts
-let Bat = tag()
-let Rat = tag()
-let EnemyType = slot(Bat, Rat)
-let Enemy = type(Health)
-
-let BatEnemy = type(Enemy, EnemyType(Bat))
-
-world.create(BatEnemy)
-world.of(BatEnemy).each(() => {
-  // do stuff with bat enemies
-})
-
-// throws error "A type can have at most one component for a given slot"
-world.create(type(EnemyType(Bat), EnemyType(Rat)))
-// throws error "A slot only accepts components defined in its enum"
-world.create(type(EnemyType(Merchant)))
+```sh
+pnpm build
 ```
