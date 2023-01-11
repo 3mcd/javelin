@@ -136,7 +136,7 @@ let context = document.querySelector("canvas")!.getContext("2d")
 game.addResource(Context2D, context)
 ```
 
-> Resources can provide Any_ value to systems. This includes third party library objects, singleton entities, and any other game state that doesn't clearly fit into entities and components.
+> Resources can provide _any value_ to systems. This includes third party library objects, singleton entities, and any other game state that doesn't clearly fit into entities and components.
 
 Image data is not automatically cleared from canvas elements, so we should write a system that erases the canvas so we don't draw our box on top of old pixels. We'll get the draw context using the `useResource` effect (which simply calls `world.getResource`), and call its `clearRect()` method:
 
@@ -173,7 +173,7 @@ game
   .addSystem(drawBoxSystem)
 ```
 
-This practice doesn't work well for larger games with dozens of systems. At scale, adding and reordering systems becomes impractical because systems must be ordered Just right_ for the app to function predictably.
+This practice doesn't work well for larger games with dozens of systems. At scale, adding and reordering systems becomes impractical because systems must be ordered _just right_ for the app to function predictably.
 
 We want to ensure that our render systems are executed after our movement system so our players see the most up-to-date game state at the end of each frame. Javelin splits each step into a pipeline of **system groups**. We can ensure that our render systems execute after our behavior systems by moving them to a group that executes later in the pipeline.
 

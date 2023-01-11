@@ -44,4 +44,4 @@ world.monitorImmediate(Enemy)
   })
 ```
 
-An immediate monitor must be executed downstream of its causal systems in the app's system execution pipeline. In the above example, the system should be configured using [ordering constraints](./systems.md#ordering-constraints) to occur After_ the system that deletes `Enemy` entities.
+An immediate monitor must be executed downstream of its causal systems in the app's system execution pipeline. In the above example, the system should be configured using [ordering constraints](./systems.md#ordering-constraints) to occur _after_ the system that deletes `Enemy` entities.
