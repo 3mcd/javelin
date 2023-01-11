@@ -8,3 +8,6 @@ title = "Javelin Docs"
 [output.html]
 theme = "theme"
 curly-quotes = true
+default-theme = "light"
+preferred-dark-theme = "light"
+
