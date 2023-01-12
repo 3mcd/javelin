@@ -15,8 +15,8 @@ world.create()
 Most often you will need to create entities from a set of components. This is accomplished with a type:
 
 ```ts
-let Position = component<Vector2>()
-let Velocity = component<Vector2>()
+let Position = value<Vector2>()
+let Velocity = value<Vector2>()
 let Kinetic = type(Position, Velocity)
 
 world.create(Kinetic, {x: 0, y: 0}, {x: 1, y: -1})
@@ -33,7 +33,7 @@ world.create(type(Burning, Position), {x: 0, y: 0})
 Components defined with a schema are auto-initialized if a value is not provided.
 
 ```ts
-let Position = component({x: "f32", y: "f32"})
+let Position = value({x: "f32", y: "f32"})
 
 world.create(Position) // automatically adds {x: 0, y: 0}
 ```
