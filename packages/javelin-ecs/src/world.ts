@@ -71,7 +71,10 @@ export class World {
       entityId = this.#freeEntityIds.pop() as number
       entityVersion = this.#entityIdVersions[entityId]
     } else {
-      entityId = this.#nextEntityId++
+      while (exists(this.#entityIdVersions[this.#nextEntityId])) {
+        this.#nextEntityId++
+      }
+      entityId = this.#nextEntityId
       entityVersion = this.#entityIdVersions[entityId] = 0
       assert(entityId <= LO_MASK, "too many living entities")
     }
@@ -93,7 +96,7 @@ export class World {
     return entityId
   }
 
-  #getEntityIdVersion(entityId: number) {
+  #getEntityIdVersion(entityId: number): number | undefined {
     return this.#entityIdVersions[entityId]
   }
 
@@ -419,6 +422,7 @@ export class World {
     selector: Selector<T>,
     ...selectorValues: ComponentValues<T>
   ) {
+    assert(this.#getEntityIdVersion(entityId) === undefined)
     let entity = makeId(entityId, 0) as Entity
     let nextNode = this.graph.nodeOfType(selector.type)
     this.#incrementEntityIdVersion(entityId)
@@ -591,13 +595,19 @@ export class World {
         })
       }
     }
+    // Adjust entities within the archetype graph, update component stores, and
+    // notify interested parties (like monitors).
     this.#applyTransaction.drainEntities(
       this.graph,
       Phase.Apply,
       commitBatch,
     )
     this.#nodesToPrune.forEach(nodeToPrune => {
+      // The node may have been populated after it was flagged for deletion, so
+      // we first check if it is still empty.
       if (nodeToPrune.isEmpty()) {
+        // If the node and its descendants have no entities, we free each
+        // descendant node and notify all retained ancestor nodes.
         nodeToPrune.traverseAdd(nodeAdd =>
           nodeToPrune.traverseRem(nodeRem => {
             nodeRem.onNodeDeleted.emit(nodeAdd)

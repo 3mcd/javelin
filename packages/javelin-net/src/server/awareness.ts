@@ -80,7 +80,7 @@ export class InterestState {
         })
       networkTransport.send(this.#stream.bytes, UPDATE)
     }
-    this.#monitor.drain()
+    this.#monitor.clear()
   }
 
   dispose() {
