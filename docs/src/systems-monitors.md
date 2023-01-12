@@ -40,8 +40,17 @@ If you wish to access component values of an entity that no longer matches a mon
 ```ts
 world.monitorImmediate(Enemy)
   .eachExcluded((enemy, enemyPos) => {
-    world.create(LootBag, enemyPos, ...)
+    world.create(LootBag, enemyPos)
   })
 ```
 
 An immediate monitor must be executed downstream of its causal systems in the app's system execution pipeline. In the above example, the system should be configured using [ordering constraints](./systems.md#ordering-constraints) to occur _after_ the system that deletes `Enemy` entities.
+
+```ts
+app
+  .addSystem(deleteDeadEntitiesSystem)
+  .addSystem(
+    world => world.monitorImmediate(Enemy).eachExcluded(/* ... */),
+    _ => _.after(deleteDeadEntitiesSystem),
+  )
+```
