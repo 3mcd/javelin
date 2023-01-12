@@ -1,4 +1,4 @@
-import {assert, exists, expect, Maybe} from "@javelin/lib"
+import {assert, expect, Maybe} from "@javelin/lib"
 import {Resource} from "./resource.js"
 import {
   Constraints,
@@ -190,18 +190,24 @@ export class App {
         for (let j = 0; j < systemGroup.systems.length; j++) {
           let system = systemGroup.systems[j]
           if (system.isEnabled(world)) {
+            // The `CurrentSystem` resource is used by the world to attach new
+            // queries and monitors to their originating systems.
             this.world.setResource(CurrentSystem, system)
             system.run(world)
+            // Clear each of the system's monitors after the system is
+            // complete.
             let monitors = system.monitors.values()
             for (let k = 0; k < monitors.length; k++) {
               let monitor = monitors[k]
               monitor.clear()
             }
+            // Notify immediate monitors of intra-step entity modifications.
             this.world.emitStagedChanges()
           }
         }
       }
     }
+    // Notify monitors of inter-step entity modifications.
     this.world.commitStagedChanges()
   }
 }
