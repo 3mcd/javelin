@@ -12,7 +12,7 @@ Entities are created using `world.create`. An entity can be created with zero or
 world.create()
 ```
 
-Most often you will need to create entities from an initial set of components. This is accomplished with a type:
+Most often you will need to create entities from a set of components. This is accomplished with a type:
 
 ```ts
 let Position = component<Vector2>()
@@ -35,7 +35,7 @@ Components defined with a schema are auto-initialized if a value is not provided
 ```ts
 let Position = component({x: "f32", y: "f32"})
 
-world.create(type(Position))
+world.create(Position) // automatically adds {x: 0, y: 0}
 ```
 
 ## Entity Reconfiguration
@@ -43,7 +43,7 @@ world.create(type(Position))
 Components are added to entities using `world.add`.
 
 ```ts
-world.add(entity, type(Velocity), {x: 1, y: -1})
+world.add(entity, Velocity, {x: 1, y: -1})
 world.add(entity, type(Burning, Position))
 ```
 

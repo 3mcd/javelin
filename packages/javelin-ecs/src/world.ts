@@ -11,7 +11,7 @@ import {
   Component,
   Tag,
   ComponentValue,
-  ComponentValues,
+  ComponentInitValues,
   getSchema,
   expressComponent,
   Dynamic,
@@ -420,7 +420,7 @@ export class World {
   reserve<T extends Component[]>(
     entityId: number,
     selector: Selector<T>,
-    ...selectorValues: ComponentValues<T>
+    ...selectorValues: ComponentInitValues<T>
   ) {
     assert(this.#getEntityIdVersion(entityId) === undefined)
     let entity = makeId(entityId, 0) as Entity
@@ -451,7 +451,7 @@ export class World {
    */
   create<T extends Component[]>(
     selector: Selector<T>,
-    ...selectorValues: ComponentValues<T>
+    ...selectorValues: ComponentInitValues<T>
   ) {
     let entity = this.#allocEntityId()
     let nextNode = this.graph.nodeOfType(selector.type)
@@ -461,12 +461,12 @@ export class World {
   }
 
   /**
-   * Add components to an entity.
+   * Add a type to an entity.
    */
   add<T extends Component[]>(
     entity: Entity,
     selector: Selector<T>,
-    ...selectorValues: ComponentValues<T>
+    ...selectorValues: ComponentInitValues<T>
   ) {
     this.#validateEntityVersion(entity)
     let prevNode = this.#getStagedEntityNode(entity)
@@ -482,7 +482,7 @@ export class World {
   }
 
   /**
-   * Remove components from an entity.
+   * Remove a type from an entity.
    */
   remove(entity: Entity, selector: Selector) {
     this.#validateEntityVersion(entity)
@@ -521,11 +521,15 @@ export class World {
    * @example
    * let pos = get(e, Position)
    */
-  get(entity: Entity, component: Component<Tag>): boolean
-  get<T>(entity: Entity, component: Component<T>): ComponentValue<T>
-  get(entity: Entity, component: Component) {
+  get<T>(
+    entity: Entity,
+    selector: Selector<[Component<T>]>,
+  ): ComponentValue<T>
+  get(entity: Entity, selector: Selector<[Component<Tag>]>): boolean
+  get(entity: Entity, selector: Selector) {
     this.#validateEntityVersion(entity)
     let entityNode = this.#getEntityNode(entity)
+    let component = selector.includedComponents[0]
     return entityNode.hasComponent(component)
       ? !hasSchema(component) ||
           this.getComponentStore(component)[entity]
@@ -538,13 +542,14 @@ export class World {
    */
   set<T>(
     entity: Entity,
-    component: Component<T>,
-    componentValue: ComponentValue<T>,
+    selector: Selector<[Component<T>]>,
+    selectorValue: ComponentValue<T>,
   ) {
     this.#validateEntityVersion(entity)
     let node = this.#getEntityNode(entity)
+    let component = selector.includedComponents[0]
     assert(node.hasComponent(component))
-    this.#setEntityComponentValue(entity, component, componentValue)
+    this.#setEntityComponentValue(entity, component, selectorValue)
   }
 
   /**

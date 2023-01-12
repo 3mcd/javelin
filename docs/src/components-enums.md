@@ -9,8 +9,8 @@ let MovementState = slot(Running, Walking, Crouching)
 A slot guarantees that **at most one** of the components included in its defintion may be attached to an entity.
 
 ```ts
-let character = world.create(type(MovementState(Running)))
-world.add(character, type(MovementState(Walking)))
+let character = world.create(MovementState(Running))
+world.add(character, MovementState(Walking))
 // Error: A type may have at most one component for a given slot
 ```
 

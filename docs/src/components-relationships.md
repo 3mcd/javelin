@@ -12,7 +12,7 @@ The value returned by `relation` is a function that builds relationships on a pe
 
 ```ts
 let planet = world.create(Planet)
-let spaceship = world.create(Spaceship, GravitatingTo(planet))
+let spaceship = world.create(type(Spaceship, GravitatingTo(planet)))
 ```
 
 Relationships can be used as query terms to resolve related entities.

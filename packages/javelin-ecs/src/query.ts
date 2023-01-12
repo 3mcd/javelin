@@ -1,8 +1,15 @@
-import {exists, SparseSet} from "@javelin/lib"
+import {
+  exists,
+  hashWord,
+  HASH_BASE,
+  normalizeHash,
+  SparseSet,
+} from "@javelin/lib"
 import {Entity} from "./entity.js"
 import {Node} from "./graph.js"
 import {Component, ComponentValue, hasSchema} from "./component.js"
-import {ComponentsOf, hashSpec, Selector, Spec} from "./type.js"
+import {ComponentsOf, normalizeSpec, Selector, Spec} from "./type.js"
+import {isRelation} from "./relation.js"
 
 export type QueryEachIteratee<T extends Spec> = (
   entity: Entity,
@@ -58,7 +65,7 @@ let compileEachIterator = <T extends Component[]>(
 
 export interface QueryAPI<T extends Spec = Spec> {
   each(iteratee: QueryEachIteratee<T>): void
-  as<T extends Component[]>(...components: T): QueryAPI<T>
+  as<T extends Spec>(...spec: T): QueryAPI<T>
   size: number
 }
 
@@ -78,7 +85,7 @@ export class QueryView<T extends Spec = Spec> implements QueryAPI<T> {
     return this.#query.size
   }
 
-  as<T extends Component[]>(...components: T): QueryAPI<T>
+  as<T extends Spec>(...spec: T): QueryAPI<T>
   as() {
     return this.#query.as.apply(this.#query, arguments as any)
   }
@@ -135,13 +142,27 @@ export class Query<T extends Spec = Spec> implements QueryAPI<T> {
     return size
   }
 
-  as<T extends Component[]>(...components: T): QueryAPI<T>
+  as<T extends Spec>(...spec: T): QueryAPI<T>
   as() {
-    let components = arguments as unknown as Component[]
-    let hash = hashSpec.apply(null, components)
+    let hash = HASH_BASE
+    let spec = arguments as unknown as Spec
+    for (let i = 0; i < spec.length; i++) {
+      let term = spec[i]
+      if (typeof term === "number") {
+        hash = hashWord(hash, term)
+      } else if (isRelation(term)) {
+        hash = hashWord(hash, term.relationTerm)
+      } else {
+        for (let j = 0; j < term.includedComponents.length; j++) {
+          hash = hashWord(hash, term.includedComponents[j])
+        }
+      }
+    }
+    hash = normalizeHash(hash)
     let view = this.#views[hash]
     if (!exists(view)) {
-      view = new QueryView(this, Array.from(components))
+      let {includedComponents} = normalizeSpec(spec)
+      view = new QueryView(this, includedComponents)
       this.#views[hash] = view
     }
     return view

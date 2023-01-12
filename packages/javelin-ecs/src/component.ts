@@ -10,14 +10,22 @@ export type Tag = typeof Tag
 
 export type ComponentSpec = Dynamic | Schema | Tag | unknown
 export type ComponentValue<T extends ComponentSpec> =
-  T extends Dynamic
+  unknown extends T
     ? unknown
     : T extends Schema
     ? Express<T>
     : T extends Tag
     ? never
     : T
-export type ComponentValues<
+export type ComponentInitValue<T extends ComponentSpec> =
+  unknown extends T
+    ? unknown
+    : T extends Schema
+    ? Express<T> | void
+    : T extends Tag
+    ? never
+    : T
+export type ComponentInitValues<
   T extends Component[],
   U extends unknown[] = [],
 > = T extends []
@@ -25,18 +33,9 @@ export type ComponentValues<
   : T extends [infer Head, ...infer Tail]
   ? Tail extends Component[]
     ? Head extends Component<infer Value>
-      ? ComponentValues<
+      ? ComponentInitValues<
           Tail,
-          Value extends Tag
-            ? U
-            : [
-                ...U,
-                Value extends Schema
-                  ? Express<Value> | void
-                  : unknown extends Value
-                  ? unknown
-                  : Value,
-              ]
+          Value extends Tag ? U : [...U, ComponentInitValue<Value>]
         >
       : never
     : never

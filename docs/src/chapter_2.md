@@ -44,14 +44,14 @@ Enum components used to safeguard entity composition and implement state machine
 ```ts
 let PlanetType = slot(Gas, Rock)
 // Error: A type can have at most one component for a given slot
-world.create(PlanetType(Gas), PlanetType(Rock))
+type(PlanetType(Gas), PlanetType(Rock))
 ````
 
 Entity relationships with built-in support for heirarchies.
 
 ```ts
 let parent = world.create()
-let child = world.create(type(ChildOf(parent)))
+let child = world.create(ChildOf(parent))
 world.delete(parent) // also deletes `child`
 ```
 

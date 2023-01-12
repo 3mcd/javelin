@@ -30,7 +30,7 @@ Systems are often highly specific about the entities they resolve while only uti
 
 ```ts
 world
-  .of(ElectrifiedHipposStandingInWater)
+  .of(Hippo, Element(Lightning), StandingIn(Water), Health)
   .as(Health)
   .each((hippo, hippoHealth) => {
     // (do something with just the hippo's health)

@@ -1,11 +1,12 @@
 import {assert} from "@javelin/lib"
 import {HI_MASK, idHi, idLo, makeId} from "./entity.js"
 import {makeTagComponent, Component, Tag} from "./component.js"
+import {makeSelector, Selector} from "./type.js"
 
 export interface Relation {
   relationId: number
   relationTerm: Component<Tag>
-  (to: number | Relation): Component<Tag>
+  (to: number | Relation): Selector<[Component<Tag>]>
 }
 
 let relationIds = 1
@@ -19,14 +20,16 @@ export let makeRelation = (): Relation => {
     relationId: relationId,
     relationTerm: relationTerm,
   }
-  function relate(to: number | Relation) {
-    return makeId(
-      typeof to === "number" ? idLo(to) : to.relationTerm,
-      relationId,
-    ) as Component<void>
+  function makeRelationship(to: number | Relation) {
+    return makeSelector(
+      makeId(
+        typeof to === "number" ? idLo(to) : to.relationTerm,
+        relationId,
+      ) as Component<void>,
+    )
   }
   let relation = Object.assign(
-    relate,
+    makeRelationship,
     relationAttrs,
   ) as unknown as Relation
   relations[relationId] = relation
