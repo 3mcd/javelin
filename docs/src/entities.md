@@ -6,13 +6,22 @@ Javelin supports up to around one-million (2^20) active entities, and around fou
 
 ## Entity Creation
 
-Entities are created using `world.create`. An entity can be created with zero or more components:
+Entities are created using `world.create`.
 
 ```ts
 world.create()
 ```
 
-Most often you will need to create entities from a set of components. This is accomplished with a type:
+Entities can be created with a single component.
+
+```ts
+let Position = value<Vector2>()
+
+world.create(Position, {x: 0, y: 0})
+```
+
+
+But most often you will need to create entities from a set of components. This is accomplished using types:
 
 ```ts
 let Position = value<Vector2>()
@@ -22,7 +31,7 @@ let Kinetic = type(Position, Velocity)
 world.create(Kinetic, {x: 0, y: 0}, {x: 1, y: -1})
 ```
 
-Component values may not be provided for tags during entity creation, since tags are stateless.
+Component values cannot be provided to tag tag components during entity creation, since tags are stateless.
 
 ```ts
 let Burning = tag()
