@@ -2,7 +2,7 @@ import {
   value,
   Monitor,
   Node,
-  Term,
+  Component,
   Type,
   World,
   Phase,
@@ -31,8 +31,12 @@ export class InterestState {
   #stream
   #monitor
 
-  constructor(node: Node, excludedTerms: Term[], interest: Interest) {
-    this.#monitor = new Monitor(node, Phase.Apply, excludedTerms) // get exclcuded terms and final type?!
+  constructor(
+    node: Node,
+    excludedComponents: Component[],
+    interest: Interest,
+  ) {
+    this.#monitor = new Monitor(node, Phase.Apply, excludedComponents) // get exclcuded terms and final type?!
     this.#interest = interest
     this.#stream = new WriteStream(
       1 + 4 + 4 + 4 + interest.type.components.length * 4,
@@ -53,13 +57,13 @@ export class InterestState {
     }
     let {includedSize, excludedSize} = this.#monitor
     if (includedSize > 0 || excludedSize > 0) {
-      let sortedTerms = this.#interest.type.components
+      let sortedComponents = this.#interest.type.components
       this.#stream.reset()
       this.#stream.writeU8(UPDATE)
-      this.#stream.writeU32(sortedTerms.length)
-      for (let i = 0; i < sortedTerms.length; i++) {
-        let term = sortedTerms[i]
-        let termIso = networkModel.toIso(term)
+      this.#stream.writeU32(sortedComponents.length)
+      for (let i = 0; i < sortedComponents.length; i++) {
+        let term = sortedComponents[i]
+        let termIso = networkModel.localComponentToIso(term)
         if (exists(termIso)) {
           this.#stream.writeU32(termIso)
         }

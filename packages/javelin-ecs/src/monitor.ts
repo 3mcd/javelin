@@ -1,6 +1,6 @@
 import {Entity} from "./entity.js"
 import {Node} from "./graph.js"
-import {Component} from "./term.js"
+import {Component} from "./component.js"
 import {TransactionEvent} from "./transaction.js"
 
 type MonitorIteratee = (entity: Entity) => void

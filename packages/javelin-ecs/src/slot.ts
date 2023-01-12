@@ -1,12 +1,12 @@
 import {assert} from "@javelin/lib"
 import {makeRelation, Relation} from "./relation.js"
-import {Component, getSchema, hasSchema, setSchema} from "./term"
+import {Component, getSchema, hasSchema, setSchema} from "./component"
 
 let slots = [] as Relation[]
 
 export let isSlot = (component: number) => component in slots
 
-export function slot<T extends Component[]>(...components: T) {
+export function makeSlot<T extends Component[]>(...components: T) {
   let slotRelation = makeRelation()
   let slotRelationships = [] as number[]
   let slotComponents = new Set(components)

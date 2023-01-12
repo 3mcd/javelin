@@ -1,7 +1,7 @@
 import {exists, SparseSet} from "@javelin/lib"
 import {Entity} from "./entity.js"
 import {Node} from "./graph.js"
-import {Component, ComponentValue, hasSchema} from "./term.js"
+import {Component, ComponentValue, hasSchema} from "./component.js"
 import {ComponentsOf, hashSpec, Selector, Spec} from "./type.js"
 
 export type QueryEachIteratee<T extends Spec> = (

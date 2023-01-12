@@ -1,6 +1,6 @@
 import {assert} from "@javelin/lib"
 import {HI_MASK, idHi, idLo, makeId} from "./entity.js"
-import {makeTagComponent, Component, Tag} from "./term.js"
+import {makeTagComponent, Component, Tag} from "./component.js"
 
 export interface Relation {
   relationId: number

@@ -13,7 +13,7 @@ import {
   Not,
   Relation,
 } from "./relation.js"
-import {Component} from "./term.js"
+import {Component} from "./component.js"
 import {isSlot} from "./slot.js"
 
 export type Term = Selector | Component | Relation
@@ -74,11 +74,7 @@ export function hashSpec() {
     } else if (isRelation(queryTerm)) {
       queryHash = hashWord(queryHash, queryTerm.relationTerm)
     } else {
-      for (
-        let j = 0;
-        j < queryTerm.includedComponents.length;
-        j++
-      ) {
+      for (let j = 0; j < queryTerm.includedComponents.length; j++) {
         queryHash = hashWord(
           queryHash,
           queryTerm.includedComponents[j],
@@ -118,8 +114,7 @@ export class Selector<T extends Spec = Spec> {
   readonly excludedComponents
 
   constructor(spec: T) {
-    let {includedComponents, excludedComponents} =
-      normalizeSpec(spec)
+    let {includedComponents, excludedComponents} = normalizeSpec(spec)
     this.hash = hashWords.apply(null, includedComponents)
     this.type = Type.of(includedComponents)
     this.includedComponents = includedComponents

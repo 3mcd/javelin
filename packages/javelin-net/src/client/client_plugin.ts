@@ -1,4 +1,11 @@
-import {App, Group, Selector, Term, Type, World} from "@javelin/ecs"
+import {
+  App,
+  Group,
+  Selector,
+  Component,
+  Type,
+  World,
+} from "@javelin/ecs"
 import {
   exists,
   expect,
@@ -32,16 +39,16 @@ let processServerMessagesSystem = (world: World) => {
           let term = readStream.readU32()
           termsHash = hashWord(
             termsHash,
-            networkModel.toLocal(term),
+            networkModel.isoComponentToLocal(term),
           )
         }
         termsHash = normalizeHash(termsHash)
         let type = Type.cache[termsHash]
         if (!exists(type)) {
-          let terms = [] as Term[]
+          let terms = [] as Component[]
           for (let i = 0; i < termsSize; i++) {
             let term = readStream.peekU32(-termsSize + i)
-            terms.push(networkModel.toLocal(term))
+            terms.push(networkModel.isoComponentToLocal(term))
           }
           type = Type.of(terms)
         }
@@ -72,8 +79,8 @@ let processServerMessagesSystem = (world: World) => {
 }
 
 export let clientPlugin = (app: App) => {
-  let networkTerms = expect(app.getResource(NetworkConfig))
-  let networkModel = new NetworkModelImpl(networkTerms)
+  let networkComponents = expect(app.getResource(NetworkConfig))
+  let networkModel = new NetworkModelImpl(networkComponents)
   app
     .addResource(NetworkModel, networkModel)
     .addSystemToGroup(Group.Early, processServerMessagesSystem)

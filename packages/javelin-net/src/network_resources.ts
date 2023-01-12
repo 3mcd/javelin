@@ -1,30 +1,30 @@
-import {resource, Term} from "@javelin/ecs"
+import {resource, Component} from "@javelin/ecs"
 
 export interface NetworkModel {
-  toLocal(isoTerm: number): Term
-  toIso(localTerm: number): Term
+  isoComponentToLocal(isoComponent: number): Component
+  localComponentToIso(localComponent: number): Component
 }
 
 export class NetworkModelImpl implements NetworkModel {
   #terms
   #termsSparse
 
-  constructor(terms: Term[]) {
+  constructor(terms: Component[]) {
     this.#terms = terms
-    this.#termsSparse = [] as Term[]
+    this.#termsSparse = [] as Component[]
     for (let i = 0; i < terms.length; i++) {
-      this.#termsSparse[terms[i]] = i as Term
+      this.#termsSparse[terms[i]] = i as Component
     }
   }
 
-  toLocal(isoTerm: number) {
-    return this.#terms[isoTerm]
+  isoComponentToLocal(isoComponent: number) {
+    return this.#terms[isoComponent]
   }
 
-  toIso(localTerm: number) {
-    return this.#termsSparse[localTerm]
+  localComponentToIso(localComponent: number) {
+    return this.#termsSparse[localComponent]
   }
 }
 
-export let NetworkConfig = resource<Term[]>()
+export let NetworkConfig = resource<Component[]>()
 export let NetworkModel = resource<NetworkModelImpl>()

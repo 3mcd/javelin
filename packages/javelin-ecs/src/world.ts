@@ -4,18 +4,18 @@ import {Graph, Node} from "./graph.js"
 import {ChildOf} from "./index.js"
 import {Monitor} from "./monitor.js"
 import {QueryAPI, Query} from "./query.js"
-import {resource, Resource} from "./resource.js"
-import {Schema, Express} from "./schema.js"
+import {makeResource, Resource} from "./resource.js"
 import {System} from "./system.js"
 import {
   hasSchema,
   Component,
   Tag,
   ComponentValue,
+  ComponentValues,
   getSchema,
   expressComponent,
   Dynamic,
-} from "./term.js"
+} from "./component.js"
 import {Transaction, TransactionIteratee} from "./transaction.js"
 import {
   hashSpec,
@@ -30,32 +30,7 @@ export enum Phase {
   Apply = "apply",
 }
 
-export let CurrentSystem = resource<System>()
-
-export type Values<
-  T extends Component[],
-  U extends unknown[] = [],
-> = T extends []
-  ? U
-  : T extends [infer Head, ...infer Tail]
-  ? Tail extends Component[]
-    ? Head extends Component<infer Value>
-      ? Values<
-          Tail,
-          Value extends Tag
-            ? U
-            : [
-                ...U,
-                Value extends Schema
-                  ? Express<Value> | void
-                  : unknown extends Value
-                  ? unknown
-                  : Value,
-              ]
-        >
-      : never
-    : never
-  : never
+export let CurrentSystem = makeResource<System>()
 
 export class World {
   #entityChildren
@@ -405,8 +380,8 @@ export class World {
    */
   reserve<T extends Component[]>(
     entityId: number,
-    selector: Selector,
-    ...values: Values<T>
+    selector: Selector<T>,
+    ...values: ComponentValues<T>
   ) {
     let entity = makeId(entityId, 0) as Entity
     let nextNode = this.graph.nodeOfType(selector.type)
@@ -436,7 +411,7 @@ export class World {
    */
   create<T extends Component[]>(
     selector: Selector<T>,
-    ...values: Values<T>
+    ...values: ComponentValues<T>
   ) {
     let entity = this.#allocEntityId()
     let nextNode = this.graph.nodeOfType(selector.type)
@@ -451,7 +426,7 @@ export class World {
   add<T extends Component[]>(
     entity: Entity,
     selector: Selector<T>,
-    ...values: Values<T>
+    ...values: ComponentValues<T>
   ) {
     this.#validateEntityVersion(entity)
     let prevNode = this.#getStagedEntityNode(entity)

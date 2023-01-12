@@ -17,6 +17,30 @@ export type ComponentValue<T extends ComponentSpec> =
     : T extends Tag
     ? never
     : T
+export type ComponentValues<
+  T extends Component[],
+  U extends unknown[] = [],
+> = T extends []
+  ? U
+  : T extends [infer Head, ...infer Tail]
+  ? Tail extends Component[]
+    ? Head extends Component<infer Value>
+      ? ComponentValues<
+          Tail,
+          Value extends Tag
+            ? U
+            : [
+                ...U,
+                Value extends Schema
+                  ? Express<Value> | void
+                  : unknown extends Value
+                  ? unknown
+                  : Value,
+              ]
+        >
+      : never
+    : never
+  : never
 
 export type Component<T extends ComponentSpec = unknown> = Opaque<
   number,

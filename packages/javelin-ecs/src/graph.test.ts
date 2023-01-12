@@ -1,7 +1,7 @@
 import {Maybe} from "@javelin/lib"
 import {suite, test, expect} from "vitest"
 import {Graph, Node} from "./graph.js"
-import {makeTagComponent} from "./term.js"
+import {makeTagComponent} from "./component.js"
 import {Type} from "./type.js"
 
 let a = makeTagComponent()

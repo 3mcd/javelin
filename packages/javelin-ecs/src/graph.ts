@@ -10,7 +10,7 @@ import {
 import {Entity} from "./entity.js"
 import {isRelationship} from "./relation.js"
 import {Signal} from "./signal.js"
-import {Component} from "./term.js"
+import {Component} from "./component.js"
 import {TransactionEvent} from "./transaction.js"
 import {Type} from "./type.js"
 
