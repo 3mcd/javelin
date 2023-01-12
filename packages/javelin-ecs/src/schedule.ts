@@ -102,7 +102,7 @@ export class Schedule<T> {
   }
 }
 
-export class Group {
+export class SystemGroup {
   #predicate
   #systemSchedule
   #systemScheduleStale
@@ -133,7 +133,7 @@ export class Group {
     Constraints.insert(this.#systemSchedule, impl, constraints)
   }
 
-  check(world: World) {
+  isEnabled(world: World) {
     if (this.#systemScheduleStale) {
       this.#systems = this.#systemSchedule
         .build()

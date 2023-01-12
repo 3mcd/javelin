@@ -99,7 +99,7 @@ export class Monitor {
     return size
   }
 
-  drain() {
+  clear() {
     while (this.#includedEntityBatches.pop()) {}
     while (this.#excludedEntityBatches.pop()) {}
   }

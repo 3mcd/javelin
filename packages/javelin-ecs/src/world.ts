@@ -81,8 +81,6 @@ export class World {
   #freeEntityId(entity: Entity) {
     let entityId = idLo(entity)
     this.#freeEntityIds.push(entityId)
-    this.#entityIdVersions[entityId]++
-    this.#entityNodes[entityId] = undefined!
   }
 
   #validateEntityVersion(entity: Entity) {
@@ -90,7 +88,7 @@ export class World {
     let entityIdVersion = idHi(entity)
     assert(
       this.#entityIdVersions[entityId] === entityIdVersion,
-      `Entity handle ${entity} [${entityId}] is invalid because it has been deleted`,
+      `Entity ${entity} (id ${entityId}) is invalid because it has been deleted`,
     )
     return entityId
   }
@@ -158,24 +156,27 @@ export class World {
   }
 
   #getStagedEntityNode(entity: Entity) {
+    // First check if the entity has already been relocated during the step.
     let stagedNodeHash = this.#applyTransaction.locateEntity(entity)
     if (exists(stagedNodeHash)) {
+      // If the entity has been deleted, it has no staged node.
       if (stagedNodeHash === 0) {
         return undefined
       }
-      let stagedNode = this.graph.findNode(stagedNodeHash)
-      if (exists(stagedNode)) {
-        return stagedNode
-      }
+      return expect(this.graph.findNode(stagedNodeHash))
     }
+    // Fall back to the entity's true location in the archetype graph.
     return this.#entityNodes[entity]
   }
 
   #relocateEntity(entity: Entity, prevNode?: Node, nextNode?: Node) {
     let prevHash = prevNode?.type.hash ?? 0
     let nextHash = nextNode?.type.hash ?? 0
-    this.#applyTransaction.relocateEntity(entity, prevHash, nextHash)
+    // Update both stage and apply transactions. The stage transaction is
+    // drained after each system, while the apply transaction is drained after
+    // each step.
     this.#stageTransaction.relocateEntity(entity, prevHash, nextHash)
+    this.#applyTransaction.relocateEntity(entity, prevHash, nextHash)
   }
 
   #commitMake(entity: Entity, nextNode: Node) {
@@ -183,6 +184,8 @@ export class World {
     for (let i = 0; i < nextNode.type.components.length; i++) {
       let component = nextNode.type.components[i]
       if (hasSchema(component)) {
+        // Insert the new entity's component values into their respective
+        // component stores.
         let componentValue = expect(entityDelta[component])
         this.#setEntityComponentValue(
           entity,
@@ -191,6 +194,8 @@ export class World {
         )
       } else {
         let componentHi = idHi(component)
+        // Attach the new entity to its parent component if it was defined
+        // with one.
         if (componentHi === ChildOf.relationId) {
           let parentEntityId = idLo(component)
           let parentEntity = expect(this.qualify(parentEntityId))
@@ -198,13 +203,17 @@ export class World {
         }
       }
     }
+    // Insert the new entity into its archetype.
     nextNode.addEntity(entity)
     this.#setEntityNode(entity, nextNode)
+    // Free the new entity's component change set.
     this.#freeEntityDelta(entity)
   }
 
   #commitUpdate(entity: Entity, nextNode: Node) {
     let entityDelta = this.#ensureEntityDelta(entity)
+    // Overwrite the updated entity's existing component values in their
+    // respective component stores.
     for (let i = 0; i < nextNode.type.components.length; i++) {
       let component = nextNode.type.components[i]
       if (hasSchema(component)) {
@@ -216,30 +225,37 @@ export class World {
         )
       }
     }
+    // Free the existing entity's component change set.
     this.#freeEntityDelta(entity)
   }
 
-  #commitDestroy(entity: Entity, prevNode: Node) {
+  #commitDelete(entity: Entity, prevNode: Node) {
     let entityId = idLo(entity)
     let entityChildren = this.#entityChildren[entityId]
+    // Recursively delete the deleted entity's children, if any.
     if (exists(entityChildren)) {
       for (let childEntity of entityChildren) {
         let childEntityNode = expect(this.#entityNodes[childEntity])
-        this.#commitDestroy(childEntity, childEntityNode)
+        this.#commitDelete(childEntity, childEntityNode)
       }
       entityChildren.clear()
     }
+    // Free the deleted entity's component values.
     for (let i = 0; i < prevNode.type.components.length; i++) {
       let component = prevNode.type.components[i]
       if (hasSchema(component)) {
         this.#freeEntityComponentValue(entity, component)
       }
     }
-    prevNode.removeEntity(entity)
+    // Free the deleted entity from its internal resources.
     this.#freeEntityNode(entity)
     this.#freeEntityDelta(entity)
     this.#freeEntityParent(entity)
     this.#freeEntityId(entity)
+    this.#incrementEntityIdVersion(entityId)
+    // Remove the deleted entity from the archetype graph and free its prior
+    // node if it is no longer of use.
+    prevNode.removeEntity(entity)
     if (
       prevNode.entities.length === 0 &&
       prevNode.hasAnyRelationship()
@@ -254,8 +270,11 @@ export class World {
       let component = prevNode.type.components[i]
       if (!nextNode.hasComponent(component)) {
         if (hasSchema(component)) {
+          // Free component values of components not found in the destination
+          // node.
           this.#freeEntityComponentValue(entity, component)
         } else {
+          // Detach the modified entity from its current parent.
           let componentHi = idHi(component)
           if (componentHi === ChildOf.relationId) {
             this.#freeEntityParent(entity)
@@ -266,7 +285,10 @@ export class World {
     for (let i = 0; i < nextNode.type.components.length; i++) {
       let component = nextNode.type.components[i]
       if (hasSchema(component)) {
-        let componentValue = entityDelta?.[component]
+        let componentValue = entityDelta[component]
+        // Attach newly added component values. The entity delta should be
+        // loaded with component values for any component that did not exist in
+        // the source node.
         if (exists(componentValue)) {
           this.#setEntityComponentValue(
             entity,
@@ -277,14 +299,20 @@ export class World {
       } else {
         let componentHi = idHi(component)
         if (componentHi === ChildOf.relationId) {
+          // Attach the modified entity to its new parent.
           let parentEntityId = idLo(component)
           let parentEntity = expect(this.qualify(parentEntityId))
           this.#setEntityParent(entity, parentEntity)
         }
       }
     }
+    // Add the modified entity to its destination node.
     this.#setEntityNode(entity, nextNode)
     nextNode.addEntity(entity)
+    // Free the modified entity's change set.
+    this.#freeEntityDelta(entity)
+    // Remove the modified entity from its prior node and free the node if it
+    // is no longer in use.
     prevNode.removeEntity(entity)
     if (
       prevNode.entities.length === 0 &&
@@ -292,7 +320,6 @@ export class World {
     ) {
       this.#nodesToPrune.add(prevNode)
     }
-    this.#freeEntityDelta(entity)
   }
 
   #updateEntityDelta(
@@ -306,22 +333,20 @@ export class World {
       let component = selector.includedComponents[i]
       let componentSchema = getSchema(component)
       if (exists(componentSchema)) {
-        if (componentSchema !== Dynamic) {
+        if (componentSchema === Dynamic) {
+          // Values must be provided for components without schema.
+          entityDelta[component] = expect(selectorValues[j++])
+        } else {
+          // Update the entity change set with a user-provided component value,
+          // or auto-initialize a component value from the component schema.
           entityDelta[component] =
             selectorValues[j++] ?? expressComponent(component)
-        } else {
-          entityDelta[component] = selectorValues[j++]
         }
       }
     }
   }
 
-  #initQuery(
-    query: Query,
-    queryHash: number,
-    queryNode: Node,
-    querySystem: System,
-  ) {
+  #initQuery(query: Query, hash: number, node: Node, system: System) {
     function includeExistingNode(node: Node) {
       query.includeNode(node)
     }
@@ -329,38 +354,44 @@ export class World {
       query.includeNode(node)
     }
     function unbindQueryOrExcludeNode(deletedNode: Node) {
-      if (queryNode === deletedNode) {
-        querySystem.queries.delete(queryHash)
+      if (node === deletedNode) {
+        system.queries.delete(hash)
       } else {
-        query.excludeNode(queryNode)
+        query.excludeNode(node)
       }
     }
-    queryNode.traverseAdd(includeExistingNode)
-    queryNode.onNodeCreated.add(includeCreatedNode)
-    queryNode.onNodeDeleted.add(unbindQueryOrExcludeNode)
-    querySystem.queries.set(queryHash, query)
+    // Add existing nodes to the query that match the query's terms.
+    node.traverseAdd(includeExistingNode)
+    // Listen for newly created and deleted nodes that could match the query's
+    // terms.
+    node.onNodeCreated.add(includeCreatedNode)
+    node.onNodeDeleted.add(unbindQueryOrExcludeNode)
+    // Link the query to its originating system.
+    system.queries.set(hash, query)
   }
 
   #initMonitor(
     monitor: Monitor,
-    monitorHash: number,
-    monitorNode: Node,
-    monitorSystem: System,
+    hash: number,
+    node: Node,
+    system: System,
   ) {
     function unbindMonitor(deletedNode: Node) {
-      if (monitorNode === deletedNode) {
-        monitorSystem.monitors.delete(monitorHash)
+      if (node === deletedNode) {
+        system.monitors.delete(hash)
       }
     }
-    monitorNode.onNodeDeleted.add(unbindMonitor)
-    monitorSystem.monitors.set(monitorHash, monitor)
+    // Free the monitor when its node is deleted.
+    node.onNodeDeleted.add(unbindMonitor)
+    // Link the monitor to its originating system.
+    system.monitors.set(hash, monitor)
   }
 
   /**
    * Set the value of a resource.
    */
-  setResource<T>(resource: Resource<T>, resourceValue: T) {
-    this.#resources[resource] = resourceValue
+  setResource<T>(resource: Resource<T>, value: T) {
+    this.#resources[resource] = value
   }
 
   /**
@@ -546,7 +577,7 @@ export class World {
         })
       } else if (!exists(nextNode)) {
         batch.forEach(entity => {
-          this.#commitDestroy(entity, prevNode)
+          this.#commitDelete(entity, prevNode)
         })
       } else if (nextNode === prevNode) {
         batch.forEach(entity => {

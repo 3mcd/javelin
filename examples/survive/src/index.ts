@@ -23,7 +23,7 @@ onResize()
 window.addEventListener("resize", onResize)
 
 let game = app()
-  .addGroup("render", _ =>
+  .addSystemGroup("render", _ =>
     _.after(Group.LateUpdate).before(Group.Late),
   )
   .use(timePlugin)
