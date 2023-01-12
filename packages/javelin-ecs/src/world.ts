@@ -33,6 +33,7 @@ export enum Phase {
 export let CurrentSystem = makeResource<System>()
 
 export class World {
+  #componentStores
   #entityChildren
   #entityDeltas
   #entityNodes
@@ -42,13 +43,13 @@ export class World {
   #nextEntityId
   #nodesToPrune
   #resources
-  #stores
-  #transactionApply
-  #transactionStage
+  #applyTransaction
+  #stageTransaction
 
   readonly graph
 
   constructor() {
+    this.#componentStores = [] as unknown[][]
     this.#entityChildren = [] as Set<Entity>[]
     this.#entityDeltas = [] as unknown[][]
     this.#entityNodes = [] as Node[]
@@ -58,9 +59,8 @@ export class World {
     this.#nextEntityId = 0
     this.#nodesToPrune = new Set<Node>()
     this.#resources = [] as unknown[]
-    this.#stores = [] as unknown[][]
-    this.#transactionStage = new Transaction()
-    this.#transactionApply = new Transaction()
+    this.#stageTransaction = new Transaction()
+    this.#applyTransaction = new Transaction()
     this.graph = new Graph()
   }
 
@@ -158,7 +158,7 @@ export class World {
   }
 
   #getStagedEntityNode(entity: Entity) {
-    let stagedNodeHash = this.#transactionApply.locateEntity(entity)
+    let stagedNodeHash = this.#applyTransaction.locateEntity(entity)
     if (exists(stagedNodeHash)) {
       if (stagedNodeHash === 0) {
         return undefined
@@ -174,8 +174,8 @@ export class World {
   #relocateEntity(entity: Entity, prevNode?: Node, nextNode?: Node) {
     let prevHash = prevNode?.type.hash ?? 0
     let nextHash = nextNode?.type.hash ?? 0
-    this.#transactionApply.relocateEntity(entity, prevHash, nextHash)
-    this.#transactionStage.relocateEntity(entity, prevHash, nextHash)
+    this.#applyTransaction.relocateEntity(entity, prevHash, nextHash)
+    this.#stageTransaction.relocateEntity(entity, prevHash, nextHash)
   }
 
   #commitMake(entity: Entity, nextNode: Node) {
@@ -190,8 +190,8 @@ export class World {
           componentValue,
         )
       } else {
-        let hi = idHi(component)
-        if (hi === ChildOf.relationId) {
+        let componentHi = idHi(component)
+        if (componentHi === ChildOf.relationId) {
           let parentEntityId = idLo(component)
           let parentEntity = expect(this.qualify(parentEntityId))
           this.#setEntityParent(entity, parentEntity)
@@ -224,8 +224,8 @@ export class World {
     let entityChildren = this.#entityChildren[entityId]
     if (exists(entityChildren)) {
       for (let childEntity of entityChildren) {
-        let childNode = expect(this.#entityNodes[childEntity])
-        this.#commitDestroy(childEntity, childNode)
+        let childEntityNode = expect(this.#entityNodes[childEntity])
+        this.#commitDestroy(childEntity, childEntityNode)
       }
       entityChildren.clear()
     }
@@ -298,7 +298,7 @@ export class World {
   #updateEntityDelta(
     entity: Entity,
     selector: Selector,
-    values: unknown[],
+    selectorValues: unknown[],
   ) {
     let entityDelta = this.#ensureEntityDelta(entity)
     let j = 0
@@ -308,15 +308,20 @@ export class World {
       if (exists(componentSchema)) {
         if (componentSchema !== Dynamic) {
           entityDelta[component] =
-            values[j++] ?? expressComponent(component)
+            selectorValues[j++] ?? expressComponent(component)
         } else {
-          entityDelta[component] = values[j++]
+          entityDelta[component] = selectorValues[j++]
         }
       }
     }
   }
 
-  #initQuery(query: Query, hash: number, node: Node, system: System) {
+  #initQuery(
+    query: Query,
+    queryHash: number,
+    queryNode: Node,
+    querySystem: System,
+  ) {
     function includeExistingNode(node: Node) {
       query.includeNode(node)
     }
@@ -324,38 +329,38 @@ export class World {
       query.includeNode(node)
     }
     function unbindQueryOrExcludeNode(deletedNode: Node) {
-      if (node === deletedNode) {
-        system.queries.delete(hash)
+      if (queryNode === deletedNode) {
+        querySystem.queries.delete(queryHash)
       } else {
-        query.excludeNode(node)
+        query.excludeNode(queryNode)
       }
     }
-    node.traverseAdd(includeExistingNode)
-    node.onNodeCreated.add(includeCreatedNode)
-    node.onNodeDeleted.add(unbindQueryOrExcludeNode)
-    system.queries.set(hash, query)
+    queryNode.traverseAdd(includeExistingNode)
+    queryNode.onNodeCreated.add(includeCreatedNode)
+    queryNode.onNodeDeleted.add(unbindQueryOrExcludeNode)
+    querySystem.queries.set(queryHash, query)
   }
 
   #initMonitor(
     monitor: Monitor,
-    hash: number,
-    node: Node,
-    system: System,
+    monitorHash: number,
+    monitorNode: Node,
+    monitorSystem: System,
   ) {
     function unbindMonitor(deletedNode: Node) {
-      if (node === deletedNode) {
-        system.monitors.delete(hash)
+      if (monitorNode === deletedNode) {
+        monitorSystem.monitors.delete(monitorHash)
       }
     }
-    node.onNodeDeleted.add(unbindMonitor)
-    system.monitors.set(hash, monitor)
+    monitorNode.onNodeDeleted.add(unbindMonitor)
+    monitorSystem.monitors.set(monitorHash, monitor)
   }
 
   /**
    * Set the value of a resource.
    */
-  setResource<T>(resource: Resource<T>, value: T) {
-    this.#resources[resource] = value
+  setResource<T>(resource: Resource<T>, resourceValue: T) {
+    this.#resources[resource] = resourceValue
   }
 
   /**
@@ -381,13 +386,13 @@ export class World {
   reserve<T extends Component[]>(
     entityId: number,
     selector: Selector<T>,
-    ...values: ComponentValues<T>
+    ...selectorValues: ComponentValues<T>
   ) {
     let entity = makeId(entityId, 0) as Entity
     let nextNode = this.graph.nodeOfType(selector.type)
     this.#incrementEntityIdVersion(entityId)
     this.#relocateEntity(entity, undefined, nextNode)
-    this.#updateEntityDelta(entity, selector, values)
+    this.#updateEntityDelta(entity, selector, selectorValues)
     return entity
   }
 
@@ -411,12 +416,12 @@ export class World {
    */
   create<T extends Component[]>(
     selector: Selector<T>,
-    ...values: ComponentValues<T>
+    ...selectorValues: ComponentValues<T>
   ) {
     let entity = this.#allocEntityId()
     let nextNode = this.graph.nodeOfType(selector.type)
     this.#relocateEntity(entity, undefined, nextNode)
-    this.#updateEntityDelta(entity, selector, values)
+    this.#updateEntityDelta(entity, selector, selectorValues)
     return entity
   }
 
@@ -426,7 +431,7 @@ export class World {
   add<T extends Component[]>(
     entity: Entity,
     selector: Selector<T>,
-    ...values: ComponentValues<T>
+    ...selectorValues: ComponentValues<T>
   ) {
     this.#validateEntityVersion(entity)
     let prevNode = this.#getStagedEntityNode(entity)
@@ -437,7 +442,7 @@ export class World {
     if (nextNode === prevNode) {
       return
     }
-    this.#updateEntityDelta(entity, selector, values)
+    this.#updateEntityDelta(entity, selector, selectorValues)
     this.#relocateEntity(entity, prevNode, nextNode)
   }
 
@@ -485,8 +490,8 @@ export class World {
   get<T>(entity: Entity, component: Component<T>): ComponentValue<T>
   get(entity: Entity, component: Component) {
     this.#validateEntityVersion(entity)
-    let node = this.#getEntityNode(entity)
-    return node.hasComponent(component)
+    let entityNode = this.#getEntityNode(entity)
+    return entityNode.hasComponent(component)
       ? !hasSchema(component) ||
           this.getComponentStore(component)[entity]
       : undefined
@@ -512,7 +517,7 @@ export class World {
    */
   getComponentStore(component: Component) {
     assert(hasSchema(component))
-    return (this.#stores[component] ??= [])
+    return (this.#componentStores[component] ??= [])
   }
 
   /**
@@ -520,7 +525,7 @@ export class World {
    * @private
    */
   emitStagedChanges() {
-    this.#transactionStage.drainEntities(this.graph, Phase.Stage)
+    this.#stageTransaction.drainEntities(this.graph, Phase.Stage)
   }
 
   /**
@@ -555,15 +560,15 @@ export class World {
         })
       }
     }
-    this.#transactionApply.drainEntities(
+    this.#applyTransaction.drainEntities(
       this.graph,
       Phase.Apply,
       commitBatch,
     )
-    this.#nodesToPrune.forEach(node => {
-      if (node.isEmpty()) {
-        node.traverseAdd(nodeAdd =>
-          node.traverseRem(nodeRem => {
+    this.#nodesToPrune.forEach(nodeToPrune => {
+      if (nodeToPrune.isEmpty()) {
+        nodeToPrune.traverseAdd(nodeAdd =>
+          nodeToPrune.traverseRem(nodeRem => {
             nodeRem.onNodeDeleted.emit(nodeAdd)
             Node.unlink(nodeRem, nodeAdd)
           }),
@@ -594,16 +599,16 @@ export class World {
    */
   of<T extends Spec>(...spec: T): QueryAPI<T>
   of() {
-    let system = this.getResource(CurrentSystem)
-    let spec = arguments as unknown as Spec
-    let hash = hashSpec.apply(null, spec)
-    let query = system.queries.get(hash)
+    let querySystem = this.getResource(CurrentSystem)
+    let querySpec = arguments as unknown as Spec
+    let queryHash = hashSpec.apply(null, querySpec)
+    let query = querySystem.queries.get(queryHash)
     if (!exists(query)) {
-      let selector = new Selector(spec)
-      let stores = getQueryStores(this, selector.type)
-      let node = this.graph.nodeOfType(selector.type)
-      query = new Query(selector, stores)
-      this.#initQuery(query, hash, node, system)
+      let querySelector = new Selector(querySpec)
+      let queryStores = getQueryStores(this, querySelector.type)
+      let queryNode = this.graph.nodeOfType(querySelector.type)
+      query = new Query(querySelector, queryStores)
+      this.#initQuery(query, queryHash, queryNode, querySystem)
     }
     return query
   }
@@ -615,17 +620,26 @@ export class World {
    */
   monitor(...spec: Spec): Monitor
   monitor() {
-    let system = this.getResource(CurrentSystem)
-    let spec = arguments as unknown as Spec
-    let hash = hashSpec.apply(null, spec)
-    let monitor = system.monitors.get(hash)
+    let monitorSystem = this.getResource(CurrentSystem)
+    let monitorSpec = arguments as unknown as Spec
+    let monitorHash = hashSpec.apply(null, monitorSpec)
+    let monitor = monitorSystem.monitors.get(monitorHash)
     if (!exists(monitor)) {
       let {includedComponents, excludedComponents} =
-        normalizeSpec(spec)
-      let type = Type.of(includedComponents)
-      let node = this.graph.nodeOfType(type)
-      monitor = new Monitor(node, Phase.Apply, excludedComponents)
-      this.#initMonitor(monitor, hash, node, system)
+        normalizeSpec(monitorSpec)
+      let monitorNodeType = Type.of(includedComponents)
+      let monitorNode = this.graph.nodeOfType(monitorNodeType)
+      monitor = new Monitor(
+        monitorNode,
+        Phase.Apply,
+        excludedComponents,
+      )
+      this.#initMonitor(
+        monitor,
+        monitorHash,
+        monitorNode,
+        monitorSystem,
+      )
     }
     return monitor
   }
@@ -638,29 +652,38 @@ export class World {
    */
   monitorImmediate(...spec: Spec): Monitor
   monitorImmediate() {
-    let system = this.getResource(CurrentSystem)
-    let spec = arguments as unknown as Spec
-    let hash = hashSpec.apply(null, spec)
-    let monitor = system.monitors.get(hash)
+    let monitorSystem = this.getResource(CurrentSystem)
+    let monitorSpec = arguments as unknown as Spec
+    let monitorHash = hashSpec.apply(null, monitorSpec)
+    let monitor = monitorSystem.monitors.get(monitorHash)
     if (!exists(monitor)) {
       let {includedComponents, excludedComponents} =
-        normalizeSpec(spec)
-      let type = Type.of(includedComponents)
-      let node = this.graph.nodeOfType(type)
-      monitor = new Monitor(node, Phase.Stage, excludedComponents)
-      this.#initMonitor(monitor, hash, node, system)
+        normalizeSpec(monitorSpec)
+      let monitorNodeType = Type.of(includedComponents)
+      let monitorNode = this.graph.nodeOfType(monitorNodeType)
+      monitor = new Monitor(
+        monitorNode,
+        Phase.Stage,
+        excludedComponents,
+      )
+      this.#initMonitor(
+        monitor,
+        monitorHash,
+        monitorNode,
+        monitorSystem,
+      )
     }
     return monitor
   }
 }
 
 let getQueryStores = (world: World, type: Type) => {
-  let stores = [] as unknown[][]
+  let queryStores = [] as unknown[][]
   for (let i = 0; i < type.components.length; i++) {
     let component = type.components[i]
     if (hasSchema(component)) {
-      stores[component] = world.getComponentStore(component)
+      queryStores[component] = world.getComponentStore(component)
     }
   }
-  return stores
+  return queryStores
 }

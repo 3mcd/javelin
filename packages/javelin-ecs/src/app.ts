@@ -40,12 +40,12 @@ export enum DefaultGroup {
 }
 
 let defaultPlugin = (app: App) => {
-  let initFlag = true
+  let hasRunInitGroup = true
   app
     .addGroup(
       DefaultGroup.Init,
       _ => _.before(DefaultGroup.Early),
-      () => initFlag,
+      () => hasRunInitGroup,
     )
     .addGroup(DefaultGroup.Early, _ =>
       _.after(DefaultGroup.Init).before(DefaultGroup.EarlyUpdate),
@@ -64,11 +64,16 @@ let defaultPlugin = (app: App) => {
     .addGroup(DefaultGroup.Late, _ =>
       _.after(DefaultGroup.LateUpdate),
     )
-    .addSystemToGroup(DefaultGroup.Init, () => (initFlag = false))
+    .addSystemToGroup(
+      DefaultGroup.Init,
+      function disableInitGroupSystem() {
+        hasRunInitGroup = false
+      },
+    )
 }
 
 export class App {
-  #groupScheduleStale
+  #groupScheduleIsStale
   #groupSchedule
   #groups
   #groupsById
@@ -79,7 +84,7 @@ export class App {
     this.#groupSchedule = new Schedule<string>()
     this.#groupsById = new Map<string, Group>()
     this.#groups = [] as Group[]
-    this.#groupScheduleStale = true
+    this.#groupScheduleIsStale = true
     this.world = world
     this.use(defaultPlugin)
   }
@@ -89,9 +94,9 @@ export class App {
     return this
   }
 
-  addResource<T>(resource: Resource<T>, value: T): App {
+  addResource<T>(resource: Resource<T>, resourceValue: T): App {
     assert(!this.world.hasResource(resource))
-    this.world.setResource(resource, value)
+    this.world.setResource(resource, resourceValue)
     return this
   }
 
@@ -101,29 +106,29 @@ export class App {
 
   addGroup(
     groupId: string,
-    constrain?: Constrain<string>,
-    criteria?: Maybe<Predicate>,
+    groupConstrain?: Constrain<string>,
+    groupPredicate?: Maybe<Predicate>,
   ) {
     expect(!this.#groupsById.has(groupId))
-    let group = new Group(criteria)
+    let group = new Group(groupPredicate)
     let constraints = new Constraints<string>()
     this.#groupsById.set(groupId, group)
-    constrain?.(constraints)
+    groupConstrain?.(constraints)
     Constraints.insert(this.#groupSchedule, groupId, constraints)
-    this.#groupScheduleStale = true
+    this.#groupScheduleIsStale = true
     return this
   }
 
   addSystem(
     system: SystemImpl,
-    constrain?: Maybe<Constrain<SystemImpl>>,
-    criteria?: Maybe<Predicate>,
+    systemConstrain?: Maybe<Constrain<SystemImpl>>,
+    systemPredicate?: Maybe<Predicate>,
   ): App {
     this.addSystemToGroup(
       DefaultGroup.Update,
       system,
-      constrain,
-      criteria,
+      systemConstrain,
+      systemPredicate,
     )
     return this
   }
@@ -131,35 +136,39 @@ export class App {
   addSystemToGroup(
     groupId: string,
     system: SystemImpl,
-    constrain?: Maybe<Constrain<SystemImpl>>,
-    criteria?: Maybe<Predicate>,
+    systemConstrain?: Maybe<Constrain<SystemImpl>>,
+    systemPredicate?: Maybe<Predicate>,
   ): App {
     let group = expect(this.#groupsById.get(groupId))
-    group.addSystem(system, constrain?.(new Constraints()), criteria)
+    group.addSystem(
+      system,
+      systemConstrain?.(new Constraints()),
+      systemPredicate,
+    )
     return this
   }
 
   addInitSystem(
     system: SystemImpl,
-    constrain?: Maybe<Constrain<SystemImpl>>,
-    criteria?: Maybe<Predicate>,
+    systemConstrain?: Maybe<Constrain<SystemImpl>>,
+    systemPredicate?: Maybe<Predicate>,
   ) {
     this.addSystemToGroup(
       DefaultGroup.Init,
       system,
-      constrain,
-      criteria,
+      systemConstrain,
+      systemPredicate,
     )
     return this
   }
 
   step(): void {
-    if (this.#groupScheduleStale) {
+    if (this.#groupScheduleIsStale) {
       let groups = this.#groupSchedule.build()
       this.#groups = groups.map(groupId =>
         expect(this.#groupsById.get(groupId)),
       )
-      this.#groupScheduleStale = false
+      this.#groupScheduleIsStale = false
     }
     for (let i = 0; i < this.#groups.length; i++) {
       let group = this.#groups[i]
@@ -171,10 +180,10 @@ export class App {
             system.predicate(this.world)
           ) {
             this.world.setResource(CurrentSystem, system)
-            let monitors = system.monitors.values()
+            let systemMonitors = system.monitors.values()
             system.run(this.world)
-            for (let k = 0; k < monitors.length; k++) {
-              let monitor = monitors[k]
+            for (let k = 0; k < systemMonitors.length; k++) {
+              let monitor = systemMonitors[k]
               monitor.drain()
             }
             this.world.emitStagedChanges()

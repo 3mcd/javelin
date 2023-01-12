@@ -62,16 +62,16 @@ export let setSchema = (
 export let expressComponent = <T>(
   component: Component<T>,
 ): ComponentValue<T> => {
-  let schema = expect(getSchema(component))
-  assert(schema !== Dynamic)
-  if (typeof schema === "string") {
+  let componentSchema = expect(getSchema(component))
+  assert(componentSchema !== Dynamic)
+  if (typeof componentSchema === "string") {
     return 0 as unknown as ComponentValue<T>
   }
-  let value = {} as Record<string, number>
-  for (let prop in schema) {
-    value[prop] = 0
+  let componentValue = {} as Record<string, number>
+  for (let prop in componentSchema) {
+    componentValue[prop] = 0
   }
-  return value as unknown as ComponentValue<T>
+  return componentValue as unknown as ComponentValue<T>
 }
 
 export function makeTagComponent(): Component<Tag> {
@@ -81,15 +81,15 @@ export function makeTagComponent(): Component<Tag> {
 }
 
 export function makeValueComponent<T>(
-  schema: SchemaOf<T>,
+  componentSchema: SchemaOf<T>,
 ): Component<SchemaOf<T>>
 export function makeValueComponent<T>(): Component<T>
 export function makeValueComponent<T extends Schema>(
-  schema: T,
+  componentSchema: T,
 ): Component<T>
-export function makeValueComponent(schema?: Schema) {
+export function makeValueComponent(componentSchema?: Schema) {
   let component = makeTagComponent() as Component
-  setSchema(component, schema ?? Dynamic)
-  componentSchemas[component] = schema ?? Dynamic
+  setSchema(component, componentSchema ?? Dynamic)
+  componentSchemas[component] = componentSchema ?? Dynamic
   return component
 }
