@@ -31,7 +31,7 @@ let Kinetic = type(Position, Velocity)
 world.create(Kinetic, {x: 0, y: 0}, {x: 1, y: -1})
 ```
 
-Component values cannot be provided to tag tag components during entity creation, since tags are stateless.
+Component values cannot be provided to tag components during entity creation, since tags are stateless.
 
 ```ts
 let Burning = tag()
