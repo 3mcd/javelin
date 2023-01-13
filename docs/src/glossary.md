@@ -14,15 +14,11 @@ A type is a set of components that defines an entity's composition.
 
 ### Value component
 
-A value component is a component that adds a JavaScript value (called component data) to an entity.
+A value component is a component that adds a  value (called component data) to an entity.
 
 ### Component data
 
-Component data is a JavaScript value attached to an entity through a component.
-
-### Component value
-
-Same as component data.
+Component data is any value attached to an entity through a component.
 
 ### Tag component
 

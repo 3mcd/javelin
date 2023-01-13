@@ -12,4 +12,4 @@ You can optionally install the [authoritative server networking plugin](./author
 npm install @javelin/net
 ```
 
-Go to the next chapter to learn about Javelin's features.
+Keep reading to learn how to build a simple game with Javelin.

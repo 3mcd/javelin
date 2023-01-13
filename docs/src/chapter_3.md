@@ -2,15 +2,7 @@
 
 > The complete source produced in this tutorial can be found [in the Javelin repo](https://github.com/3mcd/javelin-1/blob/main/examples/simple/src/index.ts).
 
-In this guide, we'll build a simple game where players move a 2d box with a keyboard.
-
-First, we'll install the core Javelin ECS library:
-
-```sh
-npm install @javelin/ecs
-```
-
-Then we'll load Javelin into a document with a `<canvas>` element:
+To get started, we'll load Javelin into a document with a `<canvas>` element:
 
 ```html
 <html>
@@ -51,7 +43,7 @@ game.step()
 
 A box will be created when `game.step()` is called, only once, before any other game logic is run.
 
-Our entity doesn't have any box-like qualities yet. Entities don't have any intrinsic state. In fact, they're just integers that identify a unique array of components.
+Our entity doesn't have any box-like qualities yet. Entities don't have any intrinsic state. In fact, they're just integers that identify a unique set of components.
 
 Components can play many roles. They can function as simple labels, add component data to entities, or even represent relationships between entities. Components that add data to entities are called **value components**.
 
