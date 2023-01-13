@@ -56,10 +56,3 @@ world.delete(parent) // also deletes `child`
 ```
 
 And much more! Move to the next chapter to learn how to build a simple game with Javelin.
-
-## Design
-
-![Javelin architecture diagram](images/design.png)
-
-
-

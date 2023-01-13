@@ -1,8 +1,14 @@
 # Entities
 
-An entity identifies a discrete game unit. You can think of an entity as a pointer to a collection of components that can grow and shrink during gameplay. An entity can represent anything from a player or enemy, to a spawn point, or even a remotely connected client.
 
-Javelin supports up to around one-million (2^20) active entities, and around four-billion (2^32) total entities over the lifetime of the game. Internally, entities are represented as unsigned integers. But they should be treated as opaque values to keep your code robust to API changes.
+
+An entity identifies a discrete game unit. You can think of an entity as a pointer to a collection of components that can grow and shrink during gameplay.
+
+<img src="./images/entity-lifecycle.png" style="display: block; margin-left: auto; margin-right: auto;">
+
+An entity can represent anything from a player or enemy, to a spawn point, or even a remotely connected client.
+
+Javelin supports up to around one-million (2^20) active entities, and around four-billion (2^32) total entities over the lifetime of the game. Entities are technically unsigned integers, but they should be treated as opaque values to keep your code robust to API changes.
 
 ## Entity Creation
 

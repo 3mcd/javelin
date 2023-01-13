@@ -2,8 +2,8 @@
 
 # User Guide
 
-- [Installation](./chapter_1.md)
 - [What is Javelin?](./chapter_2.md)
+- [Installation](./chapter_1.md)
 - [Hello World](./chapter_3.md)
 - [Showcase]()
 
@@ -18,6 +18,10 @@
   - [Monitors](./systems-monitors.md)
 - [Resources](./resources.md)
 - [Plugins](./plugins.md)
+
+# Architecture
+
+- [Design Overview](./design.md)
 
 # Authoritative Server Plugin
 
