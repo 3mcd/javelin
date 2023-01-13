@@ -1,7 +1,5 @@
 # Entities
 
-
-
 An entity identifies a discrete game unit. You can think of an entity as a pointer to a collection of components that can grow and shrink during gameplay.
 
 <img src="./images/entity-lifecycle.png" style="display: block; margin-left: auto; margin-right: auto;">
