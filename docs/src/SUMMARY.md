@@ -18,6 +18,7 @@
   - [Monitors](./systems-monitors.md)
 - [Resources](./resources.md)
 - [Plugins](./plugins.md)
+- [Glossary](./glossary.md)
 
 # Architecture
 
