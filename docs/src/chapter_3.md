@@ -51,7 +51,9 @@ game.step()
 
 A box will be created when `game.step()` is called, only once, before any other game logic is run.
 
-Our entity doesn't have any box-like qualities yet. Entities don't have any intrinsic state. In fact, they're just integers that identify a unique array of **component values**. Most game state is stored in component values.
+Our entity doesn't have any box-like qualities yet. Entities don't have any intrinsic state. In fact, they're just integers that identify a unique array of components.
+
+Components can play many roles. They can function as simple labels, add component data to entities, or even represent relationships between entities. Components that add data to entities are called **value components**.
 
 In this exercise, we'll define two value components: one for the position of the box, and another for its color. Value components are created using the `value` function:
 
@@ -60,9 +62,9 @@ let Position = value<{x: number; y: number}>()
 let Color = value<string>()
 ```
 
-> `Position` and `Color` are called components. Objects that conform their shape (e.g. `{x:0, y:0}`) are called component values.
+> `Position` and `Color` are called value components, because they add values to entities. Objects that conform their shape (e.g. `{x:0, y:0}`) are called component data or component values.
 
-Component values are added to entities using a world's `add` method. Let's give our entity some position and color data:
+Components are added to entities using a world's `add` method. Let's give our entity some position and color data:
 
 ```ts
 function createBoxSystem(world: World) {

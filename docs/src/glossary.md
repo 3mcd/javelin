@@ -2,31 +2,39 @@
 
 ### Entity
 
-An entity is a discrete "thing" in a game. Each entity has its own set of unique components.
+An entity is and identifier for a discrete "thing" in a game. Each entity has its own unique set of components called a type.
 
 ### Component
 
-A component is an identifier that can be added to or removed from an entity's set of components. All entity information is stored in an entity's component signature and component values.
+A component is an identifier that can be added to or removed from an entity's type. An entity is fully defined by its type and its component values.
+
+### Type
+
+A type is a set of components that defines an entity's composition.
 
 ### Value component
 
-A value component is a component that adds a JavaScript value (called a component value) to an entity.
+A value component is a component that adds a JavaScript value (called component data) to an entity.
+
+### Component data
+
+Component data is a JavaScript value attached to an entity through a component.
 
 ### Component value
 
-A component value is a JavaScript data type (like a number, string, or object) attached to an entity through a value component.
+Same as component data.
 
 ### Tag component
 
-A tag component is a component that does not add additional data to entities. Queries may execute logic based on the presence or absense of a tag component.
+A tag component is a component that does not add data to entities.
 
 ### World
 
-A world is the container for all ECS data, including entities, their components, and resources.
+A world is the container for all ECS data, including entities, entity types and component data, and resources.
 
 ### Resource
 
-A resource is an integer that functions as a key to get and set a resource value in a world.
+A resource a key that is used to get and set an arbitrary (non-entity related) value within a world. Used synonymously with [Resource value](#resource-value).
 
 ### Resource value
 
@@ -38,15 +46,15 @@ A system is a function that updates a world's entities and resources. Systems co
 
 ### Query
 
-A query is an object that resolves a world's entities that match a set of query terms.
+A query is an iterable object that yields entities matching a set of query terms.
 
 ### Query term
 
-A query term can be a tag component, value component, relation tag, relationship component, slot tag, or slot component.
+A query term is any component, relation, or slot.
 
 ### Monitor
 
-A monitor is a a query-like object that yields a world's entities that started or stopped matching an array of query terms.
+A monitor is a a query-like object that yields entities that began matching or no longer match an array of query terms.
 
 ### Relation
 
