@@ -26,7 +26,7 @@
 
 # Authoritative Server Plugin
 
-- [Server]()
-  - [Awareness]()
-- [Client]()
-  - [Prediction]()
+- [Server](./server-plugin.md)
+  - [Awareness](./server-plugin-awareness.md)
+- [Client](./client-plugin.md)
+  - [Prediction](./client-plugin-prediction.md)
