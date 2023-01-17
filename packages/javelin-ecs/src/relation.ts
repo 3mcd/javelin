@@ -5,7 +5,7 @@ import {makeSelector, Selector} from "./type.js"
 
 export interface Relation {
   relationId: number
-  relationTerm: Component<Tag>
+  relationTag: Component<Tag>
   (to: number | Relation): Selector<[Component<Tag>]>
 }
 
@@ -14,16 +14,13 @@ let relations: Relation[] = []
 
 export let makeRelation = (): Relation => {
   let relationId = relationIds++
-  let relationTerm = makeTagComponent()
+  let relationTag = makeTagComponent()
   assert(relationId <= HI_MASK)
-  let relationAttrs = {
-    relationId: relationId,
-    relationTerm: relationTerm,
-  }
+  let relationAttrs = {relationId, relationTag}
   function makeRelationship(to: number | Relation) {
     return makeSelector(
       makeId(
-        typeof to === "number" ? idLo(to) : to.relationTerm,
+        typeof to === "number" ? idLo(to) : to.relationTag,
         relationId,
       ) as Component<void>,
     )
@@ -48,11 +45,11 @@ export let isRelationship = (term: Component) => idHi(term) > 0
  * to create a relationship between two entities.
  * @example <caption>A simple parent-child relationship</caption>
  * let parent = world.make()
- * let child = world.make(type(ChildOf(parent)))
+ * let child = world.make(ChildOf(parent))
  * @example <caption>Deeply nested children</caption>
  * let a = world.make()
- * let b = world.make(type(ChildOf(a)))
- * let c = world.make(type(ChildOf(b)))
+ * let b = world.make(ChildOf(a))
+ * let c = world.make(ChildOf(b))
  */
 export let ChildOf = makeRelation()
 export let Without = makeRelation()

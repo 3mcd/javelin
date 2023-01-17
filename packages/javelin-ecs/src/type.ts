@@ -19,9 +19,33 @@ import {isSlot} from "./slot.js"
 export type Term = Selector | Component | Relation
 export type Spec = Term[]
 
+export function validateComponents(components: Component[]) {
+  let includesChildOfRelation = false
+  let includedSlots = new Set<number>()
+  for (let i = 0; i < components.length; i++) {
+    let component = components[i]
+    if (component > LO_MASK) {
+      let relationId = idHi(component)
+      if (relationId === ChildOf.relationId) {
+        assert(
+          !includesChildOfRelation,
+          "A type may have only one ChildOf relationship",
+        )
+        includesChildOfRelation = true
+      } else if (isSlot(relationId)) {
+        assert(
+          !includedSlots.has(relationId),
+          "A type may have at most one component for a given slot",
+        )
+        includedSlots.add(relationId)
+      }
+    }
+  }
+}
+
 export function normalizeSpec(spec: Spec) {
-  let includesChildof = false
-  let slots = new Set<number>()
+  let includesChildOfRelation = false
+  let includedSlots = new Set<number>()
   let includedComponents: Component[] = []
   let excludedComponents: Component[] = []
   for (let i = 0; i < spec.length; i++) {
@@ -37,23 +61,23 @@ export function normalizeSpec(spec: Spec) {
           let relationId = relation.relationId
           if (relation === ChildOf) {
             assert(
-              !includesChildof,
+              !includesChildOfRelation,
               "A type may have only one ChildOf relationship",
             )
-            includesChildof = true
+            includesChildOfRelation = true
           } else if (isSlot(relationId)) {
             assert(
-              !slots.has(relationId),
+              !includedSlots.has(relationId),
               "A type may have at most one component for a given slot",
             )
-            slots.add(relationId)
+            includedSlots.add(relationId)
           }
-          includedComponents.push(relation.relationTerm)
+          includedComponents.push(relation.relationTag)
         }
       }
       includedComponents.push(term)
     } else if (isRelation(term)) {
-      includedComponents.push(term.relationTerm as Component)
+      includedComponents.push(term.relationTag as Component)
     } else {
       for (let j = 0; j < term.includedComponents.length; j++) {
         includedComponents.push(term.includedComponents[j])
@@ -72,7 +96,7 @@ export function hashSpec() {
     if (typeof queryTerm === "number") {
       queryHash = hashWord(queryHash, queryTerm)
     } else if (isRelation(queryTerm)) {
-      queryHash = hashWord(queryHash, queryTerm.relationTerm)
+      queryHash = hashWord(queryHash, queryTerm.relationTag)
     } else {
       for (let j = 0; j < queryTerm.includedComponents.length; j++) {
         queryHash = hashWord(
@@ -141,20 +165,20 @@ export function makeSelector<T extends Spec>(
   ...spec: T
 ): Selector<ComponentsOf<T>>
 export function makeSelector() {
-  let hash = HASH_BASE
   let spec = arguments as unknown as Spec
+  let specHash = HASH_BASE
   for (let i = 0; i < spec.length; i++) {
     let term = spec[i]
     if (typeof term === "number") {
-      hash = hashWord(hash, term)
+      specHash = hashWord(specHash, term)
     } else if (isRelation(term)) {
-      hash = hashWord(hash, term.relationTerm)
+      specHash = hashWord(specHash, term.relationTag)
     } else {
       for (let j = 0; j < term.includedComponents.length; j++) {
-        hash = hashWord(hash, term.includedComponents[j])
+        specHash = hashWord(specHash, term.includedComponents[j])
       }
     }
   }
-  hash = normalizeHash(hash)
-  return (Selector.cache[hash] ??= new Selector(spec))
+  specHash = normalizeHash(specHash)
+  return (Selector.cache[specHash] ??= new Selector(spec))
 }

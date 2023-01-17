@@ -5,7 +5,7 @@ import {Selector} from "./type.js"
 
 let slots = [] as Relation[]
 
-export let isSlot = (component: number) => component in slots
+export let isSlot = (relationId: number) => relationId in slots
 
 export function makeSlot<T extends Selector<[Component]>[]>(
   ...spec: T

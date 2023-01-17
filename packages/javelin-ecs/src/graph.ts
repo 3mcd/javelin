@@ -12,7 +12,7 @@ import {isRelationship} from "./relation.js"
 import {Signal} from "./signal.js"
 import {Component} from "./component.js"
 import {TransactionEvent} from "./transaction.js"
-import {Type} from "./type.js"
+import {Type, validateComponents} from "./type.js"
 
 type NodeIteratee = (node: Node) => void
 type NodePredicate = (node: Node) => boolean
@@ -327,7 +327,7 @@ export class Graph {
     if (node === this.root) {
       return this.#createNode(type.components)
     }
-    let addTerms: Component[] = []
+    let finalComponents: Component[] = []
     let nodeTermIndex = 0
     let typeTermIndex = 0
     while (
@@ -337,27 +337,27 @@ export class Graph {
       let nodeTerm = node.type.components[nodeTermIndex]
       let typeTerm = type.components[typeTermIndex]
       if (nodeTerm === typeTerm) {
-        addTerms.push(nodeTerm)
+        finalComponents.push(nodeTerm)
         nodeTermIndex++
         typeTermIndex++
       } else if (nodeTerm < typeTerm) {
-        addTerms.push(nodeTerm)
+        finalComponents.push(nodeTerm)
         nodeTermIndex++
       } else if (nodeTerm > typeTerm) {
-        addTerms.push(typeTerm)
+        finalComponents.push(typeTerm)
         typeTermIndex++
       }
     }
     if (nodeTermIndex > node.type.components.length - 1) {
       while (typeTermIndex < type.components.length) {
-        addTerms.push(type.components[typeTermIndex++])
+        finalComponents.push(type.components[typeTermIndex++])
       }
     } else if (typeTermIndex > type.components.length - 1) {
       while (nodeTermIndex < node.type.components.length) {
-        addTerms.push(node.type.components[nodeTermIndex++])
+        finalComponents.push(node.type.components[nodeTermIndex++])
       }
     }
-    return this.#createNode(addTerms)
+    return this.#createNode(finalComponents)
   }
 
   /**
@@ -456,8 +456,9 @@ export class Graph {
   /**
    * Create and insert the node of a given list of components into the graph.
    */
-  #createNode(terms: Component[]) {
-    let node = new Node(terms)
+  #createNode(components: Component[]) {
+    validateComponents(components)
+    let node = new Node(components)
     this.nodes[node.type.hash] = node
     this.#traverseLink(node)
     node.traverseRem(prev => {

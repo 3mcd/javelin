@@ -151,7 +151,7 @@ export class Query<T extends Spec = Spec> implements QueryAPI<T> {
       if (typeof term === "number") {
         hash = hashWord(hash, term)
       } else if (isRelation(term)) {
-        hash = hashWord(hash, term.relationTerm)
+        hash = hashWord(hash, term.relationTag)
       } else {
         for (let j = 0; j < term.includedComponents.length; j++) {
           hash = hashWord(hash, term.includedComponents[j])
