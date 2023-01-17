@@ -444,10 +444,10 @@ export class World {
   /**
    * Create an entity.
    * @example <caption>Create an entity with no data</caption>
-   * let entity = make()
+   * let entity = world.create()
    * @example <caption>Create an entity with a type</caption>
    * let Body = type(Position, Velocity)
-   * let entity = make(Body)
+   * let entity = world.create(Body)
    */
   create<T extends Component[]>(
     selector: Selector<T>,
@@ -500,8 +500,7 @@ export class World {
   /**
    * Destroy an entity.
    * @example
-   * let e = make()
-   * destroy(e)
+   * world.delete(entity)
    */
   delete(entity: Entity) {
     this.#validateEntityVersion(entity)
@@ -519,7 +518,7 @@ export class World {
    * * If the component is a component, the component value is returned
    * if present, otherwise returns `undefined`
    * @example
-   * let pos = get(e, Position)
+   * let position = world.get(entity, Position)
    */
   get<T>(
     entity: Entity,
