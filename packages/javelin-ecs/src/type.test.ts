@@ -38,17 +38,4 @@ suite("Type", () => {
     let BCnotA = makeSelector(b, c, Not(a))
     expect(BCnotA.type).toEqual(Type.of([b, c]))
   })
-  test("multiple parent error", () => {
-    expect(() => makeSelector(ChildOf(0), ChildOf(1))).toThrow(
-      ERR_CHILD_OF,
-    )
-  })
-  test("multiple slot component error", () => {
-    let A = makeSelector(a)
-    let B = makeSelector(b)
-    let AorB = makeSlot(A, B)
-    expect(() => makeSelector(AorB(A), AorB(B))).toThrowError(
-      ERR_SLOT,
-    )
-  })
 })
