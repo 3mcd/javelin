@@ -39,9 +39,9 @@ export class World {
   #entityNodes
   #entityParents
   #entityIdVersions
+  #expiredNodes
   #freeEntityIds
   #nextEntityId
-  #nodesToPrune
   #resources
   #applyTransaction
   #stageTransaction
@@ -55,9 +55,9 @@ export class World {
     this.#entityNodes = [] as Node[]
     this.#entityParents = [] as Entity[]
     this.#entityIdVersions = [] as number[]
+    this.#expiredNodes = new Set<Node>()
     this.#freeEntityIds = [] as number[]
     this.#nextEntityId = 0
-    this.#nodesToPrune = new Set<Node>()
     this.#resources = [] as unknown[]
     this.#stageTransaction = new Transaction()
     this.#applyTransaction = new Transaction()
@@ -263,7 +263,7 @@ export class World {
       prevNode.entities.length === 0 &&
       prevNode.hasAnyRelationship()
     ) {
-      this.#nodesToPrune.add(prevNode)
+      this.#expiredNodes.add(prevNode)
     }
   }
 
@@ -321,7 +321,7 @@ export class World {
       prevNode.entities.length === 0 &&
       prevNode.hasAnyRelationship()
     ) {
-      this.#nodesToPrune.add(prevNode)
+      this.#expiredNodes.add(prevNode)
     }
   }
 
@@ -606,7 +606,7 @@ export class World {
       Phase.Apply,
       commitBatch,
     )
-    this.#nodesToPrune.forEach(nodeToPrune => {
+    this.#expiredNodes.forEach(nodeToPrune => {
       // The node may have been populated after it was flagged for deletion, so
       // we first check if it is still empty.
       if (nodeToPrune.isEmpty()) {
@@ -620,7 +620,7 @@ export class World {
         )
       }
     })
-    this.#nodesToPrune.clear()
+    this.#expiredNodes.clear()
   }
 
   /**
@@ -646,7 +646,7 @@ export class World {
   of() {
     let querySystem = this.getResource(CurrentSystem)
     let querySpec = arguments as unknown as Spec
-    let queryHash = hashSpec.apply(null, querySpec)
+    let queryHash = hashSpec(querySpec)
     let query = querySystem.queries.get(queryHash)
     if (!exists(query)) {
       let querySelector = new Selector(querySpec)
@@ -667,7 +667,7 @@ export class World {
   monitor() {
     let monitorSystem = this.getResource(CurrentSystem)
     let monitorSpec = arguments as unknown as Spec
-    let monitorHash = hashSpec.apply(null, monitorSpec)
+    let monitorHash = hashSpec(monitorSpec)
     let monitor = monitorSystem.monitors.get(monitorHash)
     if (!exists(monitor)) {
       let {includedComponents, excludedComponents} =
@@ -699,7 +699,7 @@ export class World {
   monitorImmediate() {
     let monitorSystem = this.getResource(CurrentSystem)
     let monitorSpec = arguments as unknown as Spec
-    let monitorHash = hashSpec.apply(null, monitorSpec)
+    let monitorHash = hashSpec(monitorSpec)
     let monitor = monitorSystem.monitors.get(monitorHash)
     if (!exists(monitor)) {
       let {includedComponents, excludedComponents} =
