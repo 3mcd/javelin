@@ -3,6 +3,9 @@ import {makeRelation, Relation} from "./relation.js"
 import {Component, getSchema, hasSchema, setSchema} from "./component"
 import {Selector} from "./type.js"
 
+export const ERR_SLOT_DEFINITION =
+  "A slot only accepts components defined in its enum"
+
 let slots = [] as Relation[]
 
 export let isSlot = (relationId: number) => relationId in slots
@@ -27,10 +30,7 @@ export function makeSlot<T extends Selector<[Component]>[]>(
     }
   }
   function makeSlotComponent<U extends T[number]>(component: U) {
-    assert(
-      slotComponents.has(component),
-      "A slot only accepts components defined in its enum",
-    )
+    assert(slotComponents.has(component), ERR_SLOT_DEFINITION)
     return slotRelation(component.includedComponents[0]) as U
   }
   return Object.assign(makeSlotComponent, slotRelation)

@@ -19,6 +19,11 @@ import {isSlot} from "./slot.js"
 export type Term = Selector | Component | Relation
 export type Spec = Term[]
 
+export const ERR_CHILD_OF =
+  "A type may have only one ChildOf relationship"
+export const ERR_SLOT =
+  "A type may have at most one component for a given slot"
+
 export function validateComponents(components: Component[]) {
   let includesChildOfRelation = false
   let includedSlots = new Set<number>()
@@ -27,16 +32,10 @@ export function validateComponents(components: Component[]) {
     if (component > LO_MASK) {
       let relationId = idHi(component)
       if (relationId === ChildOf.relationId) {
-        assert(
-          !includesChildOfRelation,
-          "A type may have only one ChildOf relationship",
-        )
+        assert(!includesChildOfRelation, ERR_CHILD_OF)
         includesChildOfRelation = true
       } else if (isSlot(relationId)) {
-        assert(
-          !includedSlots.has(relationId),
-          "A type may have at most one component for a given slot",
-        )
+        assert(!includedSlots.has(relationId), ERR_SLOT)
         includedSlots.add(relationId)
       }
     }
@@ -60,16 +59,10 @@ export function normalizeSpec(spec: Spec) {
           let relation = getRelation(termHi)
           let relationId = relation.relationId
           if (relation === ChildOf) {
-            assert(
-              !includesChildOfRelation,
-              "A type may have only one ChildOf relationship",
-            )
+            assert(!includesChildOfRelation, ERR_CHILD_OF)
             includesChildOfRelation = true
           } else if (isSlot(relationId)) {
-            assert(
-              !includedSlots.has(relationId),
-              "A type may have at most one component for a given slot",
-            )
+            assert(!includedSlots.has(relationId), ERR_SLOT)
             includedSlots.add(relationId)
           }
           includedComponents.push(relation.relationTag)
@@ -80,7 +73,23 @@ export function normalizeSpec(spec: Spec) {
       includedComponents.push(term.relationTag as Component)
     } else {
       for (let j = 0; j < term.includedComponents.length; j++) {
+        let component = term.includedComponents[j]
+        if (component > LO_MASK) {
+          let componentHi = idHi(component)
+          let relation = getRelation(componentHi)
+          let relationId = relation.relationId
+          if (relation === ChildOf) {
+            assert(!includesChildOfRelation, ERR_CHILD_OF)
+            includesChildOfRelation = true
+          } else if (isSlot(relationId)) {
+            assert(!includedSlots.has(relationId), ERR_SLOT)
+            includedSlots.add(relationId)
+          }
+        }
         includedComponents.push(term.includedComponents[j])
+      }
+      for (let j = 0; j < term.excludedComponents.length; j++) {
+        excludedComponents.push(term.excludedComponents[j])
       }
     }
   }
