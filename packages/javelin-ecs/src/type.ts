@@ -20,9 +20,9 @@ export type Term = Selector | Component | Relation
 export type Spec = Term[]
 
 export const ERR_CHILD_OF =
-  "A type may have only one ChildOf relationship"
+  "An entity may have only one ChildOf relationship"
 export const ERR_SLOT =
-  "A type may have at most one component for a given slot"
+  "An entity may have at most one component for a given slot"
 
 export function validateComponents(components: Component[]) {
   let includesChildOfRelation = false

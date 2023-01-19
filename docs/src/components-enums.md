@@ -22,7 +22,7 @@ A slot guarantees that **at most one** of the components included in its definti
 
 ```ts
 let character = world.create(MovementState(Walking))
-world.add(character, MovementState(Walking))
+world.add(character, MovementState(Running))
 // Error: A type may have at most one component for a given slot
 ```
 
