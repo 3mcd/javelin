@@ -1,30 +1,31 @@
 {
   "name": "javelin",
-  "type": "module",
   "private": true,
+  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
+  "license": "MIT",
   "version": "2.0.0-alpha.0",
   "description": "",
+  "type": "module",
   "main": "index.js",
+  "keywords": [],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "perf": "pnpm -r perf",
     "build": "preconstruct build",
     "postinstall": "preconstruct dev"
   },
-  "keywords": [],
-  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
-  "license": "MIT",
   "devDependencies": {
     "vite": "^3.2.3",
     "vitest": "^0.25.1"
   },
-  "preconstruct": {
-    "packages": ["packages/*"]
-  },
   "dependencies": {
     "@babel/core": "^7.20.5",
     "@babel/preset-typescript": "^7.18.6",
+    "@changesets/cli": "^2.26.0",
     "@preconstruct/cli": "^2.2.2",
     "typescript": "^4.9.4"
+  },
+  "preconstruct": {
+    "packages": ["packages/*"]
   }
 }

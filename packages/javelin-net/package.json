@@ -1,8 +1,11 @@
 {
   "name": "@javelin/net",
-  "type": "module",
+  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
+  "license": "MIT",
   "version": "2.0.0-alpha.0",
-  "description": "",
+  "description": "An authoritative game server and client for @javelin/ecs",
+  "keywords": ["ecs", "entity-component system", "game", "gamedev", "multiplayer", "mog"],
+  "type": "module",
   "main": "dist/javelin-net.cjs.js",
   "module": "dist/javelin-net.esm.js",
   "exports": {
@@ -12,8 +15,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
-  "license": "MIT",
   "preconstruct": {
     "entrypoints": [
       "index.ts"

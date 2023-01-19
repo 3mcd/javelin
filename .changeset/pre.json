@@ -2,14 +2,9 @@
   "mode": "pre",
   "tag": "alpha",
   "initialVersions": {
-    "@javelin/spin": "1.0.0-alpha.7",
-    "@javelin/core": "1.0.0-alpha.7",
-    "@javelin/ecs": "1.0.0-alpha.7",
-    "@javelin/hrtime-loop": "1.0.0-alpha.3",
-    "@javelin/net": "1.0.0-alpha.7",
-    "@javelin/pack": "1.0.0-alpha.7",
-    "@javelin/interop": "1.0.0-alpha.7",
-    "@javelin/isomorphic-utils": "1.0.0-alpha.9"
+    "@javelin/ecs": "2.0.0-alpha.0",
+    "@javelin/lib": "2.0.0-alpha.0",
+    "@javelin/net": "2.0.0-alpha.0"
   },
   "changesets": [
     "bright-guests-travel",

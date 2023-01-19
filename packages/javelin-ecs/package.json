@@ -1,8 +1,11 @@
 {
   "name": "@javelin/ecs",
-  "type": "module",
+  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
+  "license": "MIT",
   "version": "2.0.0-alpha.0",
-  "description": "",
+  "description": "A TypeScript/JavaScript Entity-Component System",
+  "keywords": ["ecs", "entity-component system", "game", "gamedev", "multiplayer", "mog"],
+  "type": "module",
   "main": "dist/javelin-ecs.cjs.js",
   "module": "dist/javelin-ecs.esm.js",
   "exports": {
@@ -12,8 +15,6 @@
   "scripts": {
     "test": "vitest"
   },
-  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
-  "license": "MIT",
   "preconstruct": {
     "entrypoints": [
       "index.ts"
