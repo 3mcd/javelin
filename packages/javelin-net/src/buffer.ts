@@ -30,7 +30,6 @@ export class Buffer {
 
   static alloc(size: number) {
     assert(size <= 0x40000000)
-    assert(size > 0)
     size = Math.max(2, size | 0)
     let i = ceilLog_2(size)
     return this.pool[i].pop() ?? new Buffer(new ArrayBuffer(1 << i))

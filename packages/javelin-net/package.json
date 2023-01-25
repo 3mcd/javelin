@@ -4,7 +4,14 @@
   "license": "MIT",
   "version": "2.0.0-alpha.0",
   "description": "An authoritative game server and client for @javelin/ecs",
-  "keywords": ["ecs", "entity-component system", "game", "gamedev", "multiplayer", "mog"],
+  "keywords": [
+    "ecs",
+    "entity-component system",
+    "game",
+    "gamedev",
+    "multiplayer",
+    "mog"
+  ],
   "type": "module",
   "main": "dist/javelin-net.cjs.js",
   "module": "dist/javelin-net.esm.js",
@@ -13,7 +20,7 @@
     "require": "./dist/javelin-net.cjs.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest"
   },
   "preconstruct": {
     "entrypoints": [
@@ -23,5 +30,8 @@
   "dependencies": {
     "@javelin/ecs": "workspace:*",
     "@javelin/lib": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^0.25.1"
   }
 }

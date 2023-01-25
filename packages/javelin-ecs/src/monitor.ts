@@ -13,14 +13,19 @@ export class Monitor {
   #unsubscribeEntitiesIncluded
   #unsubscribeEntitiesExcluded
 
+  includedSize
+  excludedSize
+
   constructor(
     node: Node,
     phase: string,
     excludedComponents: Component[] = [],
   ) {
     this.#excludedComponents = excludedComponents
+    this.excludedSize = 0
     this.#excludedEntityBatches = [] as Set<Entity>[]
     this.#includedEntityBatches = [] as Set<Entity>[]
+    this.includedSize = 0
     this.#phase = phase
     node.traverseAdd(node => {
       if (this.#matchesNode(node)) {
@@ -53,17 +58,23 @@ export class Monitor {
 
   #includeBatch(batch: Set<Entity>) {
     this.#includedEntityBatches.push(batch)
+    this.includedSize += batch.size
+  }
+
+  #excludeBatch(batch: Set<Entity>) {
+    this.#excludedEntityBatches.push(batch)
+    this.excludedSize += batch.size
   }
 
   #handleIncludeEvent(event: TransactionEvent) {
     if (this.#matchesEvent(event)) {
-      this.#includedEntityBatches.push(event.batch)
+      this.#includeBatch(event.batch)
     }
   }
 
   #handleExcludeEvent(event: TransactionEvent) {
     if (this.#matchesEvent(event)) {
-      this.#excludedEntityBatches.push(event.batch)
+      this.#excludeBatch(event.batch)
     }
   }
 
@@ -83,25 +94,11 @@ export class Monitor {
     return this
   }
 
-  get includedSize() {
-    let size = 0
-    for (let i = 0; i < this.#includedEntityBatches.length; i++) {
-      size += this.#includedEntityBatches[i].size
-    }
-    return size
-  }
-
-  get excludedSize() {
-    let size = 0
-    for (let i = 0; i < this.#excludedEntityBatches.length; i++) {
-      size += this.#excludedEntityBatches[i].size
-    }
-    return size
-  }
-
   clear() {
     while (this.#includedEntityBatches.pop()) {}
     while (this.#excludedEntityBatches.pop()) {}
+    this.includedSize = 0
+    this.excludedSize = 0
   }
 
   dispose() {

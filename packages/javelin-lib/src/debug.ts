@@ -13,8 +13,8 @@ export function assert(
   }
 }
 
-export let expect = <T>(value: Maybe<T>): T => {
-  /* @__PURE__ */ assert(exists(value))
+export let expect = <T>(value: Maybe<T>, message?: string): T => {
+  /* @__PURE__ */ assert(exists(value), message)
   return value
 }
 

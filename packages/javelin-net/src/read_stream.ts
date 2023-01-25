@@ -16,7 +16,7 @@ export class ReadStream {
     return this.#offset
   }
 
-  get bytes() {
+  bytes() {
     return this.#buffer.u8.subarray(this.#offset, this.#length)
   }
 

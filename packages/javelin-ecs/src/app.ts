@@ -181,7 +181,7 @@ export class App {
     return this
   }
 
-  step(): void {
+  step() {
     let {world} = this
     this.#updateSystemGroupSchedule()
     for (let i = 0; i < this.#systemGroups.length; i++) {
@@ -209,6 +209,7 @@ export class App {
     }
     // Notify monitors of inter-step entity modifications.
     this.world.commitStagedChanges()
+    return this
   }
 }
 

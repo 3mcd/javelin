@@ -3,19 +3,19 @@ import {Buffer, LE} from "./buffer.js"
 export class WriteStream {
   #buffer
   #offset
-  #initialCapacity
+  #initialByteLength
 
-  constructor(initialCapacity = 0) {
-    this.#buffer = Buffer.alloc(initialCapacity)
+  constructor(initialByteLength = 0) {
+    this.#buffer = Buffer.alloc(initialByteLength)
     this.#offset = 0
-    this.#initialCapacity = initialCapacity
+    this.#initialByteLength = initialByteLength
   }
 
   get offset() {
     return this.#offset
   }
 
-  get bytes() {
+  bytes() {
     return this.#buffer.u8.length === this.#offset
       ? this.#buffer.u8
       : this.#buffer.u8.subarray(0, this.#offset)
@@ -23,12 +23,12 @@ export class WriteStream {
 
   reset() {
     Buffer.free(this.#buffer)
-    this.#buffer = Buffer.alloc(this.#initialCapacity)
+    this.#buffer = Buffer.alloc(this.#initialByteLength)
     this.#offset = 0
   }
 
-  grow(growAmount: number) {
-    let newSize = this.#offset + growAmount
+  grow(byteLength: number) {
+    let newSize = this.#offset + byteLength
     if (this.#buffer.u8.length < newSize) {
       let buffer = Buffer.alloc(newSize)
       buffer.u8.set(this.#buffer.u8)

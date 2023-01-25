@@ -67,9 +67,12 @@ importers:
     specifiers:
       '@javelin/ecs': workspace:*
       '@javelin/lib': workspace:*
+      vitest: ^0.25.1
     dependencies:
       '@javelin/ecs': link:../javelin-ecs
       '@javelin/lib': link:../javelin-lib
+    devDependencies:
+      vitest: 0.25.1
 
 packages:
 
