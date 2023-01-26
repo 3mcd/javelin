@@ -441,6 +441,15 @@ export class World {
     return makeId(entityId, entityIdVersion) as Entity
   }
 
+  exists(entity: Entity) {
+    try {
+      this.#validateEntityVersion(entity)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   /**
    * Create an entity.
    * @example <caption>Create an entity with no data</caption>

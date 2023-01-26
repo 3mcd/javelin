@@ -1,0 +1,35 @@
+import {suite, test, expect} from "vitest"
+import * as T from "./priority_queue_int.js"
+
+suite("priority_queue_int", () => {
+  test("push", () => {
+    let t = T.make(10)
+    T.push(t, 0, 1)
+    T.push(t, 1, 10)
+    T.push(t, 2, 4)
+    T.push(t, 3, 8)
+    T.push(t, 5, 11)
+    expect(T.pop(t)).toBe(5)
+    expect(T.pop(t)).toBe(1)
+    expect(T.pop(t)).toBe(3)
+    expect(T.pop(t)).toBe(2)
+    expect(T.pop(t)).toBe(0)
+  })
+  test("remove", () => {
+    let t = T.make(10)
+    T.push(t, 0, 1)
+    T.push(t, 1, 10)
+    T.push(t, 2, 4)
+    T.push(t, 3, 8)
+    T.push(t, 4, 11)
+    T.remove(t, 1)
+    T.remove(t, 2)
+    T.push(t, 5, 2)
+    T.push(t, 6, 99)
+    expect(T.pop(t)).toBe(6)
+    expect(T.pop(t)).toBe(4)
+    expect(T.pop(t)).toBe(3)
+    expect(T.pop(t)).toBe(5)
+    expect(T.pop(t)).toBe(0)
+  })
+})

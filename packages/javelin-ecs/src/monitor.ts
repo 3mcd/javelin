@@ -13,8 +13,8 @@ export class Monitor {
   #unsubscribeEntitiesIncluded
   #unsubscribeEntitiesExcluded
 
-  includedSize
-  excludedSize
+  includedLength
+  excludedLength
 
   constructor(
     node: Node,
@@ -22,10 +22,10 @@ export class Monitor {
     excludedComponents: Component[] = [],
   ) {
     this.#excludedComponents = excludedComponents
-    this.excludedSize = 0
+    this.excludedLength = 0
     this.#excludedEntityBatches = [] as Set<Entity>[]
     this.#includedEntityBatches = [] as Set<Entity>[]
-    this.includedSize = 0
+    this.includedLength = 0
     this.#phase = phase
     node.traverseAdd(node => {
       if (this.#matchesNode(node)) {
@@ -58,12 +58,12 @@ export class Monitor {
 
   #includeBatch(batch: Set<Entity>) {
     this.#includedEntityBatches.push(batch)
-    this.includedSize += batch.size
+    this.includedLength += batch.size
   }
 
   #excludeBatch(batch: Set<Entity>) {
     this.#excludedEntityBatches.push(batch)
-    this.excludedSize += batch.size
+    this.excludedLength += batch.size
   }
 
   #handleIncludeEvent(event: TransactionEvent) {
@@ -97,8 +97,8 @@ export class Monitor {
   clear() {
     while (this.#includedEntityBatches.pop()) {}
     while (this.#excludedEntityBatches.pop()) {}
-    this.includedSize = 0
-    this.excludedSize = 0
+    this.includedLength = 0
+    this.excludedLength = 0
   }
 
   dispose() {
