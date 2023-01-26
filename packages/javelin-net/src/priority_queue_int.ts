@@ -1,153 +1,145 @@
 import {assert, Maybe} from "@javelin/lib"
 
-export type T<Q extends number = number> = {
-  heap: Q[]
-  heap_index: number[]
-  heap_priorities: number[]
-  length: number
-  max_length: number
-}
+export class PriorityQueueInt<T extends number> {
+  #heap
+  #index
+  #maxLength
+  #priorities
 
-export let make = <Q extends number>(max_length: number): T<Q> => {
-  return {
-    heap: new Array(max_length),
-    heap_index: [],
-    heap_priorities: [],
-    length: 0,
-    max_length,
+  length
+
+  constructor(maxLength: number) {
+    this.#heap = [] as T[]
+    this.#index = [] as number[]
+    this.#maxLength = maxLength
+    this.#priorities = [] as number[]
+    this.length = 0
   }
-}
 
-let move = <Q extends number>(t: T<Q>, item: Q, index: number) => {
-  t.heap[index] = item
-  t.heap_index[item] = index
-}
+  #getIndex(item: T) {
+    return this.#index[item]
+  }
 
-let locate = <Q extends number>(t: T<Q>, item: Q) => {
-  return t.heap_index[item]
-}
+  #getPriority(index: number) {
+    return this.#priorities[index]
+  }
 
-let set_priority = (t: T, index: number, priority: number) => {
-  t.heap_priorities[index] = priority
-}
+  #setPriority(i: number, priority: number) {
+    this.#priorities[i] = priority
+  }
 
-let get_priority = (t: T, index: number) => {
-  return t.heap_priorities[index]
-}
+  #swap(i: number, j: number) {
+    let ii = this.#heap[i]
+    let ij = this.#heap[j]
+    let pi = this.#priorities[i]
+    let pj = this.#priorities[j]
+    this.#heap[i] = ij
+    this.#heap[j] = ii
+    this.#index[ii] = j
+    this.#index[ij] = i
+    this.#priorities[i] = pj
+    this.#priorities[j] = pi
+  }
 
-let swap = (t: T, i: number, j: number) => {
-  let item_i = t.heap[i]
-  let item_j = t.heap[j]
-  let priority_i = t.heap_priorities[i]
-  let priority_j = t.heap_priorities[j]
-  t.heap[i] = item_j
-  t.heap[j] = item_i
-  t.heap_index[item_i] = j
-  t.heap_index[item_j] = i
-  t.heap_priorities[i] = priority_j
-  t.heap_priorities[j] = priority_i
-}
-
-let heapify_up = (t: T, index: number) => {
-  while (index > 0) {
-    let index_parent: number
-    if (index % 2 === 0) {
-      index_parent = (index - 2) / 2
-    } else {
-      index_parent = (index - 1) / 2
+  #heapifyUp(i: number) {
+    while (i > 0) {
+      let ip: number
+      if (i % 2 === 0) {
+        ip = (i - 2) / 2
+      } else {
+        ip = (i - 1) / 2
+      }
+      if (this.#getPriority(ip) >= this.#getPriority(i)) {
+        return
+      }
+      this.#swap(i, ip)
+      i = ip
     }
-    if (get_priority(t, index_parent) >= get_priority(t, index)) {
+  }
+
+  #heapifyDown(i: number) {
+    while (i < this.length) {
+      let il = i * 2 + 1
+      let ir = i * 2 + 2
+      let im = i
+      if (il <= this.length && this.#getPriority(il) > this.#getPriority(im)) {
+        im = il
+      }
+      if (ir <= this.length && this.#getPriority(ir) > this.#getPriority(im)) {
+        im = ir
+      }
+      if (im === i) {
+        return
+      }
+      this.#swap(i, im)
+      i = im
+    }
+  }
+
+  #move(item: T, i: number) {
+    this.#heap[i] = item
+    this.#index[item] = i
+  }
+
+  isEmpty() {
+    return this.length === 0
+  }
+
+  peek(): Maybe<T> {
+    if (this.isEmpty()) {
       return
     }
-    swap(t, index, index_parent)
-    index = index_parent
+    return this.#heap[0]
   }
-}
 
-let heapify_down = (t: T, index: number) => {
-  while (index < t.length) {
-    let index_l = index * 2 + 1
-    let index_r = index * 2 + 2
-    let index_max = index
-    if (
-      index_l <= t.length &&
-      get_priority(t, index_l) > get_priority(t, index_max)
-    ) {
-      index_max = index_l
+  push(item: T, priority: number) {
+    if (this.#getIndex(item) >= 0) {
+      this.remove(item)
     }
-    if (
-      index_r <= t.length &&
-      get_priority(t, index_r) > get_priority(t, index_max)
-    ) {
-      index_max = index_r
-    }
-    if (index_max === index) {
+    if (this.length === this.#maxLength) {
       return
     }
-    swap(t, index, index_max)
-    index = index_max
+    let i = this.length
+    this.#move(item, i)
+    this.#setPriority(i, priority)
+    this.length++
+    this.#heapifyUp(i)
   }
-}
 
-export let push = <Q extends number>(
-  t: T<Q>,
-  item: Q,
-  priority: number,
-) => {
-  if (locate(t, item) >= 0) {
-    remove(t, item)
+  pop() {
+    if (this.length === 0) {
+      return
+    }
+    let i = 0
+    let item = this.#heap[i]
+    this.length--
+    this.#move(this.#heap[this.length], i)
+    this.#setPriority(i, this.#priorities[this.length])
+    this.#heapifyDown(i)
+    return item
   }
-  if (t.length === t.max_length) {
-    return
+
+  remove(item: T) {
+    let i = this.#getIndex(item)
+    assert(i >= 0)
+    let l = this.length - 1
+    let v = this.#heap[l]
+    let p = this.#getPriority(l)
+    this.#heap[i] = v
+    this.#heap[l] = undefined!
+    this.#index[item] = undefined!
+    this.#index[v] = i
+    this.#priorities[l] = undefined!
+    this.#priorities[i] = p
+    if (this.#getPriority(i) > this.#getPriority(l)) {
+      this.#heapifyUp(i)
+    } else if (this.#getPriority(i) < this.#getPriority(l)) {
+      this.#heapifyDown(i)
+    }
+    this.length--
   }
-  move(t, item, t.length)
-  set_priority(t, t.length, priority)
-  t.length++
-  heapify_up(t, t.length - 1)
-}
 
-export let pop = <Q extends number>(t: T<Q>): Maybe<Q> => {
-  if (t.length === 0) {
-    return
+  clear() {
+    this.length = 0
   }
-  let item = t.heap[0]
-  t.length--
-  move(t, t.heap[t.length], 0)
-  set_priority(t, 0, t.heap_priorities[t.length])
-  heapify_down(t, 0)
-  return item
-}
-
-export let clear = (t: T) => {
-  t.length = 0
-}
-
-export let is_empty = (t: T) => {
-  return t.length === 0
-}
-
-export let peek = <Q extends number>(t: T<Q>): Maybe<Q> => {
-  if (is_empty(t)) {
-    return
-  }
-  return t.heap[0]
-}
-
-export let remove = <Q extends number>(t: T<Q>, item: Q) => {
-  let index = locate(t, item)
-  assert(index >= 0)
-  let v = t.heap[t.length - 1]
-  let p = get_priority(t, t.length - 1)
-  t.heap[index] = v
-  t.heap[t.length - 1] = undefined!
-  t.heap_priorities[t.length - 1] = undefined!
-  t.heap_index[item] = undefined!
-  t.heap_index[v] = index
-  t.heap_priorities[index] = p
-  if (get_priority(t, index) > get_priority(t, t.length - 1)) {
-    heapify_up(t, index)
-  } else if (get_priority(t, index) < get_priority(t, t.length - 1)) {
-    heapify_down(t, index)
-  }
-  t.length--
 }

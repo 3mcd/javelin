@@ -1,7 +1,7 @@
 import {app, Entity, tag, type, value} from "@javelin/ecs"
 import {expect, suite, test} from "vitest"
-import * as Interest from "./interest.js"
-import * as Protocol from "./protocol.js"
+import {makeInterest, interestMessageType} from "./interest.js"
+import {makeProtocol} from "./protocol.js"
 import {ReadStream} from "./read_stream.js"
 import {WriteStream} from "./write_stream.js"
 
@@ -9,39 +9,33 @@ let A = tag()
 let B = value({x: "f32", y: "f32"})
 let AB = type(A, B)
 
-let protocol = Protocol.make()
-Protocol.add_message_type(protocol, Interest.message_type)
+let protocol = makeProtocol().addMessageType(interestMessageType)
 
-suite("interest", () => {
+suite("Interest", () => {
   test("works", () => {
+    let count = 20
     let stream = new WriteStream()
-    let interest = Interest.make(99 as Entity, AB, undefined, 10)
-    let source_app = app()
-    let target_app = app()
-    let e: Entity
-    let b = {x: 5, y: 6}
-    source_app
+    let interest = makeInterest(99 as Entity, AB, undefined, count)
+    let sourceApp = app()
+    let targetApp = app()
+    let entity: Entity[] = []
+    let bValue = {x: 5, y: 6}
+    sourceApp
       .addInitSystem(world => {
-        e = world.create(AB, b)
+        for (let i = 0; i < count; i++) {
+          entity.push(world.create(AB, bValue))
+        }
       })
       .addSystem(world => {
-        Interest.update_priorities(interest, world)
+        interest.prioritize(world)
       })
       .step()
       .step()
-    Protocol.encode(
-      protocol,
-      source_app.world,
-      stream,
-      Interest.message_type,
-      interest,
-    )
-    Protocol.decode(
-      protocol,
-      target_app.world,
-      new ReadStream(stream.bytes()),
-    )
-    target_app.step()
-    expect(target_app.world.get(e!, B)).toEqual(b)
+    protocol.encode(sourceApp.world, stream, interestMessageType, interest)
+    protocol.decode(targetApp.world, new ReadStream(stream.bytes()))
+    targetApp.step()
+    for (let i = 0; i < count; i++) {
+      expect(targetApp.world.get(entity[i], B)).toEqual(bValue)
+    }
   })
 })

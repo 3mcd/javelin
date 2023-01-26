@@ -7,7 +7,7 @@ import {
 } from "@javelin/lib"
 import {Entity} from "./entity.js"
 import {Node} from "./graph.js"
-import {Component, ComponentValue, has_schema} from "./component.js"
+import {Component, ComponentValue, hasSchema} from "./component.js"
 import {ComponentsOf, normalize_spec, Selector, Spec} from "./type.js"
 import {isRelation} from "./relation.js"
 
@@ -45,9 +45,7 @@ let compileEachIterator = <T extends Component[]>(
   return Function(
     "N",
     "S",
-    components
-      .map((component, i) => `let s${i}=S[${component}];`)
-      .join("") +
+    components.map((component, i) => `let s${i}=S[${component}];`).join("") +
       "return function eachCompiled(f){" +
       "for(let i=0;i<N.length;i++){" +
       // TODO: make this compatible with property mangling
@@ -75,10 +73,7 @@ export class QueryView<T extends Spec = Spec> implements QueryAPI<T> {
 
   constructor(query: Query, components: Component[]) {
     this.#query = query
-    this.#iterator = compileEachIterator(
-      query,
-      components.filter(has_schema),
-    )
+    this.#iterator = compileEachIterator(query, components.filter(hasSchema))
   }
 
   get size() {
@@ -116,11 +111,7 @@ export class Query<T extends Spec = Spec> implements QueryAPI<T> {
   }
 
   includeNode(node: Node) {
-    for (
-      let i = 0;
-      i < this.#selector.excludedComponents.length;
-      i++
-    ) {
+    for (let i = 0; i < this.#selector.excludedComponents.length; i++) {
       let term = this.#selector.excludedComponents[i]
       if (node.hasComponent(term)) {
         return

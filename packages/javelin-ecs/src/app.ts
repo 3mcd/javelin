@@ -1,17 +1,10 @@
 import {assert, expect, Maybe} from "@javelin/lib"
 import {Resource} from "./resource.js"
-import {
-  Constraints,
-  SystemGroup,
-  Predicate,
-  Schedule,
-} from "./schedule.js"
+import {Constraints, SystemGroup, Predicate, Schedule} from "./schedule.js"
 import {SystemImpl} from "./system.js"
 import {CurrentSystem, World} from "./world.js"
 
-export type Constrain<T> = (
-  constraints: Constraints<T>,
-) => Constraints<T>
+export type Constrain<T> = (constraints: Constraints<T>) => Constraints<T>
 export type Plugin = (app: App) => void
 
 /**
@@ -59,22 +52,15 @@ let defaultPlugin = (app: App) => {
       _.after(DefaultGroup.Early).before(DefaultGroup.Update),
     )
     .addSystemGroup(DefaultGroup.Update, _ =>
-      _.after(DefaultGroup.EarlyUpdate).before(
-        DefaultGroup.LateUpdate,
-      ),
+      _.after(DefaultGroup.EarlyUpdate).before(DefaultGroup.LateUpdate),
     )
     .addSystemGroup(DefaultGroup.LateUpdate, _ =>
       _.after(DefaultGroup.Update).before(DefaultGroup.Late),
     )
-    .addSystemGroup(DefaultGroup.Late, _ =>
-      _.after(DefaultGroup.LateUpdate),
-    )
-    .addSystemToGroup(
-      DefaultGroup.Init,
-      function disableInitGroupSystem() {
-        hasRunInitGroup = false
-      },
-    )
+    .addSystemGroup(DefaultGroup.Late, _ => _.after(DefaultGroup.LateUpdate))
+    .addSystemToGroup(DefaultGroup.Init, function disableInitGroupSystem() {
+      hasRunInitGroup = false
+    })
 }
 
 export class App {
@@ -143,12 +129,7 @@ export class App {
     constrain?: Maybe<Constrain<SystemImpl>>,
     predicate?: Maybe<Predicate>,
   ): App {
-    this.addSystemToGroup(
-      DefaultGroup.Update,
-      system,
-      constrain,
-      predicate,
-    )
+    this.addSystemToGroup(DefaultGroup.Update, system, constrain, predicate)
     return this
   }
 
@@ -159,11 +140,7 @@ export class App {
     predicate?: Maybe<Predicate>,
   ): App {
     let systemGroup = expect(this.#systemGroupsById.get(groupId))
-    systemGroup.addSystem(
-      system,
-      constrain?.(new Constraints()),
-      predicate,
-    )
+    systemGroup.addSystem(system, constrain?.(new Constraints()), predicate)
     return this
   }
 
@@ -172,12 +149,7 @@ export class App {
     constrain?: Maybe<Constrain<SystemImpl>>,
     predicate?: Maybe<Predicate>,
   ) {
-    this.addSystemToGroup(
-      DefaultGroup.Init,
-      system,
-      constrain,
-      predicate,
-    )
+    this.addSystemToGroup(DefaultGroup.Init, system, constrain, predicate)
     return this
   }
 
@@ -202,15 +174,15 @@ export class App {
               monitor.clear()
             }
             // Notify immediate monitors of intra-step entity modifications.
-            this.world.emit_staged_changes()
+            this.world.emitStagedChanges()
           }
         }
       }
     }
     // Notify monitors of inter-step entity modifications.
-    this.world.commit_staged_changes()
+    this.world.commitStagedChanges()
     return this
   }
 }
 
-export let make_app = (world = new World()) => new App(world)
+export let makeApp = (world = new World()) => new App(world)

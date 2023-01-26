@@ -1,11 +1,6 @@
 import {assert} from "@javelin/lib"
 import {makeRelation, Relation} from "./relation.js"
-import {
-  Component,
-  get_schema,
-  has_schema,
-  set_schema,
-} from "./component"
+import {Component, getSchema, hasSchema, setSchema} from "./component"
 import {Selector} from "./type.js"
 
 export const ERR_SLOT_DEFINITION =
@@ -15,9 +10,7 @@ let slots = [] as Relation[]
 
 export let isSlot = (relationId: number) => relationId in slots
 
-export function makeSlot<T extends Selector<[Component]>[]>(
-  ...spec: T
-) {
+export function makeSlot<T extends Selector<[Component]>[]>(...spec: T) {
   let slotRelation = makeRelation()
   let slotRelationships = [] as Selector<[Component]>[]
   let slotComponents = new Set(spec)
@@ -27,11 +20,8 @@ export function makeSlot<T extends Selector<[Component]>[]>(
     let termComponent = term.includedComponents[0]
     let relationship = slotRelation(termComponent)
     slotRelationships[termComponent] = relationship
-    if (has_schema(termComponent)) {
-      set_schema(
-        relationship.includedComponents[0],
-        get_schema(termComponent),
-      )
+    if (hasSchema(termComponent)) {
+      setSchema(relationship.includedComponents[0], getSchema(termComponent))
     }
   }
   function makeSlotComponent<U extends T[number]>(component: U) {

@@ -1,14 +1,14 @@
 import {Maybe} from "@javelin/lib"
 import {suite, test, expect} from "vitest"
 import {Graph, Node} from "./graph.js"
-import {make_tag_component} from "./component.js"
+import {makeTagComponent} from "./component.js"
 import {ERR_CHILD_OF, ERR_SLOT, makeSelector, Type} from "./type.js"
 import {ChildOf} from "./relation.js"
 import {makeSlot} from "./slot.js"
 
-let a = make_tag_component()
-let b = make_tag_component()
-let c = make_tag_component()
+let a = makeTagComponent()
+let b = makeTagComponent()
+let c = makeTagComponent()
 
 suite("Graph", () => {
   test("node links", () => {
@@ -85,9 +85,7 @@ suite("Graph", () => {
     let ChildOf0 = ChildOf(0)
     let ChildOf1 = ChildOf(1)
     let node = graph.nodeOfType(ChildOf0.type)
-    expect(() => graph.nodeAddType(node, ChildOf1.type)).toThrow(
-      ERR_CHILD_OF,
-    )
+    expect(() => graph.nodeAddType(node, ChildOf1.type)).toThrow(ERR_CHILD_OF)
   })
   test("slot validation", () => {
     let graph = new Graph()
@@ -95,8 +93,6 @@ suite("Graph", () => {
     let B = makeSelector(b)
     let AorB = makeSlot(A, B)
     let node = graph.nodeOfType(AorB(A).type)
-    expect(() => graph.nodeAddType(node, AorB(B).type)).toThrow(
-      ERR_SLOT,
-    )
+    expect(() => graph.nodeAddType(node, AorB(B).type)).toThrow(ERR_SLOT)
   })
 })

@@ -7,23 +7,17 @@ import {QueryAPI, Query} from "./query.js"
 import {makeResource, Resource} from "./resource.js"
 import {System} from "./system.js"
 import {
-  has_schema,
+  hasSchema,
   Component,
   Tag,
   ComponentValue,
   ComponentInitValues,
-  get_schema,
+  getSchema,
   express,
   Dynamic,
 } from "./component.js"
 import {Transaction, TransactionIteratee} from "./transaction.js"
-import {
-  hashSpec,
-  normalize_spec,
-  Selector,
-  Spec,
-  Type,
-} from "./type.js"
+import {hashSpec, normalize_spec, Selector, Spec, Type} from "./type.js"
 
 export enum Phase {
   Stage = "stage",
@@ -112,12 +106,12 @@ export class World {
     component: Component,
     componentValue: unknown,
   ) {
-    let componentStore = this.get_component_store(component)
+    let componentStore = this.getComponentStore(component)
     componentStore[entity] = componentValue
   }
 
   #freeEntityComponentValue(entity: Entity, component: Component) {
-    let componentStore = this.get_component_store(component)
+    let componentStore = this.getComponentStore(component)
     componentStore[entity] = undefined!
   }
 
@@ -186,15 +180,11 @@ export class World {
     let entityDelta = this.#ensureEntityDelta(entity)
     for (let i = 0; i < nextNode.type.components.length; i++) {
       let component = nextNode.type.components[i]
-      if (has_schema(component)) {
+      if (hasSchema(component)) {
         // Insert the new entity's component values into their respective
         // component stores.
         let componentValue = expect(entityDelta[component])
-        this.#setEntityComponentValue(
-          entity,
-          component,
-          componentValue,
-        )
+        this.#setEntityComponentValue(entity, component, componentValue)
       } else {
         let componentHi = idHi(component)
         // Attach the new entity to its parent component if it was defined
@@ -219,13 +209,9 @@ export class World {
     // respective component stores.
     for (let i = 0; i < nextNode.type.components.length; i++) {
       let component = nextNode.type.components[i]
-      if (has_schema(component)) {
+      if (hasSchema(component)) {
         let componentValue = expect(entityDelta[component])
-        this.#setEntityComponentValue(
-          entity,
-          component,
-          componentValue,
-        )
+        this.#setEntityComponentValue(entity, component, componentValue)
       }
     }
     // Free the existing entity's component change set.
@@ -246,7 +232,7 @@ export class World {
     // Free the deleted entity's component values.
     for (let i = 0; i < prevNode.type.components.length; i++) {
       let component = prevNode.type.components[i]
-      if (has_schema(component)) {
+      if (hasSchema(component)) {
         this.#freeEntityComponentValue(entity, component)
       }
     }
@@ -259,10 +245,7 @@ export class World {
     // Remove the deleted entity from the archetype graph and free its prior
     // node if it is no longer of use.
     prevNode.removeEntity(entity)
-    if (
-      prevNode.entities.length === 0 &&
-      prevNode.hasAnyRelationship()
-    ) {
+    if (prevNode.entities.length === 0 && prevNode.hasAnyRelationship()) {
       this.#expiredNodes.add(prevNode)
     }
   }
@@ -272,7 +255,7 @@ export class World {
     for (let i = 0; i < prevNode.type.components.length; i++) {
       let component = prevNode.type.components[i]
       if (!nextNode.hasComponent(component)) {
-        if (has_schema(component)) {
+        if (hasSchema(component)) {
           // Free component values of components not found in the destination
           // node.
           this.#freeEntityComponentValue(entity, component)
@@ -287,17 +270,13 @@ export class World {
     }
     for (let i = 0; i < nextNode.type.components.length; i++) {
       let component = nextNode.type.components[i]
-      if (has_schema(component)) {
+      if (hasSchema(component)) {
         let componentValue = entityDelta[component]
         // Attach newly added component values. The entity delta should be
         // loaded with component values for any component that did not exist in
         // the source node.
         if (exists(componentValue)) {
-          this.#setEntityComponentValue(
-            entity,
-            component,
-            componentValue,
-          )
+          this.#setEntityComponentValue(entity, component, componentValue)
         }
       } else {
         let componentHi = idHi(component)
@@ -317,10 +296,7 @@ export class World {
     // Remove the modified entity from its prior node and free the node if it
     // is no longer in use.
     prevNode.removeEntity(entity)
-    if (
-      prevNode.entities.length === 0 &&
-      prevNode.hasAnyRelationship()
-    ) {
+    if (prevNode.entities.length === 0 && prevNode.hasAnyRelationship()) {
       this.#expiredNodes.add(prevNode)
     }
   }
@@ -334,7 +310,7 @@ export class World {
     let j = 0
     for (let i = 0; i < selector.includedComponents.length; i++) {
       let component = selector.includedComponents[i]
-      let componentSchema = get_schema(component)
+      let componentSchema = getSchema(component)
       if (exists(componentSchema)) {
         if (componentSchema === Dynamic) {
           // Values must be provided for components without schema.
@@ -342,8 +318,7 @@ export class World {
         } else {
           // Update the entity change set with a user-provided component value,
           // or auto-initialize a component value from the component schema.
-          entityDelta[component] =
-            selectorValues[j++] ?? express(component)
+          entityDelta[component] = selectorValues[j++] ?? express(component)
         }
       }
     }
@@ -373,12 +348,7 @@ export class World {
     system.queries.set(hash, query)
   }
 
-  #initMonitor(
-    monitor: Monitor,
-    hash: number,
-    node: Node,
-    system: System,
-  ) {
+  #initMonitor(monitor: Monitor, hash: number, node: Node, system: System) {
     function unbindMonitor(deletedNode: Node) {
       if (node === deletedNode) {
         system.monitors.delete(hash)
@@ -529,18 +499,14 @@ export class World {
    * @example
    * let position = world.get(entity, Position)
    */
-  get<T>(
-    entity: Entity,
-    selector: Selector<[Component<T>]>,
-  ): ComponentValue<T>
+  get<T>(entity: Entity, selector: Selector<[Component<T>]>): ComponentValue<T>
   get(entity: Entity, selector: Selector<[Component<Tag>]>): boolean
   get(entity: Entity, selector: Selector) {
     this.#validateEntityVersion(entity)
     let entityNode = this.#getEntityNode(entity)
     let component = selector.includedComponents[0]
     return entityNode.hasComponent(component)
-      ? !has_schema(component) ||
-          this.get_component_store(component)[entity]
+      ? !hasSchema(component) || this.getComponentStore(component)[entity]
       : undefined
   }
 
@@ -564,8 +530,8 @@ export class World {
    * Get the array of component values for a given component.
    * @private
    */
-  get_component_store(component: Component) {
-    assert(has_schema(component))
+  getComponentStore(component: Component) {
+    assert(hasSchema(component))
     return (this.#componentStores[component] ??= [])
   }
 
@@ -573,7 +539,7 @@ export class World {
    * Dispatch transient entity modification events.
    * @private
    */
-  emit_staged_changes() {
+  emitStagedChanges() {
     this.#stageTransaction.drainEntities(this.graph, Phase.Stage)
   }
 
@@ -582,12 +548,8 @@ export class World {
    * modification events.
    * @private
    */
-  commit_staged_changes() {
-    let commitBatch: TransactionIteratee = (
-      batch,
-      prevNode,
-      nextNode,
-    ) => {
+  commitStagedChanges() {
+    let commitBatch: TransactionIteratee = (batch, prevNode, nextNode) => {
       if (!exists(prevNode)) {
         /* @__PURE__ */ assert(exists(nextNode))
         batch.forEach(entity => {
@@ -611,11 +573,7 @@ export class World {
     }
     // Adjust entities within the archetype graph, update component stores, and
     // notify interested parties (like monitors).
-    this.#applyTransaction.drainEntities(
-      this.graph,
-      Phase.Apply,
-      commitBatch,
-    )
+    this.#applyTransaction.drainEntities(this.graph, Phase.Apply, commitBatch)
     this.#expiredNodes.forEach(nodeToPrune => {
       // The node may have been populated after it was flagged for deletion, so
       // we first check if it is still empty.
@@ -680,21 +638,11 @@ export class World {
     let monitorHash = hashSpec(monitorSpec)
     let monitor = monitorSystem.monitors.get(monitorHash)
     if (!exists(monitor)) {
-      let {includedComponents, excludedComponents} =
-        normalize_spec(monitorSpec)
+      let {includedComponents, excludedComponents} = normalize_spec(monitorSpec)
       let monitorNodeType = Type.of(includedComponents)
       let monitorNode = this.graph.nodeOfType(monitorNodeType)
-      monitor = new Monitor(
-        monitorNode,
-        Phase.Apply,
-        excludedComponents,
-      )
-      this.#initMonitor(
-        monitor,
-        monitorHash,
-        monitorNode,
-        monitorSystem,
-      )
+      monitor = new Monitor(monitorNode, Phase.Apply, excludedComponents)
+      this.#initMonitor(monitor, monitorHash, monitorNode, monitorSystem)
     }
     return monitor
   }
@@ -712,21 +660,11 @@ export class World {
     let monitorHash = hashSpec(monitorSpec)
     let monitor = monitorSystem.monitors.get(monitorHash)
     if (!exists(monitor)) {
-      let {includedComponents, excludedComponents} =
-        normalize_spec(monitorSpec)
+      let {includedComponents, excludedComponents} = normalize_spec(monitorSpec)
       let monitorNodeType = Type.of(includedComponents)
       let monitorNode = this.graph.nodeOfType(monitorNodeType)
-      monitor = new Monitor(
-        monitorNode,
-        Phase.Stage,
-        excludedComponents,
-      )
-      this.#initMonitor(
-        monitor,
-        monitorHash,
-        monitorNode,
-        monitorSystem,
-      )
+      monitor = new Monitor(monitorNode, Phase.Stage, excludedComponents)
+      this.#initMonitor(monitor, monitorHash, monitorNode, monitorSystem)
     }
     return monitor
   }
@@ -736,8 +674,8 @@ let get_query_stores = (world: World, type: Type) => {
   let query_stores = [] as unknown[][]
   for (let i = 0; i < type.components.length; i++) {
     let component = type.components[i]
-    if (has_schema(component)) {
-      query_stores[component] = world.get_component_store(component)
+    if (hasSchema(component)) {
+      query_stores[component] = world.getComponentStore(component)
     }
   }
   return query_stores

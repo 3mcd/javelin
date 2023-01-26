@@ -1,12 +1,12 @@
 import {suite, test, expect} from "vitest"
-import {make_tag_component} from "./component"
+import {makeTagComponent} from "./component"
 import {ChildOf, Not} from "./relation"
 import {makeSlot} from "./slot"
 import {ERR_CHILD_OF, ERR_SLOT, makeSelector, Type} from "./type"
 
-let a = make_tag_component()
-let b = make_tag_component()
-let c = make_tag_component()
+let a = makeTagComponent()
+let b = makeTagComponent()
+let c = makeTagComponent()
 
 suite("Type", () => {
   test("type memoization", () => {

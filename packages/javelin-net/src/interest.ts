@@ -3,47 +3,35 @@ import {
   Dynamic,
   Entity,
   Format,
-  get_schema,
+  getSchema,
   Schema,
   Selector,
   type,
   World,
 } from "@javelin/ecs"
 import {exists, expect} from "@javelin/lib"
-import * as PriorityQueueInt from "./priority_queue_int.js"
+import {PriorityQueueInt} from "./priority_queue_int.js"
 import {ReadStream} from "./read_stream.js"
 import {WriteStream} from "./write_stream.js"
 
-type Encoder = ((entity: Entity, stream: WriteStream) => void) & {
+type EncodeEntity = ((entity: Entity, stream: WriteStream) => void) & {
   BYTES_PER_ELEMENT: number
 }
-type Decoder = ((stream: ReadStream) => void) & {
+type DecodeEntity = ((stream: ReadStream) => void) & {
   BYTES_PER_ELEMENT: number
 }
-type EncoderMap = Record<number, Encoder>
-type DecoderMap = Record<number, Decoder>
+type EncoderMap = Record<number, EntityEncoder>
 
-type SubjectPrioritySetter = (
+type SubjectPrioritizer = (
+  entity: Entity,
   subject: Entity,
-  object: Entity,
   world: World,
 ) => number
 
-type T = {
-  readonly entity: Entity
-  readonly meta_length: number
-  readonly subject_priority_setter?: SubjectPrioritySetter
-  readonly subject_queue: PriorityQueueInt.T<Entity>
-  readonly subject: Selector
-}
-
 const MTU_SIZE = 1_300
 
-let encoders_by_world = new WeakMap<World, EncoderMap>()
-let decoders_by_world = new WeakMap<World, DecoderMap>()
-let subject_lengths: Record<number, number> = {}
-
-let format_byte_lengths: Record<Format, number> = {
+let subjectLengths: Record<number, number> = {}
+let formatLengths: Record<Format, number> = {
   u8: 1,
   u16: 2,
   u32: 4,
@@ -55,7 +43,7 @@ let format_byte_lengths: Record<Format, number> = {
   number: 4,
 }
 
-let stream_write_methods: Record<Format, keyof WriteStream> = {
+let streamWriteMethods: Record<Format, keyof WriteStream> = {
   u8: "writeU8",
   u16: "writeU16",
   u32: "writeU32",
@@ -67,7 +55,7 @@ let stream_write_methods: Record<Format, keyof WriteStream> = {
   number: "writeF32",
 }
 
-let stream_read_methods: Record<Format, keyof ReadStream> = {
+let streamReadMethods: Record<Format, keyof ReadStream> = {
   u8: "readU8",
   u16: "readU16",
   u32: "readU32",
@@ -79,98 +67,87 @@ let stream_read_methods: Record<Format, keyof ReadStream> = {
   number: "readF32",
 }
 
-let get_subject_length = (subject: Selector) => {
-  let subject_length = subject_lengths[subject.hash]
-  if (exists(subject_length)) {
-    return subject_length
+let getEncodedEntityLength = (subject: Selector) => {
+  let length = subjectLengths[subject.hash]
+  if (exists(length)) {
+    return length
   }
-  subject_length = 4
-  for (let i = 0; i < subject.type.components.length; i++) {
-    let component = subject.type.components[i]
-    let component_schema = get_schema(component)
-    if (exists(component_schema) && component_schema !== Dynamic) {
-      if (typeof component_schema === "string") {
-        subject_length += format_byte_lengths[component_schema]
+  length = 4
+  for (let component of subject.type.components) {
+    let schema = getSchema(component)
+    if (exists(schema) && schema !== Dynamic) {
+      if (typeof schema === "string") {
+        length += formatLengths[schema]
       } else {
-        for (let prop in component_schema) {
-          let format = component_schema[prop]
-          subject_length += format_byte_lengths[format]
+        for (let prop in schema) {
+          let format = schema[prop]
+          length += formatLengths[format]
         }
       }
     }
   }
-  subject_lengths[subject.hash] = subject_length
-  return subject_length
+  subjectLengths[subject.hash] = length
+  return length
 }
 
-let compile_write_exp = (
-  format: Format,
-  stream: string,
-  value: string,
-) => {
-  let write_method = stream_write_methods[format]
-  return `${stream}.${write_method}(${value})`
+let compileWriteExp = (format: Format, stream: string, value: string) => {
+  let method = streamWriteMethods[format]
+  return `${stream}.${method}(${value})`
 }
 
-let compile_read_exp = (format: Format, stream: string) => {
-  let read_method = stream_read_methods[format]
-  return `${stream}.${read_method}()`
+let compileReadExp = (format: Format, stream: string) => {
+  let method = streamReadMethods[format]
+  return `${stream}.${method}()`
 }
 
-let compile_encoder = (subject: Selector, world: World): Encoder => {
-  let components = subject.type.components.filter(component => {
-    let schema = get_schema(component)
+let comileEncodeEntity = (selector: Selector, world: World): EncodeEntity => {
+  let components = selector.type.components.filter(component => {
+    let schema = getSchema(component)
     return exists(schema) && schema !== Dynamic
   })
-  let component_schemas = components.map(get_schema) as Schema[]
-  let component_stores = components.map(component =>
-    world.get_component_store(component),
+  let componentSchemas = components.map(getSchema) as Schema[]
+  let componentStores = components.map(component =>
+    world.getComponentStore(component),
   )
-  let subject_encoder = Function(
+  let encodeEntity = Function(
     "CS",
     components.map((_, i) => `let s${i}=CS[${i}];`).join("") +
       "return(e,s)=>{" +
       "s.writeU32(e);" +
-      component_schemas
+      componentSchemas
         .map((schema, i) => {
-          let encode_exp = `let v${i}=s${i}[e];`
+          let encodeExp = `let v${i}=s${i}[e];`
           if (typeof schema === "string") {
-            let write_exp = compile_write_exp(schema, "s", `v${i}`)
-            encode_exp += `s[e]=${write_exp};`
+            let writeExp = compileWriteExp(schema, "s", `v${i}`)
+            encodeExp += `s[e]=${writeExp};`
           } else {
             for (let key in schema) {
-              let write_exp = compile_write_exp(
-                schema[key],
-                "s",
-                `v${i}.${key}`,
-              )
-              encode_exp += `${write_exp};`
+              let writeExp = compileWriteExp(schema[key], "s", `v${i}.${key}`)
+              encodeExp += `${writeExp};`
             }
           }
-          return encode_exp
+          return encodeExp
         })
         .join("") +
       "}",
-  )(component_stores)
-  return Object.assign(subject_encoder, {
-    BYTES_PER_ELEMENT: get_subject_length(subject),
-  })
+  )(componentStores)
+  return encodeEntity
 }
 
-let compile_decoder = (subject: Selector, world: World): Decoder => {
-  let components = subject.type.components.filter(component => {
-    let schema = get_schema(component)
+let compileDecodeEntity = (selector: Selector, world: World): DecodeEntity => {
+  let components = selector.type.components.filter(component => {
+    let schema = getSchema(component)
     return exists(schema) && schema !== Dynamic
   })
-  let component_schemas = components.map(get_schema) as Schema[]
-  let component_params = component_schemas
+  let componentSchemas = components.map(getSchema) as Schema[]
+  let componentValuesExp = componentSchemas
     .map(schema => {
       if (typeof schema === "string") {
-        return compile_read_exp(schema, "s")
+        return compileReadExp(schema, "s")
       } else {
         let component_value = `{`
         for (let key in schema) {
-          let read_exp = compile_read_exp(schema[key], "s")
+          let read_exp = compileReadExp(schema[key], "s")
           component_value += `${key}:${read_exp},`
         }
         component_value += "}"
@@ -178,126 +155,136 @@ let compile_decoder = (subject: Selector, world: World): Decoder => {
       }
     })
     .join(",")
-  let subject_decoder = Function(
+  let decodeEntity = Function(
     "S",
     "W",
     "return s=>{" +
       "let e=s.readU32();" +
-      `W.exists(e)?W.add(e,S,${component_params}):W.reserve(e,S,${component_params})` +
+      `W.exists(e)?W.add(e,S,${componentValuesExp}):W.reserve(e,S,${componentValuesExp})` +
       "}",
-  )(subject, world)
-  return Object.assign(subject_decoder, {
-    BYTES_PER_ELEMENT: get_subject_length(subject),
-  })
+  )(selector, world)
+  return decodeEntity
 }
 
-let get_encoder = (subject: Selector, world: World) => {
-  let encoders = encoders_by_world.get(world)
-  if (!exists(encoders)) {
-    encoders = []
-    encoders_by_world.set(world, encoders)
-  }
-  return (encoders[subject.hash] ??= compile_encoder(subject, world))
-}
+class EntityEncoder {
+  static encodersByWorld = new WeakMap<World, EncoderMap>()
 
-let get_decoder = (subject: Selector, world: World) => {
-  let decoders = decoders_by_world.get(world)
-  if (!exists(decoders)) {
-    decoders = []
-    decoders_by_world.set(world, decoders)
+  readonly encode
+  readonly decode
+  readonly bytesPerEntity
+
+  static getEntityEncoder(world: World, selector: Selector) {
+    let encoders = this.encodersByWorld.get(world)
+    if (!exists(encoders)) {
+      encoders = []
+      this.encodersByWorld.set(world, encoders)
+    }
+    return (encoders[selector.hash] ??= new EntityEncoder(selector, world))
   }
-  return (decoders[subject.hash] ??= compile_decoder(subject, world))
+
+  constructor(selector: Selector, world: World) {
+    this.encode = comileEncodeEntity(selector, world)
+    this.decode = compileDecodeEntity(selector, world)
+    this.bytesPerEntity = getEncodedEntityLength(selector)
+  }
 }
 
 /**
  * Encodes and decodes entity interest messages.
  */
-export let message_type = {
-  encode(stream: WriteStream, world: World, t: T) {
-    let subject_encoder = get_encoder(t.subject, world)
-    let mtu_diff = MTU_SIZE - stream.offset
-    if (mtu_diff <= 0) {
+export let interestMessageType = {
+  encode(stream: WriteStream, world: World, interest: Interest) {
+    let subjectSelectorComponents = interest.subjectSelector.type.components
+    let subjectEncoder = EntityEncoder.getEntityEncoder(
+      world,
+      interest.subjectSelector,
+    )
+    let mtuDiff = MTU_SIZE - stream.offset
+    if (mtuDiff <= 0) {
       return
     }
-    let grow_amount =
-      t.meta_length +
+    let growAmount =
+      interest.metaLength +
       Math.min(
-        mtu_diff,
-        t.subject_queue.length * subject_encoder.BYTES_PER_ELEMENT,
+        mtuDiff,
+        interest.subjectQueue.length * subjectEncoder.bytesPerEntity,
       )
-    stream.grow(grow_amount)
+    stream.grow(growAmount)
     // (1)
-    stream.writeU8(t.subject.type.components.length)
+    stream.writeU8(subjectSelectorComponents.length)
     // (2)
-    for (let i = 0; i < t.subject.type.components.length; i++) {
-      let component = t.subject.type.components[i]
-      stream.writeU32(component)
+    for (let i = 0; i < subjectSelectorComponents.length; i++) {
+      stream.writeU32(subjectSelectorComponents[i])
     }
     // (3)
-    let entity_count_offset = stream.writeU16(0)
-    let entity_count = 0
-    while (
-      stream.offset < MTU_SIZE &&
-      PriorityQueueInt.peek(t.subject_queue) !== undefined
-    ) {
-      let entity = expect(PriorityQueueInt.pop(t.subject_queue))
+    let subjectCount = 0
+    let subjectCountOffset = stream.writeU16(0)
+    while (stream.offset < MTU_SIZE && !interest.subjectQueue.isEmpty()) {
+      let entity = interest.subjectQueue.pop()!
       // (4)
-      subject_encoder(entity, stream)
-      entity_count++
+      subjectEncoder.encode(entity, stream)
+      subjectCount++
     }
-    stream.writeU16At(entity_count, entity_count_offset)
+    stream.writeU16At(subjectCount, subjectCountOffset)
   },
   decode(stream: ReadStream, world: World) {
     // (1)
-    let subject_components_length = stream.readU8()
+    let subjectSelectorComponentsLength = stream.readU8()
     // (2)
-    let subject_components: Component[] = []
-    for (let i = 0; i < subject_components_length; i++) {
-      let component = stream.readU32() as Component
-      subject_components.push(component)
+    let subjectSelectorComponents: Component[] = []
+    for (let i = 0; i < subjectSelectorComponentsLength; i++) {
+      subjectSelectorComponents.push(stream.readU32() as Component)
     }
-    let subject = type(...subject_components)
-    let subject_decoder = get_decoder(subject, world)
+    let subjectSelector = type(...subjectSelectorComponents)
+    let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectSelector)
     // (3)
-    let entity_count = stream.readU16()
-    for (let i = 0; i < entity_count; i++) {
+    let subjectCount = stream.readU16()
+    for (let i = 0; i < subjectCount; i++) {
       // (4)
-      subject_decoder(stream)
+      subjectEncoder.decode(stream)
     }
   },
 }
 
-export let make = (
-  entity: Entity,
-  subject: Selector,
-  subject_priority_setter?: SubjectPrioritySetter,
-  subject_queue_max_length = 20_000,
-): T => {
-  let meta_length = 1 + 2 + subject.type.components.length * 4
-  let subject_queue = PriorityQueueInt.make<Entity>(
-    subject_queue_max_length,
-  )
-  return {
-    entity,
-    meta_length,
-    subject_priority_setter,
-    subject_queue,
-    subject: subject,
+class Interest {
+  readonly entity: Entity
+  readonly metaLength: number
+  readonly subjectPrioritizer?: SubjectPrioritizer
+  readonly subjectQueue: PriorityQueueInt<Entity>
+  readonly subjectSelector: Selector
+
+  constructor(
+    entity: Entity,
+    subjectSelector: Selector,
+    subjectQueueMaxLength: number,
+    subjectPrioritizer?: SubjectPrioritizer,
+  ) {
+    this.entity = entity
+    this.metaLength = 1 + 2 + subjectSelector.type.components.length * 4
+    this.subjectPrioritizer = subjectPrioritizer
+    this.subjectQueue = new PriorityQueueInt(subjectQueueMaxLength)
+    this.subjectSelector = subjectSelector
+  }
+
+  prioritize(world: World) {
+    world
+      .monitor(this.subjectSelector)
+      .eachIncluded(entity => {
+        this.subjectQueue.push(entity, 0)
+      })
+      .eachExcluded(entity => {
+        this.subjectQueue.remove(entity)
+      })
+    world.of(this.subjectSelector).each(entity => {
+      let priority = this.subjectPrioritizer?.(this.entity, entity, world) ?? 0
+      this.subjectQueue.push(entity, priority)
+    })
   }
 }
 
-export let update_priorities = (t: T, world: World) => {
-  world
-    .monitor(t.subject)
-    .eachIncluded(entity => {
-      PriorityQueueInt.push(t.subject_queue, entity, 0)
-    })
-    .eachExcluded(entity => {
-      PriorityQueueInt.remove(t.subject_queue, entity)
-    })
-  world.of(t.subject).each(entity => {
-    let entity_priority =
-      t.subject_priority_setter?.(t.entity, entity, world) ?? 0
-    PriorityQueueInt.push(t.subject_queue, entity, entity_priority)
-  })
-}
+export let makeInterest = (
+  entity: Entity,
+  subject: Selector,
+  subjectPrioritizer?: SubjectPrioritizer,
+  subjectQueueMaxLength = 20_000,
+) => new Interest(entity, subject, subjectQueueMaxLength, subjectPrioritizer)
