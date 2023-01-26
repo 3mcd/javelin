@@ -1,6 +1,6 @@
 import {assert} from "@javelin/lib"
 import {HI_MASK, idHi, idLo, makeId} from "./entity.js"
-import {makeTagComponent, Component, Tag} from "./component.js"
+import {make_tag_component, Component, Tag} from "./component.js"
 import {makeSelector, Selector} from "./type.js"
 
 export interface Relation {
@@ -14,7 +14,7 @@ let relations: Relation[] = []
 
 export let makeRelation = (): Relation => {
   let relationId = relationIds++
-  let relationTag = makeTagComponent()
+  let relationTag = make_tag_component()
   assert(relationId <= HI_MASK)
   let relationAttrs = {relationId, relationTag}
   function makeRelationship(to: number | Relation) {

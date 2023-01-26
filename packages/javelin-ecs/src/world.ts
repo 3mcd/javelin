@@ -7,19 +7,19 @@ import {QueryAPI, Query} from "./query.js"
 import {makeResource, Resource} from "./resource.js"
 import {System} from "./system.js"
 import {
-  hasSchema,
+  has_schema,
   Component,
   Tag,
   ComponentValue,
   ComponentInitValues,
-  getSchema,
-  expressComponent,
+  get_schema,
+  express,
   Dynamic,
 } from "./component.js"
 import {Transaction, TransactionIteratee} from "./transaction.js"
 import {
   hashSpec,
-  normalizeSpec,
+  normalize_spec,
   Selector,
   Spec,
   Type,
@@ -112,12 +112,12 @@ export class World {
     component: Component,
     componentValue: unknown,
   ) {
-    let componentStore = this.getComponentStore(component)
+    let componentStore = this.get_component_store(component)
     componentStore[entity] = componentValue
   }
 
   #freeEntityComponentValue(entity: Entity, component: Component) {
-    let componentStore = this.getComponentStore(component)
+    let componentStore = this.get_component_store(component)
     componentStore[entity] = undefined!
   }
 
@@ -186,7 +186,7 @@ export class World {
     let entityDelta = this.#ensureEntityDelta(entity)
     for (let i = 0; i < nextNode.type.components.length; i++) {
       let component = nextNode.type.components[i]
-      if (hasSchema(component)) {
+      if (has_schema(component)) {
         // Insert the new entity's component values into their respective
         // component stores.
         let componentValue = expect(entityDelta[component])
@@ -219,7 +219,7 @@ export class World {
     // respective component stores.
     for (let i = 0; i < nextNode.type.components.length; i++) {
       let component = nextNode.type.components[i]
-      if (hasSchema(component)) {
+      if (has_schema(component)) {
         let componentValue = expect(entityDelta[component])
         this.#setEntityComponentValue(
           entity,
@@ -246,7 +246,7 @@ export class World {
     // Free the deleted entity's component values.
     for (let i = 0; i < prevNode.type.components.length; i++) {
       let component = prevNode.type.components[i]
-      if (hasSchema(component)) {
+      if (has_schema(component)) {
         this.#freeEntityComponentValue(entity, component)
       }
     }
@@ -272,7 +272,7 @@ export class World {
     for (let i = 0; i < prevNode.type.components.length; i++) {
       let component = prevNode.type.components[i]
       if (!nextNode.hasComponent(component)) {
-        if (hasSchema(component)) {
+        if (has_schema(component)) {
           // Free component values of components not found in the destination
           // node.
           this.#freeEntityComponentValue(entity, component)
@@ -287,7 +287,7 @@ export class World {
     }
     for (let i = 0; i < nextNode.type.components.length; i++) {
       let component = nextNode.type.components[i]
-      if (hasSchema(component)) {
+      if (has_schema(component)) {
         let componentValue = entityDelta[component]
         // Attach newly added component values. The entity delta should be
         // loaded with component values for any component that did not exist in
@@ -334,7 +334,7 @@ export class World {
     let j = 0
     for (let i = 0; i < selector.includedComponents.length; i++) {
       let component = selector.includedComponents[i]
-      let componentSchema = getSchema(component)
+      let componentSchema = get_schema(component)
       if (exists(componentSchema)) {
         if (componentSchema === Dynamic) {
           // Values must be provided for components without schema.
@@ -343,7 +343,7 @@ export class World {
           // Update the entity change set with a user-provided component value,
           // or auto-initialize a component value from the component schema.
           entityDelta[component] =
-            selectorValues[j++] ?? expressComponent(component)
+            selectorValues[j++] ?? express(component)
         }
       }
     }
@@ -539,8 +539,8 @@ export class World {
     let entityNode = this.#getEntityNode(entity)
     let component = selector.includedComponents[0]
     return entityNode.hasComponent(component)
-      ? !hasSchema(component) ||
-          this.getComponentStore(component)[entity]
+      ? !has_schema(component) ||
+          this.get_component_store(component)[entity]
       : undefined
   }
 
@@ -562,9 +562,10 @@ export class World {
 
   /**
    * Get the array of component values for a given component.
+   * @private
    */
-  getComponentStore(component: Component) {
-    assert(hasSchema(component))
+  get_component_store(component: Component) {
+    assert(has_schema(component))
     return (this.#componentStores[component] ??= [])
   }
 
@@ -572,7 +573,7 @@ export class World {
    * Dispatch transient entity modification events.
    * @private
    */
-  emitStagedChanges() {
+  emit_staged_changes() {
     this.#stageTransaction.drainEntities(this.graph, Phase.Stage)
   }
 
@@ -581,7 +582,7 @@ export class World {
    * modification events.
    * @private
    */
-  commitStagedChanges() {
+  commit_staged_changes() {
     let commitBatch: TransactionIteratee = (
       batch,
       prevNode,
@@ -659,7 +660,7 @@ export class World {
     let query = querySystem.queries.get(queryHash)
     if (!exists(query)) {
       let querySelector = new Selector(querySpec)
-      let queryStores = getQueryStores(this, querySelector.type)
+      let queryStores = get_query_stores(this, querySelector.type)
       let queryNode = this.graph.nodeOfType(querySelector.type)
       query = new Query(querySelector, queryStores)
       this.#initQuery(query, queryHash, queryNode, querySystem)
@@ -680,7 +681,7 @@ export class World {
     let monitor = monitorSystem.monitors.get(monitorHash)
     if (!exists(monitor)) {
       let {includedComponents, excludedComponents} =
-        normalizeSpec(monitorSpec)
+        normalize_spec(monitorSpec)
       let monitorNodeType = Type.of(includedComponents)
       let monitorNode = this.graph.nodeOfType(monitorNodeType)
       monitor = new Monitor(
@@ -712,7 +713,7 @@ export class World {
     let monitor = monitorSystem.monitors.get(monitorHash)
     if (!exists(monitor)) {
       let {includedComponents, excludedComponents} =
-        normalizeSpec(monitorSpec)
+        normalize_spec(monitorSpec)
       let monitorNodeType = Type.of(includedComponents)
       let monitorNode = this.graph.nodeOfType(monitorNodeType)
       monitor = new Monitor(
@@ -731,13 +732,13 @@ export class World {
   }
 }
 
-let getQueryStores = (world: World, type: Type) => {
-  let queryStores = [] as unknown[][]
+let get_query_stores = (world: World, type: Type) => {
+  let query_stores = [] as unknown[][]
   for (let i = 0; i < type.components.length; i++) {
     let component = type.components[i]
-    if (hasSchema(component)) {
-      queryStores[component] = world.getComponentStore(component)
+    if (has_schema(component)) {
+      query_stores[component] = world.get_component_store(component)
     }
   }
-  return queryStores
+  return query_stores
 }

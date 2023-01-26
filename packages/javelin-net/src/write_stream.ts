@@ -44,6 +44,17 @@ export class WriteStream {
     return offset
   }
 
+  writeU16(n: number) {
+    let offset = this.#offset
+    this.#buffer.dv.setUint16(this.#offset, n)
+    this.#offset = offset + 2
+    return offset
+  }
+
+  writeU16At(n: number, offset: number) {
+    this.#buffer.dv.setUint16(offset, n)
+  }
+
   writeU32(n: number) {
     let offset = this.#offset
     this.#buffer.dv.setUint32(this.#offset, n, LE)
@@ -53,6 +64,35 @@ export class WriteStream {
 
   writeU32At(n: number, offset: number) {
     this.#buffer.dv.setUint32(offset, n, LE)
+  }
+
+  writeI8(n: number) {
+    let offset = this.#offset
+    this.#buffer.dv.setInt8(this.#offset, n)
+    this.#offset = offset + 1
+    return offset
+  }
+
+  writeI16(n: number) {
+    let offset = this.#offset
+    this.#buffer.dv.setInt16(this.#offset, n)
+    this.#offset = offset + 2
+    return offset
+  }
+
+  writeI16At(n: number, offset: number) {
+    this.#buffer.dv.setInt16(offset, n)
+  }
+
+  writeI32(n: number) {
+    let offset = this.#offset
+    this.#buffer.dv.setInt32(this.#offset, n, LE)
+    this.#offset = offset + 4
+    return offset
+  }
+
+  writeI32At(n: number, offset: number) {
+    this.#buffer.dv.setInt32(offset, n, LE)
   }
 
   writeF32(n: number) {

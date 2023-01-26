@@ -37,11 +37,39 @@ export class ReadStream {
     return this.#buffer.dv.getUint8(offset)
   }
 
+  readU16() {
+    let offset = this.#offset
+    this.#offset += 2
+    this.#checkBounds()
+    return this.#buffer.dv.getUint16(offset)
+  }
+
   readU32() {
     let offset = this.#offset
     this.#offset += 4
     this.#checkBounds()
     return this.#buffer.dv.getUint32(offset, LE)
+  }
+
+  readI8() {
+    let offset = this.#offset
+    this.#offset += 1
+    this.#checkBounds()
+    return this.#buffer.dv.getInt8(offset)
+  }
+
+  readI16() {
+    let offset = this.#offset
+    this.#offset += 2
+    this.#checkBounds()
+    return this.#buffer.dv.getInt16(offset)
+  }
+
+  readI32() {
+    let offset = this.#offset
+    this.#offset += 4
+    this.#checkBounds()
+    return this.#buffer.dv.getInt32(offset, LE)
   }
 
   peekU32(relativeOffset: number) {

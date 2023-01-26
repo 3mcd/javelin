@@ -202,15 +202,15 @@ export class App {
               monitor.clear()
             }
             // Notify immediate monitors of intra-step entity modifications.
-            this.world.emitStagedChanges()
+            this.world.emit_staged_changes()
           }
         }
       }
     }
     // Notify monitors of inter-step entity modifications.
-    this.world.commitStagedChanges()
+    this.world.commit_staged_changes()
     return this
   }
 }
 
-export let makeApp = (world = new World()) => new App(world)
+export let make_app = (world = new World()) => new App(world)

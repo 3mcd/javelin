@@ -1,14 +1,14 @@
 import {Maybe} from "@javelin/lib"
 import {suite, test, expect} from "vitest"
 import {Graph, Node} from "./graph.js"
-import {makeTagComponent} from "./component.js"
+import {make_tag_component} from "./component.js"
 import {ERR_CHILD_OF, ERR_SLOT, makeSelector, Type} from "./type.js"
 import {ChildOf} from "./relation.js"
 import {makeSlot} from "./slot.js"
 
-let a = makeTagComponent()
-let b = makeTagComponent()
-let c = makeTagComponent()
+let a = make_tag_component()
+let b = make_tag_component()
+let c = make_tag_component()
 
 suite("Graph", () => {
   test("node links", () => {

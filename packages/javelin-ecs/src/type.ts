@@ -42,7 +42,7 @@ export function validateComponents(components: Component[]) {
   }
 }
 
-export function normalizeSpec(spec: Spec) {
+export function normalize_spec(spec: Spec) {
   let includedComponents: Component[] = []
   let excludedComponents: Component[] = []
   for (let i = 0; i < spec.length; i++) {
@@ -118,7 +118,8 @@ export class Selector<T extends Spec = Spec> {
   readonly excludedComponents
 
   constructor(spec: T) {
-    let {includedComponents, excludedComponents} = normalizeSpec(spec)
+    let {includedComponents, excludedComponents} =
+      normalize_spec(spec)
     this.hash = hashWords.apply(null, includedComponents)
     this.type = Type.of(includedComponents)
     this.includedComponents = includedComponents

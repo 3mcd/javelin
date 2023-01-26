@@ -1,14 +1,14 @@
-import {assert} from "@javelin/lib"
+import {assert, Maybe} from "@javelin/lib"
 
-export type T = {
-  heap: number[]
+export type T<Q extends number = number> = {
+  heap: Q[]
   heap_index: number[]
   heap_priorities: number[]
   length: number
   max_length: number
 }
 
-export let make = (max_length: number): T => {
+export let make = <Q extends number>(max_length: number): T<Q> => {
   return {
     heap: new Array(max_length),
     heap_index: [],
@@ -18,12 +18,12 @@ export let make = (max_length: number): T => {
   }
 }
 
-let move = (t: T, item: number, index: number) => {
+let move = <Q extends number>(t: T<Q>, item: Q, index: number) => {
   t.heap[index] = item
   t.heap_index[item] = index
 }
 
-let locate = (t: T, item: number) => {
+let locate = <Q extends number>(t: T<Q>, item: Q) => {
   return t.heap_index[item]
 }
 
@@ -89,7 +89,11 @@ let heapify_down = (t: T, index: number) => {
   }
 }
 
-export let push = (t: T, item: number, priority: number) => {
+export let push = <Q extends number>(
+  t: T<Q>,
+  item: Q,
+  priority: number,
+) => {
   if (locate(t, item) >= 0) {
     remove(t, item)
   }
@@ -102,7 +106,7 @@ export let push = (t: T, item: number, priority: number) => {
   heapify_up(t, t.length - 1)
 }
 
-export let pop = (t: T) => {
+export let pop = <Q extends number>(t: T<Q>): Maybe<Q> => {
   if (t.length === 0) {
     return
   }
@@ -122,14 +126,14 @@ export let is_empty = (t: T) => {
   return t.length === 0
 }
 
-export let peek = (t: T) => {
+export let peek = <Q extends number>(t: T<Q>): Maybe<Q> => {
   if (is_empty(t)) {
     return
   }
   return t.heap[0]
 }
 
-export let remove = (t: T, item: number) => {
+export let remove = <Q extends number>(t: T<Q>, item: Q) => {
   let index = locate(t, item)
   assert(index >= 0)
   let v = t.heap[t.length - 1]

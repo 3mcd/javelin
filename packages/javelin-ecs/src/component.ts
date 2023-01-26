@@ -46,49 +46,63 @@ export type Component<T extends ComponentSpec = unknown> = Opaque<
   T
 >
 
-let componentIds = 0
-let componentSchemas: (Schema | Dynamic)[] = []
+let component_ids = 0
+let component_schemas: (Schema | Dynamic)[] = []
 
-export let hasSchema = (component: Component) =>
-  component in componentSchemas
-export let getSchema = (component: Component) =>
-  componentSchemas[component]
-export let setSchema = (
+/**
+ * @private
+ */
+export let has_schema = (component: Component) =>
+  component in component_schemas
+
+/**
+ * @private
+ */
+export let get_schema = (component: Component) =>
+  component_schemas[component]
+
+/**
+ * @private
+ */
+export let set_schema = (
   component: Component,
   schema: Schema | Dynamic,
-) => (componentSchemas[component] = schema)
+) => (component_schemas[component] = schema)
 
-export let expressComponent = <T>(
+/**
+ * @private
+ */
+export let express = <T>(
   component: Component<T>,
 ): ComponentValue<T> => {
-  let componentSchema = expect(getSchema(component))
-  assert(componentSchema !== Dynamic)
-  if (typeof componentSchema === "string") {
+  let component_schema = expect(get_schema(component))
+  assert(component_schema !== Dynamic)
+  if (typeof component_schema === "string") {
     return 0 as unknown as ComponentValue<T>
   }
-  let componentValue = {} as Record<string, number>
-  for (let prop in componentSchema) {
-    componentValue[prop] = 0
+  let component_value = {} as Record<string, number>
+  for (let prop in component_schema) {
+    component_value[prop] = 0
   }
-  return componentValue as unknown as ComponentValue<T>
+  return component_value as unknown as ComponentValue<T>
 }
 
-export function makeTagComponent(): Component<Tag> {
-  let component = componentIds++ as Component<Tag>
+export function make_tag_component(): Component<Tag> {
+  let component = component_ids++ as Component<Tag>
   assert(component <= LO_MASK)
   return component
 }
 
-export function makeValueComponent<T>(
-  componentSchema: SchemaOf<T>,
+export function make_value_component<T>(
+  component_schema: SchemaOf<T>,
 ): Component<SchemaOf<T>>
-export function makeValueComponent<T>(): Component<T>
-export function makeValueComponent<T extends Schema>(
-  componentSchema: T,
+export function make_value_component<T>(): Component<T>
+export function make_value_component<T extends Schema>(
+  component_schema: T,
 ): Component<T>
-export function makeValueComponent(componentSchema?: Schema) {
-  let component = makeTagComponent() as Component
-  setSchema(component, componentSchema ?? Dynamic)
-  componentSchemas[component] = componentSchema ?? Dynamic
+export function make_value_component(component_schema?: Schema) {
+  let component = make_tag_component() as Component
+  set_schema(component, component_schema ?? Dynamic)
+  component_schemas[component] = component_schema ?? Dynamic
   return component
 }

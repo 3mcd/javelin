@@ -7,8 +7,8 @@ import {
 } from "@javelin/lib"
 import {Entity} from "./entity.js"
 import {Node} from "./graph.js"
-import {Component, ComponentValue, hasSchema} from "./component.js"
-import {ComponentsOf, normalizeSpec, Selector, Spec} from "./type.js"
+import {Component, ComponentValue, has_schema} from "./component.js"
+import {ComponentsOf, normalize_spec, Selector, Spec} from "./type.js"
 import {isRelation} from "./relation.js"
 
 export type QueryEachIteratee<T extends Spec> = (
@@ -77,7 +77,7 @@ export class QueryView<T extends Spec = Spec> implements QueryAPI<T> {
     this.#query = query
     this.#iterator = compileEachIterator(
       query,
-      components.filter(hasSchema),
+      components.filter(has_schema),
     )
   }
 
@@ -161,7 +161,7 @@ export class Query<T extends Spec = Spec> implements QueryAPI<T> {
     hash = normalizeHash(hash)
     let view = this.#views[hash]
     if (!exists(view)) {
-      let {includedComponents} = normalizeSpec(spec)
+      let {includedComponents} = normalize_spec(spec)
       view = new QueryView(this, includedComponents)
       this.#views[hash] = view
     }

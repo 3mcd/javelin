@@ -8,59 +8,57 @@ export interface ProtocolMessageType<T> {
   decode(stream: ReadStream, world: World, length: number): void
 }
 
+type T = {
+  message_types: ProtocolMessageType<unknown>[]
+  message_type_ids: Map<ProtocolMessageType<unknown>, number>
+}
+
 const ERR_INVALID_PROTOCOL_MESSAGE_TYPE = "unregistered message type"
 
-export class Protocol {
-  #messageTypes
-  #messageTypeIds
+export let encode = <Q>(
+  t: T,
+  world: World,
+  stream: WriteStream,
+  message_type: ProtocolMessageType<Q>,
+  message: Q,
+) => {
+  let message_type_id = expect(
+    t.message_type_ids.get(message_type),
+    ERR_INVALID_PROTOCOL_MESSAGE_TYPE,
+  )
+  stream.grow(1 + 4)
+  stream.writeU8(message_type_id)
+  let message_length_offset = stream.writeU32(0)
+  let message_start_offset = stream.offset
+  message_type.encode(stream, world, message)
+  let message_length = stream.offset - message_start_offset
+  stream.writeU32At(message_length, message_length_offset)
+}
 
-  constructor() {
-    this.#messageTypes = [] as ProtocolMessageType<unknown>[]
-    this.#messageTypeIds = new Map<
-      ProtocolMessageType<unknown>,
-      number
-    >()
-  }
-
-  addMessageType<T>(messageType: ProtocolMessageType<T>) {
-    let messageTypeId = this.#messageTypes.push(messageType) - 1
-    this.#messageTypeIds.set(messageType, messageTypeId)
-    return this
-  }
-
-  encode<T extends unknown>(
-    messageType: ProtocolMessageType<T>,
-    message: T,
-    world: World,
-    stream: WriteStream,
-  ) {
-    let messageTypeId = expect(
-      this.#messageTypeIds.get(messageType),
+export let decode = (t: T, world: World, stream: ReadStream) => {
+  let bytes = stream.bytes()
+  while (stream.offset < bytes.byteLength) {
+    let message_type_id = stream.readU8()
+    let message_type = expect(
+      t.message_types[message_type_id],
       ERR_INVALID_PROTOCOL_MESSAGE_TYPE,
     )
-    stream.grow(1 + 4)
-    stream.writeU8(messageTypeId)
-    let messageLengthOffset = stream.writeU32(0)
-    let messageStartOffset = stream.offset
-    messageType.encode(stream, world, message)
-    let messageLength = stream.offset - messageStartOffset
-    stream.writeU32At(messageLength, messageLengthOffset)
-  }
-
-  decode(world: World, stream: ReadStream) {
-    let bytes = stream.bytes()
-    while (stream.offset < bytes.byteLength) {
-      let messageTypeId = stream.readU8()
-      let messageType = expect(
-        this.#messageTypes[messageTypeId],
-        ERR_INVALID_PROTOCOL_MESSAGE_TYPE,
-      )
-      let messageLength = stream.readU32()
-      messageType.decode(stream, world, messageLength)
-    }
+    let message_length = stream.readU32()
+    message_type.decode(stream, world, message_length)
   }
 }
 
-export function makeProtocol() {
-  return new Protocol()
+export let add_message_type = (
+  t: T,
+  message_type: ProtocolMessageType<unknown>,
+) => {
+  let message_type_id = t.message_types.push(message_type) - 1
+  t.message_type_ids.set(message_type, message_type_id)
+}
+
+export let make = (): T => {
+  return {
+    message_types: [],
+    message_type_ids: new Map(),
+  }
 }
