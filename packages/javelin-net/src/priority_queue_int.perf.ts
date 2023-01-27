@@ -4,7 +4,7 @@ import {PriorityQueueInt} from "./priority_queue_int.js"
 const COUNT = 100
 
 let fixture = (insert = true) => {
-  let queue = new PriorityQueueInt(COUNT)
+  let queue = new PriorityQueueInt()
   if (insert) {
     for (let i = 0; i < COUNT; i++) {
       queue.push(i, i % 3)

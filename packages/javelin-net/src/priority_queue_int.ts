@@ -1,145 +1,97 @@
-import {assert, Maybe} from "@javelin/lib"
+let left = (i: number) => 2 * i + 1
+let right = (i: number) => 2 * i + 2
+let parent = (i: number) => Math.ceil(i / 2) - 1
 
 export class PriorityQueueInt<T extends number> {
   #heap
-  #index
-  #maxLength
+  #indices
   #priorities
 
-  length
-
-  constructor(maxLength: number) {
+  constructor() {
     this.#heap = [] as T[]
-    this.#index = [] as number[]
-    this.#maxLength = maxLength
     this.#priorities = [] as number[]
-    this.length = 0
+    this.#indices = [] as number[]
   }
 
-  #getIndex(item: T) {
-    return this.#index[item]
+  get length() {
+    return this.#heap.length
   }
 
-  #getPriority(index: number) {
-    return this.#priorities[index]
+  #priority(i: number) {
+    return this.#priorities[this.#heap[i]]
   }
 
-  #setPriority(i: number, priority: number) {
-    this.#priorities[i] = priority
-  }
-
-  #swap(i: number, j: number) {
-    let ii = this.#heap[i]
-    let ij = this.#heap[j]
-    let pi = this.#priorities[i]
-    let pj = this.#priorities[j]
-    this.#heap[i] = ij
-    this.#heap[j] = ii
-    this.#index[ii] = j
-    this.#index[ij] = i
-    this.#priorities[i] = pj
-    this.#priorities[j] = pi
-  }
-
-  #heapifyUp(i: number) {
-    while (i > 0) {
-      let ip: number
-      if (i % 2 === 0) {
-        ip = (i - 2) / 2
-      } else {
-        ip = (i - 1) / 2
-      }
-      if (this.#getPriority(ip) >= this.#getPriority(i)) {
-        return
-      }
-      this.#swap(i, ip)
-      i = ip
+  #remove(i = 0) {
+    if (this.#heap.length === 0) {
+      return null
     }
-  }
-
-  #heapifyDown(i: number) {
-    while (i < this.length) {
-      let il = i * 2 + 1
-      let ir = i * 2 + 2
-      let im = i
-      if (il <= this.length && this.#getPriority(il) > this.#getPriority(im)) {
-        im = il
-      }
-      if (ir <= this.length && this.#getPriority(ir) > this.#getPriority(im)) {
-        im = ir
-      }
-      if (im === i) {
-        return
-      }
-      this.#swap(i, im)
-      i = im
-    }
-  }
-
-  #move(item: T, i: number) {
-    this.#heap[i] = item
-    this.#index[item] = i
-  }
-
-  isEmpty() {
-    return this.length === 0
-  }
-
-  peek(): Maybe<T> {
-    if (this.isEmpty()) {
-      return
-    }
-    return this.#heap[0]
-  }
-
-  push(item: T, priority: number) {
-    if (this.#getIndex(item) >= 0) {
-      this.remove(item)
-    }
-    if (this.length === this.#maxLength) {
-      return
-    }
-    let i = this.length
-    this.#move(item, i)
-    this.#setPriority(i, priority)
-    this.length++
-    this.#heapifyUp(i)
-  }
-
-  pop() {
-    if (this.length === 0) {
-      return
-    }
-    let i = 0
-    let item = this.#heap[i]
-    this.length--
-    this.#move(this.#heap[this.length], i)
-    this.#setPriority(i, this.#priorities[this.length])
-    this.#heapifyDown(i)
+    this.#swap(i, this.#heap.length - 1)
+    let item = this.#heap.pop()
+    this.#bubbleDown(i)
     return item
   }
 
-  remove(item: T) {
-    let i = this.#getIndex(item)
-    assert(i >= 0)
-    let l = this.length - 1
-    let v = this.#heap[l]
-    let p = this.#getPriority(l)
-    this.#heap[i] = v
-    this.#heap[l] = undefined!
-    this.#index[item] = undefined!
-    this.#index[v] = i
-    this.#priorities[l] = undefined!
-    this.#priorities[i] = p
-    if (this.#getPriority(i) > this.#getPriority(l)) {
-      this.#heapifyUp(i)
-    } else if (this.#getPriority(i) < this.#getPriority(l)) {
-      this.#heapifyDown(i)
-    }
-    this.length--
+  #swap(i1: number, i2: number) {
+    this.#indices[this.#heap[i1]] = i2
+    this.#indices[this.#heap[i2]] = i1
+    let v1 = this.#heap[i1]
+    this.#heap[i1] = this.#heap[i2]
+    this.#heap[i2] = v1
   }
 
-  clear() {
-    this.length = 0
+  #getTopChild(i: number) {
+    return right(i) < this.#heap.length &&
+      this.#priority(right(i)) - this.#priority(left(i)) > 0
+      ? right(i)
+      : left(i)
+  }
+
+  #bubbleUp() {
+    let i = this.#heap.length - 1
+
+    while (
+      parent(i) >= 0 &&
+      this.#priority(i) - this.#priority(parent(i)) > 0
+    ) {
+      this.#swap(parent(i), i)
+      i = parent(i)
+    }
+  }
+
+  #bubbleDown(i = 0) {
+    let curr = i
+    while (
+      left(curr) < this.#heap.length &&
+      this.#priority(this.#getTopChild(curr)) - this.#priority(curr) > 0
+    ) {
+      let next = this.#getTopChild(curr)
+      this.#swap(curr, next)
+      curr = next
+    }
+  }
+
+  push(item: T, priority: number) {
+    if (this.#indices[item] >= 0) {
+      this.remove(item)
+    }
+    this.#priorities[item] = priority
+    this.#indices[item] = this.#heap.push(item) - 1
+    this.#bubbleUp()
+  }
+
+  peek() {
+    return this.#heap[0]
+  }
+
+  remove(item: number) {
+    this.#remove(this.#indices[item])
+  }
+
+  pop() {
+    return this.#remove()
+  }
+
+  isEmpty() {
+    return this.#heap.length === 0
   }
 }

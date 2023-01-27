@@ -9,7 +9,7 @@ import {
   type,
   World,
 } from "@javelin/ecs"
-import {exists, expect} from "@javelin/lib"
+import {exists} from "@javelin/lib"
 import {PriorityQueueInt} from "./priority_queue_int.js"
 import {ReadStream} from "./read_stream.js"
 import {WriteStream} from "./write_stream.js"
@@ -256,13 +256,12 @@ class Interest {
   constructor(
     entity: Entity,
     subjectSelector: Selector,
-    subjectQueueMaxLength: number,
     subjectPrioritizer?: SubjectPrioritizer,
   ) {
     this.entity = entity
     this.metaLength = 1 + 2 + subjectSelector.type.components.length * 4
     this.subjectPrioritizer = subjectPrioritizer
-    this.subjectQueue = new PriorityQueueInt(subjectQueueMaxLength)
+    this.subjectQueue = new PriorityQueueInt()
     this.subjectSelector = subjectSelector
   }
 
@@ -286,5 +285,4 @@ export let makeInterest = (
   entity: Entity,
   subject: Selector,
   subjectPrioritizer?: SubjectPrioritizer,
-  subjectQueueMaxLength = 20_000,
-) => new Interest(entity, subject, subjectQueueMaxLength, subjectPrioritizer)
+) => new Interest(entity, subject, subjectPrioritizer)
