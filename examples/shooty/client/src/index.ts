@@ -1,17 +1,13 @@
-import {app} from "@javelin/ecs"
-import {
-  clientPlugin,
-  NetworkConfig,
-  ServerTransport,
-  websocketTransport,
-} from "@javelin/net"
-import {networkConfig} from "../../config.js"
+import {app, type} from "@javelin/ecs"
+import {clientPlugin, Transport, WebsocketTransport} from "@javelin/net"
+import "../../server/transform.ts"
 
-let websocket = new WebSocket("ws://localhost:8080")
+let socket = new WebSocket("ws://localhost:8080")
 
 let game = app()
-  .addResource(ServerTransport, websocketTransport(websocket))
-  .addResource(NetworkConfig, networkConfig)
+  .addInitSystem(world => {
+    world.create(type(Transport), new WebsocketTransport(socket))
+  })
   .use(clientPlugin)
 
 let loop = () => {

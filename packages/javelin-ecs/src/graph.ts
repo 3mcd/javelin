@@ -30,48 +30,42 @@ export class Node {
   readonly onEntitiesIncluded
   readonly onNodeCreated
   readonly onNodeDeleted
-  readonly sparseTerms
+  readonly sparseComponents
   readonly type
 
   /**
-   * Compute the hash of the difference in terms between two nodes.
+   * Compute the hash of the difference in components between two nodes.
    */
   static diff(nodeA: Node, nodeB: Node) {
     let diffHash = HASH_BASE
-    let termAIndex = 0
-    let termBIndex = 0
+    let componentAIndex = 0
+    let componentBIndex = 0
     while (
-      termAIndex < nodeA.type.components.length &&
-      termBIndex < nodeB.type.components.length
+      componentAIndex < nodeA.type.components.length &&
+      componentBIndex < nodeB.type.components.length
     ) {
-      let termA = nodeA.type.components[termAIndex]
-      let termB = nodeB.type.components[termBIndex]
-      if (termA === termB) {
-        termAIndex++
-        termBIndex++
-      } else if (termA < termB) {
-        diffHash = hashWord(diffHash, termA)
-        termAIndex++
-      } else if (termA > termB) {
-        diffHash = hashWord(diffHash, termB)
-        termBIndex++
+      let componentA = nodeA.type.components[componentAIndex]
+      let componentB = nodeB.type.components[componentBIndex]
+      if (componentA === componentB) {
+        componentAIndex++
+        componentBIndex++
+      } else if (componentA < componentB) {
+        diffHash = hashWord(diffHash, componentA)
+        componentAIndex++
+      } else if (componentA > componentB) {
+        diffHash = hashWord(diffHash, componentB)
+        componentBIndex++
       }
     }
-    if (termAIndex > nodeA.type.components.length - 1) {
-      while (termBIndex < nodeB.type.components.length) {
-        diffHash = hashWord(
-          diffHash,
-          nodeB.type.components[termBIndex],
-        )
-        termBIndex++
+    if (componentAIndex > nodeA.type.components.length - 1) {
+      while (componentBIndex < nodeB.type.components.length) {
+        diffHash = hashWord(diffHash, nodeB.type.components[componentBIndex])
+        componentBIndex++
       }
-    } else if (termBIndex > nodeB.type.components.length - 1) {
-      while (termAIndex < nodeA.type.components.length) {
-        diffHash = hashWord(
-          diffHash,
-          nodeA.type.components[termAIndex],
-        )
-        termAIndex++
+    } else if (componentBIndex > nodeB.type.components.length - 1) {
+      while (componentAIndex < nodeA.type.components.length) {
+        diffHash = hashWord(diffHash, nodeA.type.components[componentAIndex])
+        componentAIndex++
       }
     }
     return normalizeHash(diffHash)
@@ -86,30 +80,30 @@ export class Node {
    */
   static match(nodeA: Node, nodeB: Node) {
     if (nodeA === nodeB) return 0
-    let termANotSuperset = false
-    let termAIndex = 0
-    let termBIndex = 0
-    let termMatches = 0
+    let componentANotSuperset = false
+    let componentAIndex = 0
+    let componentBIndex = 0
+    let componentMatches = 0
     while (
-      termAIndex < nodeA.type.components.length &&
-      termBIndex < nodeB.type.components.length
+      componentAIndex < nodeA.type.components.length &&
+      componentBIndex < nodeB.type.components.length
     ) {
-      let termA = nodeA.type.components[termAIndex]
-      let termB = nodeB.type.components[termBIndex]
-      if (termA > termB) {
-        termBIndex++
-      } else if (termA < termB) {
-        termANotSuperset = true
-        termAIndex++
+      let componentA = nodeA.type.components[componentAIndex]
+      let componentB = nodeB.type.components[componentBIndex]
+      if (componentA > componentB) {
+        componentBIndex++
+      } else if (componentA < componentB) {
+        componentANotSuperset = true
+        componentAIndex++
       } else {
-        termMatches++
-        termAIndex++
-        termBIndex++
+        componentMatches++
+        componentAIndex++
+        componentBIndex++
       }
     }
-    if (termMatches === nodeA.type.components.length) return 1
-    if (termMatches === nodeB.type.components.length) return 2
-    return termANotSuperset ? 0 : 3
+    if (componentMatches === nodeA.type.components.length) return 1
+    if (componentMatches === nodeB.type.components.length) return 2
+    return componentANotSuperset ? 0 : 3
   }
 
   /**
@@ -120,10 +114,7 @@ export class Node {
     nodeAdd: Node,
     diffHash = Node.diff(nodeRem, nodeAdd),
   ) {
-    if (
-      nodeRem.edgesAdd.has(diffHash) ||
-      nodeAdd.edgesRem.has(diffHash)
-    ) {
+    if (nodeRem.edgesAdd.has(diffHash) || nodeAdd.edgesRem.has(diffHash)) {
       return
     }
     nodeRem.edgesAdd.set(diffHash, nodeAdd)
@@ -136,10 +127,11 @@ export class Node {
     nodeAdd.edgesRem.delete(diffHash)
   }
 
-  constructor(sortedTerms: Component[] = []) {
-    let sparseTerms = [] as number[]
-    for (let i = 0; i < sortedTerms.length; i++) {
-      sparseTerms[sortedTerms[i]] = i
+  constructor(type: Type) {
+    console.log("create", type.components)
+    let sparseComponents = [] as number[]
+    for (let i = 0; i < type.components.length; i++) {
+      sparseComponents[type.components[i]] = i
     }
     this.edgesAdd = new SparseSet<Node>()
     this.edgesRem = new SparseSet<Node>()
@@ -149,21 +141,21 @@ export class Node {
     this.onEntitiesIncluded = new Signal<TransactionEvent>()
     this.onNodeCreated = new Signal<Node>()
     this.onNodeDeleted = new Signal<Node>()
-    this.sparseTerms = sparseTerms
-    this.type = Type.of(sortedTerms)
+    this.sparseComponents = sparseComponents
+    this.type = Type.of(type.components)
   }
 
   /**
-   * Check if the node's entities have a term.
+   * Check if the node's entities have a component.
    */
-  hasComponent(term: Component) {
-    return exists(this.sparseTerms[term])
+  hasComponent(component: Component) {
+    return exists(this.sparseComponents[component])
   }
 
   hasAnyRelationship() {
     for (let i = 0; i < this.type.components.length; i++) {
-      let term = this.type.components[i]
-      if (isRelationship(term)) {
+      let component = this.type.components[i]
+      if (isRelationship(component)) {
         return true
       }
     }
@@ -171,15 +163,15 @@ export class Node {
   }
 
   /**
-   * Check if the node has all terms of another node.
+   * Check if the node has all components of another node.
    */
   isSupersetOf(node: Node) {
     if (node.type.components.length === 0) {
       return false
     }
     for (let i = 0; i < node.type.components.length; i++) {
-      let term = node.type.components[i]
-      if (!this.hasComponent(term)) {
+      let component = node.type.components[i]
+      if (!this.hasComponent(component)) {
         return false
       }
     }
@@ -234,10 +226,7 @@ export class Node {
    * Execute a function recursively for each of the node's ancestors that also
    * match a predicate function, including the node itself.
    */
-  traverseRemWithFilter(
-    iteratee: NodeIteratee,
-    predicate: NodePredicate,
-  ) {
+  traverseRemWithFilter(iteratee: NodeIteratee, predicate: NodePredicate) {
     let visitedNodes = new Set<Node>()
     let stack: (Node | number)[] = [this]
     let stackIndex = 1
@@ -313,7 +302,7 @@ export class Graph {
 
   constructor() {
     this.nodes = [] as Node[]
-    this.root = new Node([])
+    this.root = new Node(Type.of([]))
     this.root.onNodeDeleted.add(node => {
       this.nodes[node.type.hash] = undefined!
     })
@@ -327,37 +316,37 @@ export class Graph {
     if (node === this.root) {
       return this.#createNode(type.components)
     }
-    let finalComponents: Component[] = []
-    let nodeTermIndex = 0
-    let typeTermIndex = 0
+    let components: Component[] = []
+    let nodeComponentIndex = 0
+    let typeComponentIndex = 0
     while (
-      nodeTermIndex < node.type.components.length &&
-      typeTermIndex < type.components.length
+      nodeComponentIndex < node.type.components.length &&
+      typeComponentIndex < type.components.length
     ) {
-      let nodeTerm = node.type.components[nodeTermIndex]
-      let typeTerm = type.components[typeTermIndex]
-      if (nodeTerm === typeTerm) {
-        finalComponents.push(nodeTerm)
-        nodeTermIndex++
-        typeTermIndex++
-      } else if (nodeTerm < typeTerm) {
-        finalComponents.push(nodeTerm)
-        nodeTermIndex++
-      } else if (nodeTerm > typeTerm) {
-        finalComponents.push(typeTerm)
-        typeTermIndex++
+      let nodeComponent = node.type.components[nodeComponentIndex]
+      let typeComponent = type.components[typeComponentIndex]
+      if (nodeComponent === typeComponent) {
+        components.push(nodeComponent)
+        nodeComponentIndex++
+        typeComponentIndex++
+      } else if (nodeComponent < typeComponent) {
+        components.push(nodeComponent)
+        nodeComponentIndex++
+      } else if (nodeComponent > typeComponent) {
+        components.push(typeComponent)
+        typeComponentIndex++
       }
     }
-    if (nodeTermIndex > node.type.components.length - 1) {
-      while (typeTermIndex < type.components.length) {
-        finalComponents.push(type.components[typeTermIndex++])
+    if (nodeComponentIndex > node.type.components.length - 1) {
+      while (typeComponentIndex < type.components.length) {
+        components.push(type.components[typeComponentIndex++])
       }
-    } else if (typeTermIndex > type.components.length - 1) {
-      while (nodeTermIndex < node.type.components.length) {
-        finalComponents.push(node.type.components[nodeTermIndex++])
+    } else if (typeComponentIndex > type.components.length - 1) {
+      while (nodeComponentIndex < node.type.components.length) {
+        components.push(node.type.components[nodeComponentIndex++])
       }
     }
-    return this.#createNode(finalComponents)
+    return this.#createNode(components)
   }
 
   /**
@@ -368,33 +357,33 @@ export class Graph {
     if (node === this.root) {
       return node
     }
-    let remTerms: Component[] = []
-    let nodeTermIndex = 0
-    let typeTermIndex = 0
+    let remcomponents: Component[] = []
+    let nodeComponentIndex = 0
+    let typeComponentIndex = 0
     while (
-      nodeTermIndex < node.type.components.length &&
-      typeTermIndex < type.components.length
+      nodeComponentIndex < node.type.components.length &&
+      typeComponentIndex < type.components.length
     ) {
-      let nodeTerm = node.type.components[nodeTermIndex]
-      let typeTerm = type.components[typeTermIndex]
-      if (nodeTerm === typeTerm) {
-        nodeTermIndex++
-        typeTermIndex++
-      } else if (nodeTerm < typeTerm) {
-        remTerms.push(nodeTerm)
-        nodeTermIndex++
-      } else if (nodeTerm > typeTerm) {
-        remTerms.push(typeTerm)
-        typeTermIndex++
+      let nodeComponent = node.type.components[nodeComponentIndex]
+      let typeComponent = type.components[typeComponentIndex]
+      if (nodeComponent === typeComponent) {
+        nodeComponentIndex++
+        typeComponentIndex++
+      } else if (nodeComponent < typeComponent) {
+        remcomponents.push(nodeComponent)
+        nodeComponentIndex++
+      } else if (nodeComponent > typeComponent) {
+        remcomponents.push(typeComponent)
+        typeComponentIndex++
       }
     }
-    if (typeTermIndex > type.components.length - 1) {
-      while (nodeTermIndex < node.type.components.length) {
-        let term = node.type.components[nodeTermIndex++]
-        remTerms.push(term)
+    if (typeComponentIndex > type.components.length - 1) {
+      while (nodeComponentIndex < node.type.components.length) {
+        let component = node.type.components[nodeComponentIndex++]
+        remcomponents.push(component)
       }
     }
-    return this.#createNode(remTerms)
+    return this.#createNode(remcomponents)
   }
 
   /**
@@ -427,25 +416,25 @@ export class Graph {
   }
 
   /**
-   * Posture a node in the graph by ensuring a path of intermediate nodes
+   * Posture a node in the graph by ensuring a path of incomponentediate nodes
    * between it and the root, and linking it to related nodes.
    */
   #traverseLink(node: Node) {
-    let addTerms = [] as Component[]
+    let components = [] as Component[]
     let nodeRem: Node = this.root
     // build a path from the base node to the new node
     // e.g. () -> (1) -> (1,5) -> (1,5,104977)
     for (let i = 0; i < node.type.components.length; i++) {
-      let term = node.type.components[i]
-      let termHash = normalizeHash(hashWord(HASH_BASE, term))
-      let nodeAdd = nodeRem.edgesAdd.get(termHash)
-      addTerms.push(term)
+      let component = node.type.components[i]
+      let componentHash = normalizeHash(hashWord(HASH_BASE, component))
+      let nodeAdd = nodeRem.edgesAdd.get(componentHash)
+      components.push(component)
       if (nodeAdd === undefined) {
-        let nextHash = hashWords.apply(null, addTerms)
+        let nextHash = hashWords.apply(null, components)
         nodeAdd = this.nodes[nextHash] ??= new Node(
-          Array.from(addTerms),
+          Type.of(Array.from(components)),
         )
-        Node.link(nodeRem, nodeAdd, termHash)
+        Node.link(nodeRem, nodeAdd, componentHash)
       }
       nodeRem = nodeAdd!
     }
@@ -458,8 +447,13 @@ export class Graph {
    */
   #createNode(components: Component[]) {
     validateComponents(components)
-    let node = new Node(components)
-    this.nodes[node.type.hash] = node
+    let nodeType = Type.of(components)
+    let node = this.nodes[nodeType.hash]
+    if (exists(node)) {
+      return node
+    }
+    node = new Node(nodeType)
+    this.nodes[nodeType.hash] = node
     this.#traverseLink(node)
     node.traverseRem(prev => {
       prev.onNodeCreated.emit(node)
@@ -485,9 +479,13 @@ export class Graph {
    * Get the node whose type is a union of a node's type and another type.
    */
   nodeAddType(node: Node, type: Type): Node {
-    return (
-      node.edgesAdd.get(type.hash) ?? this.#createNodeAdd(node, type)
-    )
+    let nodeAdd = node.edgesAdd.get(type.hash)
+    if (nodeAdd) {
+      return nodeAdd
+    }
+    nodeAdd = this.#createNodeAdd(node, type)
+    node.edgesAdd.set(type.hash, nodeAdd)
+    return nodeAdd
   }
 
   /**
@@ -495,8 +493,12 @@ export class Graph {
    * another type.
    */
   nodeRemoveType(node: Node, type: Type): Node {
-    return (
-      node.edgesRem.get(type.hash) ?? this.#createNodeRem(node, type)
-    )
+    let nodeRem = node.edgesRem.get(type.hash)
+    if (nodeRem) {
+      return nodeRem
+    }
+    nodeRem = this.#createNodeRem(node, type)
+    node.edgesRem.set(type.hash, nodeRem)
+    return nodeRem
   }
 }

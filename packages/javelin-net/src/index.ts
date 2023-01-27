@@ -1,5 +1,7 @@
-import {Awareness} from "./awareness.js"
+import {AwarenessBuilder} from "./awareness.js"
 
-export function awareness() {
-  return new Awareness()
-}
+export * from "./plugin.js"
+export {WebsocketTransport} from "./transport.js"
+
+export {makeAwareness as awareness} from "./awareness.js"
+export {makeInterest as interest} from "./interest.js"

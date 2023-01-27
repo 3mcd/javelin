@@ -371,7 +371,7 @@ export class World {
    * Check for the presence of a resource. Returns true if a value has been set
    * for the resource, otherwise returns false.
    */
-  hasResource<T>(resource: Resource<T>) {
+  hasResource(resource: Resource<unknown>) {
     return resource in this.#resources
   }
 

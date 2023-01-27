@@ -1,7 +1,6 @@
 export type {App, Constrain, Plugin} from "./app.js"
 export type {Entity} from "./entity.js"
 export type {SystemImpl as System} from "./system.js"
-export type {World} from "./world.js"
 export type {Component} from "./component.js"
 export type {Format, Schema} from "./schema.js"
 
@@ -10,6 +9,7 @@ export {Phase} from "./world"
 export {Monitor} from "./monitor.js"
 export {Node} from "./graph.js"
 export {Type, Selector, normalize_spec} from "./type.js"
+export {World} from "./world.js"
 
 export {DefaultGroup as Group, makeApp as app} from "./app.js"
 export {makeRelation as relation} from "./relation.js"

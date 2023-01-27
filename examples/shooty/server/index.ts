@@ -3,58 +3,36 @@ import {
   awareness,
   Client,
   interest,
-  NetworkConfig,
-  NetworkId,
   serverPlugin,
-  NetworkTransport,
+  WebsocketTransport,
 } from "@javelin/net"
 import {createServer} from "http"
 import {WebSocket, WebSocketServer} from "ws"
-import {networkConfig} from "../config.js"
 import {Transform} from "./transform.js"
 
 let httpServer = createServer()
 
 let websocketServer = new WebSocketServer({server: httpServer})
-let websocketTransport = (websocket: WebSocket): NetworkTransport => {
-  let inbox: Uint8Array[] = []
-  websocket.binaryType = "arraybuffer"
-  websocket.on("message", data => {
-    inbox.unshift(new Uint8Array(data as ArrayBuffer))
-  })
-  return {
-    send(message: Uint8Array) {
-      websocket.send(message)
-    },
-    recv() {
-      return inbox.pop()
-    },
-  }
-}
 let openedWebsocketQueue: WebSocket[] = []
 let closedClientQueue: Entity[] = []
 
-let transformInterest = interest(type(Transform).type)
-
 let game = app()
-  .addResource(NetworkConfig, networkConfig)
   .addSystemToGroup(Group.Init, world => {
-    world.create(type(Transform, NetworkId))
+    world.create(type(Transform))
   })
   .addSystemToGroup(Group.Early, world => {
-    let websocket: WebSocket | undefined
-    while ((websocket = openedWebsocketQueue.pop())) {
-      if (websocket.readyState !== websocket.OPEN) {
+    let socket: WebSocket | undefined
+    while ((socket = openedWebsocketQueue.pop())) {
+      if (socket.readyState !== socket.OPEN) {
         continue
       }
-      let clientTransport = websocketTransport(websocket)
+      let clientTransport = new WebsocketTransport(socket as any)
+      let transformInterest = interest(0 as any, type(Transform))
       let clientAwareness = awareness().addInterest(transformInterest)
-      let client = world.create(
-        Client,
-        clientTransport,
-        clientAwareness,
-      )
-      websocket.on("close", () => {
+      let client = world.create(Client, clientTransport, clientAwareness)
+      // @ts-ignore
+      transformInterest.entity = client
+      socket.on("close", () => {
         closedClientQueue.push(client)
       })
     }
@@ -65,8 +43,8 @@ let game = app()
   })
   .use(serverPlugin)
 
-websocketServer.on("connection", websocket => {
-  openedWebsocketQueue.push(websocket)
+websocketServer.on("connection", socket => {
+  openedWebsocketQueue.push(socket)
 })
 
 httpServer.listen(8080)

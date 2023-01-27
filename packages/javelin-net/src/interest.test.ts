@@ -2,8 +2,7 @@ import {app, Entity, tag, type, value} from "@javelin/ecs"
 import {expect, suite, test} from "vitest"
 import {makeInterest, interestMessageType} from "./interest.js"
 import {makeProtocol} from "./protocol.js"
-import {ReadStream} from "./read_stream.js"
-import {WriteStream} from "./write_stream.js"
+import {ReadStream, WriteStream} from "./stream.js"
 
 let A = tag()
 let B = value({x: "f32", y: "f32"})

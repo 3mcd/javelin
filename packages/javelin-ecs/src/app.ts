@@ -101,7 +101,11 @@ export class App {
     return this
   }
 
-  getResource<T>(resource: Resource<T>): Maybe<T> {
+  hasResource(resource: Resource<unknown>): boolean {
+    return this.world.hasResource(resource)
+  }
+
+  getResource<T>(resource: Resource<T>): T {
     return this.world.getResource(resource)
   }
 

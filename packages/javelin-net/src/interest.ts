@@ -11,8 +11,7 @@ import {
 } from "@javelin/ecs"
 import {exists} from "@javelin/lib"
 import {PriorityQueueInt} from "./priority_queue_int.js"
-import {ReadStream} from "./read_stream.js"
-import {WriteStream} from "./write_stream.js"
+import {ReadStream, WriteStream} from "./stream.js"
 
 type EncodeEntity = ((entity: Entity, stream: WriteStream) => void) & {
   BYTES_PER_ELEMENT: number
@@ -246,7 +245,7 @@ export let interestMessageType = {
   },
 }
 
-class Interest {
+export class Interest {
   readonly entity: Entity
   readonly metaLength: number
   readonly subjectPrioritizer?: SubjectPrioritizer
