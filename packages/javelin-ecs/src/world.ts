@@ -17,7 +17,7 @@ import {
   Dynamic,
 } from "./component.js"
 import {Transaction, TransactionIteratee} from "./transaction.js"
-import {hashSpec, normalize_spec, Selector, Spec, Type} from "./type.js"
+import {hashSpec, normalizeSpec, Selector, Spec, Type} from "./type.js"
 
 export enum Phase {
   Stage = "stage",
@@ -325,13 +325,13 @@ export class World {
   }
 
   #initQuery(query: Query, hash: number, node: Node, system: System) {
-    function includeExistingNode(node: Node) {
+    let includeExistingNode = (node: Node) => {
       query.includeNode(node)
     }
-    function includeCreatedNode(node: Node) {
+    let includeCreatedNode = (node: Node) => {
       query.includeNode(node)
     }
-    function unbindQueryOrExcludeNode(deletedNode: Node) {
+    let unbindQueryOrExcludeNode = (deletedNode: Node) => {
       if (node === deletedNode) {
         system.queries.delete(hash)
       } else {
@@ -349,7 +349,7 @@ export class World {
   }
 
   #initMonitor(monitor: Monitor, hash: number, node: Node, system: System) {
-    function unbindMonitor(deletedNode: Node) {
+    let unbindMonitor = (deletedNode: Node) => {
       if (node === deletedNode) {
         system.monitors.delete(hash)
       }
@@ -381,24 +381,6 @@ export class World {
    */
   getResource<T>(resource: Resource<T>) {
     return expect(this.#resources[resource]) as T
-  }
-
-  /**
-   * Create an entity with a provided id.
-   * @private
-   */
-  reserve<T extends Component[]>(
-    entityId: number,
-    selector: Selector<T>,
-    ...selectorValues: ComponentInitValues<T>
-  ) {
-    assert(this.#getEntityIdVersion(entityId) === undefined)
-    let entity = makeId(entityId, 0) as Entity
-    let nextNode = this.graph.nodeOfType(selector.type)
-    this.#incrementEntityIdVersion(entityId)
-    this.#relocateEntity(entity, undefined, nextNode)
-    this.#updateEntityDelta(entity, selector, selectorValues)
-    return entity
   }
 
   /**
@@ -434,6 +416,24 @@ export class World {
   ) {
     let entity = this.#allocEntityId()
     let nextNode = this.graph.nodeOfType(selector.type)
+    this.#relocateEntity(entity, undefined, nextNode)
+    this.#updateEntityDelta(entity, selector, selectorValues)
+    return entity
+  }
+
+  /**
+   * Create an entity with a provided id.
+   * @private
+   */
+  reserve<T extends Component[]>(
+    entityId: number,
+    selector: Selector<T>,
+    ...selectorValues: ComponentInitValues<T>
+  ) {
+    assert(this.#getEntityIdVersion(entityId) === undefined)
+    let entity = makeId(entityId, 0) as Entity
+    let nextNode = this.graph.nodeOfType(selector.type)
+    this.#incrementEntityIdVersion(entityId)
     this.#relocateEntity(entity, undefined, nextNode)
     this.#updateEntityDelta(entity, selector, selectorValues)
     return entity
@@ -638,7 +638,7 @@ export class World {
     let monitorHash = hashSpec(monitorSpec)
     let monitor = monitorSystem.monitors.get(monitorHash)
     if (!exists(monitor)) {
-      let {includedComponents, excludedComponents} = normalize_spec(monitorSpec)
+      let {includedComponents, excludedComponents} = normalizeSpec(monitorSpec)
       let monitorNodeType = Type.of(includedComponents)
       let monitorNode = this.graph.nodeOfType(monitorNodeType)
       monitor = new Monitor(monitorNode, Phase.Apply, excludedComponents)
@@ -660,7 +660,7 @@ export class World {
     let monitorHash = hashSpec(monitorSpec)
     let monitor = monitorSystem.monitors.get(monitorHash)
     if (!exists(monitor)) {
-      let {includedComponents, excludedComponents} = normalize_spec(monitorSpec)
+      let {includedComponents, excludedComponents} = normalizeSpec(monitorSpec)
       let monitorNodeType = Type.of(includedComponents)
       let monitorNode = this.graph.nodeOfType(monitorNodeType)
       monitor = new Monitor(monitorNode, Phase.Stage, excludedComponents)

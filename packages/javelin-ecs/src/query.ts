@@ -8,7 +8,7 @@ import {
 import {Entity} from "./entity.js"
 import {Node} from "./graph.js"
 import {Component, ComponentValue, hasSchema} from "./component.js"
-import {ComponentsOf, normalize_spec, Selector, Spec} from "./type.js"
+import {ComponentsOf, normalizeSpec, Selector, Spec} from "./type.js"
 import {isRelation} from "./relation.js"
 
 export type QueryEachIteratee<T extends Spec> = (
@@ -46,7 +46,7 @@ let compileEachIterator = <T extends Component[]>(
     "N",
     "S",
     components.map((component, i) => `let s${i}=S[${component}];`).join("") +
-      "return function eachCompiled(f){" +
+      "return let eachCompiled=(f)=>{" +
       "for(let i=0;i<N.length;i++){" +
       // TODO: make this compatible with property mangling
       "let e=N[i].entities;" +
@@ -152,7 +152,7 @@ export class Query<T extends Spec = Spec> implements QueryAPI<T> {
     hash = normalizeHash(hash)
     let view = this.#views[hash]
     if (!exists(view)) {
-      let {includedComponents} = normalize_spec(spec)
+      let {includedComponents} = normalizeSpec(spec)
       view = new QueryView(this, includedComponents)
       this.#views[hash] = view
     }

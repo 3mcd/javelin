@@ -6,25 +6,18 @@ import {
   normalizeHash,
 } from "@javelin/lib"
 import {idHi, idLo, LO_MASK} from "./entity.js"
-import {
-  ChildOf,
-  getRelation,
-  isRelation,
-  Not,
-  Relation,
-} from "./relation.js"
+import {ChildOf, getRelation, isRelation, Not, Relation} from "./relation.js"
 import {Component} from "./component.js"
 import {isSlot} from "./slot.js"
 
 export type Term = Selector | Component | Relation
 export type Spec = Term[]
 
-export const ERR_CHILD_OF =
-  "An entity may have only one ChildOf relationship"
+export const ERR_CHILD_OF = "An entity may have only one ChildOf relationship"
 export const ERR_SLOT =
   "An entity may have at most one component for a given slot"
 
-export function validateComponents(components: Component[]) {
+export let validateComponents = (components: Component[]) => {
   let includesChildOfRelation = false
   let includedSlots = new Set<number>()
   for (let i = 0; i < components.length; i++) {
@@ -42,7 +35,7 @@ export function validateComponents(components: Component[]) {
   }
 }
 
-export function normalize_spec(spec: Spec) {
+export let normalizeSpec = (spec: Spec) => {
   let includedComponents: Component[] = []
   let excludedComponents: Component[] = []
   for (let i = 0; i < spec.length; i++) {
@@ -72,7 +65,7 @@ export function normalize_spec(spec: Spec) {
   return {includedComponents, excludedComponents}
 }
 
-export function hashSpec(spec: Spec) {
+export let hashSpec = (spec: Spec) => {
   let hash = HASH_BASE
   for (let i = 0; i < spec.length; i++) {
     let term = spec[i]
@@ -118,8 +111,7 @@ export class Selector<T extends Spec = Spec> {
   readonly excludedComponents
 
   constructor(spec: T) {
-    let {includedComponents, excludedComponents} =
-      normalize_spec(spec)
+    let {includedComponents, excludedComponents} = normalizeSpec(spec)
     this.hash = hashWords.apply(null, includedComponents)
     this.type = Type.of(includedComponents)
     this.includedComponents = includedComponents

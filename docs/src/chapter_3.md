@@ -34,7 +34,7 @@ An app has a single world by default. A world manages all game state, primarily 
 Entities are created using a world's `create()` method. In order to create our box, we need to get a reference to the app's world. We can do this using a **startup system**, a function that is executed once when the app is initialized.
 
 ```ts
-function createBoxSystem(world: World) {
+let createBoxSystem = (world: World) => {
   let box = world.create()
 }
 game.addInitSystem(createBoxSystem)
@@ -59,7 +59,7 @@ let Color = value<string>()
 Components are added to entities using a world's `add` method. Let's give our entity some position and color data:
 
 ```ts
-function createBoxSystem(world: World) {
+let createBoxSystem = (world: World) => {
   let box = world.create()
   world.add(box, Position, {x: 0, y: 0})
   world.add(box, Color, "#ff0000")
@@ -97,7 +97,7 @@ This system will need to perform all three of these operations: get the input re
 We'll first get a reference to the device's keyboard state using `world.getResource`:
 
 ```ts
-function moveBoxSystem(world: World) {
+let moveBoxSystem = (world: World) => {
   let {key} = world.getResource(Input)
 }
 ```
@@ -135,7 +135,7 @@ game.addResource(Context2D, context)
 Image data is not automatically cleared from canvas elements, so we should write a system that erases the canvas so we don't draw our box on top of old pixels. We'll get the draw context using the `useResource` effect (which simply calls `world.getResource`), and call its `clearRect()` method:
 
 ```ts
-function clearCanvasSystem(world: World) {
+let clearCanvasSystem = (world: World) => {
   let context = world.getResource(Context2D)
   context.clearRect(0, 0, 300, 150) // default canvas width/height
 }
@@ -144,7 +144,7 @@ function clearCanvasSystem(world: World) {
 Taking everything we've learned so far about systems, queries, and resources, we can write a system that draws our box to the canvas:
 
 ```ts
-function drawBoxSystem(world: World) {
+let drawBoxSystem = (world: World) => {
   let context = world.getResource(Context2D)
   world.of(Box).each((box, boxPos, boxColor) => {
     context.fillStyle = boxColor
@@ -184,10 +184,12 @@ Now, regardless of the order the systems are added in, `moveBoxSystem` will alwa
 
 We can also add **ordering constraints** to systems to ensure they execute in a deterministic order within a group. Each system registration method accepts a **constraint builder** that defines the ordering of systems within a group.
 
-We want to ensure our box is drawn to the canvas Only after_ the canvas is cleared, otherwise the user may see nothing each frame. We can accomplish this like so:
+We want to ensure our box is drawn to the canvas Only after\_ the canvas is cleared, otherwise the user may see nothing each frame. We can accomplish this like so:
 
 ```ts
-game.addSystemToGroup(Group.LateUpdate, drawBoxSystem, _ => _.after(clearCanvasSystem))
+game.addSystemToGroup(Group.LateUpdate, drawBoxSystem, _ =>
+  _.after(clearCanvasSystem),
+)
 ```
 
 ## Hello, Box!
@@ -200,13 +202,15 @@ game
   .addInitSystem(createBoxSystem)
   .addSystem(moveBoxSystem)
   .addSystemToGroup(Group.LateUpdate, clearCanvasSystem)
-  .addSystemToGroup(Group.LateUpdate, drawBoxSystem, _ => _.after(clearCanvasSystem))
+  .addSystemToGroup(Group.LateUpdate, drawBoxSystem, _ =>
+    _.after(clearCanvasSystem),
+  )
 ```
 
 We can execute all of our app's registered systems using the app's `step` method. If we call `step` at a regular interval, the box should move in response to arrow key presses.
 
 ```ts
-function loop() {
+let loop = () => {
   game.step()
   requestAnimationFrame(loop)
 }

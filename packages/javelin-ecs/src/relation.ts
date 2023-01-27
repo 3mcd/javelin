@@ -17,7 +17,7 @@ export let makeRelation = (): Relation => {
   let relationTag = makeTagComponent()
   assert(relationId <= HI_MASK)
   let relationAttrs = {relationId, relationTag}
-  function makeRelationship(to: number | Relation) {
+  let makeRelationship = (to: number | Relation) => {
     return makeSelector(
       makeId(
         typeof to === "number" ? idLo(to) : to.relationTag,

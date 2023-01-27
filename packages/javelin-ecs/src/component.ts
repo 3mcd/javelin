@@ -76,7 +76,7 @@ export let express = <T>(component: Component<T>): ComponentValue<T> => {
   return value as ComponentValue<T>
 }
 
-export function makeTagComponent(): Component<Tag> {
+export let makeTagComponent = (): Component<Tag> => {
   let component = componentIds++ as Component<Tag>
   assert(component <= LO_MASK)
   return component

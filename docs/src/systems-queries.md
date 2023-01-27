@@ -9,7 +9,7 @@ A system may query entities using it's world's `of` method.
 ```ts
 let Planet = type(PlanetGeometry, PlanetType, ...)
 
-function orbitPlanetsSystem(world: World) {
+let orbitPlanetsSystem = (world: World) => {
   let planets = world.of(Planet)
 }
 ```
@@ -66,4 +66,3 @@ world.of(Planet, Not(PlanetType(Gas)))
 ### Changed
 
 > The `Changed` filter is under development.
-

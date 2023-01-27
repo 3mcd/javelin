@@ -38,12 +38,15 @@ export enum DefaultGroup {
 }
 
 let defaultPlugin = (app: App) => {
-  let hasRunInitGroup = true
+  let initGroupEnabled = true
+  let disableInitGroupSystem = () => {
+    initGroupEnabled = false
+  }
   app
     .addSystemGroup(
       DefaultGroup.Init,
       _ => _.before(DefaultGroup.Early),
-      () => hasRunInitGroup,
+      () => initGroupEnabled,
     )
     .addSystemGroup(DefaultGroup.Early, _ =>
       _.after(DefaultGroup.Init).before(DefaultGroup.EarlyUpdate),
@@ -58,9 +61,7 @@ let defaultPlugin = (app: App) => {
       _.after(DefaultGroup.Update).before(DefaultGroup.Late),
     )
     .addSystemGroup(DefaultGroup.Late, _ => _.after(DefaultGroup.LateUpdate))
-    .addSystemToGroup(DefaultGroup.Init, function disableInitGroupSystem() {
-      hasRunInitGroup = false
-    })
+    .addSystemToGroup(DefaultGroup.Init, disableInitGroupSystem)
 }
 
 export class App {

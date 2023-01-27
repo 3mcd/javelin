@@ -7,7 +7,7 @@ An app executes each of it's systems each step. Systems may be optionally config
 Systems are added to an app using the app's `addSystem` method.
 
 ```ts
-function plantGrowthSystem(world: World) {
+let plantGrowthSystem = (world: World) => {
   world.of(Plot).each((plot, plotWater) => {
     world.of(Plant, ChildOf(plot)).each((plant, plantMass) => {
       // (grow plant using plotWater)
@@ -35,9 +35,8 @@ The `after` constraint ensures a system will be run some time following a given 
 Ordering constraints can be chained.
 
 ```ts
-game.addSystem(
-  pestSystem,
-  _ => _.after(weatherSystem).before(plantGrowthSystem),
+game.addSystem(pestSystem, _ =>
+  _.after(weatherSystem).before(plantGrowthSystem),
 )
 ```
 
@@ -46,7 +45,7 @@ game.addSystem(
 Systems can also be run conditionally based on the boolean result of a callback function. This predicate function is provided as the third argument to `addSystem`.
 
 ```ts
-function eachHundredthTick(world: World) {
+let eachHundredthTick = (world: World) => {
   return world.getResource(Clock).tick % 100 === 0
 }
 
@@ -88,10 +87,8 @@ game.addSystemToGroup(Group.Late, renderPlotSystem)
 Like `addSystem`, `addSystemToGroup` also accepts ordering constraints and run criteria through it's third and fourth arguments.
 
 ```ts
-game.addSystemToGroup(
-  Group.Late,
-  renderPlotSystem, 
-  _ => _.before(renderGrassSystem),
+game.addSystemToGroup(Group.Late, renderPlotSystem, _ =>
+  _.before(renderGrassSystem),
 )
 ```
 
@@ -109,8 +106,6 @@ game.addGroup(
   _ => _.before(Group.LateUpdate).after(Group.Update),
   eachHundredthTick,
 ```
-
-
 
 ## Initialization Systems
 

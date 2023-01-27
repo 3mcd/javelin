@@ -10,7 +10,7 @@ let slots = [] as Relation[]
 
 export let isSlot = (relationId: number) => relationId in slots
 
-export function makeSlot<T extends Selector<[Component]>[]>(...spec: T) {
+export let makeSlot = <T extends Selector<[Component]>[]>(...spec: T) => {
   let slotRelation = makeRelation()
   let slotRelationships = [] as Selector<[Component]>[]
   let slotComponents = new Set(spec)
@@ -24,7 +24,7 @@ export function makeSlot<T extends Selector<[Component]>[]>(...spec: T) {
       setSchema(relationship.includedComponents[0], getSchema(termComponent))
     }
   }
-  function makeSlotComponent<U extends T[number]>(component: U) {
+  let makeSlotComponent = <U extends T[number]>(component: U) => {
     assert(slotComponents.has(component), ERR_SLOT_DEFINITION)
     return slotRelation(component.includedComponents[0]) as U
   }

@@ -5,8 +5,9 @@ Some systems must be notified of entities that match or no longer match a set of
 Systems can react to changes in entity composition using monitors. Below a simple system that utilizes monitors to log all created and deleted entities:
 
 ```ts
-function logEntitySystem(world: World) {
-  world.monitor()
+let logEntitySystem = (world: World) => {
+  world
+    .monitor()
     .eachIncluded(entity => {
       console.log("created", entity)
     })
@@ -19,10 +20,9 @@ function logEntitySystem(world: World) {
 The entities a monitor recieves can be narrowed using query terms.
 
 ```ts
-world.monitor(Client)
-  .eachIncluded((client, clientSocket) => {
-    clientSocket.send("ping")
-  })
+world.monitor(Client).eachIncluded((client, clientSocket) => {
+  clientSocket.send("ping")
+})
 ```
 
 In plain terms, monitors execute the callback provided to `eachIncluded` for each entity that began to match the provided query terms at the end of the last step. It executes the `eachExcluded` callback for entities that no longer match the terms. They can be used to:
@@ -38,19 +38,16 @@ Because [entity operations are deferred](./entities.md#entity-transaction) to th
 If you wish to access component values of an entity that no longer matches a monitor's terms, you can use a world's `monitorImmediate` method. `monitorImmediate` returns a monitor that is configured to run within the current step.
 
 ```ts
-world.monitorImmediate(Enemy)
-  .eachExcluded((enemy, enemyPos) => {
-    world.create(LootBag, enemyPos)
-  })
+world.monitorImmediate(Enemy).eachExcluded((enemy, enemyPos) => {
+  world.create(LootBag, enemyPos)
+})
 ```
 
 An immediate monitor must be executed downstream of its causal systems in the app's system execution pipeline. In the above example, the system should be configured using [ordering constraints](./systems.md#ordering-constraints) to occur _after_ the system that deletes `Enemy` entities.
 
 ```ts
-app
-  .addSystem(deleteDeadEntitiesSystem)
-  .addSystem(
-    world => world.monitorImmediate(Enemy).eachExcluded(/* ... */),
-    _ => _.after(deleteDeadEntitiesSystem),
-  )
+app.addSystem(deleteDeadEntitiesSystem).addSystem(
+  world => world.monitorImmediate(Enemy).eachExcluded(/* ... */),
+  _ => _.after(deleteDeadEntitiesSystem),
+)
 ```

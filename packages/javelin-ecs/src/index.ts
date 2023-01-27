@@ -8,7 +8,7 @@ export {ChildOf, Without} from "./relation.js"
 export {Phase} from "./world"
 export {Monitor} from "./monitor.js"
 export {Node} from "./graph.js"
-export {Type, Selector, normalize_spec} from "./type.js"
+export {Type, Selector, normalizeSpec as normalize_spec} from "./type.js"
 export {World} from "./world.js"
 
 export {DefaultGroup as Group, makeApp as app} from "./app.js"
@@ -23,7 +23,7 @@ import {Component, Tag} from "./component.js"
 import {Selector} from "./type.js"
 import {makeValueComponent, makeTagComponent} from "./component.js"
 
-export function tag(): Selector<[Component<typeof Tag>]> {
+export let tag = (): Selector<[Component<typeof Tag>]> => {
   let tagComponent = makeTagComponent()
   return new Selector([tagComponent])
 }

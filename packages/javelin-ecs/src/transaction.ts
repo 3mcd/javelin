@@ -13,81 +13,82 @@ export type TransactionIteratee = (
   nextNode: Maybe<Node>,
 ) => void
 
-function makeBatchKey(prevHash: number, nextHash: number) {
-  return (BigInt(nextHash) << 32n) | BigInt(prevHash)
-}
+let makeBatchKey = (prevHash: number, nextHash: number) =>
+  (BigInt(nextHash) << 32n) | BigInt(prevHash)
 
-function decomposeBatchKeyNext(key: bigint) {
-  return Number((key & 0xffffffff00000000n) >> 32n)
-}
+let decomposeBatchKeyNext = (key: bigint) =>
+  Number((key & 0xffffffff00000000n) >> 32n)
 
-function decomposeBatchKeyPrev(key: bigint) {
-  return Number(key & 0xffffffffn)
-}
+let decomposeBatchKeyPrev = (key: bigint) => Number(key & 0xffffffffn)
 
-function makeTransactionEvent(
+let makeTransactionEvent = (
   phase: string,
   batch: Set<Entity>,
   node: Node,
-): TransactionEvent {
+): TransactionEvent => {
   return {phase, batch, node}
 }
 
-function emitCreatedEntities(
+let emitCreatedEntities = (
   phase: string,
   batch: Set<Entity>,
   nextNode: Node,
-) {
+) => {
   let event = makeTransactionEvent(phase, batch, nextNode)
-  nextNode.traverseRem(function emitCreatedBatch(node) {
+  let emitCreatedBatch = (node: Node) => {
     node.onEntitiesIncluded.emit(event)
-  })
+  }
+  nextNode.traverseRem(emitCreatedBatch)
 }
 
-function emitIncludedEntities(
+let emitIncludedEntities = (
   phase: string,
   batch: Set<Entity>,
   prevNode: Node,
   nextNode: Node,
-) {
+) => {
   let event = makeTransactionEvent(phase, batch, nextNode)
+  let emitIncludedBatch = (node: Node) => {
+    node.onEntitiesIncluded.emit(event)
+  }
   nextNode.traverseRemWithFilter(
-    function emitIncludedBatch(node) {
-      node.onEntitiesIncluded.emit(event)
-    },
+    emitIncludedBatch,
     node => node !== prevNode && !prevNode.isSupersetOf(node),
   )
 }
 
-function emitExcludedEntities(
+let emitExcludedEntities = (
   phase: string,
   batch: Set<Entity>,
   prevNode: Node,
   nextNode: Node,
-) {
+) => {
   let event = makeTransactionEvent(phase, batch, prevNode)
+  let emitExcludedBatch = (node: Node) => {
+    node.onEntitiesExcluded.emit(event)
+  }
   prevNode.traverseRemWithFilter(
-    function emitExcludedBatch(node) {
-      node.onEntitiesExcluded.emit(event)
-    },
+    emitExcludedBatch,
     node => node !== nextNode && !node.isSupersetOf(nextNode),
   )
 }
 
-function emitMovedEntities(
+let emitMovedEntities = (
   phase: string,
   batch: Set<Entity>,
   prevNode: Node,
   nextNode: Node,
-) {
+) => {
   let includedEvent = makeTransactionEvent(phase, batch, nextNode)
   let excludedEvent = makeTransactionEvent(phase, batch, prevNode)
-  nextNode.traverseRem(function emitIncludedBatch(node) {
+  let emitIncludedBatch = (node: Node) => {
     node.onEntitiesIncluded.emit(includedEvent)
-  })
-  prevNode.traverseRem(function emitExcludedBatch(node) {
+  }
+  let emitExcludedBatch = (node: Node) => {
     node.onEntitiesIncluded.emit(excludedEvent)
-  })
+  }
+  nextNode.traverseRem(emitIncludedBatch)
+  prevNode.traverseRem(emitExcludedBatch)
 }
 
 export class Transaction {
@@ -123,12 +124,8 @@ export class Transaction {
     this.#entityIndex.set(entity, nextBatchKey)
   }
 
-  drainEntities(
-    graph: Graph,
-    phase: string,
-    iteratee?: TransactionIteratee,
-  ) {
-    this.#entityBatches.forEach(function emitBatch(batch, batchKey) {
+  drainEntities(graph: Graph, phase: string, iteratee?: TransactionIteratee) {
+    let emitBatch = (batch: Set<Entity>, batchKey: bigint) => {
       let prevHash = decomposeBatchKeyPrev(batchKey)
       let nextHash = decomposeBatchKeyNext(batchKey)
       let prevNode = graph.findNode(prevHash)
@@ -150,8 +147,9 @@ export class Transaction {
       } else {
         emitCreatedEntities(phase, batch, expect(nextNode))
       }
-    })
-    this.#entityIndex.clear()
+    }
+    this.#entityBatches.forEach(emitBatch)
     this.#entityBatches.clear()
+    this.#entityIndex.clear()
   }
 }
