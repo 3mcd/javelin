@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["src"],
+  "exclude": ["dist"],
+  "references": [{"path": "../javelin-lib"}]
+}

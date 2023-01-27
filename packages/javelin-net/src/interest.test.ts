@@ -12,7 +12,7 @@ let AB = type(A, B)
 let protocol = makeProtocol().addMessageType(interestMessageType)
 
 suite("Interest", () => {
-  test("works", () => {
+  test("encode/decode", () => {
     let count = 20
     let stream = new WriteStream()
     let interest = makeInterest(99 as Entity, AB, undefined, count)

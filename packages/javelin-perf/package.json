@@ -1,0 +1,28 @@
+{
+  "name": "@javelin/perf",
+  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
+  "license": "MIT",
+  "description": "",
+  "keywords": [],
+  "type": "module",
+  "version": "1.0.0",
+  "main": "dist/javelin-perf.cjs.js",
+  "module": "dist/javelin-perf.esm.js",
+  "exports": {
+    "import": "./dist/javelin-perf.esm.js",
+    "require": "./dist/javelin-perf.cjs.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "index.ts"
+    ]
+  },
+  "dependencies": {
+    "@javelin/lib": "workspace:*",
+    "colorette": "^2.0.19",
+    "vitest": "^0.24.3"
+  }
+}

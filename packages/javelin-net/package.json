@@ -20,7 +20,8 @@
     "require": "./dist/javelin-net.cjs.js"
   },
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "perf": "ts-node src/index.perf.ts"
   },
   "preconstruct": {
     "entrypoints": [
@@ -32,6 +33,7 @@
     "@javelin/lib": "workspace:*"
   },
   "devDependencies": {
+    "@javelin/perf": "workspace:*",
     "vitest": "^0.25.1"
   }
 }

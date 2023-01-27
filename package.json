@@ -9,8 +9,8 @@
   "main": "index.js",
   "keywords": [],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "perf": "pnpm -r perf",
+    "test": "pnpm -r --parallel test",
+    "perf": "pnpm -r --parallel perf",
     "build": "preconstruct build",
     "postinstall": "preconstruct dev"
   },
