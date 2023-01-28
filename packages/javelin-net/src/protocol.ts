@@ -2,7 +2,7 @@ import {World} from "@javelin/ecs"
 import {expect} from "@javelin/lib"
 import {ReadStream, WriteStream} from "./stream.js"
 
-export interface Protocol {
+export interface IProtocol {
   encode<T>(
     world: World,
     stream: WriteStream,
@@ -20,7 +20,7 @@ export interface ProtocolMessageType<T> {
 
 const ERR_INVALID_PROTOCOL_MESSAGE_TYPE = "invalid message type"
 
-class ProtocolBuilder implements Protocol {
+class ProtocolBuilder implements IProtocol {
   #messageTypes: ProtocolMessageType<unknown>[]
   #messageTypeIds: Map<ProtocolMessageType<unknown>, number>
 

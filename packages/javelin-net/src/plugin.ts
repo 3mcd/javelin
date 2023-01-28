@@ -1,17 +1,17 @@
 import {App, Group, resource, type, value, World} from "@javelin/ecs"
-import {Transport} from "./transport.js"
-import {Awareness} from "./awareness.js"
-import {makeProtocol, Protocol} from "./protocol.js"
+import {ITransport} from "./transport.js"
+import {IAwareness} from "./awareness.js"
+import {makeProtocol, IProtocol} from "./protocol.js"
 import {exists, Maybe} from "@javelin/lib"
 import {interestMessageType} from "./interest.js"
 import {ReadStream, WriteStream} from "./stream.js"
 
-let Transport = value<Transport>()
-let Awareness = value<Awareness>()
-let Client = type(Transport, Awareness)
+export let Transport = value<ITransport>()
+export let Awareness = value<IAwareness>()
+export let Client = type(Transport, Awareness)
 
-let RemoteWorld = resource<World>()
-let Protocol = resource<Protocol>()
+export let RemoteWorld = resource<World>()
+export let Protocol = resource<IProtocol>()
 
 let writeStream = new WriteStream()
 let readStream = new ReadStream(new Uint8Array())
@@ -44,7 +44,7 @@ let clientProcessMessagesSystem = (world: World) => {
 }
 
 export let clientPlugin = (app: App) => {
-  let protocol: Protocol
+  let protocol: IProtocol
   if (app.hasResource(Protocol)) {
     protocol = app.getResource(Protocol)
   } else {
@@ -59,7 +59,7 @@ export let clientPlugin = (app: App) => {
 }
 
 export let serverPlugin = (app: App) => {
-  let protocol: Protocol
+  let protocol: IProtocol
   if (app.hasResource(Protocol)) {
     protocol = app.getResource(Protocol)
   } else {
@@ -70,5 +70,3 @@ export let serverPlugin = (app: App) => {
   protocol.addMessageType(interestMessageType)
   app.addSystemToGroup(Group.Early, serverUpdateClientsSystem)
 }
-
-export {Transport, Awareness, Client, Protocol}
