@@ -1,0 +1,25 @@
+{
+  "name": "@javelin/react",
+  "license": "MIT",
+  "version": "2.0.0-alpha.0",
+  "description": "React bindings for javelin",
+  "keywords": ["ecs", "entity-component system", "game", "gamedev", "multiplayer", "mog", "react", "jsx"],
+  "type": "module",
+  "main": "dist/javelin-react.cjs.js",
+  "module": "dist/javelin-react.esm.js",
+  "exports": {
+    "import": "./dist/javelin-react.esm.js",
+    "require": "./dist/javelin-react.cjs.js"
+  },
+  "scripts": {
+    "test": "vitest"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "index.ts"
+    ]
+  },
+  "devDependencies": {
+    "vitest": "^0.25.1"
+  }
+}

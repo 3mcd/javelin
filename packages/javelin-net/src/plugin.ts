@@ -1,17 +1,17 @@
-import {App, Group, resource, type, value, World} from "@javelin/ecs"
-import {Transport} from "./transport.js"
-import {Awareness} from "./awareness.js"
-import {makeProtocol, Protocol} from "./protocol.js"
-import {exists, Maybe} from "@javelin/lib"
-import {interestMessageType} from "./interest.js"
-import {ReadStream, WriteStream} from "./stream.js"
+import { App, Group, resource, type, value, World } from "@javelin/ecs"
+import { exists, Maybe } from "@javelin/lib"
+import { Awareness as AwarenessType } from "./awareness.js"
+import { interestMessageType } from "./interest.js"
+import { makeProtocol, Protocol as ProtocolType } from "./protocol.js"
+import { ReadStream, WriteStream } from "./stream.js"
+import { Transport as TransportType } from "./transport.js"
 
-let Transport = value<Transport>()
-let Awareness = value<Awareness>()
+let Transport = value<TransportType>()
+let Awareness = value<AwarenessType>()
 let Client = type(Transport, Awareness)
 
 let RemoteWorld = resource<World>()
-let Protocol = resource<Protocol>()
+let Protocol = resource<ProtocolType>()
 
 let writeStream = new WriteStream()
 let readStream = new ReadStream(new Uint8Array())
@@ -71,4 +71,5 @@ export let serverPlugin = (app: App) => {
   app.addSystemToGroup(Group.Early, serverUpdateClientsSystem)
 }
 
-export {Transport, Awareness, Client, Protocol}
+export { Transport, Awareness, Client, Protocol }
+
