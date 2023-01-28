@@ -70,9 +70,3 @@ export let serverPlugin = (app: App) => {
   protocol.addMessageType(interestMessageType)
   app.addSystemToGroup(Group.Early, serverUpdateClientsSystem)
 }
-<<<<<<< HEAD
-
-export { Transport, Awareness, Client, Protocol }
-
-=======
->>>>>>> next
