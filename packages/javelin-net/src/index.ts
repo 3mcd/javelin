@@ -1,5 +1,3 @@
-import {AwarenessBuilder} from "./awareness.js"
-
 export * from "./plugin.js"
 export {WebsocketTransport} from "./transport.js"
 
