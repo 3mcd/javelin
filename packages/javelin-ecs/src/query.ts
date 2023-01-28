@@ -51,7 +51,7 @@ let compileEachIterator = <T extends Component[]>(
     "N",
     "S",
     components.map((component, i) => `let s${i}=S[${component}];`).join("") +
-      "return let eachCompiled=(f)=>{" +
+      "return f=>{" +
       "for(let i=0;i<N.length;i++){" +
       // TODO: make this compatible with property mangling
       "let e=N[i].entities;" +
