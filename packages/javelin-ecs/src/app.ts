@@ -170,7 +170,7 @@ export class App {
             // The `CurrentSystem` resource is used by the world to attach new
             // queries and monitors to their originating systems.
             this.world.setResource(CurrentSystem, system)
-            system.run(world)
+            system.systemImpl(world)
             // Clear each of the system's monitors after the system is
             // complete.
             let monitors = system.monitors.values()

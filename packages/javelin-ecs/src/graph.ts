@@ -128,7 +128,6 @@ export class Node {
   }
 
   constructor(type: Type) {
-    console.log("create", type.components)
     let sparseComponents = [] as number[]
     for (let i = 0; i < type.components.length; i++) {
       sparseComponents[type.components[i]] = i
@@ -142,7 +141,7 @@ export class Node {
     this.onNodeCreated = new Signal<Node>()
     this.onNodeDeleted = new Signal<Node>()
     this.sparseComponents = sparseComponents
-    this.type = Type.of(type.components)
+    this.type = Type.fromComponents(type.components)
   }
 
   /**
@@ -302,7 +301,7 @@ export class Graph {
 
   constructor() {
     this.nodes = [] as Node[]
-    this.root = new Node(Type.of([]))
+    this.root = new Node(Type.fromComponents([]))
     this.root.onNodeDeleted.add(node => {
       this.nodes[node.type.hash] = undefined!
     })
@@ -432,7 +431,7 @@ export class Graph {
       if (nodeAdd === undefined) {
         let nextHash = hashWords.apply(null, components)
         nodeAdd = this.nodes[nextHash] ??= new Node(
-          Type.of(Array.from(components)),
+          Type.fromComponents(Array.from(components)),
         )
         Node.link(nodeRem, nodeAdd, componentHash)
       }
@@ -447,7 +446,7 @@ export class Graph {
    */
   #createNode(components: Component[]) {
     validateComponents(components)
-    let nodeType = Type.of(components)
+    let nodeType = Type.fromComponents(components)
     let node = this.nodes[nodeType.hash]
     if (exists(node)) {
       return node

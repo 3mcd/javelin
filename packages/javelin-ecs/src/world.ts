@@ -17,7 +17,13 @@ import {
   Dynamic,
 } from "./component.js"
 import {Transaction, TransactionIteratee} from "./transaction.js"
-import {hashSpec, normalizeSpec, Selector, Spec, Type} from "./type.js"
+import {
+  hashQueryTerms,
+  normalizeQueryTerms,
+  QuerySelector,
+  QueryTerms,
+  Type,
+} from "./type.js"
 
 export enum Phase {
   Stage = "stage",
@@ -27,34 +33,34 @@ export enum Phase {
 export let CurrentSystem = makeResource<System>()
 
 export class World {
+  #applyTransaction
   #componentStores
+  #disposableNodes
   #entityChildren
   #entityDeltas
+  #entityIdVersions
   #entityNodes
   #entityParents
-  #entityIdVersions
-  #expiredNodes
   #freeEntityIds
   #nextEntityId
   #resources
-  #applyTransaction
   #stageTransaction
 
   readonly graph
 
   constructor() {
+    this.#applyTransaction = new Transaction()
     this.#componentStores = [] as unknown[][]
+    this.#disposableNodes = new Set<Node>()
     this.#entityChildren = [] as Set<Entity>[]
     this.#entityDeltas = [] as unknown[][]
+    this.#entityIdVersions = [] as number[]
     this.#entityNodes = [] as Node[]
     this.#entityParents = [] as Entity[]
-    this.#entityIdVersions = [] as number[]
-    this.#expiredNodes = new Set<Node>()
     this.#freeEntityIds = [] as number[]
     this.#nextEntityId = 0
     this.#resources = [] as unknown[]
     this.#stageTransaction = new Transaction()
-    this.#applyTransaction = new Transaction()
     this.graph = new Graph()
   }
 
@@ -246,7 +252,7 @@ export class World {
     // node if it is no longer of use.
     prevNode.removeEntity(entity)
     if (prevNode.entities.length === 0 && prevNode.hasAnyRelationship()) {
-      this.#expiredNodes.add(prevNode)
+      this.#disposableNodes.add(prevNode)
     }
   }
 
@@ -297,19 +303,19 @@ export class World {
     // is no longer in use.
     prevNode.removeEntity(entity)
     if (prevNode.entities.length === 0 && prevNode.hasAnyRelationship()) {
-      this.#expiredNodes.add(prevNode)
+      this.#disposableNodes.add(prevNode)
     }
   }
 
   #updateEntityDelta(
     entity: Entity,
-    selector: Selector,
+    selector: QuerySelector,
     selectorValues: unknown[],
   ) {
     let entityDelta = this.#ensureEntityDelta(entity)
     let j = 0
-    for (let i = 0; i < selector.includedComponents.length; i++) {
-      let component = selector.includedComponents[i]
+    for (let i = 0; i < selector.components.length; i++) {
+      let component = selector.components[i]
       let componentSchema = getSchema(component)
       if (exists(componentSchema)) {
         if (componentSchema === Dynamic) {
@@ -411,7 +417,7 @@ export class World {
    * let entity = world.create(Body)
    */
   create<T extends Component[]>(
-    selector: Selector<T>,
+    selector: QuerySelector<T>,
     ...selectorValues: ComponentInitValues<T>
   ) {
     let entity = this.#allocEntityId()
@@ -427,7 +433,7 @@ export class World {
    */
   reserve<T extends Component[]>(
     entityId: number,
-    selector: Selector<T>,
+    selector: QuerySelector<T>,
     ...selectorValues: ComponentInitValues<T>
   ) {
     assert(this.#getEntityIdVersion(entityId) === undefined)
@@ -444,7 +450,7 @@ export class World {
    */
   add<T extends Component[]>(
     entity: Entity,
-    selector: Selector<T>,
+    selector: QuerySelector<T>,
     ...selectorValues: ComponentInitValues<T>
   ) {
     this.#validateEntityVersion(entity)
@@ -463,7 +469,7 @@ export class World {
   /**
    * Remove a type from an entity.
    */
-  remove(entity: Entity, selector: Selector) {
+  remove(entity: Entity, selector: QuerySelector) {
     this.#validateEntityVersion(entity)
     let prevNode = this.#getStagedEntityNode(entity)
     if (!exists(prevNode)) {
@@ -499,12 +505,15 @@ export class World {
    * @example
    * let position = world.get(entity, Position)
    */
-  get<T>(entity: Entity, selector: Selector<[Component<T>]>): ComponentValue<T>
-  get(entity: Entity, selector: Selector<[Component<Tag>]>): boolean
-  get(entity: Entity, selector: Selector) {
+  get<T>(
+    entity: Entity,
+    componentSelector: QuerySelector<[Component<T>]>,
+  ): ComponentValue<T>
+  get(entity: Entity, selector: QuerySelector<[Component<Tag>]>): boolean
+  get(entity: Entity, selector: QuerySelector) {
     this.#validateEntityVersion(entity)
     let entityNode = this.#getEntityNode(entity)
-    let component = selector.includedComponents[0]
+    let component = selector.components[0]
     return entityNode.hasComponent(component)
       ? !hasSchema(component) || this.getComponentStore(component)[entity]
       : undefined
@@ -516,14 +525,14 @@ export class World {
    */
   set<T>(
     entity: Entity,
-    selector: Selector<[Component<T>]>,
-    selectorValue: ComponentValue<T>,
+    componentSelector: QuerySelector<[Component<T>]>,
+    componentValue: ComponentValue<T>,
   ) {
     this.#validateEntityVersion(entity)
-    let node = this.#getEntityNode(entity)
-    let component = selector.includedComponents[0]
-    assert(node.hasComponent(component))
-    this.#setEntityComponentValue(entity, component, selectorValue)
+    let entityNode = this.#getEntityNode(entity)
+    let component = componentSelector.components[0]
+    assert(entityNode.hasComponent(component))
+    this.#setEntityComponentValue(entity, component, componentValue)
   }
 
   /**
@@ -574,7 +583,7 @@ export class World {
     // Adjust entities within the archetype graph, update component stores, and
     // notify interested parties (like monitors).
     this.#applyTransaction.drainEntities(this.graph, Phase.Apply, commitBatch)
-    this.#expiredNodes.forEach(nodeToPrune => {
+    this.#disposableNodes.forEach(nodeToPrune => {
       // The node may have been populated after it was flagged for deletion, so
       // we first check if it is still empty.
       if (nodeToPrune.isEmpty()) {
@@ -588,7 +597,7 @@ export class World {
         )
       }
     })
-    this.#expiredNodes.clear()
+    this.#disposableNodes.clear()
   }
 
   /**
@@ -610,18 +619,18 @@ export class World {
    * Resolve a query builder for a given set of types, components, and
    * relationships.
    */
-  of<T extends Spec>(...spec: T): QueryAPI<T>
+  of<T extends QueryTerms>(...queryTerms: T): QueryAPI<T>
   of() {
     let querySystem = this.getResource(CurrentSystem)
-    let querySpec = arguments as unknown as Spec
-    let queryHash = hashSpec(querySpec)
-    let query = querySystem.queries.get(queryHash)
+    let queryTerms = arguments as unknown as QueryTerms
+    let queryTermsHash = hashQueryTerms(queryTerms)
+    let query = querySystem.queries.get(queryTermsHash)
     if (!exists(query)) {
-      let querySelector = new Selector(querySpec)
-      let queryStores = get_query_stores(this, querySelector.type)
+      let querySelector = new QuerySelector(queryTerms)
+      let queryStores = getQueryStores(this, querySelector.type)
       let queryNode = this.graph.nodeOfType(querySelector.type)
       query = new Query(querySelector, queryStores)
-      this.#initQuery(query, queryHash, queryNode, querySystem)
+      this.#initQuery(query, queryTermsHash, queryNode, querySystem)
     }
     return query
   }
@@ -631,18 +640,24 @@ export class World {
    * Monitors are updated at the end of the step, after entity modifications
    * are applied to the world.
    */
-  monitor(...spec: Spec): Monitor
+  monitor(...queryTerms: QueryTerms): Monitor
   monitor() {
     let monitorSystem = this.getResource(CurrentSystem)
-    let monitorSpec = arguments as unknown as Spec
-    let monitorHash = hashSpec(monitorSpec)
-    let monitor = monitorSystem.monitors.get(monitorHash)
+    let monitorQueryTerms = arguments as unknown as QueryTerms
+    let monitorQueryTermsHash = hashQueryTerms(monitorQueryTerms)
+    let monitor = monitorSystem.monitors.get(monitorQueryTermsHash)
     if (!exists(monitor)) {
-      let {includedComponents, excludedComponents} = normalizeSpec(monitorSpec)
-      let monitorNodeType = Type.of(includedComponents)
+      let {components: includedComponents, excludedComponents} =
+        normalizeQueryTerms(monitorQueryTerms)
+      let monitorNodeType = Type.fromComponents(includedComponents)
       let monitorNode = this.graph.nodeOfType(monitorNodeType)
       monitor = new Monitor(monitorNode, Phase.Apply, excludedComponents)
-      this.#initMonitor(monitor, monitorHash, monitorNode, monitorSystem)
+      this.#initMonitor(
+        monitor,
+        monitorQueryTermsHash,
+        monitorNode,
+        monitorSystem,
+      )
     }
     return monitor
   }
@@ -653,30 +668,36 @@ export class World {
    * end of a step, providing the means to intercept excluded component values
    * before they are garbage collected.
    */
-  monitorImmediate(...spec: Spec): Monitor
+  monitorImmediate(...queryTerms: QueryTerms): Monitor
   monitorImmediate() {
     let monitorSystem = this.getResource(CurrentSystem)
-    let monitorSpec = arguments as unknown as Spec
-    let monitorHash = hashSpec(monitorSpec)
-    let monitor = monitorSystem.monitors.get(monitorHash)
+    let monitorQueryTerms = arguments as unknown as QueryTerms
+    let monitorQueryTermsHash = hashQueryTerms(monitorQueryTerms)
+    let monitor = monitorSystem.monitors.get(monitorQueryTermsHash)
     if (!exists(monitor)) {
-      let {includedComponents, excludedComponents} = normalizeSpec(monitorSpec)
-      let monitorNodeType = Type.of(includedComponents)
+      let {components: includedComponents, excludedComponents} =
+        normalizeQueryTerms(monitorQueryTerms)
+      let monitorNodeType = Type.fromComponents(includedComponents)
       let monitorNode = this.graph.nodeOfType(monitorNodeType)
       monitor = new Monitor(monitorNode, Phase.Stage, excludedComponents)
-      this.#initMonitor(monitor, monitorHash, monitorNode, monitorSystem)
+      this.#initMonitor(
+        monitor,
+        monitorQueryTermsHash,
+        monitorNode,
+        monitorSystem,
+      )
     }
     return monitor
   }
 }
 
-let get_query_stores = (world: World, type: Type) => {
-  let query_stores = [] as unknown[][]
+let getQueryStores = (world: World, type: Type) => {
+  let queryStores = [] as unknown[][]
   for (let i = 0; i < type.components.length; i++) {
     let component = type.components[i]
     if (hasSchema(component)) {
-      query_stores[component] = world.getComponentStore(component)
+      queryStores[component] = world.getComponentStore(component)
     }
   }
-  return query_stores
+  return queryStores
 }

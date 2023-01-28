@@ -5,7 +5,7 @@ import {
   Format,
   getSchema,
   Schema,
-  Selector,
+  QuerySelector,
   type,
   World,
 } from "@javelin/ecs"
@@ -66,7 +66,7 @@ let streamReadMethods: Record<Format, keyof ReadStream> = {
   number: "readF32",
 }
 
-let getEncodedEntityLength = (subject: Selector) => {
+let getEncodedEntityLength = (subject: QuerySelector) => {
   let length = subjectLengths[subject.hash]
   if (exists(length)) {
     return length
@@ -99,7 +99,10 @@ let compileReadExp = (format: Format, stream: string) => {
   return `${stream}.${method}()`
 }
 
-let comileEncodeEntity = (selector: Selector, world: World): EncodeEntity => {
+let comileEncodeEntity = (
+  selector: QuerySelector,
+  world: World,
+): EncodeEntity => {
   let components = selector.type.components.filter(component => {
     let schema = getSchema(component)
     return exists(schema) && schema !== Dynamic
@@ -133,7 +136,10 @@ let comileEncodeEntity = (selector: Selector, world: World): EncodeEntity => {
   return encodeEntity
 }
 
-let compileDecodeEntity = (selector: Selector, world: World): DecodeEntity => {
+let compileDecodeEntity = (
+  selector: QuerySelector,
+  world: World,
+): DecodeEntity => {
   let components = selector.type.components.filter(component => {
     let schema = getSchema(component)
     return exists(schema) && schema !== Dynamic
@@ -172,7 +178,7 @@ class EntityEncoder {
   readonly decode
   readonly bytesPerEntity
 
-  static getEntityEncoder(world: World, selector: Selector) {
+  static getEntityEncoder(world: World, selector: QuerySelector) {
     let encoders = this.encodersByWorld.get(world)
     if (!exists(encoders)) {
       encoders = []
@@ -181,7 +187,7 @@ class EntityEncoder {
     return (encoders[selector.hash] ??= new EntityEncoder(selector, world))
   }
 
-  constructor(selector: Selector, world: World) {
+  constructor(selector: QuerySelector, world: World) {
     this.encode = comileEncodeEntity(selector, world)
     this.decode = compileDecodeEntity(selector, world)
     this.bytesPerEntity = getEncodedEntityLength(selector)
@@ -250,11 +256,11 @@ export class Interest {
   readonly metaLength: number
   readonly subjectPrioritizer?: SubjectPrioritizer
   readonly subjectQueue: PriorityQueueInt<Entity>
-  readonly subjectSelector: Selector
+  readonly subjectSelector: QuerySelector
 
   constructor(
     entity: Entity,
-    subjectSelector: Selector,
+    subjectSelector: QuerySelector,
     subjectPrioritizer?: SubjectPrioritizer,
   ) {
     this.entity = entity
@@ -282,6 +288,6 @@ export class Interest {
 
 export let makeInterest = (
   entity: Entity,
-  subject: Selector,
+  subject: QuerySelector,
   subjectPrioritizer?: SubjectPrioritizer,
 ) => new Interest(entity, subject, subjectPrioritizer)

@@ -7,16 +7,15 @@ import {World} from "./world.js"
 export type SystemImpl = (world: World) => void
 
 export class System {
-  readonly run
+  readonly isEnabled: (world: World) => boolean
   readonly monitors
   readonly queries
+  readonly systemImpl
 
-  readonly isEnabled: (world: World) => boolean
-
-  constructor(run: SystemImpl, predicate?: Maybe<Predicate>) {
-    this.run = run
+  constructor(systemImpl: SystemImpl, predicate?: Maybe<Predicate>) {
+    this.isEnabled = predicate ?? (() => true)
     this.monitors = new SparseSet<Monitor>()
     this.queries = new SparseSet<Query>()
-    this.isEnabled = predicate ?? (() => true)
+    this.systemImpl = systemImpl
   }
 }

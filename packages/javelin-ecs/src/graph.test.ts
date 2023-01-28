@@ -2,7 +2,7 @@ import {Maybe} from "@javelin/lib"
 import {suite, test, expect} from "vitest"
 import {Graph, Node} from "./graph.js"
 import {makeTagComponent} from "./component.js"
-import {ERR_CHILD_OF, ERR_SLOT, makeSelector, Type} from "./type.js"
+import {ERR_CHILD_OF, ERR_SLOT, makeQuerySelector, Type} from "./type.js"
 import {ChildOf} from "./relation.js"
 import {makeSlot} from "./slot.js"
 
@@ -13,9 +13,9 @@ let c = makeTagComponent()
 suite("Graph", () => {
   test("node links", () => {
     let graph = new Graph()
-    let A = Type.of([a])
-    let BC = Type.of([b, c])
-    let ABC = Type.of([a, b, c])
+    let A = Type.fromComponents([a])
+    let BC = Type.fromComponents([b, c])
+    let ABC = Type.fromComponents([a, b, c])
     let nodeABC = graph.nodeOfType(ABC)
     let nodeA = graph.nodeOfType(A)
     expect(graph.nodeRemoveType(nodeABC, BC)).toBe(nodeA)
@@ -23,10 +23,10 @@ suite("Graph", () => {
   })
   test("node created event", () => {
     let graph = new Graph()
-    let ABC = Type.of([a, b, c])
-    let A = Type.of([a])
-    let C = Type.of([c])
-    let BC = Type.of([b, c])
+    let ABC = Type.fromComponents([a, b, c])
+    let A = Type.fromComponents([a])
+    let C = Type.fromComponents([c])
+    let BC = Type.fromComponents([b, c])
     let nodeA = graph.nodeOfType(A)
     let nodeC = graph.nodeOfType(C)
     let nodeBC = graph.nodeOfType(BC)
@@ -49,10 +49,10 @@ suite("Graph", () => {
   })
   test("traverseAdd", () => {
     let graph = new Graph()
-    let AC = Type.of([a, c])
-    let ABC = Type.of([a, b, c])
-    let B = Type.of([b])
-    let BC = Type.of([b, c])
+    let AC = Type.fromComponents([a, c])
+    let ABC = Type.fromComponents([a, b, c])
+    let B = Type.fromComponents([b])
+    let BC = Type.fromComponents([b, c])
     let expectedMatches = new Set([B, BC, ABC])
     let traverseMatches = new Set<Type>()
     let nodeB = graph.nodeOfType(B)
@@ -64,12 +64,12 @@ suite("Graph", () => {
   })
   test("traverseRem", () => {
     let graph = new Graph()
-    let A = Type.of([a])
-    let AB = Type.of([a, b])
-    let AC = Type.of([a, c])
-    let ABC = Type.of([a, b, c])
-    let B = Type.of([b])
-    let BC = Type.of([b, c])
+    let A = Type.fromComponents([a])
+    let AB = Type.fromComponents([a, b])
+    let AC = Type.fromComponents([a, c])
+    let ABC = Type.fromComponents([a, b, c])
+    let B = Type.fromComponents([b])
+    let BC = Type.fromComponents([b, c])
     let expectedTypes = [A, AC, B, BC, AB, ABC]
     let expectedMatches = new Set([graph.root.type, ...expectedTypes])
     let traverseMatches = new Set<Type>()
@@ -89,8 +89,8 @@ suite("Graph", () => {
   })
   test("slot validation", () => {
     let graph = new Graph()
-    let A = makeSelector(a)
-    let B = makeSelector(b)
+    let A = makeQuerySelector(a)
+    let B = makeQuerySelector(b)
     let AorB = makeSlot(A, B)
     let node = graph.nodeOfType(AorB(A).type)
     expect(() => graph.nodeAddType(node, AorB(B).type)).toThrow(ERR_SLOT)

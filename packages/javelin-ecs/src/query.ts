@@ -8,15 +8,20 @@ import {
 import {Entity} from "./entity.js"
 import {Node} from "./graph.js"
 import {Component, ComponentValue, hasSchema} from "./component.js"
-import {ComponentsOf, normalizeSpec, Selector, Spec} from "./type.js"
+import {
+  ComponentsOf,
+  normalizeQueryTerms,
+  QuerySelector,
+  QueryTerms,
+} from "./type.js"
 import {isRelation} from "./relation.js"
 
-export type QueryEachIteratee<T extends Spec> = (
+export type QueryEachIteratee<T extends QueryTerms> = (
   entity: Entity,
   ...values: QueryEachResults<ComponentsOf<T>>
 ) => void
 
-export type QueryEachIterator<T extends Spec> = (
+export type QueryEachIterator<T extends QueryTerms> = (
   iteratee: QueryEachIteratee<T>,
 ) => void
 
@@ -61,13 +66,15 @@ let compileEachIterator = <T extends Component[]>(
   )(query.nodes.values(), query.stores) as QueryEachIterator<T>
 }
 
-export interface QueryAPI<T extends Spec = Spec> {
+export interface QueryAPI<T extends QueryTerms = QueryTerms> {
   each(iteratee: QueryEachIteratee<T>): void
-  as<T extends Spec>(...spec: T): QueryAPI<T>
+  as<T extends QueryTerms>(...queryTerms: T): QueryAPI<T>
   size: number
 }
 
-export class QueryView<T extends Spec = Spec> implements QueryAPI<T> {
+export class QueryView<T extends QueryTerms = QueryTerms>
+  implements QueryAPI<T>
+{
   #query
   #iterator
 
@@ -80,9 +87,9 @@ export class QueryView<T extends Spec = Spec> implements QueryAPI<T> {
     return this.#query.size
   }
 
-  as<T extends Spec>(...spec: T): QueryAPI<T>
+  as<T extends QueryTerms>(...queryTerms: T): QueryAPI<T>
   as() {
-    return this.#query.as.apply(this.#query, arguments as any)
+    return this.#query.as.apply(this.#query, arguments as unknown as QueryTerms)
   }
 
   each(iteratee: QueryEachIteratee<T>) {
@@ -90,7 +97,7 @@ export class QueryView<T extends Spec = Spec> implements QueryAPI<T> {
   }
 }
 
-export class Query<T extends Spec = Spec> implements QueryAPI<T> {
+export class Query<T extends QueryTerms = QueryTerms> implements QueryAPI<T> {
   #selector
   #view
   #views
@@ -98,14 +105,11 @@ export class Query<T extends Spec = Spec> implements QueryAPI<T> {
   readonly nodes
   readonly stores
 
-  constructor(selector: Selector<T>, stores: unknown[][]) {
+  constructor(selector: QuerySelector<T>, stores: unknown[][]) {
     this.nodes = new SparseSet<Node>()
     this.stores = stores
     this.#selector = selector
-    this.#view = new QueryView(
-      this,
-      selector.includedComponents,
-    ) as QueryView<any>
+    this.#view = new QueryView(this, selector.components) as QueryView<any>
     this.#views = [] as QueryAPI[]
     this.#views[selector.hash] = this.#view
   }
@@ -133,28 +137,28 @@ export class Query<T extends Spec = Spec> implements QueryAPI<T> {
     return size
   }
 
-  as<T extends Spec>(...spec: T): QueryAPI<T>
+  as<T extends QueryTerms>(...queryTerms: T): QueryAPI<T>
   as() {
-    let hash = HASH_BASE
-    let spec = arguments as unknown as Spec
-    for (let i = 0; i < spec.length; i++) {
-      let term = spec[i]
-      if (typeof term === "number") {
-        hash = hashWord(hash, term)
-      } else if (isRelation(term)) {
-        hash = hashWord(hash, term.relationTag)
+    let queryTerms = arguments as unknown as QueryTerms
+    let queryTermsHash = HASH_BASE
+    for (let i = 0; i < queryTerms.length; i++) {
+      let queryTerm = queryTerms[i]
+      if (typeof queryTerm === "number") {
+        queryTermsHash = hashWord(queryTermsHash, queryTerm)
+      } else if (isRelation(queryTerm)) {
+        queryTermsHash = hashWord(queryTermsHash, queryTerm.relationTag)
       } else {
-        for (let j = 0; j < term.includedComponents.length; j++) {
-          hash = hashWord(hash, term.includedComponents[j])
+        for (let j = 0; j < queryTerm.components.length; j++) {
+          queryTermsHash = hashWord(queryTermsHash, queryTerm.components[j])
         }
       }
     }
-    hash = normalizeHash(hash)
-    let view = this.#views[hash]
+    queryTermsHash = normalizeHash(queryTermsHash)
+    let view = this.#views[queryTermsHash]
     if (!exists(view)) {
-      let {includedComponents} = normalizeSpec(spec)
+      let {components: includedComponents} = normalizeQueryTerms(queryTerms)
       view = new QueryView(this, includedComponents)
-      this.#views[hash] = view
+      this.#views[queryTermsHash] = view
     }
     return view
   }

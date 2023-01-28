@@ -1,12 +1,12 @@
 import {assert} from "@javelin/lib"
 import {HI_MASK, idHi, idLo, makeId} from "./entity.js"
 import {makeTagComponent, Component, Tag} from "./component.js"
-import {makeSelector, Selector} from "./type.js"
+import {makeQuerySelector, QuerySelector} from "./type.js"
 
 export interface Relation {
   relationId: number
   relationTag: Component<Tag>
-  (to: number | Relation): Selector<[Component<Tag>]>
+  (to: number | Relation): QuerySelector<[Component<Tag>]>
 }
 
 let relationIds = 1
@@ -18,7 +18,7 @@ export let makeRelation = (): Relation => {
   assert(relationId <= HI_MASK)
   let relationAttrs = {relationId, relationTag}
   let makeRelationship = (to: number | Relation) => {
-    return makeSelector(
+    return makeQuerySelector(
       makeId(
         typeof to === "number" ? idLo(to) : to.relationTag,
         relationId,

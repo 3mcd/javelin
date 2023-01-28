@@ -10,8 +10,8 @@ import {ChildOf, getRelation, isRelation, Not, Relation} from "./relation.js"
 import {Component} from "./component.js"
 import {isSlot} from "./slot.js"
 
-export type Term = Selector | Component | Relation
-export type Spec = Term[]
+export type QueryTerm = QuerySelector | Component | Relation
+export type QueryTerms = QueryTerm[]
 
 export const ERR_CHILD_OF = "An entity may have only one ChildOf relationship"
 export const ERR_SLOT =
@@ -35,51 +35,51 @@ export let validateComponents = (components: Component[]) => {
   }
 }
 
-export let normalizeSpec = (spec: Spec) => {
-  let includedComponents: Component[] = []
+export let normalizeQueryTerms = (queryTerms: QueryTerms) => {
+  let components: Component[] = []
   let excludedComponents: Component[] = []
-  for (let i = 0; i < spec.length; i++) {
-    let term = spec[i]
-    if (typeof term === "number") {
-      if (term > LO_MASK) {
-        let termHi = idHi(term)
+  for (let i = 0; i < queryTerms.length; i++) {
+    let queryTerm = queryTerms[i]
+    if (typeof queryTerm === "number") {
+      if (queryTerm > LO_MASK) {
+        let termHi = idHi(queryTerm)
         if (termHi === Not.relationId) {
-          excludedComponents.push(idLo(term) as Component)
+          excludedComponents.push(idLo(queryTerm) as Component)
           continue
         }
         let relation = getRelation(termHi)
-        includedComponents.push(relation.relationTag)
+        components.push(relation.relationTag)
       }
-      includedComponents.push(term)
-    } else if (isRelation(term)) {
-      includedComponents.push(term.relationTag as Component)
+      components.push(queryTerm)
+    } else if (isRelation(queryTerm)) {
+      components.push(queryTerm.relationTag as Component)
     } else {
-      for (let j = 0; j < term.includedComponents.length; j++) {
-        includedComponents.push(term.includedComponents[j])
+      for (let j = 0; j < queryTerm.components.length; j++) {
+        components.push(queryTerm.components[j])
       }
-      for (let j = 0; j < term.excludedComponents.length; j++) {
-        excludedComponents.push(term.excludedComponents[j])
+      for (let j = 0; j < queryTerm.excludedComponents.length; j++) {
+        excludedComponents.push(queryTerm.excludedComponents[j])
       }
     }
   }
-  return {includedComponents, excludedComponents}
+  return {components, excludedComponents}
 }
 
-export let hashSpec = (spec: Spec) => {
-  let hash = HASH_BASE
-  for (let i = 0; i < spec.length; i++) {
-    let term = spec[i]
-    if (typeof term === "number") {
-      hash = hashWord(hash, term)
-    } else if (isRelation(term)) {
-      hash = hashWord(hash, term.relationTag)
+export let hashQueryTerms = (queryTerms: QueryTerms) => {
+  let queryTermsHash = HASH_BASE
+  for (let i = 0; i < queryTerms.length; i++) {
+    let queryTerm = queryTerms[i]
+    if (typeof queryTerm === "number") {
+      queryTermsHash = hashWord(queryTermsHash, queryTerm)
+    } else if (isRelation(queryTerm)) {
+      queryTermsHash = hashWord(queryTermsHash, queryTerm.relationTag)
     } else {
-      for (let j = 0; j < term.includedComponents.length; j++) {
-        hash = hashWord(hash, term.includedComponents[j])
+      for (let j = 0; j < queryTerm.components.length; j++) {
+        queryTermsHash = hashWord(queryTermsHash, queryTerm.components[j])
       }
     }
   }
-  return normalizeHash(hash)
+  return normalizeHash(queryTermsHash)
 }
 
 export class Type {
@@ -89,7 +89,7 @@ export class Type {
   readonly hash
   readonly components
 
-  static of(components: Component[]) {
+  static fromComponents(components: Component[]) {
     components = components.slice().sort(Type.sort)
     let hash = hashWords.apply(null, components)
     return (Type.cache[hash] ??= new Type(components, hash))
@@ -101,57 +101,57 @@ export class Type {
   }
 }
 
-export class Selector<T extends Spec = Spec> {
-  static cache = [] as Selector[]
-  static VOID = new Selector([])
+export class QuerySelector<T extends QueryTerms = QueryTerms> {
+  static cache = [] as QuerySelector[]
+  static VOID = new QuerySelector([])
 
   readonly hash
   readonly type
-  readonly includedComponents
+  readonly components
   readonly excludedComponents
 
-  constructor(spec: T) {
-    let {includedComponents, excludedComponents} = normalizeSpec(spec)
-    this.hash = hashWords.apply(null, includedComponents)
-    this.type = Type.of(includedComponents)
-    this.includedComponents = includedComponents
+  constructor(queryTerms: T) {
+    let {components, excludedComponents} = normalizeQueryTerms(queryTerms)
+    this.hash = hashWords.apply(null, components)
+    this.type = Type.fromComponents(components)
+    this.components = components
     this.excludedComponents = excludedComponents
   }
 }
 
 export type ComponentsOf<
-  T extends Spec,
+  T extends QueryTerms,
   U extends Component[] = [],
 > = T extends []
   ? U
   : T extends [infer Head, ...infer Tail]
-  ? Tail extends Spec
+  ? Tail extends QueryTerms
     ? Head extends Component
       ? ComponentsOf<Tail, [...U, Head]>
-      : Head extends Selector<infer Spec>
-      ? ComponentsOf<Tail, [...U, ...ComponentsOf<Spec>]>
+      : Head extends QuerySelector<infer QT>
+      ? ComponentsOf<Tail, [...U, ...ComponentsOf<QT>]>
       : never
     : never
   : never
 
-export function makeSelector<T extends Spec>(
-  ...spec: T
-): Selector<ComponentsOf<T>>
-export function makeSelector() {
-  let spec = arguments as unknown as Spec
-  let specHash = HASH_BASE
-  for (let i = 0; i < spec.length; i++) {
-    let term = spec[i]
-    if (typeof term === "number") {
-      specHash = hashWord(specHash, term)
-    } else if (isRelation(term)) {
-      specHash = hashWord(specHash, term.relationTag)
+export function makeQuerySelector<T extends QueryTerms>(
+  ...queryTerms: T
+): QuerySelector<ComponentsOf<T>>
+export function makeQuerySelector() {
+  let queryTerms = arguments as unknown as QueryTerms
+  let queryTermsHash = HASH_BASE
+  for (let i = 0; i < queryTerms.length; i++) {
+    let queryTerm = queryTerms[i]
+    if (typeof queryTerm === "number") {
+      queryTermsHash = hashWord(queryTermsHash, queryTerm)
+    } else if (isRelation(queryTerm)) {
+      queryTermsHash = hashWord(queryTermsHash, queryTerm.relationTag)
     } else {
-      for (let j = 0; j < term.includedComponents.length; j++) {
-        specHash = hashWord(specHash, term.includedComponents[j])
+      for (let j = 0; j < queryTerm.components.length; j++) {
+        queryTermsHash = hashWord(queryTermsHash, queryTerm.components[j])
       }
     }
   }
-  specHash = normalizeHash(specHash)
-  return (Selector.cache[specHash] ??= new Selector(spec))
+  queryTermsHash = normalizeHash(queryTermsHash)
+  return (QuerySelector.cache[queryTermsHash] ??= new QuerySelector(queryTerms))
 }
