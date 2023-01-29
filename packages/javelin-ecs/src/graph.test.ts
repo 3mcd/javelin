@@ -21,7 +21,7 @@ suite("Graph", () => {
     expect(graph.nodeRemoveType(nodeABC, BC)).toBe(nodeA)
     expect(graph.nodeAddType(nodeA, BC)).toBe(nodeABC)
   })
-  test("node created event", () => {
+  test("onNodeCreated", () => {
     let graph = new Graph()
     let ABC = Type.fromComponents([a, b, c])
     let A = Type.fromComponents([a])

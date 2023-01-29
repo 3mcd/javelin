@@ -33,7 +33,7 @@ perf("compileDecodeEntity", () => {
 
 perf("interestMessageType.encode", () => {
   let T = type(a, b, c)
-  let count = 100
+  let count = 10
   let writeStream = new WriteStream()
   let interest = makeInterest(99 as Entity, T)
   let {world} = app()
@@ -53,7 +53,7 @@ perf("interestMessageType.encode", () => {
 })
 
 perf("interestMessageType.decode", () => {
-  let count = 100
+  let count = 10
   let T = type(a, b, c)
   let writeStream = new WriteStream()
   let interest = makeInterest(99 as Entity, T)
