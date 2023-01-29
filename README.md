@@ -10,9 +10,9 @@
 
 # Javelin
 
-Join us on [Discord](https://discord.gg/AbEWH3taWU)!
-
 Javelin is an [ECS](https://github.com/SanderMertens/ecs-faq) framework that provides the means to make multiplayer games in JavaScript.
+
+Join us on [Discord](https://discord.gg/AbEWH3taWU)!
 
 ## Docs
 
