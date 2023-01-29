@@ -176,6 +176,11 @@ export class App {
     return this
   }
 
+  removeSystem(system: SystemImpl, groupId = DefaultGroup.Update) {
+    let systemGroup = expect(this.#systemGroupsById.get(groupId))
+    systemGroup.removeSystem(system)
+  }
+
   step() {
     let {world} = this
     this.#updateSystemGroupSchedule()

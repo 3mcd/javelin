@@ -20,6 +20,12 @@ app.addSystem(plantGrowthSystem)
 
 By default, an app will execute it's systems in the order they are added.
 
+Systems are removed via the `removeSystem` method.
+
+```ts
+app.removeSystem(plantGrowthSystem)
+```
+
 ## Ordering Constraints
 
 The order in which an app executes systems can be configured using explicit ordering constraints. Ordering constraints are established using a constraint builder object passed to `addSystem`'s optional second callback argument.
