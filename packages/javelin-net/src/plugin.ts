@@ -44,10 +44,8 @@ let clientProcessMessagesSystem = (world: World) => {
 }
 
 export let clientPlugin = (app: App) => {
-  let protocol: IProtocol
-  if (app.hasResource(Protocol)) {
-    protocol = app.getResource(Protocol)
-  } else {
+  let protocol = app.getResource(Protocol)
+  if (!exists(protocol)) {
     protocol = makeProtocol()
     app.addResource(Protocol, protocol)
   }
@@ -59,14 +57,11 @@ export let clientPlugin = (app: App) => {
 }
 
 export let serverPlugin = (app: App) => {
-  let protocol: IProtocol
-  if (app.hasResource(Protocol)) {
-    protocol = app.getResource(Protocol)
-  } else {
+  let protocol = app.getResource(Protocol)
+  if (!exists(protocol)) {
     protocol = makeProtocol()
     app.addResource(Protocol, protocol)
   }
-
   protocol.addMessageType(interestMessageType)
   app.addSystemToGroup(Group.Early, serverUpdateClientsSystem)
 }

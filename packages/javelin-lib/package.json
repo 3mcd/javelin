@@ -12,10 +12,7 @@
     "import": "./dist/javelin-lib.esm.js",
     "require": "./dist/javelin-lib.cjs.js"
   },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-
+  "scripts": {},
   "preconstruct": {
     "entrypoints": [
       "index.ts"

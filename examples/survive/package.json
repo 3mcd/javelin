@@ -5,7 +5,6 @@
   "description": "Battle hordes of bats and collect their items to grow stronger!",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "vite"
   },
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",

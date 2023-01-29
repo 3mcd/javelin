@@ -99,7 +99,7 @@ let compileReadExp = (format: Format, stream: string) => {
   return `${stream}.${method}()`
 }
 
-let comileEncodeEntity = (
+export let compileEncodeEntity = (
   selector: QuerySelector,
   world: World,
 ): EncodeEntity => {
@@ -136,7 +136,7 @@ let comileEncodeEntity = (
   return encodeEntity
 }
 
-let compileDecodeEntity = (
+export let compileDecodeEntity = (
   selector: QuerySelector,
   world: World,
 ): DecodeEntity => {
@@ -188,7 +188,7 @@ class EntityEncoder {
   }
 
   constructor(selector: QuerySelector, world: World) {
-    this.encode = comileEncodeEntity(selector, world)
+    this.encode = compileEncodeEntity(selector, world)
     this.decode = compileDecodeEntity(selector, world)
     this.bytesPerEntity = getEncodedEntityLength(selector)
   }
@@ -240,7 +240,7 @@ export let interestMessageType = {
     for (let i = 0; i < subjectSelectorComponentsLength; i++) {
       subjectSelectorComponents.push(stream.readU32() as Component)
     }
-    let subjectSelector = type(...subjectSelectorComponents)
+    let subjectSelector = type.apply(null, subjectSelectorComponents)
     let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectSelector)
     // (3)
     let subjectCount = stream.readU16()

@@ -106,8 +106,10 @@ export class App {
     return this.world.hasResource(resource)
   }
 
-  getResource<T>(resource: Resource<T>): T {
-    return this.world.getResource(resource)
+  getResource<T>(resource: Resource<T>): Maybe<T> {
+    return this.world.hasResource(resource)
+      ? this.world.getResource(resource)
+      : undefined
   }
 
   addSystemGroup(

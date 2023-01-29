@@ -8,8 +8,11 @@ let toInt = (s: Maybe<string>) => (s == undefined ? undefined : +s)
 
 const defaultPerfOptions: Readonly<PerfOptions> = Object.freeze({
   only: false,
-  throwOnFailure: true,
+  throwOnFailure: process.env.THROW_ON_FAILURE
+    ? process.env.THROW_ON_FAILURE !== "false"
+    : true,
 })
+const WRITE_FAILURES = process.env.COMMIT === "true"
 const PERF_RUNS = toInt(process.env.PERF_RUNS) ?? 15_000
 const PERF_SAMPLES_TO_DISCARD_PER_EXTREME =
   toInt(process.env.PERF_SAMPLES_TO_DISCARD_PER_EXTREME) ?? 100
@@ -176,7 +179,9 @@ let runPerf = (perf: Perf, module: Module, perfLabel: string) => {
     if (perfDeviation < -0.1) {
       if (perfDeviation < -0.15) {
         perfSuccess = false
-        module.resultsContent += `${perf.name},${perf.prevMeanRunMs}\r\n`
+        module.resultsContent += `${perf.name},${
+          WRITE_FAILURES ? currMeanRunMs : perf.prevMeanRunMs
+        }\r\n`
       } else {
         module.resultsContent += `${perf.name},${currMeanRunMs}\r\n`
       }

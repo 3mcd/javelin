@@ -1,6 +1,6 @@
 import {assert} from "@javelin/lib"
 import {makeRelation, Relation} from "./relation.js"
-import {Component, getSchema, hasSchema, setSchema} from "./component"
+import {Component, getSchema, hasSchema, setSchema} from "./component.js"
 import {QuerySelector} from "./type.js"
 
 export const ERR_SLOT_DEFINITION =

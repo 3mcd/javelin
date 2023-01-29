@@ -5,11 +5,10 @@ export type {Component} from "./component.js"
 export type {Format, Schema} from "./schema.js"
 
 export {ChildOf, Without} from "./relation.js"
-export {Phase} from "./world"
+export {Phase, World} from "./world.js"
 export {Monitor} from "./monitor.js"
 export {Node} from "./graph.js"
 export {Type, QuerySelector, normalizeQueryTerms} from "./type.js"
-export {World} from "./world.js"
 
 export {DefaultGroup as Group, makeApp as app} from "./app.js"
 export {makeRelation as relation} from "./relation.js"
