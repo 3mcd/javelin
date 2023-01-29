@@ -1,4 +1,4 @@
-import {App, Group, resource, World} from "@javelin/ecs"
+import * as j from "@javelin/ecs"
 import {
   batSprites,
   lootSprites,
@@ -14,9 +14,9 @@ import {Vector2} from "./math.js"
 import {Player} from "./player.js"
 import {Position} from "./position.js"
 
-let Canvas = resource<HTMLCanvasElement>()
-let CanvasContext = resource<CanvasRenderingContext2D>()
-let Viewport = resource<Vector2>()
+let Canvas = j.resource<HTMLCanvasElement>()
+let CanvasContext = j.resource<CanvasRenderingContext2D>()
+let Viewport = j.resource<Vector2>()
 
 let drawSprite = (
   canvasContext: CanvasRenderingContext2D,
@@ -26,11 +26,7 @@ let drawSprite = (
   canvasContext.save()
   canvasContext.translate(pos.x, pos.y)
   canvasContext.scale(0.1, 0.1)
-  canvasContext.drawImage(
-    sprite,
-    -sprite.width / 2,
-    -sprite.height / 2,
-  )
+  canvasContext.drawImage(sprite, -sprite.width / 2, -sprite.height / 2)
   canvasContext.restore()
 }
 
@@ -56,7 +52,7 @@ let drawCircle = (
   canvasContext.restore()
 }
 
-let resizeViewportSystem = (world: World) => {
+let resizeViewportSystem = (world: j.World) => {
   let viewport = world.getResource(Viewport)
   let canvas = world.getResource(Canvas)
   let onResize = () => {
@@ -68,13 +64,13 @@ let resizeViewportSystem = (world: World) => {
   onResize()
 }
 
-let clearCanvasSystem = (world: World) => {
+let clearCanvasSystem = (world: j.World) => {
   let viewport = world.getResource(Viewport)
   let canvasContext = world.getResource(CanvasContext)
   canvasContext.clearRect(0, 0, viewport.x, viewport.y)
 }
 
-let drawPlayersSystem = (world: World) => {
+let drawPlayersSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   world
     .of(Player)
@@ -84,7 +80,7 @@ let drawPlayersSystem = (world: World) => {
     )
 }
 
-let drawEnemiesSystem = (world: World) => {
+let drawEnemiesSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   world
     .of(Enemy)
@@ -93,14 +89,12 @@ let drawEnemiesSystem = (world: World) => {
       drawSprite(
         canvasContext,
         enemyPos,
-        world.get(enemy, AuraImmune)
-          ? batSprites[0][0]
-          : batSprites[1][0],
+        world.get(enemy, AuraImmune) ? batSprites[0][0] : batSprites[1][0],
       ),
     )
 }
 
-let drawBulletsSystem = (world: World) => {
+let drawBulletsSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   world
     .of(Bullet)
@@ -110,17 +104,15 @@ let drawBulletsSystem = (world: World) => {
     )
 }
 
-let drawLootSystem = (world: World) => {
+let drawLootSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   world
     .of(LootBag)
     .as(Position)
-    .each((_, lootPos) =>
-      drawSprite(canvasContext, lootPos, lootSprites[0][0]),
-    )
+    .each((_, lootPos) => drawSprite(canvasContext, lootPos, lootSprites[0][0]))
 }
 
-let drawAurasSystem = (world: World) => {
+let drawAurasSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   world
     .of(AuraSource)
@@ -135,7 +127,7 @@ let drawAurasSystem = (world: World) => {
     )
 }
 
-let drawHealthSystem = (world: World) => {
+let drawHealthSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   let viewport = world.getResource(Viewport)
   world
@@ -152,7 +144,7 @@ let drawHealthSystem = (world: World) => {
     })
 }
 
-let drawQuiverSystem = (world: World) => {
+let drawQuiverSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   let viewport = world.getResource(Viewport)
   world
@@ -169,28 +161,20 @@ let drawQuiverSystem = (world: World) => {
     })
 }
 
-export let renderPlugin = (app: App) => {
+export let renderPlugin = (app: j.App) => {
   let canvas = document.querySelector("canvas")!
   let canvasContext = canvas.getContext("2d")!
   app
     .addResource(Canvas, canvas)
     .addResource(CanvasContext, canvasContext)
     .addResource(Viewport, {x: 0, y: 0})
-    .addSystemToGroup(Group.Init, resizeViewportSystem)
-    .addSystemToGroup(Group.LateUpdate, clearCanvasSystem)
+    .addSystemToGroup(j.Group.Init, resizeViewportSystem)
+    .addSystemToGroup(j.Group.LateUpdate, clearCanvasSystem)
     .addSystemToGroup("render", drawPlayersSystem)
-    .addSystemToGroup("render", drawEnemiesSystem, _ =>
-      _.after(drawPlayersSystem),
-    )
-    .addSystemToGroup("render", drawBulletsSystem, _ =>
-      _.after(drawEnemiesSystem),
-    )
-    .addSystemToGroup("render", drawLootSystem, _ =>
-      _.before(drawPlayersSystem),
-    )
-    .addSystemToGroup("render", drawAurasSystem, _ =>
-      _.before(drawPlayersSystem),
-    )
-    .addSystemToGroup(Group.Late, drawHealthSystem)
-    .addSystemToGroup(Group.Late, drawQuiverSystem)
+    .addSystemToGroup("render", drawEnemiesSystem, j.after(drawPlayersSystem))
+    .addSystemToGroup("render", drawBulletsSystem, j.after(drawEnemiesSystem))
+    .addSystemToGroup("render", drawLootSystem, j.before(drawPlayersSystem))
+    .addSystemToGroup("render", drawAurasSystem, j.before(drawPlayersSystem))
+    .addSystemToGroup(j.Group.Late, drawHealthSystem)
+    .addSystemToGroup(j.Group.Late, drawQuiverSystem)
 }

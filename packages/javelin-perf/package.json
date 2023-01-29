@@ -5,13 +5,14 @@
   "description": "",
   "keywords": [],
   "type": "module",
-  "version": "1.0.0",
+  "version": "2.0.0-alpha.3",
   "main": "dist/javelin-perf.cjs.js",
   "module": "dist/javelin-perf.esm.js",
   "exports": {
     "import": "./dist/javelin-perf.esm.js",
     "require": "./dist/javelin-perf.cjs.js"
   },
+  "files": ["dist"],
   "scripts": {
     "test": "vitest run"
   },

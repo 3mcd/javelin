@@ -2,7 +2,7 @@
   "name": "@javelin/ecs",
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "license": "MIT",
-  "version": "2.0.0-alpha.0",
+  "version": "2.0.0-alpha.3",
   "description": "A TypeScript/JavaScript Entity-Component System",
   "keywords": ["ecs", "entity-component system", "game", "gamedev", "multiplayer", "mog"],
   "type": "module",
@@ -12,6 +12,7 @@
     "import": "./dist/javelin-ecs.esm.js",
     "require": "./dist/javelin-ecs.cjs.js"
   },
+  "files": ["dist"],
   "scripts": {
     "test": "vitest"
   },

@@ -6,7 +6,6 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "pnpm run start:client & pnpm run start:server",
     "start:client": "vite",
     "start:server": "node --loader ts-node/esm --experimental-specifier-resolution=node ./server/index.ts"

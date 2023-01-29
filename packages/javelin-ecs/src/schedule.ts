@@ -1,4 +1,4 @@
-import {assert, expect, Maybe} from "@javelin/lib"
+import {assert, exists, expect, Maybe} from "@javelin/lib"
 import {System, SystemImpl} from "./system.js"
 import {World} from "./world.js"
 
@@ -50,23 +50,19 @@ export class Schedule<T> {
   #vertices
 
   constructor() {
-    this.#vertices = new Map<T, T[]>()
+    this.#vertices = new Map<T, Set<T>>()
   }
 
   #dependencies(task: T) {
     let edges = this.#vertices.get(task)
-    if (edges === undefined) {
-      this.#vertices.set(task, (edges = []))
+    if (!exists(edges)) {
+      edges = new Set()
+      this.#vertices.set(task, edges)
     }
     return edges
   }
 
-  #sort(
-    vertex: T,
-    degree: number,
-    degrees: Map<T, number>,
-    visited: Set<T>,
-  ) {
+  #sort(vertex: T, degree: number, degrees: Map<T, number>, visited: Set<T>) {
     visited.add(vertex)
     let neighbors = this.#dependencies(vertex)
     for (let neighbor of neighbors) {
@@ -83,11 +79,18 @@ export class Schedule<T> {
   }
 
   add(task: T, dependency: T) {
-    this.#dependencies(task).push(dependency)
+    this.#dependencies(task).add(dependency)
+  }
+
+  remove(task: T) {
+    this.#vertices.delete(task)
+    this.#vertices.forEach(vertex => {
+      vertex.delete(task)
+    })
   }
 
   build() {
-    let vertices = [...this.#vertices.keys()]
+    let vertices = Array.from(this.#vertices.keys())
     let visited = new Set<T>()
     let degrees = new Map<T, number>()
     let degree = vertices.length - 1
@@ -123,14 +126,24 @@ export class SystemGroup {
 
   addSystem(
     impl: SystemImpl,
-    constraints = new Constraints<SystemImpl>(),
+    constraints?: Maybe<Constraints<SystemImpl>>,
     predicate?: Maybe<Predicate>,
   ) {
     let system = new System(impl, predicate)
     assert(!this.#systemsByImpl.has(impl))
     this.#systemsByImpl.set(impl, system)
     this.#systemScheduleStale = true
-    Constraints.insert(this.#systemSchedule, impl, constraints)
+    Constraints.insert(
+      this.#systemSchedule,
+      impl,
+      constraints ?? new Constraints<SystemImpl>(),
+    )
+  }
+
+  removeSystem(impl: SystemImpl) {
+    this.#systemsByImpl.delete(impl)
+    this.#systemSchedule.remove(impl)
+    this.#systemScheduleStale = true
   }
 
   isEnabled(world: World) {
@@ -142,4 +155,12 @@ export class SystemGroup {
     }
     return this.#predicate?.(world) ?? true
   }
+}
+
+export function makeConstraintsWithBefore<T>(task: T): Constraints<T> {
+  return new Constraints<T>().before(task)
+}
+
+export function makeConstraintsWithAfter<T>(task: T): Constraints<T> {
+  return new Constraints<T>().after(task)
 }

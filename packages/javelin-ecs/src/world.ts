@@ -1,21 +1,21 @@
 import {assert, exists, expect, Maybe} from "@javelin/lib"
+import {
+  Component,
+  ComponentInitValues,
+  ComponentValue,
+  Dynamic,
+  express,
+  getSchema,
+  hasSchema,
+  Tag,
+} from "./component.js"
 import {Entity, idHi, idLo, LO_MASK, makeId} from "./entity.js"
 import {Graph, Node} from "./graph.js"
 import {ChildOf} from "./index.js"
 import {Monitor} from "./monitor.js"
-import {QueryAPI, Query} from "./query.js"
+import {Query, QueryAPI} from "./query.js"
 import {makeResource, Resource} from "./resource.js"
 import {System} from "./system.js"
-import {
-  hasSchema,
-  Component,
-  Tag,
-  ComponentValue,
-  ComponentInitValues,
-  getSchema,
-  express,
-  Dynamic,
-} from "./component.js"
 import {Transaction, TransactionIteratee} from "./transaction.js"
 import {
   hashQueryTerms,
@@ -33,18 +33,19 @@ export enum Phase {
 export let CurrentSystem = makeResource<System>()
 
 export class World {
-  #applyTransaction
-  #componentStores
-  #disposableNodes
-  #entityChildren
-  #entityDeltas
-  #entityIdVersions
-  #entityNodes
-  #entityParents
-  #freeEntityIds
+  readonly #applyTransaction
+  readonly #componentStores
+  readonly #disposableNodes
+  readonly #entityChildren
+  readonly #entityIdVersions
+  readonly #entityDeltas
+  readonly #entityNodes
+  readonly #entityParents
+  readonly #freeEntityIds
+  readonly #resources
+  readonly #stageTransaction
+
   #nextEntityId
-  #resources
-  #stageTransaction
 
   readonly graph
 
@@ -53,7 +54,6 @@ export class World {
     this.#componentStores = [] as unknown[][]
     this.#disposableNodes = new Set<Node>()
     this.#entityChildren = [] as Set<Entity>[]
-    this.#entityDeltas = [] as unknown[][]
     this.#entityIdVersions = [] as number[]
     this.#entityNodes = [] as Node[]
     this.#entityParents = [] as Entity[]
@@ -62,6 +62,8 @@ export class World {
     this.#resources = [] as unknown[]
     this.#stageTransaction = new Transaction()
     this.graph = new Graph()
+    this.#entityDeltas = [] as unknown[][]
+    this.setResource(CurrentSystem, new System(() => {}))
   }
 
   #allocEntityId(): Entity {
@@ -122,7 +124,7 @@ export class World {
   }
 
   #ensureEntityDelta(entity: Entity) {
-    return (this.#entityDeltas[entity] ??= [])
+    return (this.#entityDeltas[idLo(entity)] ??= [])
   }
 
   #freeEntityDelta(entity: Entity) {
@@ -220,7 +222,8 @@ export class World {
         this.#setEntityComponentValue(entity, component, componentValue)
       }
     }
-    // Free the existing entity's component change set.
+    this.#setEntityNode(entity, nextNode)
+    // Free the new entity's component change set.
     this.#freeEntityDelta(entity)
   }
 
@@ -324,7 +327,10 @@ export class World {
         } else {
           // Update the entity change set with a user-provided component value,
           // or auto-initialize a component value from the component schema.
-          entityDelta[component] = selectorValues[j++] ?? express(component)
+          entityDelta[component] =
+            selectorValues[j++] ??
+            this.getComponentStore(component)[entity] ??
+            express(component)
         }
       }
     }
@@ -533,6 +539,17 @@ export class World {
     let component = componentSelector.components[0]
     assert(entityNode.hasComponent(component))
     this.#setEntityComponentValue(entity, component, componentValue)
+  }
+
+  /**
+   * @private
+   */
+  has(entity: Entity, component: Component) {
+    let entityNode = this.#getEntityNode(entity)
+    if (exists(entityNode)) {
+      return entityNode.hasComponent(component)
+    }
+    return false
   }
 
   /**

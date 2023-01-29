@@ -1,10 +1,15 @@
 import {Maybe} from "@javelin/lib"
-import {suite, test, expect} from "vitest"
-import {Graph, Node} from "./graph.js"
+import {expect, suite, test} from "vitest"
 import {makeTagComponent} from "./component.js"
-import {ERR_CHILD_OF, ERR_SLOT, makeQuerySelector, Type} from "./type.js"
-import {ChildOf} from "./relation.js"
-import {makeSlot} from "./slot.js"
+import {Graph, Node} from "./graph.js"
+import {
+  ChildOf,
+  ERR_CHILD_OF,
+  ERR_SLOT,
+  makeQuerySelector,
+  makeSlot,
+  Type,
+} from "./type.js"
 
 let a = makeTagComponent()
 let b = makeTagComponent()
@@ -21,7 +26,7 @@ suite("Graph", () => {
     expect(graph.nodeRemoveType(nodeABC, BC)).toBe(nodeA)
     expect(graph.nodeAddType(nodeA, BC)).toBe(nodeABC)
   })
-  test("node created event", () => {
+  test("onNodeCreated", () => {
     let graph = new Graph()
     let ABC = Type.fromComponents([a, b, c])
     let A = Type.fromComponents([a])

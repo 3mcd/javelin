@@ -14,7 +14,7 @@ A type is a set of components that defines an entity's composition.
 
 ### Value component
 
-A value component is a component that adds a  value (called component data) to an entity.
+A value component is a component that adds a value (called component data) to an entity.
 
 ### Component data
 
@@ -54,7 +54,7 @@ A monitor is a a query-like object that yields entities that began matching or n
 
 ### Relation
 
-A relation is a function that returns per-entity relationship components. Relations are subsituted in types with their underlying relation tag. 
+A relation is a function that returns per-entity relationship components. Relations are subsituted in types with their underlying relation tag.
 
 ### Relation tag
 

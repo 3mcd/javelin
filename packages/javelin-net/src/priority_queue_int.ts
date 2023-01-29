@@ -1,3 +1,5 @@
+import {expect} from "@javelin/lib"
+
 let left = (i: number) => 2 * i + 1
 let right = (i: number) => 2 * i + 2
 let parent = (i: number) => Math.ceil(i / 2) - 1
@@ -26,7 +28,8 @@ export class PriorityQueueInt<T extends number> {
       return null
     }
     this.#swap(i, this.#heap.length - 1)
-    let item = this.#heap.pop()
+    let item = expect(this.#heap.pop())
+    this.#indices[item] = undefined!
     this.#bubbleDown(i)
     return item
   }
@@ -93,5 +96,9 @@ export class PriorityQueueInt<T extends number> {
 
   isEmpty() {
     return this.#heap.length === 0
+  }
+
+  _heap() {
+    return this.#heap
   }
 }

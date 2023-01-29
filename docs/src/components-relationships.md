@@ -5,14 +5,14 @@ Relationships are a special kind of component created by pairing a **relation co
 A relation component is created using the `relation` function.
 
 ```ts
-let GravitatingTo = relation()
+let GravitatingTo = j.relation()
 ```
 
 The value returned by `relation` is a function that builds relationships on a per-entity basis. Relationships can be added to entities like any other component.
 
 ```ts
 let planet = world.create(Planet)
-let spaceship = world.create(type(Spaceship, GravitatingTo(planet)))
+let spaceship = world.create(j.type(Spaceship, GravitatingTo(planet)))
 ```
 
 Relationships can be used as query terms to resolve related entities.
@@ -41,13 +41,13 @@ Javelin comes with a special relation component called `ChildOf` that provides t
 
 ```ts
 let bag = world.create(Bag)
-let sword = world.create(type(Sword, ChildOf(bag)))
+let sword = world.create(j.type(Sword, j.ChildOf(bag)))
 ```
 
 `ChildOf` can be used with queries to find all children of an entity.
 
 ```ts
-world.of(ChildOf(bag)).each(item => {
+world.of(j.ChildOf(bag)).each(item => {
   // `item` is a child of `bag`
 })
 ```
@@ -61,7 +61,7 @@ world.delete(bag) // also deletes `sword`
 An entity may have only one parent.
 
 ```ts
-world.create(type(ChildOf(spaceship), ChildOf(planet)))
+world.create(type(j.ChildOf(spaceship), j.ChildOf(planet)))
 // Error: a type may have only one ChildOf relationship
 ```
 

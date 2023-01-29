@@ -7,18 +7,24 @@ An app executes each of it's systems each step. Systems may be optionally config
 Systems are added to an app using the app's `addSystem` method.
 
 ```ts
-let plantGrowthSystem = (world: World) => {
+let plantGrowthSystem = (world: j.World) => {
   world.of(Plot).each((plot, plotWater) => {
-    world.of(Plant, ChildOf(plot)).each((plant, plantMass) => {
+    world.of(Plant, j.ChildOf(plot)).each((plant, plantMass) => {
       // (grow plant using plotWater)
     })
   })
 }
 
-game.addSystem(plantGrowthSystem)
+app.addSystem(plantGrowthSystem)
 ```
 
 By default, an app will execute it's systems in the order they are added.
+
+Systems are removed via the `removeSystem` method.
+
+```ts
+app.removeSystem(plantGrowthSystem)
+```
 
 ## Ordering Constraints
 
@@ -26,7 +32,7 @@ The order in which an app executes systems can be configured using explicit orde
 
 ```ts
 game
-  .addSystem(plantGrowthSystem, _ => _.after(weatherSystem))
+  .addSystem(plantGrowthSystem, j.after(weatherSystem))
   .addSystem(weatherSystem)
 ```
 
@@ -35,9 +41,7 @@ The `after` constraint ensures a system will be run some time following a given 
 Ordering constraints can be chained.
 
 ```ts
-game.addSystem(pestSystem, _ =>
-  _.after(weatherSystem).before(plantGrowthSystem),
-)
+app.addSystem(pestSystem, j.after(weatherSystem).before(plantGrowthSystem))
 ```
 
 ## Run Criteria
@@ -49,11 +53,7 @@ let eachHundredthTick = (world: World) => {
   return world.getResource(Clock).tick % 100 === 0
 }
 
-game.addSystem(
-  plantGrowthSystem,
-  _ => _.after(weatherSystem),
-  eachHundredthTick,
-)
+app.addSystem(plantGrowthSystem, j.after(weatherSystem), eachHundredthTick)
 ```
 
 ## System Groups
@@ -72,7 +72,7 @@ enum Group {
 
 Groups are run in the order they appear in the above enum. There are no rules around how built-in groups should be used, but here are some ideas:
 
-1. `Group.Early` can be used for detecting device input, processing incoming network messages, and any additional housekeeping that doesn't touch the primary entities in your game.
+1. `Group.Early` can be used for detecting device input, processing incoming network messages, and any additional housekeeping that doesn't touch the primary entities in your world.
 2. `Group.EarlyUpdate` might be used for behaviors that have important implications for most entities in your game, like applying player input and updating a physics simulation.
 3. `Group.Update` can be used for core game logic, like handling entity collision events, applying damage-over-time effects, spawning entities, etc.
 4. `Group.LateUpdate` can be used to spawn and destroy entities because entity operations are [deferred until the end of a step](./entities.md#entity-transaction) anyways.
@@ -81,13 +81,13 @@ Groups are run in the order they appear in the above enum. There are no rules ar
 Systems are grouped using an app's `addSystemToGroup` method:
 
 ```ts
-game.addSystemToGroup(Group.Late, renderPlotSystem)
+app.addSystemToGroup(j.Group.Late, renderPlotSystem)
 ```
 
 Like `addSystem`, `addSystemToGroup` also accepts ordering constraints and run criteria through it's third and fourth arguments.
 
 ```ts
-game.addSystemToGroup(Group.Late, renderPlotSystem, _ =>
+app.addSystemToGroup(j.Group.Late, renderPlotSystem, _ =>
   _.before(renderGrassSystem),
 )
 ```
@@ -101,9 +101,9 @@ app.addGroup("plot_sim")
 Like systems, system groups can be ordered and toggled using ordering constraints and run criteria, respectively.
 
 ```ts
-game.addGroup(
+app.addGroup(
   "plot_sim",
-  _ => _.before(Group.LateUpdate).after(Group.Update),
+  j.before(j.Group.LateUpdate).after(j.Group.Update),
   eachHundredthTick,
 ```
 
@@ -114,7 +114,7 @@ Javelin has a sixth built-in system group: `Group.Init`. This group has run crit
 Apps have a small convenience method for adding systems to `Group.Init`: `addInitSystem`.
 
 ```ts
-game.addInitSystem(loadLevelSystem)
+app.addInitSystem(loadLevelSystem)
 ```
 
 Of course, like each of the aformentioned system-related methods, `addInitSystem` also accepts ordering constraints and run criteria.

@@ -1,5 +1,6 @@
 <p align="center">
-  <img src="./logo.png" width="120px">
+  <img src="./logo-light.png#gh-dark-mode-only" width="120px">
+  <img src="./logo-dark.png#gh-light-mode-only" width="120px">
 </p>
 
 <p align="center">
@@ -9,9 +10,9 @@
 
 # Javelin
 
-Join us on [Discord](https://discord.gg/AbEWH3taWU)!
+Javelin is an [ECS](https://github.com/SanderMertens/ecs-faq) framework that provides the means to make multiplayer games in JavaScript.
 
-Javelin is an ECS framework for JavaScript and Typescript that provides the means to create multiplayer games for Node and web browsers.
+Join us on [Discord](https://discord.gg/AbEWH3taWU)!
 
 ## Docs
 
@@ -19,29 +20,48 @@ Visit https://javelin.dev
 
 ## Packages
 
-| Name                                                     | Description                                            |
-| -------------------------------------------------------- | ------------------------------------------------------ |
-| [@javelin/ecs](./packages/javelin-ecs)                   | Core ECS library                                       |
-| [@javelin/net](./packages/javelin-net)                   | Authoritative game server and client                   |
-| [@javelin/lib](./packages/javelin-lib)                   | Shared helpers and types                               |
+| Name                                     | Description                                  |
+| ---------------------------------------- | -------------------------------------------- |
+| [@javelin/ecs](./packages/javelin-ecs)   | ECS framework                                |
+| [@javelin/net](./packages/javelin-net)   | Authoritative game server and client plugins |
+| [@javelin/lib](./packages/javelin-lib)   | Shared helpers and types                     |
+| [@javelin/perf](./packages/javelin-perf) | Performance testing library                  |
 
 ## Examples
 
-| Name                          | Description                                               |
-| ----------------------------- | --------------------------------------------------------- |
-| [survive](./examples/survive) | Single-player vampire survivors clone                     | 
-| [shooty](./examples/shooty)   | Multi-player first-person shooter                         |
+| Name                          | Description                           |
+| ----------------------------- | ------------------------------------- |
+| [survive](./examples/survive) | Single-player vampire survivors clone |
+| [shooty](./examples/shooty)   | Multi-player first-person shooter     |
 
 ## Development
 
-You can bootstrap all monorepo and package dependencies using the following command:
+Install monorepo and package dependencies:
 
 ```sh
-pnpm i
+pnpm install
 ```
 
-You can build all packages like so:
+Build packages:
 
 ```sh
 pnpm build
+```
+
+Run unit tests:
+
+```sh
+pnpm test
+```
+
+Run performance tests:
+
+```sh
+pnpm perf
+```
+
+Clear performance test results:
+
+```sh
+pnpm reset
 ```

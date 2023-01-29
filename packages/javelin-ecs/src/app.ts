@@ -1,6 +1,13 @@
 import {assert, expect, Maybe} from "@javelin/lib"
 import {Resource} from "./resource.js"
-import {Constraints, SystemGroup, Predicate, Schedule} from "./schedule.js"
+import {
+  Constraints,
+  SystemGroup,
+  Predicate,
+  Schedule,
+  makeConstraintsWithAfter,
+  makeConstraintsWithBefore,
+} from "./schedule.js"
 import {SystemImpl} from "./system.js"
 import {CurrentSystem, World} from "./world.js"
 
@@ -45,22 +52,33 @@ let defaultPlugin = (app: App) => {
   app
     .addSystemGroup(
       DefaultGroup.Init,
-      _ => _.before(DefaultGroup.Early),
+      makeConstraintsWithBefore(DefaultGroup.Early),
       () => initGroupEnabled,
     )
-    .addSystemGroup(DefaultGroup.Early, _ =>
-      _.after(DefaultGroup.Init).before(DefaultGroup.EarlyUpdate),
+    .addSystemGroup(
+      DefaultGroup.Early,
+      makeConstraintsWithAfter(DefaultGroup.Init).before(
+        DefaultGroup.EarlyUpdate,
+      ),
     )
-    .addSystemGroup(DefaultGroup.EarlyUpdate, _ =>
-      _.after(DefaultGroup.Early).before(DefaultGroup.Update),
+    .addSystemGroup(
+      DefaultGroup.EarlyUpdate,
+      makeConstraintsWithAfter(DefaultGroup.Early).before(DefaultGroup.Update),
     )
-    .addSystemGroup(DefaultGroup.Update, _ =>
-      _.after(DefaultGroup.EarlyUpdate).before(DefaultGroup.LateUpdate),
+    .addSystemGroup(
+      DefaultGroup.Update,
+      makeConstraintsWithAfter(DefaultGroup.EarlyUpdate).before(
+        DefaultGroup.LateUpdate,
+      ),
     )
-    .addSystemGroup(DefaultGroup.LateUpdate, _ =>
-      _.after(DefaultGroup.Update).before(DefaultGroup.Late),
+    .addSystemGroup(
+      DefaultGroup.LateUpdate,
+      makeConstraintsWithAfter(DefaultGroup.Update).before(DefaultGroup.Late),
     )
-    .addSystemGroup(DefaultGroup.Late, _ => _.after(DefaultGroup.LateUpdate))
+    .addSystemGroup(
+      DefaultGroup.Late,
+      makeConstraintsWithAfter(DefaultGroup.LateUpdate),
+    )
     .addSystemToGroup(DefaultGroup.Init, disableInitGroupSystem)
 }
 
@@ -106,24 +124,24 @@ export class App {
     return this.world.hasResource(resource)
   }
 
-  getResource<T>(resource: Resource<T>): T {
-    return this.world.getResource(resource)
+  getResource<T>(resource: Resource<T>): Maybe<T> {
+    return this.world.hasResource(resource)
+      ? this.world.getResource(resource)
+      : undefined
   }
 
   addSystemGroup(
     systemGroupId: string,
-    constrain?: Constrain<string>,
+    constraints: Maybe<Constraints<string>>,
     predicate?: Maybe<Predicate>,
   ) {
     expect(!this.#systemGroupsById.has(systemGroupId))
     let systemGroup = new SystemGroup(predicate)
-    let systemGroupConstraints = new Constraints<string>()
     this.#systemGroupsById.set(systemGroupId, systemGroup)
-    constrain?.(systemGroupConstraints)
     Constraints.insert(
       this.#systemGroupSchedule,
       systemGroupId,
-      systemGroupConstraints,
+      constraints ?? new Constraints(),
     )
     this.#systemGroupScheduleIsStale = true
     return this
@@ -131,31 +149,36 @@ export class App {
 
   addSystem(
     system: SystemImpl,
-    constrain?: Maybe<Constrain<SystemImpl>>,
+    constraints?: Maybe<Constraints<SystemImpl>>,
     predicate?: Maybe<Predicate>,
   ): App {
-    this.addSystemToGroup(DefaultGroup.Update, system, constrain, predicate)
+    this.addSystemToGroup(DefaultGroup.Update, system, constraints, predicate)
     return this
   }
 
   addSystemToGroup(
     groupId: string,
     system: SystemImpl,
-    constrain?: Maybe<Constrain<SystemImpl>>,
+    constraints?: Maybe<Constraints<SystemImpl>>,
     predicate?: Maybe<Predicate>,
   ): App {
     let systemGroup = expect(this.#systemGroupsById.get(groupId))
-    systemGroup.addSystem(system, constrain?.(new Constraints()), predicate)
+    systemGroup.addSystem(system, constraints, predicate)
     return this
   }
 
   addInitSystem(
     system: SystemImpl,
-    constrain?: Maybe<Constrain<SystemImpl>>,
+    constraints?: Maybe<Constraints<SystemImpl>>,
     predicate?: Maybe<Predicate>,
   ) {
-    this.addSystemToGroup(DefaultGroup.Init, system, constrain, predicate)
+    this.addSystemToGroup(DefaultGroup.Init, system, constraints, predicate)
     return this
+  }
+
+  removeSystem(system: SystemImpl, groupId = DefaultGroup.Update) {
+    let systemGroup = expect(this.#systemGroupsById.get(groupId))
+    systemGroup.removeSystem(system)
   }
 
   step() {

@@ -1,4 +1,4 @@
-import { App, Group, type, value, World } from "@javelin/ecs"
+import * as j from "@javelin/ecs"
 import { Box } from "./box.js"
 import { DisposeTimer } from "./dispose.js"
 import { Enemy } from "./enemy.js"
@@ -9,10 +9,10 @@ import { Position } from "./position.js"
 
 const BULLET_SIZE = 1
 
-export let BulletDamage = value("f32")
-export let BulletPierce = value("f32")
-export let BulletCollisions = value<Set<number>>()
-export let Bullet = type(
+export let BulletDamage = j.value("f32")
+export let BulletPierce = j.value("f32")
+export let BulletCollisions = j.value<Set<number>>()
+export let Bullet = j.type(
   Position,
   Box,
   Heading,
@@ -23,7 +23,7 @@ export let Bullet = type(
 )
 
 export let makeBullet = (
-  world: World,
+  world: j.World,
   posX: number,
   posY: number,
   targetX: number,
@@ -42,7 +42,7 @@ export let makeBullet = (
     new Set(),
   )
 
-let moveBulletsSystem = (world: World) =>
+let moveBulletsSystem = (world: j.World) =>
   world
     .of(Bullet)
     .as(Position, Heading)
@@ -51,7 +51,7 @@ let moveBulletsSystem = (world: World) =>
       bulletPos.y += 0.5 * bulletHeading.y
     })
 
-let collideBulletsSystem = (world: World) =>
+let collideBulletsSystem = (world: j.World) =>
   world
     .of(Bullet)
     .as(Position, Box, BulletDamage, BulletPierce, BulletCollisions)
@@ -84,9 +84,11 @@ let collideBulletsSystem = (world: World) =>
           }),
     )
 
-export let bulletPlugin = (app: App) =>
+export let bulletPlugin = (app: j.App) =>
   app
-    .addSystemToGroup(Group.Update, moveBulletsSystem)
-    .addSystemToGroup(Group.Update, collideBulletsSystem, _ =>
-      _.after(moveBulletsSystem),
+    .addSystemToGroup(j.Group.Update, moveBulletsSystem)
+    .addSystemToGroup(
+      j.Group.Update,
+      collideBulletsSystem,
+      j.after(moveBulletsSystem),
     )

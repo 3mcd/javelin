@@ -1,42 +1,61 @@
-import {app, Entity, Group, type} from "@javelin/ecs"
+import * as j from "@javelin/ecs"
 import {
   awareness,
   Client,
-  interest,
+  presence,
   serverPlugin,
   WebsocketTransport,
 } from "@javelin/net"
 import {createServer} from "http"
 import {WebSocket, WebSocketServer} from "ws"
-import {Transform} from "./transform.js"
+import {Position, Velocity} from "./model.js"
 
 let httpServer = createServer()
 
 let websocketServer = new WebSocketServer({server: httpServer})
 let openedWebsocketQueue: WebSocket[] = []
-let closedClientQueue: Entity[] = []
+let closedClientQueue: j.Entity[] = []
 
-let game = app()
-  .addSystemToGroup(Group.Init, world => {
-    world.create(type(Transform))
+let i = 0
+
+let app = j
+  .app()
+  .addSystem(
+    world => {
+      world.create(j.type(Position, Velocity), undefined, {
+        x: Math.random(),
+        y: -i / 5,
+      })
+    },
+    null,
+    () => i++ % 5 == 0,
+  )
+  .addSystem(world => {
+    world.of(j.type(Position, Velocity)).each((_, p, v) => {
+      p.x += v.x
+      p.y += v.y
+    })
   })
-  .addSystemToGroup(Group.Early, world => {
+  .addSystemToGroup(j.Group.Early, world => {
     let socket: WebSocket | undefined
     while ((socket = openedWebsocketQueue.pop())) {
       if (socket.readyState !== socket.OPEN) {
         continue
       }
       let clientTransport = new WebsocketTransport(socket as any)
-      let transformInterest = interest(0 as any, type(Transform))
-      let clientAwareness = awareness().addInterest(transformInterest)
+      let clientKineticPresence = presence(
+        192847 as j.Entity,
+        j.type(Position, Velocity),
+      )
+      let clientAwareness = awareness().addPresence(clientKineticPresence)
       let client = world.create(Client, clientTransport, clientAwareness)
       // @ts-ignore
-      transformInterest.entity = client
+      clientKineticPresence.entity = client
       socket.on("close", () => {
         closedClientQueue.push(client)
       })
     }
-    let client: Entity | undefined
+    let client: j.Entity | undefined
     while ((client = closedClientQueue.pop()) !== undefined) {
       world.delete(client)
     }
@@ -62,5 +81,5 @@ call of
 console.log("server listening on port 8080")
 
 setInterval(() => {
-  game.step()
-}, 1000 / 60)
+  app.step()
+}, 1000)

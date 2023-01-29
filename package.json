@@ -12,7 +12,11 @@
     "test": "pnpm -r --parallel test",
     "perf": "pnpm -r --parallel perf",
     "build": "preconstruct build",
-    "postinstall": "preconstruct dev"
+    "reset": "pnpm reset:perf & pnpm reset:dist & pnpm i",
+    "reset:perf": "find ./packages -type f -name '*.perf-results' -delete",
+    "reset:dist": "find ./packages -type d -name 'dist' -prune -exec rm -rf {} \\;",
+    "postinstall": "preconstruct dev",
+    "release": "pnpm build && pnpm publish -r"
   },
   "devDependencies": {
     "@babel/preset-react": "^7.18.6",

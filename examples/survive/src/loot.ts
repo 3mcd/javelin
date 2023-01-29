@@ -1,12 +1,4 @@
-import {
-  App,
-  ChildOf,
-  value,
-  Group,
-  tag,
-  type,
-  World,
-} from "@javelin/ecs"
+import * as j from "@javelin/ecs"
 import {Aura} from "./aura.js"
 import {Box} from "./box.js"
 import {Clock} from "./clock.js"
@@ -17,13 +9,13 @@ import {boxIntersects} from "./math.js"
 import {Player, PLAYER_MAX_HEALTH} from "./player.js"
 import {Position} from "./position.js"
 
-export let IsLoot = tag()
-export let LootBag = type(IsLoot, Position, Box, DisposeTimer)
+export let IsLoot = j.tag()
+export let LootBag = j.type(IsLoot, Position, Box, DisposeTimer)
 
-export let Quiver = value("f32")
-export let HealthPotion = value("f32")
+export let Quiver = j.value("f32")
+export let HealthPotion = j.value("f32")
 
-let makeLoot = (world: World, x: number, y: number) =>
+let makeLoot = (world: j.World, x: number, y: number) =>
   world.create(
     LootBag,
     {x, y},
@@ -31,39 +23,32 @@ let makeLoot = (world: World, x: number, y: number) =>
     world.getResource(Clock).time + 10,
   )
 
-let dropLootSystem = (world: World) =>
+let dropLootSystem = (world: j.World) =>
   world.monitorImmediate(Enemy).eachExcluded(enemy => {
     if (Math.random() > 0.2) {
       let {x, y} = world.get(enemy, Position)
       let loot = makeLoot(world, x, y)
       world.create(
-        type(ChildOf(loot), HealthPotion),
+        j.type(j.ChildOf(loot), HealthPotion),
         Math.ceil(Math.random() * 3),
       )
       world.create(
-        type(ChildOf(loot), Quiver),
+        j.type(j.ChildOf(loot), Quiver),
         Math.ceil(Math.random() * 10),
       )
     }
   })
 
-let pickUpLootSystem = (world: World) =>
+let pickUpLootSystem = (world: j.World) =>
   world
     .of(Player)
     .as(Position, Box, Health, Quiver, Aura)
     .each(
-      (
-        player,
-        playerPos,
-        playerBox,
-        playerHealth,
-        playerQuiver,
-        playerAura,
-      ) =>
+      (player, playerPos, playerBox, playerHealth, playerQuiver, playerAura) =>
         world.of(LootBag).each((lootBag, lootPos, lootBox) => {
           if (boxIntersects(playerPos, playerBox, lootPos, lootBox)) {
             world
-              .of(ChildOf(lootBag), HealthPotion)
+              .of(j.ChildOf(lootBag), HealthPotion)
               .each((_, healthPotion) => {
                 let nextPlayerHealth = Math.min(
                   playerHealth + healthPotion,
@@ -71,7 +56,7 @@ let pickUpLootSystem = (world: World) =>
                 )
                 world.set(player, Health, nextPlayerHealth)
               })
-            world.of(ChildOf(lootBag), Quiver).each((_, quiver) => {
+            world.of(j.ChildOf(lootBag), Quiver).each((_, quiver) => {
               world.set(player, Quiver, playerQuiver + quiver)
             })
             world.set(player, Aura, playerAura + 1)
@@ -80,11 +65,15 @@ let pickUpLootSystem = (world: World) =>
         }),
     )
 
-export let lootPlugin = (app: App) =>
+export let lootPlugin = (app: j.App) =>
   app
-    .addSystemToGroup(Group.LateUpdate, dropLootSystem, _ =>
-      _.after(pruneDeadSystem),
+    .addSystemToGroup(
+      j.Group.LateUpdate,
+      dropLootSystem,
+      j.after(pruneDeadSystem),
     )
-    .addSystemToGroup(Group.LateUpdate, pickUpLootSystem, _ =>
-      _.after(dropLootSystem),
+    .addSystemToGroup(
+      j.Group.LateUpdate,
+      pickUpLootSystem,
+      j.after(dropLootSystem),
     )

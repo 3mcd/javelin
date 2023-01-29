@@ -33,8 +33,8 @@ src/fibonacci.perf.ts
 
 ```ts
 perf("iterator next()", () => {
-  let f = make_fibonacci({start: 1_000})
-  return () => f.next()
+  let it = fibonacci.iterator({start: 1_000})
+  return () => it.next()
 })
 ```
 
@@ -52,4 +52,21 @@ Don't throw an error when a benchmark degrades in performance.
 perf("name", () => {}, {
   throwOnFailure: false,
 })
+```
+
+### Configuration
+
+```sh
+# Throw an error when performance degrades, halting test execution.
+THROW_ON_FAILURE=false
+# Write failing test stats to perf results files.
+WRITE_FAILURES=false
+# Number of times to execute each individual test.
+PERF_RUNS=15_000
+# Number of samples to ignore from upper and lower extremes when computing perf results.
+PERF_SAMPLES_TO_DISCARD_PER_EXTREME=100
+# Perf results file extension.
+MODULE_RESULTS_EXTENSION=".perf-results"
+# Perf file extension.
+MODULE_EXTENSION=".perf.ts"
 ```

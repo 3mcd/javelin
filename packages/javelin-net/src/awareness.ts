@@ -1,19 +1,19 @@
-import {Interest} from "./interest.js"
+import {Presence} from "./presence.js"
 
 export interface IAwareness {
-  readonly interests: Interest[]
-  addInterest(interest: Interest): IAwareness
+  readonly presences: Presence[]
+  addPresence(interest: Presence): IAwareness
 }
 
 export class AwarenessBuilder implements IAwareness {
-  readonly interests
+  readonly presences
 
   constructor() {
-    this.interests = [] as Interest[]
+    this.presences = [] as Presence[]
   }
 
-  addInterest(interest: Interest): IAwareness {
-    this.interests.push(interest)
+  addPresence(interest: Presence): IAwareness {
+    this.presences.push(interest)
     return this
   }
 }

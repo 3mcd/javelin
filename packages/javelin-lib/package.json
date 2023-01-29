@@ -2,7 +2,7 @@
   "name": "@javelin/lib",
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "license": "MIT",
-  "version": "2.0.0-alpha.0",
+  "version": "2.0.0-alpha.3",
   "description": "Common utility types and functions shared by Javelin packages",
   "keywords": ["ecs", "entity-component system", "game", "gamedev", "multiplayer", "mog"],
   "type": "module",
@@ -12,10 +12,8 @@
     "import": "./dist/javelin-lib.esm.js",
     "require": "./dist/javelin-lib.cjs.js"
   },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-
+  "files": ["dist"],
+  "scripts": {},
   "preconstruct": {
     "entrypoints": [
       "index.ts"

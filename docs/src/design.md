@@ -11,4 +11,3 @@ Systems create queries that search the entity graph for matching components. Que
 Below is a diagram that illustrates the storage and retrieval of entities and components by systems.
 
 ![Javelin architecture diagram](images/design.png)
-

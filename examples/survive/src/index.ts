@@ -1,4 +1,4 @@
-import {app, Group} from "@javelin/ecs"
+import * as j from "@javelin/ecs"
 import {auraPlugin} from "./aura.js"
 import {bulletPlugin} from "./bullet.js"
 import {clockPlugin} from "./clock.js"
@@ -22,10 +22,9 @@ onResize()
 
 window.addEventListener("resize", onResize)
 
-let game = app()
-  .addSystemGroup("render", _ =>
-    _.after(Group.LateUpdate).before(Group.Late),
-  )
+let game = j
+  .app()
+  .addSystemGroup("render", j.after(j.Group.LateUpdate).before(j.Group.Late))
   .use(timePlugin)
   .use(clockPlugin)
   .use(disposePlugin)
