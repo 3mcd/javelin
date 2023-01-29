@@ -6,8 +6,10 @@ import {
   QuerySelector,
   Schema,
   World,
+  Keys,
 } from "@javelin/ecs"
 import {exists} from "@javelin/lib"
+import {PatchStage} from "./interest.js"
 import {ReadStream, WriteStream} from "./stream.js"
 
 type EncodeEntity = ((entity: Entity, writeStream: WriteStream) => void) & {
@@ -110,10 +112,14 @@ export let compileEncodeEntity = (
           let encodeExp = `let v${i}=s${i}[e];`
           if (typeof schema === "string") {
             let writeExp = compileWriteExp(schema, "s", `v${i}`)
-            encodeExp += `s[e]=${writeExp};`
+            encodeExp += `${writeExp};`
           } else {
-            for (let key in schema) {
-              let writeExp = compileWriteExp(schema[key], "s", `v${i}.${key}`)
+            for (let schemaKey of Reflect.get(schema, Keys)) {
+              let writeExp = compileWriteExp(
+                schema[schemaKey],
+                "s",
+                `v${i}.${schemaKey}`,
+              )
               encodeExp += `${writeExp};`
             }
           }
@@ -125,7 +131,22 @@ export let compileEncodeEntity = (
   return encodeEntity
 }
 
-export let compileDecodeEntity = (
+export let compileDecodeComposeEntity = (
+  selector: QuerySelector,
+  world: World,
+): DecodeEntity => {
+  let decodeEntity = Function(
+    "S",
+    "W",
+    "return s=>{" +
+      "let e=s.readU32();" +
+      `W.exists(e)?W.add(e,S):W.reserve(e,S)` +
+      "}",
+  )(selector, world)
+  return decodeEntity
+}
+
+export let compileDecodeEntityPatch = (
   selector: QuerySelector,
   world: World,
 ): DecodeEntity => {
@@ -135,26 +156,43 @@ export let compileDecodeEntity = (
   })
   let componentSchemas = components.map(getSchema) as Schema[]
   let componentValuesExp = componentSchemas
-    .map(schema => {
+    .map((schema, i) => {
+      let exp = ""
+      exp += `if(W.has(e,${i})){`
+      if (typeof schema === "string") {
+        let readExp = compileReadExp(schema, "s")
+        exp += `v${i}[e]=${readExp}`
+      } else {
+        for (let schemaKey of Reflect.get(schema, Keys)) {
+          let readExp = compileReadExp(schema[schemaKey], "s")
+          exp += `v${i}[e].${schemaKey}=${readExp};`
+        }
+      }
+      exp += "}else{"
       if (typeof schema === "string") {
         return compileReadExp(schema, "s")
       } else {
-        let component_value = `{`
-        for (let key in schema) {
-          let read_exp = compileReadExp(schema[key], "s")
-          component_value += `${key}:${read_exp},`
+        let componentValue = `v${i}[e]={`
+        for (let schemaKey of Reflect.get(schema, Keys)) {
+          let readExp = compileReadExp(schema[schemaKey], "s")
+          componentValue += `${schemaKey}:${readExp},`
         }
-        component_value += "}"
-        return component_value
+        componentValue += "}"
+        exp += componentValue
       }
+      exp += "}"
+      return exp
     })
-    .join(",")
+    .join("")
   let decodeEntity = Function(
     "S",
     "W",
-    "return s=>{" +
+    components
+      .map((component, i) => `let v${i}=W.getComponentStore(${component});`)
+      .join("") +
+      "return s=>{" +
       "let e=s.readU32();" +
-      `W.exists(e)?W.add(e,S,${componentValuesExp}):W.reserve(e,S,${componentValuesExp})` +
+      componentValuesExp +
       "}",
   )(selector, world)
   return decodeEntity
@@ -164,7 +202,8 @@ export class EntityEncoder {
   static encodersByWorld = new WeakMap<World, EncoderMap>()
 
   readonly encode
-  readonly decode
+  readonly decodeCompose
+  readonly decodePatch
   readonly bytesPerEntity
 
   static getEntityEncoder(world: World, selector: QuerySelector) {
@@ -178,7 +217,8 @@ export class EntityEncoder {
 
   constructor(selector: QuerySelector, world: World) {
     this.encode = compileEncodeEntity(selector, world)
-    this.decode = compileDecodeEntity(selector, world)
+    this.decodeCompose = compileDecodeComposeEntity(selector, world)
+    this.decodePatch = compileDecodeEntityPatch(selector, world)
     this.bytesPerEntity = getEncodedEntityLength(selector)
   }
 }

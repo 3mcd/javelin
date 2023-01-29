@@ -2,7 +2,19 @@ import {assert, expect, Opaque} from "@javelin/lib"
 import {LO_MASK} from "./entity.js"
 import {Express, Schema, SchemaOf} from "./schema.js"
 
+/**
+ * @private
+ */
+export const Keys = Symbol()
+
+/**
+ * @private
+ */
 export const Dynamic = Symbol()
+
+/**
+ * @private
+ */
 export type Dynamic = typeof Dynamic
 
 export declare const Tag: unique symbol
@@ -89,6 +101,12 @@ export function makeValueComponent<T>(): Component<T>
 export function makeValueComponent<T extends Schema>(schema: T): Component<T>
 export function makeValueComponent(schema?: Schema) {
   let component = makeTagComponent() as Component
+  if (typeof schema === "object") {
+    Object.defineProperty(schema, Keys, {
+      value: Object.keys(schema).sort(),
+      enumerable: false,
+    })
+  }
   setSchema(component, schema ?? Dynamic)
   componentSchemas[component] = schema ?? Dynamic
   return component

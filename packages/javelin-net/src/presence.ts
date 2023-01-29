@@ -12,16 +12,13 @@ export let presenceMessageType: ProtocolMessageType<Presence> = {
     let subjectQuery = world.of(subjectSelector)
     let subjectMonitor = world.monitor(subjectSelector)
     let subjectComponents = subjectSelector.type.components
-    let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectSelector)
     let subjectCount = presence.isNew()
       ? subjectQuery.length
       : subjectMonitor.includedLength
     subjectMonitor.eachExcluded(entity => {
       presence.subjectQueue.remove(entity)
     })
-    writeStream.grow(
-      presence.metaLength + subjectCount * subjectEncoder.bytesPerEntity,
-    )
+    writeStream.grow(presence.metaLength + subjectCount * 4)
     // (1)
     writeStream.writeU8(subjectComponents.length)
     // (2)
@@ -33,12 +30,12 @@ export let presenceMessageType: ProtocolMessageType<Presence> = {
     // (4)
     if (presence.isNew()) {
       subjectQuery.each(entity => {
-        subjectEncoder.encode(entity, writeStream)
+        writeStream.writeU32(entity)
       })
       presence.init()
     } else {
       subjectMonitor.eachIncluded(entity => {
-        subjectEncoder.encode(entity, writeStream)
+        writeStream.writeU32(entity)
       })
     }
   },
@@ -56,7 +53,7 @@ export let presenceMessageType: ProtocolMessageType<Presence> = {
     let subjectCount = readStream.readU16()
     // (4)
     for (let i = 0; i < subjectCount; i++) {
-      subjectEncoder.decode(readStream)
+      subjectEncoder.decodeCompose(readStream)
     }
   },
 }

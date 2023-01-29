@@ -33,18 +33,19 @@ export enum Phase {
 export let CurrentSystem = makeResource<System>()
 
 export class World {
-  #applyTransaction
-  #componentStores
-  #disposableNodes
-  #entityChildren
-  #entityDeltas
-  #entityIdVersions
-  #entityNodes
-  #entityParents
-  #freeEntityIds
+  readonly #applyTransaction
+  readonly #componentStores
+  readonly #disposableNodes
+  readonly #entityChildren
+  readonly #entityIdVersions
+  readonly #entityDeltas
+  readonly #entityNodes
+  readonly #entityParents
+  readonly #freeEntityIds
+  readonly #resources
+  readonly #stageTransaction
+
   #nextEntityId
-  #resources
-  #stageTransaction
 
   readonly graph
 
@@ -53,7 +54,6 @@ export class World {
     this.#componentStores = [] as unknown[][]
     this.#disposableNodes = new Set<Node>()
     this.#entityChildren = [] as Set<Entity>[]
-    this.#entityDeltas = [] as unknown[][]
     this.#entityIdVersions = [] as number[]
     this.#entityNodes = [] as Node[]
     this.#entityParents = [] as Entity[]
@@ -62,6 +62,7 @@ export class World {
     this.#resources = [] as unknown[]
     this.#stageTransaction = new Transaction()
     this.graph = new Graph()
+    this.#entityDeltas = [] as unknown[][]
   }
 
   #allocEntityId(): Entity {
@@ -122,7 +123,7 @@ export class World {
   }
 
   #ensureEntityDelta(entity: Entity) {
-    return (this.#entityDeltas[entity] ??= [])
+    return (this.#entityDeltas[idLo(entity)] ??= [])
   }
 
   #freeEntityDelta(entity: Entity) {
@@ -191,6 +192,7 @@ export class World {
         // component stores.
         let componentValue = expect(entityDelta[component])
         this.#setEntityComponentValue(entity, component, componentValue)
+        entityDelta[component] = undefined!
       } else {
         let componentHi = idHi(component)
         // Attach the new entity to its parent component if it was defined
@@ -205,8 +207,6 @@ export class World {
     // Insert the new entity into its archetype.
     nextNode.addEntity(entity)
     this.#setEntityNode(entity, nextNode)
-    // Free the new entity's component change set.
-    this.#freeEntityDelta(entity)
   }
 
   #commitUpdate(entity: Entity, nextNode: Node) {
@@ -218,10 +218,9 @@ export class World {
       if (hasSchema(component)) {
         let componentValue = expect(entityDelta[component])
         this.#setEntityComponentValue(entity, component, componentValue)
+        entityDelta[component] = undefined!
       }
     }
-    // Free the existing entity's component change set.
-    this.#freeEntityDelta(entity)
   }
 
   #commitDelete(entity: Entity, prevNode: Node) {
@@ -324,7 +323,10 @@ export class World {
         } else {
           // Update the entity change set with a user-provided component value,
           // or auto-initialize a component value from the component schema.
-          entityDelta[component] = selectorValues[j++] ?? express(component)
+          entityDelta[component] =
+            selectorValues[j++] ??
+            this.getComponentStore(component)[entity] ??
+            express(component)
         }
       }
     }

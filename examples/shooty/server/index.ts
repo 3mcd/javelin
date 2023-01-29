@@ -22,7 +22,7 @@ let app = j
   .app()
   .addSystem(
     world => {
-      console.log(world.create(j.type(Transform)))
+      world.create(j.type(Transform), {x: Math.random(), y: Math.random()})
     },
     null,
     w => i++ % 100 == 0,

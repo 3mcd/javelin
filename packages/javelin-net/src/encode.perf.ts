@@ -1,6 +1,6 @@
 import {tag, type, value, World} from "@javelin/ecs"
 import {perf} from "@javelin/perf"
-import {compileDecodeEntity, compileEncodeEntity} from "./encode.js"
+import {compileDecodeComposeEntity, compileEncodeEntity} from "./encode.js"
 
 let a = value({x: "f32", y: "f32", z: "f32", w: "f32"})
 let b = value("f32")
@@ -18,6 +18,6 @@ perf("compileDecodeEntity", () => {
   let T = type(a, b, c)
   let world = new World()
   return () => {
-    compileDecodeEntity(T, world)
+    compileDecodeComposeEntity(T, world)
   }
 })
