@@ -4,10 +4,11 @@ import useIsomorphicLayoutEffect from "../useIsomorphicLayoutEffect";
 
 export type UsePluginCallback = (app: App) => void
 
-export function usePlugin(usePluginCallback: UsePluginCallback) {
+export function usePlugin(usePluginCallback: UsePluginCallback, teardownPluginCallback?: UsePluginCallback) {
   const app = useApp()
   
   useIsomorphicLayoutEffect(() => {
     usePluginCallback(app)
-  }, [app, usePluginCallback])
+    return () => teardownPluginCallback?.(app)
+  }, [app, usePluginCallback, teardownPluginCallback])
 }

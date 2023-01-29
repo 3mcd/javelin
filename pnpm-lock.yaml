@@ -120,6 +120,7 @@ importers:
   packages/javelin-react:
     specifiers:
       '@javelin/ecs': workspace:*
+      '@javelin/lib': workspace:*
       '@testing-library/jest-dom': ^5.16.4
       '@testing-library/react': ^13.4.0
       '@types/react': ^18.0.24
@@ -127,6 +128,8 @@ importers:
       react: ^18.2.0
       react-dom: ^18.2.0
       vitest: ^0.25.1
+    dependencies:
+      '@javelin/lib': link:../javelin-lib
     devDependencies:
       '@javelin/ecs': link:../javelin-ecs
       '@testing-library/jest-dom': 5.16.5

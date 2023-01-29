@@ -1,8 +1,10 @@
 import { Group, resource, World } from "@javelin/ecs";
 import { Javelin, useApp, usePlugin } from "@javelin/react";
-import { Html } from "@react-three/drei";
+import { Html, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useRef } from "react";
+import { Vector3 } from "three";
+import { BoxEntity } from "./Box";
 
 export type Time = {
   previous: number
@@ -53,12 +55,29 @@ export const ShowTime = () => {
   return <Html><h1 ref={h1Ref} style={{color: "white"}}>0</h1></Html>
 }
 
+function Lights() {
+  return (
+    <mesh position={new Vector3(-1, 0.75, 1).multiplyScalar(20)}>
+      <directionalLight color={0xffffff} castShadow />
+    </mesh>
+  )
+}
+
 export default function App () {
   return (<Javelin>
     <Canvas style={{ height: '100vh', width: '100vw', position: 'absolute', top: 0, left: 0 }}>
+      <Lights />
       <Test />
       <TimeSystem />
       <ShowTime />
+      <BoxEntity />
+      <BoxEntity />
+      <BoxEntity />
+      <BoxEntity />
+      <BoxEntity />
+      <BoxEntity />
+      <BoxEntity />
+      <OrbitControls />
     </Canvas>
   </Javelin>) 
 }
