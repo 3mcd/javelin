@@ -12,6 +12,7 @@
     "import": "./dist/javelin-lib.esm.js",
     "require": "./dist/javelin-lib.cjs.js"
   },
+  "files": ["dist"],
   "scripts": {},
   "preconstruct": {
     "entrypoints": [

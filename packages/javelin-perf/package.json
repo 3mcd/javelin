@@ -12,6 +12,7 @@
     "import": "./dist/javelin-perf.esm.js",
     "require": "./dist/javelin-perf.cjs.js"
   },
+  "files": ["dist"],
   "scripts": {
     "test": "vitest run"
   },
