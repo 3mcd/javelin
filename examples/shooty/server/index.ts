@@ -28,7 +28,7 @@ let app = j
       })
     },
     null,
-    () => i++ % 5 == 0,
+    () => i++ % 5 == 0 && i < 1000,
   )
   .addSystem(world => {
     world.of(j.type(Position, Velocity)).each((_, p, v) => {
@@ -44,8 +44,9 @@ let app = j
       }
       let clientTransport = new WebsocketTransport(socket as any)
       let clientKineticPresence = presence(
-        192847 as j.Entity,
+        0 as j.Entity,
         j.type(Position, Velocity),
+        (e, s) => (s % 2 === 0 ? 100 : 10),
       )
       let clientAwareness = awareness().addPresence(clientKineticPresence)
       let client = world.create(Client, clientTransport, clientAwareness)
@@ -82,4 +83,4 @@ console.log("server listening on port 8080")
 
 setInterval(() => {
   app.step()
-}, 1000)
+}, 1000 / 60)
