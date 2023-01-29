@@ -91,6 +91,13 @@ export class Interest {
     this.subjectPrioritizer = subjectPrioritizer
     this.subjectSelector = subjectSelector
   }
+
+  prioritize(world: World) {
+    world.of(this.subjectSelector).each(subject => {
+      let subjectPriority = this.subjectPrioritizer(this.entity, subject, world)
+      this.subjectQueue.push(subject, subjectPriority)
+    })
+  }
 }
 
 export let makeInterest = (

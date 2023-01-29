@@ -128,7 +128,6 @@ export let compileEncodeEntity = (
         .join("") +
       "}",
   )(componentStores)
-  console.log(encodeEntity.toString())
   return encodeEntity
 }
 

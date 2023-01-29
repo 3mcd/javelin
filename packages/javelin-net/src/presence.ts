@@ -1,4 +1,4 @@
-import {Component, Entity, QuerySelector, type} from "@javelin/ecs"
+import {Component, Entity, QuerySelector, type, World} from "@javelin/ecs"
 import {EntityEncoder} from "./encode.js"
 import {Interest, SubjectPrioritizer} from "./interest.js"
 import {ProtocolMessageType} from "./protocol.js"
@@ -16,18 +16,12 @@ export let presenceMessageType: ProtocolMessageType<Presence> = {
       ? subjectQuery.length
       : subjectMonitor.includedLength
     subjectMonitor
-      .eachIncluded(entity => {
-        presence.subjectQueue.push(entity, 0)
+      .eachIncluded(subject => {
+        presence.subjectQueue.push(subject, 0)
       })
-      .eachExcluded(entity => {
-        presence.subjectQueue.remove(entity)
+      .eachExcluded(subject => {
+        presence.subjectQueue.remove(subject)
       })
-    subjectQuery.each(entity => {
-      presence.subjectQueue.push(
-        entity,
-        presence.subjectPrioritizer(presence.entity, entity, world),
-      )
-    })
     writeStream.grow(
       1 + 2 + subjectSelector.type.components.length * 4 + subjectCount * 4,
     )
@@ -88,6 +82,18 @@ export class Presence extends Interest {
 
   init() {
     this.#new = false
+  }
+
+  prioritize(world: World) {
+    world
+      .monitor(this.subjectSelector)
+      .eachIncluded(subject => {
+        this.subjectQueue.push(subject, 0)
+      })
+      .eachExcluded(subject => {
+        this.subjectQueue.remove(subject)
+      })
+    super.prioritize(world)
   }
 }
 

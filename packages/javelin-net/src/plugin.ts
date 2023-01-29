@@ -1,5 +1,4 @@
 import {App, Group, resource, type, value, World} from "@javelin/ecs"
-import {CurrentSystem} from "@javelin/ecs/src/world.js"
 import {exists, Maybe} from "@javelin/lib"
 import {IAwareness} from "./awareness.js"
 import {interestMessageType} from "./interest.js"
@@ -24,6 +23,7 @@ let serverUpdateClientsSystem = (world: World) => {
   world.of(Client).each((_, transport, awareness) => {
     for (let i = 0; i < awareness.presences.length; i++) {
       let presence = awareness.presences[i]
+      presence.prioritize(world)
       protocol.encode(world, writeStreamReliable, presenceMessageType, presence)
       protocol.encode(
         world,
