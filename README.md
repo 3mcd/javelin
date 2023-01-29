@@ -1,5 +1,6 @@
 <p align="center">
-  <img src="./logo.png" width="120px">
+  <img src="./logo-light.png#gh-dark-mode-only" width="120px">
+  <img src="./logo-dark.png#gh-light-mode-only" width="120px">
 </p>
 
 <p align="center">
@@ -11,7 +12,7 @@
 
 Join us on [Discord](https://discord.gg/AbEWH3taWU)!
 
-Javelin is an ECS framework for JavaScript and Typescript that provides the means to create multiplayer games for Node and web browsers.
+Javelin is an [ECS](https://github.com/SanderMertens/ecs-faq) framework that provides the means to make multiplayer games in JavaScript.
 
 ## Docs
 
@@ -21,7 +22,7 @@ Visit https://javelin.dev
 
 | Name                                     | Description                                  |
 | ---------------------------------------- | -------------------------------------------- |
-| [@javelin/ecs](./packages/javelin-ecs)   | Core ECS library                             |
+| [@javelin/ecs](./packages/javelin-ecs)   | ECS framework                                |
 | [@javelin/net](./packages/javelin-net)   | Authoritative game server and client plugins |
 | [@javelin/lib](./packages/javelin-lib)   | Shared helpers and types                     |
 | [@javelin/perf](./packages/javelin-perf) | Performance testing library                  |
