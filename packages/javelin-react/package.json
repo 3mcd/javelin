@@ -19,7 +19,19 @@
       "index.ts"
     ]
   },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@javelin/ecs": "^2.0.0"
+  },
   "devDependencies": {
-    "vitest": "^0.25.1"
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^13.4.0",
+    "@types/react": "^18.0.24",
+    "@types/react-dom": "^18.0.8",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "vitest": "^0.25.1",
+    "@javelin/ecs": "workspace:*"
   }
 }

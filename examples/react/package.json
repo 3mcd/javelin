@@ -1,0 +1,28 @@
+{
+  "name": "@javelin/react-demo",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Not sure!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "vite"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@javelin/ecs": "workspace:*",
+    "@javelin/react": "workspace:*",
+    "@react-three/drei": "^9.56.8",
+    "@react-three/fiber": "^8.10.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.149.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.24",
+    "@types/react-dom": "^18.0.8",
+    "@types/three": "^0.148.1",
+    "@vitejs/plugin-react": "^2.2.0",
+    "vite": "^3.2.3"
+  }
+}
