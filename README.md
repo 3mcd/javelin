@@ -58,3 +58,9 @@ Run performance tests:
 ```sh
 pnpm perf
 ```
+
+Clear performance test results:
+
+```sh
+pnpm reset
+```
