@@ -1,6 +1,6 @@
 import {Component, Entity, QuerySelector, type} from "@javelin/ecs"
 import {EntityEncoder} from "./encode.js"
-import {PriorityQueueInt} from "./priority_queue_int.js"
+import {Interest, SubjectPrioritizer} from "./interest.js"
 import {ProtocolMessageType} from "./protocol.js"
 
 /**
@@ -15,10 +15,22 @@ export let presenceMessageType: ProtocolMessageType<Presence> = {
     let subjectCount = presence.isNew()
       ? subjectQuery.length
       : subjectMonitor.includedLength
-    subjectMonitor.eachExcluded(entity => {
-      presence.subjectQueue.remove(entity)
+    subjectMonitor
+      .eachIncluded(entity => {
+        presence.subjectQueue.push(entity, 0)
+      })
+      .eachExcluded(entity => {
+        presence.subjectQueue.remove(entity)
+      })
+    subjectQuery.each(entity => {
+      presence.subjectQueue.push(
+        entity,
+        presence.subjectPrioritizer(presence.entity, entity, world),
+      )
     })
-    writeStream.grow(presence.metaLength + subjectCount * 4)
+    writeStream.grow(
+      1 + 2 + subjectSelector.type.components.length * 4 + subjectCount * 4,
+    )
     // (1)
     writeStream.writeU8(subjectComponents.length)
     // (2)
@@ -58,20 +70,16 @@ export let presenceMessageType: ProtocolMessageType<Presence> = {
   },
 }
 
-export class Presence {
+export class Presence extends Interest {
   #new
 
-  readonly entity
-  readonly metaLength
-  readonly subjectQueue
-  readonly subjectSelector
-
-  constructor(entity: Entity, subjectSelector: QuerySelector) {
+  constructor(
+    entity: Entity,
+    subjectSelector: QuerySelector,
+    subjectPrioritizer: SubjectPrioritizer,
+  ) {
+    super(entity, subjectSelector, subjectPrioritizer)
     this.#new = true
-    this.entity = entity
-    this.metaLength = 1 + 2 + subjectSelector.type.components.length * 4
-    this.subjectQueue = new PriorityQueueInt()
-    this.subjectSelector = subjectSelector
   }
 
   isNew() {
@@ -83,5 +91,8 @@ export class Presence {
   }
 }
 
-export let makePresence = (entity: Entity, subject: QuerySelector) =>
-  new Presence(entity, subject)
+export let makePresence = (
+  entity: Entity,
+  subjectSelector: QuerySelector,
+  subjectPrioritizer: SubjectPrioritizer = () => 1,
+) => new Presence(entity, subjectSelector, subjectPrioritizer)

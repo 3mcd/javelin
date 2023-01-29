@@ -63,6 +63,7 @@ export class World {
     this.#stageTransaction = new Transaction()
     this.graph = new Graph()
     this.#entityDeltas = [] as unknown[][]
+    this.setResource(CurrentSystem, new System(() => {}))
   }
 
   #allocEntityId(): Entity {
@@ -538,6 +539,17 @@ export class World {
     let component = componentSelector.components[0]
     assert(entityNode.hasComponent(component))
     this.#setEntityComponentValue(entity, component, componentValue)
+  }
+
+  /**
+   * @private
+   */
+  has(entity: Entity, component: Component) {
+    let entityNode = this.#getEntityNode(entity)
+    if (exists(entityNode)) {
+      return entityNode.hasComponent(component)
+    }
+    return false
   }
 
   /**

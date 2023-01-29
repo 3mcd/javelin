@@ -31,7 +31,9 @@ export let interestMessageType: ProtocolMessageType<Interest> = {
       return
     }
     let growAmount =
-      interest.metaLength +
+      1 +
+      2 +
+      subjectSelector.type.components.length * 4 +
       Math.min(
         mtuDiff,
         interest.subjectQueue.length * subjectEncoder.bytesPerEntity,
@@ -74,18 +76,25 @@ export let interestMessageType: ProtocolMessageType<Interest> = {
 }
 
 export class Interest {
+  readonly entity: Entity
   readonly subjectQueue
   readonly subjectPrioritizer
   readonly subjectSelector
-  readonly metaLength
 
   constructor(
+    entity: Entity,
     subjectSelector: QuerySelector,
     subjectPrioritizer: SubjectPrioritizer,
   ) {
-    this.metaLength = 1 + 2 + subjectSelector.type.components.length * 4
+    this.entity = entity
     this.subjectQueue = new PriorityQueueInt<Entity>()
     this.subjectPrioritizer = subjectPrioritizer
     this.subjectSelector = subjectSelector
   }
 }
+
+export let makeInterest = (
+  entity: Entity,
+  subjectSelector: QuerySelector,
+  subjectPrioritizer: SubjectPrioritizer = () => 1,
+) => new Interest(entity, subjectSelector, subjectPrioritizer)

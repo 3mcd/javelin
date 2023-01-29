@@ -2,13 +2,13 @@ import * as j from "@javelin/ecs"
 import {
   awareness,
   Client,
-  interest,
+  presence,
   serverPlugin,
   WebsocketTransport,
 } from "@javelin/net"
 import {createServer} from "http"
 import {WebSocket, WebSocketServer} from "ws"
-import {Transform} from "./transform.js"
+import {Position, Velocity} from "./model.js"
 
 let httpServer = createServer()
 
@@ -22,11 +22,20 @@ let app = j
   .app()
   .addSystem(
     world => {
-      world.create(j.type(Transform), {x: Math.random(), y: Math.random()})
+      world.create(j.type(Position, Velocity), undefined, {
+        x: Math.random(),
+        y: -i / 1000,
+      })
     },
     null,
     () => i++ % 1000 == 0,
   )
+  .addSystem(world => {
+    world.of(j.type(Position, Velocity)).each((_, p, v) => {
+      p.x += v.x
+      p.y += v.y
+    })
+  })
   .addSystemToGroup(j.Group.Early, world => {
     let socket: WebSocket | undefined
     while ((socket = openedWebsocketQueue.pop())) {
@@ -34,11 +43,14 @@ let app = j
         continue
       }
       let clientTransport = new WebsocketTransport(socket as any)
-      let clientTransformInterest = interest(0 as j.Entity, j.type(Transform))
-      let clientAwareness = awareness().addInterest(clientTransformInterest)
+      let clientKineticPresence = presence(
+        0 as j.Entity,
+        j.type(Position, Velocity),
+      )
+      let clientAwareness = awareness().addPresence(clientKineticPresence)
       let client = world.create(Client, clientTransport, clientAwareness)
       // @ts-ignore
-      clientTransformInterest.entity = client
+      clientKineticPresence.entity = client
       socket.on("close", () => {
         closedClientQueue.push(client)
       })

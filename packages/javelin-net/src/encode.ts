@@ -128,6 +128,7 @@ export let compileEncodeEntity = (
         .join("") +
       "}",
   )(componentStores)
+  console.log(encodeEntity.toString())
   return encodeEntity
 }
 
@@ -158,7 +159,7 @@ export let compileDecodeEntityPatch = (
   let componentValuesExp = componentSchemas
     .map((schema, i) => {
       let exp = ""
-      exp += `if(W.has(e,${i})){`
+      exp += `if(W.has(e,${components[i]})){`
       if (typeof schema === "string") {
         let readExp = compileReadExp(schema, "s")
         exp += `v${i}[e]=${readExp}`

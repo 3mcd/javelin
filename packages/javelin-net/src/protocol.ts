@@ -10,7 +10,7 @@ export interface IProtocol {
     message: T,
   ): void
   decode(world: World, stream: ReadStream): void
-  addMessageType(messageType: ProtocolMessageType<unknown>): void
+  addMessageType(messageType: ProtocolMessageType<unknown>): IProtocol
 }
 
 export interface ProtocolMessageType<T> {
