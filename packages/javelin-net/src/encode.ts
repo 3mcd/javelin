@@ -158,7 +158,7 @@ export let compileDecodeEntityPatch = (
   let componentValuesExp = componentSchemas
     .map((schema, i) => {
       let exp = ""
-      exp += `if(W.has(e,${components[i]})){`
+      exp += `if(W.hasComponent(e,${components[i]})){`
       if (typeof schema === "string") {
         let readExp = compileReadExp(schema, "s")
         exp += `v${i}[e]=${readExp}`
