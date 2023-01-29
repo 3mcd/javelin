@@ -1,8 +1,7 @@
-import { Group, resource, World } from "@javelin/ecs";
-import { Javelin, useApp, usePlugin } from "@javelin/react";
+import { Group, resource } from "@javelin/ecs";
+import { Javelin, useApp, useResource, useResourceRef, useSystem } from "@javelin/react";
 import { Html, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useRef } from "react";
 import { Vector3 } from "three";
 import { BoxEntity } from "./Box";
 
@@ -24,32 +23,36 @@ const Test = () => {
 }
 
 const TimeSystem = () => {
-  usePlugin((app) => {
-    app.addResource(Time, {previous: 0, current: 0, delta: 0})
-    .addSystemToGroup(Group.Early, 
-      (world: World) => {
-        let time = world.getResource(Time)
-        let current = performance.now() / 1_000
-        let previous = time.current
-        time.previous = previous
-        time.current = current
-        time.delta = current - previous
-      }
-    )
+  useResource(Time, {previous: 0, current: 0, delta: 0})
+
+  useSystem((world) => {
+    let time = world.getResource(Time)
+    let current = performance.now() / 1_000
+    let previous = time.current
+    time.previous = previous
+    time.current = current
+    time.delta = current - previous
+  }, { 
+    groupId: Group.Early
   })
 
   return null;
 }
 
+export const TimeIndicator = resource<HTMLHeadingElement>()
+
 export const ShowTime = () => {
-  const h1Ref = useRef<HTMLHeadingElement>(null)
-  usePlugin((app) => {
-    app.addSystemToGroup(Group.Early, (world: World) => {
-      const time = world.getResource(Time)
-      if (h1Ref.current) {
-        h1Ref.current.innerText = time.delta.toString()
-      }
-    })
+  const h1Ref = useResourceRef(TimeIndicator)
+  useSystem((world) => {
+    const time = world.getResource(Time)
+    const timeIndicator = world.getResource(TimeIndicator)
+    if (timeIndicator) {
+      timeIndicator.innerText = time.delta.toString()
+    }
+  }, {
+    predicate: (world) => {
+      return !!world.hasResource(TimeIndicator)
+    }
   })
 
   return <Html><h1 ref={h1Ref} style={{color: "white"}}>0</h1></Html>
