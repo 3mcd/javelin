@@ -192,7 +192,6 @@ export class World {
         // component stores.
         let componentValue = expect(entityDelta[component])
         this.#setEntityComponentValue(entity, component, componentValue)
-        entityDelta[component] = undefined!
       } else {
         let componentHi = idHi(component)
         // Attach the new entity to its parent component if it was defined
@@ -207,6 +206,8 @@ export class World {
     // Insert the new entity into its archetype.
     nextNode.addEntity(entity)
     this.#setEntityNode(entity, nextNode)
+    // Free the new entity's component change set.
+    this.#freeEntityDelta(entity)
   }
 
   #commitUpdate(entity: Entity, nextNode: Node) {
@@ -218,9 +219,11 @@ export class World {
       if (hasSchema(component)) {
         let componentValue = expect(entityDelta[component])
         this.#setEntityComponentValue(entity, component, componentValue)
-        entityDelta[component] = undefined!
       }
     }
+    this.#setEntityNode(entity, nextNode)
+    // Free the new entity's component change set.
+    this.#freeEntityDelta(entity)
   }
 
   #commitDelete(entity: Entity, prevNode: Node) {

@@ -25,7 +25,7 @@ let app = j
       world.create(j.type(Transform), {x: Math.random(), y: Math.random()})
     },
     null,
-    w => i++ % 100 == 0,
+    () => i++ % 1000 == 0,
   )
   .addSystemToGroup(j.Group.Early, world => {
     let socket: WebSocket | undefined
@@ -34,11 +34,11 @@ let app = j
         continue
       }
       let clientTransport = new WebsocketTransport(socket as any)
-      let transformInterest = interest(0 as j.Entity, j.type(Transform))
-      let clientAwareness = awareness().addInterest(transformInterest)
+      let clientTransformInterest = interest(0 as j.Entity, j.type(Transform))
+      let clientAwareness = awareness().addInterest(clientTransformInterest)
       let client = world.create(Client, clientTransport, clientAwareness)
       // @ts-ignore
-      transformInterest.entity = client
+      clientTransformInterest.entity = client
       socket.on("close", () => {
         closedClientQueue.push(client)
       })
