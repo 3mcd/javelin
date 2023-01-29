@@ -81,6 +81,8 @@ export const BoxRender: React.FC<BoxProps> = (props) => {
     if (!mesh) return
     mesh.position.set(position.x, position.y, position.z)
     mesh.quaternion.set(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
+  }, {
+    predicate: world => world.exists(entity) && world.has(entity, Position) && world.has(entity, Quaternion),
   })
 
   return <mesh ref={ref} >
