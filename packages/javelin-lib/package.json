@@ -2,7 +2,7 @@
   "name": "@javelin/lib",
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "license": "MIT",
-  "version": "2.0.0-alpha.2",
+  "version": "2.0.0-alpha.3",
   "description": "Common utility types and functions shared by Javelin packages",
   "keywords": ["ecs", "entity-component system", "game", "gamedev", "multiplayer", "mog"],
   "type": "module",
