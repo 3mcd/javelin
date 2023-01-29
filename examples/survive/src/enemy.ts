@@ -1,4 +1,4 @@
-import {App, value, Group, tag, type, slot, World} from "@javelin/ecs"
+import * as j from "@javelin/ecs"
 import {AuraImmune} from "./aura.js"
 import {Box} from "./box.js"
 import {Clock} from "./clock.js"
@@ -13,14 +13,14 @@ export const ENEMY_HEIGHT = 2
 export const ENEMY_SPAWN_FREQUENCY = 1_000
 export const ENEMY_SPAWN_FACTOR = 100
 
-let Bat = value()
-let Rat = value()
+let Bat = j.value()
+let Rat = j.value()
 
-export let EnemyType = slot(Bat, Rat)
+export let EnemyType = j.slot(Bat, Rat)
 
-export let IsEnemy = tag()
-export let EnemyAttackTime = value("f32")
-export let Enemy = type(
+export let IsEnemy = j.tag()
+export let EnemyAttackTime = j.value("f32")
+export let Enemy = j.type(
   IsEnemy,
   Position,
   Box,
@@ -42,7 +42,7 @@ let enemySpawnPoints = [
 ]
 
 let makeEnemy = (
-  world: World,
+  world: j.World,
   x: number,
   y: number,
   heading: Vector2,
@@ -52,8 +52,8 @@ let makeEnemy = (
   world.create(
     // @ts-ignore
     auraImmune
-      ? type(Enemy, EnemyType(Bat), AuraImmune)
-      : type(Enemy, EnemyType(Bat)),
+      ? j.type(Enemy, EnemyType(Bat), AuraImmune)
+      : j.type(Enemy, EnemyType(Bat)),
     {x, y},
     {
       x: auraImmune ? ENEMY_WIDTH / 2 : ENEMY_WIDTH,
@@ -66,7 +66,7 @@ let makeEnemy = (
   )
 
 let acquireEnemyTarget = (
-  world: World,
+  world: j.World,
   enemyPos: Vector2,
   heading: Vector2,
 ) => {
@@ -90,7 +90,7 @@ let acquireEnemyTarget = (
   return heading
 }
 
-let spawnEnemiesSystem = (world: World) => {
+let spawnEnemiesSystem = (world: j.World) => {
   let {tick} = world.getResource(Clock)
   let enemySpawnCount = Math.ceil(tick / ENEMY_SPAWN_FACTOR)
   world
@@ -103,10 +103,8 @@ let spawnEnemiesSystem = (world: World) => {
         )
         let [enemySpawnOffsetX, enemySpawnOffsetY] =
           enemySpawnPoints[spawnPointIndex]
-        let enemyX =
-          playerPos.x - enemySpawnOffsetX * Math.random() * 10
-        let enemyY =
-          playerPos.y - enemySpawnOffsetY * Math.random() * 10
+        let enemyX = playerPos.x - enemySpawnOffsetX * Math.random() * 10
+        let enemyY = playerPos.y - enemySpawnOffsetY * Math.random() * 10
         let heading = acquireEnemyTarget(
           world,
           {x: enemyX, y: enemyY},
@@ -124,7 +122,7 @@ let spawnEnemiesSystem = (world: World) => {
     })
 }
 
-let acquireEnemyTargetsSystem = (world: World) =>
+let acquireEnemyTargetsSystem = (world: j.World) =>
   world
     .of(Enemy, EnemyType(Bat))
     .as(Position, Heading)
@@ -132,7 +130,7 @@ let acquireEnemyTargetsSystem = (world: World) =>
       acquireEnemyTarget(world, enemyPos, enemyHeading),
     )
 
-let moveEnemiesSystem = (world: World) =>
+let moveEnemiesSystem = (world: j.World) =>
   world
     .of(Enemy)
     .as(Position, Heading)
@@ -141,7 +139,7 @@ let moveEnemiesSystem = (world: World) =>
       enemyPos.y += enemyHeading.y * 0.1
     })
 
-let enemyAttackSystem = (world: World) => {
+let enemyAttackSystem = (world: j.World) => {
   let clock = world.getResource(Clock)
   world
     .of(Player)
@@ -155,8 +153,7 @@ let enemyAttackSystem = (world: World) => {
             clock.time >= enemyAttackTime &&
             boxIntersects(playerPos, playerBox, enemyPos, enemyBox)
           ) {
-            let nextPlayerHealth =
-              playerHealth - Math.ceil(Math.random() * 2)
+            let nextPlayerHealth = playerHealth - Math.ceil(Math.random() * 2)
             let nextEnemyAttackTime = clock.time + 4
             world.set(player, Health, nextPlayerHealth)
             world.set(enemy, EnemyAttackTime, nextEnemyAttackTime)
@@ -165,17 +162,14 @@ let enemyAttackSystem = (world: World) => {
     })
 }
 
-export let enemyPlugin = (app: App) =>
+export let enemyPlugin = (app: j.App) =>
   app
     .addSystemToGroup(
-      Group.EarlyUpdate,
+      j.Group.EarlyUpdate,
       spawnEnemiesSystem,
       null,
-      world =>
-        world.getResource(Clock).tick % ENEMY_SPAWN_FREQUENCY === 0,
+      world => world.getResource(Clock).tick % ENEMY_SPAWN_FREQUENCY === 0,
     )
     .addSystem(acquireEnemyTargetsSystem)
-    .addSystem(moveEnemiesSystem, _ =>
-      _.after(acquireEnemyTargetsSystem),
-    )
+    .addSystem(moveEnemiesSystem, j.after(acquireEnemyTargetsSystem))
     .addSystem(enemyAttackSystem)

@@ -1,4 +1,4 @@
-import {App, Group, tag, type, World} from "@javelin/ecs"
+import * as j from "@javelin/ecs"
 import {Aura} from "./aura.js"
 import {Box} from "./box.js"
 import {makeBullet} from "./bullet.js"
@@ -13,17 +13,10 @@ export const PLAYER_SHOOT_RADIUS = 1
 export const PLAYER_SHOOT_COUNT = 4
 export const PLAYER_MAX_HEALTH = 10
 
-export let IsPlayer = tag()
-export let Player = type(
-  IsPlayer,
-  Position,
-  Box,
-  Health,
-  Quiver,
-  Aura,
-)
+export let IsPlayer = j.tag()
+export let Player = j.type(IsPlayer, Position, Box, Health, Quiver, Aura)
 
-export let makePlayer = (world: World) =>
+export let makePlayer = (world: j.World) =>
   world.create(
     Player,
     {x: 0, y: 0},
@@ -44,7 +37,7 @@ document.addEventListener("keyup", e => {
 
 let poll = (key: string) => Boolean(keys[key])
 
-export let playerMovementSystem = (world: World) =>
+export let playerMovementSystem = (world: j.World) =>
   world
     .of(Player)
     .as(Position)
@@ -59,21 +52,17 @@ export let playerMovementSystem = (world: World) =>
       playerPos.y += 0.2 * v
     })
 
-export let playerWeaponsSystem = (world: World) => {
+export let playerWeaponsSystem = (world: j.World) => {
   let clock = world.getResource(Clock)
   world
     .of(Player)
     .as(Position, Quiver)
     .each((player, playerPos, playerQuiver) => {
-      let bulletCount = Math.ceil(
-        PLAYER_SHOOT_COUNT + playerQuiver / 100,
-      )
+      let bulletCount = Math.ceil(PLAYER_SHOOT_COUNT + playerQuiver / 100)
       for (let i = 0; i < bulletCount; i++) {
         let bulletAngle = (2 * Math.PI * i) / bulletCount
-        let bulletX =
-          playerPos.x + PLAYER_SHOOT_RADIUS * Math.cos(bulletAngle)
-        let bulletY =
-          playerPos.y + PLAYER_SHOOT_RADIUS * Math.sin(bulletAngle)
+        let bulletX = playerPos.x + PLAYER_SHOOT_RADIUS * Math.cos(bulletAngle)
+        let bulletY = playerPos.y + PLAYER_SHOOT_RADIUS * Math.sin(bulletAngle)
         let bulletPierce = 0
         if (playerQuiver > 0) {
           bulletPierce = 3
@@ -93,12 +82,12 @@ export let playerWeaponsSystem = (world: World) => {
     })
 }
 
-export let playerPlugin = (app: App) =>
+export let playerPlugin = (app: j.App) =>
   app
-    .addSystemToGroup(Group.Init, makePlayer)
+    .addSystemToGroup(j.Group.Init, makePlayer)
     .addSystem(playerMovementSystem)
     .addSystem(
       playerWeaponsSystem,
       null,
-      (world: World) => world.getResource(Clock).tick % 100 === 0,
+      (world: j.World) => world.getResource(Clock).tick % 100 === 0,
     )

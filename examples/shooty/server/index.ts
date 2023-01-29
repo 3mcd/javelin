@@ -1,4 +1,4 @@
-import {app, Entity, Group, type} from "@javelin/ecs"
+import * as j from "@javelin/ecs"
 import {
   awareness,
   Client,
@@ -14,20 +14,21 @@ let httpServer = createServer()
 
 let websocketServer = new WebSocketServer({server: httpServer})
 let openedWebsocketQueue: WebSocket[] = []
-let closedClientQueue: Entity[] = []
+let closedClientQueue: j.Entity[] = []
 
-let game = app()
-  .addSystemToGroup(Group.Init, world => {
-    world.create(type(Transform))
+let app = j
+  .app()
+  .addSystemToGroup(j.Group.Init, world => {
+    world.create(j.type(Transform))
   })
-  .addSystemToGroup(Group.Early, world => {
+  .addSystemToGroup(j.Group.Early, world => {
     let socket: WebSocket | undefined
     while ((socket = openedWebsocketQueue.pop())) {
       if (socket.readyState !== socket.OPEN) {
         continue
       }
       let clientTransport = new WebsocketTransport(socket as any)
-      let transformInterest = interest(0 as any, type(Transform))
+      let transformInterest = interest(0 as j.Entity, j.type(Transform))
       let clientAwareness = awareness().addInterest(transformInterest)
       let client = world.create(Client, clientTransport, clientAwareness)
       // @ts-ignore
@@ -36,7 +37,7 @@ let game = app()
         closedClientQueue.push(client)
       })
     }
-    let client: Entity | undefined
+    let client: j.Entity | undefined
     while ((client = closedClientQueue.pop()) !== undefined) {
       world.delete(client)
     }
@@ -62,5 +63,5 @@ call of
 console.log("server listening on port 8080")
 
 setInterval(() => {
-  game.step()
+  app.step()
 }, 1000 / 60)

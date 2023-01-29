@@ -19,18 +19,17 @@ world.create()
 Entities can be created with a single component.
 
 ```ts
-let Position = value<Vector2>()
+let Position = j.value<Vector2>()
 
 world.create(Position, {x: 0, y: 0})
 ```
 
-
 But most often you will need to create entities from a set of components. This is accomplished using types:
 
 ```ts
-let Position = value<Vector2>()
-let Velocity = value<Vector2>()
-let Kinetic = type(Position, Velocity)
+let Position = j.value<Vector2>()
+let Velocity = j.value<Vector2>()
+let Kinetic = j.type(Position, Velocity)
 
 world.create(Kinetic, {x: 0, y: 0}, {x: 1, y: -1})
 ```
@@ -38,15 +37,15 @@ world.create(Kinetic, {x: 0, y: 0}, {x: 1, y: -1})
 Component values cannot be provided to tag components during entity creation, since tags are stateless.
 
 ```ts
-let Burning = tag()
+let Burning = j.tag()
 
-world.create(type(Burning, Position), {x: 0, y: 0})
+world.create(j.type(Burning, Position), {x: 0, y: 0})
 ```
 
 Components defined with a schema are auto-initialized if a value is not provided.
 
 ```ts
-let Position = value({x: "f32", y: "f32"})
+let Position = j.value({x: "f32", y: "f32"})
 
 world.create(Position) // automatically adds {x: 0, y: 0}
 ```
@@ -57,7 +56,7 @@ Components are added to entities using `world.add`.
 
 ```ts
 world.add(entity, Velocity, {x: 1, y: -1})
-world.add(entity, type(Burning, Position))
+world.add(entity, j.type(Burning, Position))
 ```
 
 Components are removed from entities using `world.remove`.
@@ -79,7 +78,7 @@ world.delete(entity)
 Entity operations are deferred until the end of each step. Take the following example where a `systemB` downstream of `systemA` fails to locate a newly created entity within a single step.
 
 ```ts
-game
+app
   // systemA
   .addSystem(world => {
     world.create(Hippo)

@@ -7,9 +7,9 @@ In order for a system to implement entity behavior, it must first find all entit
 A system may query entities using it's world's `of` method.
 
 ```ts
-let Planet = type(PlanetGeometry, PlanetType, ...)
+let Planet = j.type(PlanetGeometry, PlanetType, ...)
 
-let orbitPlanetsSystem = (world: World) => {
+let orbitPlanetsSystem = (world: j.World) => {
   let planets = world.of(Planet)
 }
 ```
@@ -46,7 +46,7 @@ The results of a query can be further narrowed using query filters. Javelin curr
 The `Not` filter excludes entities that match a given component.
 
 ```ts
-world.of(Planet, Not(Atmosphere)).each(planet => {
+world.of(Planet, j.Not(Atmosphere)).each(planet => {
   // `planet` does not have an atmosphere component
 })
 ```
@@ -54,13 +54,13 @@ world.of(Planet, Not(Atmosphere)).each(planet => {
 `Without` can be used with more complex component types like [relationships](./components-relationships.md) and [slots](./components-enums.md). The following query could be expressed in plain terms as _"all gas planets that are not in the Sol system"_:
 
 ```ts
-world.of(Planet, PlanetType(Gas), Not(ChildOf(solSystem)))
+world.of(Planet, PlanetType(Gas), j.Not(j.ChildOf(solSystem)))
 ```
 
 Another example: _"all non-gas planets"_:
 
 ```ts
-world.of(Planet, Not(PlanetType(Gas)))
+world.of(Planet, j.Not(PlanetType(Gas)))
 ```
 
 ### Changed

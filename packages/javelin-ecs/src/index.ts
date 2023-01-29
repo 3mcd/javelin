@@ -4,7 +4,7 @@ export type {SystemImpl as System} from "./system.js"
 export type {Component} from "./component.js"
 export type {Format, Schema} from "./schema.js"
 
-export {ChildOf, Without} from "./relation.js"
+export {ChildOf, Not} from "./relation.js"
 export {Phase, World} from "./world.js"
 export {Monitor} from "./monitor.js"
 export {Node} from "./graph.js"
@@ -16,6 +16,10 @@ export {makeResource as resource} from "./resource.js"
 export {makeQuerySelector as type} from "./type.js"
 export {makeSlot as slot} from "./slot.js"
 export {Dynamic, getSchema} from "./component.js"
+export {
+  makeConstraintsWithAfter as after,
+  makeConstraintsWithBefore as before,
+} from "./schedule.js"
 
 import {SchemaOf, Schema} from "./schema.js"
 import {Component, Tag} from "./component.js"

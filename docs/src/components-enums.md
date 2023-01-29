@@ -5,7 +5,7 @@ Enum-like behavior can be achieved using **slots**. Slots are useful when defini
 Slots are created using the `slot` function. They are defined with one or more value or tag components.
 
 ```ts
-let MovementState = slot(Running, Walking, Crouching)
+let MovementState = j.slot(Running, Walking, Crouching)
 ```
 
 Slot components are added to entities like any other component. To create a slot component, call the slot (in this case `MovementState`) with one of its components.
@@ -29,7 +29,7 @@ world.add(character, MovementState(Running))
 You can find entities with a given slot by including the slot in a query's terms.
 
 ```ts
-world.of(MovementState).each((entity) => {
+world.of(MovementState).each(entity => {
   // `entity` has a `MovementState`
 })
 ```
@@ -37,7 +37,7 @@ world.of(MovementState).each((entity) => {
 Slots are implemented as [relation components](./components-relationships.md), so they follow the same semantics. This also means that a slot produces unique components that are independent of those it was defined with. Below is an example of a type that uses a slot to ensure the entity has at most one element (e.g. water, fire, poison), while also integrating another `Poison` component value for a separate use.
 
 ```ts
-type(Element(Poison), Poison)
+j.type(Element(Poison), Poison)
 ```
 
 <img src="./images/slot-multi.png" style="display: block; margin-left: auto; margin-right: auto; max-height: 200px">

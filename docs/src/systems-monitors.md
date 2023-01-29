@@ -5,7 +5,7 @@ Some systems must be notified of entities that match or no longer match a set of
 Systems can react to changes in entity composition using monitors. Below a simple system that utilizes monitors to log all created and deleted entities:
 
 ```ts
-let logEntitySystem = (world: World) => {
+let logEntitySystem = (world: j.World) => {
   world
     .monitor()
     .eachIncluded(entity => {
@@ -46,8 +46,10 @@ world.monitorImmediate(Enemy).eachExcluded((enemy, enemyPos) => {
 An immediate monitor must be executed downstream of its causal systems in the app's system execution pipeline. In the above example, the system should be configured using [ordering constraints](./systems.md#ordering-constraints) to occur _after_ the system that deletes `Enemy` entities.
 
 ```ts
-app.addSystem(deleteDeadEntitiesSystem).addSystem(
-  world => world.monitorImmediate(Enemy).eachExcluded(/* ... */),
-  _ => _.after(deleteDeadEntitiesSystem),
-)
+app
+  .addSystem(deleteDeadEntitiesSystem)
+  .addSystem(
+    world => world.monitorImmediate(Enemy).eachExcluded(/* ... */),
+    j.after(deleteDeadEntitiesSystem),
+  )
 ```

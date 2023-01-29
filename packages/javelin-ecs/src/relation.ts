@@ -52,5 +52,7 @@ export let isRelationship = (term: Component) => idHi(term) > 0
  * let c = world.make(ChildOf(b))
  */
 export let ChildOf = makeRelation()
-export let Without = makeRelation()
-export let Not = Without
+let Without = makeRelation()
+export let Not = (selector: QuerySelector<[Component]>) => {
+  return Without(selector.components[0])
+}

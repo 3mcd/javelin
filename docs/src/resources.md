@@ -3,6 +3,7 @@
 You may find yourself struggling to represent some game state as an entity, or you may be integrating a third-party library like [Three.js](https://threejs.org/) or [Rapier](https://rapier.rs/docs/userGuides/javascript/gettingStartedJs). Javelin provides resources as an alternative to one-off entities or singleton components.
 
 Resources are useful for:
+
 - [Run criteria](./systems.md#run-criteria) dependencies, e.g. a promise that must resolve before a system can run
 - [Plugin](./plugins.md) configuration values
 - Third-party library objects like a Three.js scene or Rapier physics world
@@ -14,13 +15,13 @@ Resources are useful for:
 Resources are identifiers for arbitrary values. A resource identifier is created with the `resource` function. `resource` accepts a single type parameter that defines the resource's value.
 
 ```ts
-let Scene = resource<Three.Scene>()
+let Scene = j.resource<Three.Scene>()
 ```
 
 Resources are added to an app with the `addResource` method.
 
 ```ts
-game.addResource(Scene, new Three.Scene())
+app.addResource(Scene, new Three.Scene())
 ```
 
 ## Resource Retrieval

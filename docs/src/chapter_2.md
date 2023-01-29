@@ -7,7 +7,7 @@ Javelin is an [Entity Component System](https://github.com/SanderMertens/ecs-faq
 Systems with reactive entity queries.
 
 ```ts
-function lootSystem() {
+let lootSystem = () => {
   world.of(Player).each((player, playerBox) => {
     world.of(Loot).each((loot, lootBox) => {
       // (pick up loot bag)
@@ -19,22 +19,22 @@ function lootSystem() {
 A scheduler with run criteria, ordering constraints, and system groups.
 
 ```ts
-function weatherEnabled(world: World) {
+let weatherEnabled = (world: j.World) => {
   return world.getResource(Config).weatherEnabled
 }
-game
+app
   .addSystem(shootSystem)
-  .addSystem(lootSystem, _ => _.after(shootSystem))
+  .addSystem(lootSystem, j.after(shootSystem))
   .addSystem(weatherSystem, null, weatherEnabled)
-  .addSystemToGroup(Group.Late, renderSystem)
+  .addSystemToGroup(j.Group.Late, renderSystem)
 ```
 
-A type system used to create, add, and remove sets of components from entities. 
+A type system used to create, add, and remove sets of components from entities.
 
 ```ts
-let Transform = type(Position, Rotation, Scale)
-let Mesh = type(Geometry, Material)
-let Player = type(Transform, Mesh)
+let Transform = j.type(Position, Rotation, Scale)
+let Mesh = j.type(Geometry, Material)
+let Player = j.type(Transform, Mesh)
 
 world.create(Player)
 ```
@@ -42,18 +42,17 @@ world.create(Player)
 Enum components used to safeguard entity composition and implement state machines.
 
 ```ts
-let PlanetType = slot(Gas, Rock)
+let PlanetType = j.slot(Gas, Rock)
 // Error: An entity can have at most one component for a given slot
-world.create(type(PlanetType(Gas), PlanetType(Rock)))
-````
+world.create(j.type(PlanetType(Gas), PlanetType(Rock)))
+```
 
 Entity relationships with built-in support for heirarchies.
 
 ```ts
 let parent = world.create()
-let child = world.create(ChildOf(parent))
+let child = world.create(j.ChildOf(parent))
 world.delete(parent) // also deletes `child`
 ```
-
 
 And much more! Move to the next chapter to learn how to install Javelin.

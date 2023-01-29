@@ -61,12 +61,7 @@ export class Schedule<T> {
     return edges
   }
 
-  #sort(
-    vertex: T,
-    degree: number,
-    degrees: Map<T, number>,
-    visited: Set<T>,
-  ) {
+  #sort(vertex: T, degree: number, degrees: Map<T, number>, visited: Set<T>) {
     visited.add(vertex)
     let neighbors = this.#dependencies(vertex)
     for (let neighbor of neighbors) {
@@ -123,14 +118,18 @@ export class SystemGroup {
 
   addSystem(
     impl: SystemImpl,
-    constraints = new Constraints<SystemImpl>(),
+    constraints?: Maybe<Constraints<SystemImpl>>,
     predicate?: Maybe<Predicate>,
   ) {
     let system = new System(impl, predicate)
     assert(!this.#systemsByImpl.has(impl))
     this.#systemsByImpl.set(impl, system)
     this.#systemScheduleStale = true
-    Constraints.insert(this.#systemSchedule, impl, constraints)
+    Constraints.insert(
+      this.#systemSchedule,
+      impl,
+      constraints ?? new Constraints<SystemImpl>(),
+    )
   }
 
   isEnabled(world: World) {
@@ -142,4 +141,12 @@ export class SystemGroup {
     }
     return this.#predicate?.(world) ?? true
   }
+}
+
+export function makeConstraintsWithBefore<T>(task: T): Constraints<T> {
+  return new Constraints<T>().before(task)
+}
+
+export function makeConstraintsWithAfter<T>(task: T): Constraints<T> {
+  return new Constraints<T>().after(task)
 }

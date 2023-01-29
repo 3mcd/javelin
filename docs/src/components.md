@@ -13,8 +13,8 @@ Tags are the simplest kind of component. They are stateless, and consequentially
 Tags are created with the `tag` function:
 
 ```ts
-let PurpleTeam = tag()
-let YellowTeam = tag()
+let PurpleTeam = j.tag()
+let YellowTeam = j.tag()
 ```
 
 Tags also happen to take up minimal space in network messages because they have no corresponding value to serialize.
@@ -24,13 +24,13 @@ Tags also happen to take up minimal space in network messages because they have 
 Value components define entity state that should be represented with a value, like a string, array, or object. They are created with the `value` function:
 
 ```ts
-let Mass = value()
+let Mass = j.value()
 ```
 
 `value` accepts a generic type parameter that defines the value the component represents. Value components that aren't provided a value type are represented as `unknown`.
- 
+
 ```ts
-let Mass = value<number>()
+let Mass = j.value<number>()
 ```
 
 ### Schema
@@ -40,13 +40,13 @@ Value components may optionally be defined with a schema. Schemas are component 
 A value component can be defined with a schema by providing the schema as the first parameter to `value`:
 
 ```ts
-let Mass = value("f32")
+let Mass = j.value("f32")
 ```
 
 Schemas can take the form of scalars or records.
 
 ```ts
-let Quaternion = value({
+let Quaternion = j.value({
   x: "f32",
   y: "f32",
   z: "f32",
@@ -59,7 +59,7 @@ let Quaternion = value({
 Below is a table of all schema-supported formats.
 
 | id     | format                  | supported values                |
-|--------|-------------------------|---------------------------------|
+| ------ | ----------------------- | ------------------------------- |
 | number | (alias of f64)          |                                 |
 | u8     | 8-bit unsigned integer  | 0 to 255                        |
 | u16    | 16-bit unsigned integer | 0 to 65,535                     |

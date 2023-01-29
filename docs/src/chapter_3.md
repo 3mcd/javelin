@@ -20,7 +20,9 @@ To get started, we'll load Javelin into a document with a `<canvas>` element:
 At the core of any Javelin game is an **app**.
 
 ```ts
-let game = app()
+import * as j from "@javelin/ecs"
+
+let app = j.app()
 ```
 
 Apps are responsible for running **systems**—functions that implement game logic, against a **world**—game state.
@@ -34,14 +36,14 @@ An app has a single world by default. A world manages all game state, primarily 
 Entities are created using a world's `create()` method. In order to create our box, we need to get a reference to the app's world. We can do this using a **startup system**, a function that is executed once when the app is initialized.
 
 ```ts
-let createBoxSystem = (world: World) => {
+let createBoxSystem = (world: j.World) => {
   let box = world.create()
 }
-game.addInitSystem(createBoxSystem)
-game.step()
+app.addInitSystem(createBoxSystem)
+app.step()
 ```
 
-A box will be created when `game.step()` is called, only once, before any other game logic is run.
+A box will be created when `app.step()` is called, only once, before any other game logic is run.
 
 Our entity doesn't have any box-like qualities yet. Entities don't have any intrinsic state. In fact, they're just integers that identify a unique set of components.
 
@@ -50,8 +52,8 @@ Components can play many roles. They can function as simple labels, add componen
 In this exercise, we'll define two value components: one for the position of the box, and another for its color. Value components are created using the `value` function:
 
 ```ts
-let Position = value<{x: number; y: number}>()
-let Color = value<string>()
+let Position = j.value<{x: number; y: number}>()
+let Color = j.value<string>()
 ```
 
 > `Position` and `Color` are called value components, because they add values to entities. Objects that conform their shape (e.g. `{x:0, y:0}`) are called component data or component values.
@@ -59,7 +61,7 @@ let Color = value<string>()
 Components are added to entities using a world's `add` method. Let's give our entity some position and color data:
 
 ```ts
-let createBoxSystem = (world: World) => {
+let createBoxSystem = (world: j.World) => {
   let box = world.create()
   world.add(box, Position, {x: 0, y: 0})
   world.add(box, Color, "#ff0000")
@@ -69,7 +71,7 @@ let createBoxSystem = (world: World) => {
 We can condense the two add calls into a single statement using a **type**. A type is an alias for a set of components. Let's create a `Box` type that will come in handy whenever we need to reference an entity with both a position and a color.
 
 ```ts
-let Box = type(Position, Color)
+let Box = j.type(Position, Color)
 ```
 
 We could then rewrite the two `world.add` statements with a single statement like so:
@@ -97,7 +99,7 @@ This system will need to perform all three of these operations: get the input re
 We'll first get a reference to the device's keyboard state using `world.getResource`:
 
 ```ts
-let moveBoxSystem = (world: World) => {
+let moveBoxSystem = (world: j.World) => {
   let {key} = world.getResource(Input)
 }
 ```
@@ -120,14 +122,14 @@ Javelin's API encourages code reuse and portability. Systems are more portable w
 We can define a **resource** for it. Resources let us provide arbitrary values to our systems. Let's create a resource for a `CanvasRenderingContext2D`:
 
 ```ts
-let Context2D = resource<CanvasRenderingContext2D>()
+let Context2D = j.resource<CanvasRenderingContext2D>()
 ```
 
 Next, we'll provide the app a value for the `Context2D` resource using its `addResource` method.
 
 ```ts
 let context = document.querySelector("canvas")!.getContext("2d")
-game.addResource(Context2D, context)
+app.addResource(Context2D, context)
 ```
 
 > Resources can provide _any value_ to systems. This includes third party library objects, singleton entities, and any other game state that doesn't clearly fit into entities and components.
@@ -135,7 +137,7 @@ game.addResource(Context2D, context)
 Image data is not automatically cleared from canvas elements, so we should write a system that erases the canvas so we don't draw our box on top of old pixels. We'll get the draw context using the `useResource` effect (which simply calls `world.getResource`), and call its `clearRect()` method:
 
 ```ts
-let clearCanvasSystem = (world: World) => {
+let clearCanvasSystem = (world: j.World) => {
   let context = world.getResource(Context2D)
   context.clearRect(0, 0, 300, 150) // default canvas width/height
 }
@@ -144,7 +146,7 @@ let clearCanvasSystem = (world: World) => {
 Taking everything we've learned so far about systems, queries, and resources, we can write a system that draws our box to the canvas:
 
 ```ts
-let drawBoxSystem = (world: World) => {
+let drawBoxSystem = (world: j.World) => {
   let context = world.getResource(Context2D)
   world.of(Box).each((box, boxPos, boxColor) => {
     context.fillStyle = boxColor
@@ -160,7 +162,7 @@ Our movement and rendering systems are fully implemented! We just need to regist
 Systems are executed in the order in which they are added. So we could simply add them sequentially:
 
 ```ts
-game
+app
   // Add our systems in order:
   .addSystem(moveBoxSystem)
   .addSystem(clearCanvasSystem)
@@ -174,10 +176,10 @@ We want to ensure that our render systems are executed after our movement system
 Systems are added to the `Group.Update` group by default. So we can add our rendering systems to a system group that follows, like `Group.LateUpdate`, to ensure they run after our game behavior. A system can be added to a group other than `App.Update` via an app's `addSystemToGroup` method:
 
 ```ts
-game
+app
   .addSystem(moveBoxSystem)
-  .addSystemToGroup(Group.LateUpdate, clearCanvasSystem)
-  .addSystemToGroup(Group.LateUpdate, drawBoxSystem)
+  .addSystemToGroup(j.Group.LateUpdate, clearCanvasSystem)
+  .addSystemToGroup(j.Group.LateUpdate, drawBoxSystem)
 ```
 
 Now, regardless of the order the systems are added in, `moveBoxSystem` will always run before the box is drawn to the canvas.
@@ -187,8 +189,10 @@ We can also add **ordering constraints** to systems to ensure they execute in a 
 We want to ensure our box is drawn to the canvas Only after\_ the canvas is cleared, otherwise the user may see nothing each frame. We can accomplish this like so:
 
 ```ts
-game.addSystemToGroup(Group.LateUpdate, drawBoxSystem, _ =>
-  _.after(clearCanvasSystem),
+app.addSystemToGroup(
+  j.Group.LateUpdate,
+  drawBoxSystem,
+  j.after(clearCanvasSystem),
 )
 ```
 
@@ -197,13 +201,15 @@ game.addSystemToGroup(Group.LateUpdate, drawBoxSystem, _ =>
 Our final app initialization statement should look like this:
 
 ```ts
-game
+app
   .addResource(Context2D, context)
   .addInitSystem(createBoxSystem)
   .addSystem(moveBoxSystem)
-  .addSystemToGroup(Group.LateUpdate, clearCanvasSystem)
-  .addSystemToGroup(Group.LateUpdate, drawBoxSystem, _ =>
-    _.after(clearCanvasSystem),
+  .addSystemToGroup(j.Group.LateUpdate, clearCanvasSystem)
+  .addSystemToGroup(
+    j.Group.LateUpdate,
+    drawBoxSystem,
+    j.after(clearCanvasSystem),
   )
 ```
 
@@ -211,7 +217,7 @@ We can execute all of our app's registered systems using the app's `step` method
 
 ```ts
 let loop = () => {
-  game.step()
+  app.step()
   requestAnimationFrame(loop)
 }
 loop()

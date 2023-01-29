@@ -1,8 +1,8 @@
-import {value} from "@javelin/ecs"
+import * as j from "@javelin/ecs"
 
 export interface Transform {
   x: number
   y: number
 }
 
-export let Transform = value<Transform>({x: "f32", y: "f32"})
+export let Transform = j.value<Transform>({x: "f32", y: "f32"})
