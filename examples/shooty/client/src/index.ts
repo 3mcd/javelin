@@ -36,6 +36,7 @@ let renderEntity = (e: j.Entity, pos: Vector2) => {
   let entityNode = entityNodes[e]
   if (entityNode === undefined) {
     entityNode = document.createElement("div")
+    entityNode.classList.add("entity")
     entityNodes[e] = entityNode
     document.body.appendChild(entityNode)
   }

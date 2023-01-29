@@ -19,32 +19,34 @@ export class PriorityQueueInt<T extends number> {
     return this.#heap.length
   }
 
-  #priority(i: number) {
+  #getPriorityOfIndex(i: number) {
     return this.#priorities[this.#heap[i]]
   }
 
-  #remove(i = 0) {
+  #remove(i: number) {
     if (this.#heap.length === 0) {
       return null
     }
     this.#swap(i, this.#heap.length - 1)
     let item = expect(this.#heap.pop())
     this.#indices[item] = undefined!
+    this.#priorities[item] = undefined!
     this.#bubbleDown(i)
     return item
   }
 
   #swap(i1: number, i2: number) {
-    this.#indices[this.#heap[i1]] = i2
-    this.#indices[this.#heap[i2]] = i1
     let v1 = this.#heap[i1]
+    let v2 = this.#heap[i2]
+    this.#indices[v1] = i2
+    this.#indices[v2] = i1
     this.#heap[i1] = this.#heap[i2]
     this.#heap[i2] = v1
   }
 
   #getTopChild(i: number) {
     return right(i) < this.#heap.length &&
-      this.#priority(right(i)) - this.#priority(left(i)) > 0
+      this.#getPriorityOfIndex(right(i)) - this.#getPriorityOfIndex(left(i)) > 0
       ? right(i)
       : left(i)
   }
@@ -54,7 +56,7 @@ export class PriorityQueueInt<T extends number> {
 
     while (
       parent(i) >= 0 &&
-      this.#priority(i) - this.#priority(parent(i)) > 0
+      this.#getPriorityOfIndex(i) - this.#getPriorityOfIndex(parent(i)) > 0
     ) {
       this.#swap(parent(i), i)
       i = parent(i)
@@ -65,12 +67,21 @@ export class PriorityQueueInt<T extends number> {
     let curr = i
     while (
       left(curr) < this.#heap.length &&
-      this.#priority(this.#getTopChild(curr)) - this.#priority(curr) > 0
+      this.#getPriorityOfIndex(this.#getTopChild(curr)) -
+        this.#getPriorityOfIndex(curr) >
+        0
     ) {
       let next = this.#getTopChild(curr)
       this.#swap(curr, next)
       curr = next
     }
+  }
+
+  getPriority(item: T) {
+    if (Number.isNaN(this.#priorities[item])) {
+      throw new Error("ahh")
+    }
+    return this.#priorities[item]
   }
 
   push(item: T, priority: number) {
@@ -91,14 +102,10 @@ export class PriorityQueueInt<T extends number> {
   }
 
   pop() {
-    return this.#remove()
+    return this.#remove(0)
   }
 
   isEmpty() {
     return this.#heap.length === 0
-  }
-
-  _heap() {
-    return this.#heap
   }
 }

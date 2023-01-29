@@ -10,7 +10,7 @@ import {EntityEncoder} from "./encode.js"
 import {PriorityQueueInt} from "./priority_queue_int.js"
 import {ProtocolMessageType} from "./protocol.js"
 
-const MTU_SIZE = 1_300
+const MTU_SIZE = 1_200
 
 export type PatchStage = []
 export let PatchStage = resource<PatchStage>()
@@ -94,8 +94,11 @@ export class Interest {
 
   prioritize(world: World) {
     world.of(this.subjectSelector).each(subject => {
-      let subjectPriority = this.subjectPrioritizer(this.entity, subject, world)
-      this.subjectQueue.push(subject, subjectPriority)
+      let currSubjectPriority = this.subjectQueue.getPriority(subject)
+      let nextSubjectPriority =
+        (currSubjectPriority ?? 0) +
+        this.subjectPrioritizer(this.entity, subject, world)
+      this.subjectQueue.push(subject, nextSubjectPriority)
     })
   }
 }

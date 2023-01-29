@@ -541,10 +541,19 @@ export class World {
     this.#setEntityComponentValue(entity, component, componentValue)
   }
 
+  has(entity: Entity, componentSelector: QuerySelector<[Component]>) {
+    let entityNode = this.#getEntityNode(entity)
+    let component = componentSelector.components[0]
+    if (exists(entityNode)) {
+      return entityNode.hasComponent(component)
+    }
+    return false
+  }
+
   /**
    * @private
    */
-  has(entity: Entity, component: Component) {
+  hasComponent(entity: Entity, component: Component) {
     let entityNode = this.#getEntityNode(entity)
     if (exists(entityNode)) {
       return entityNode.hasComponent(component)
