@@ -1,21 +1,21 @@
 import {assert, exists, expect, Maybe} from "@javelin/lib"
+import {
+  Component,
+  ComponentInitValues,
+  ComponentValue,
+  Dynamic,
+  express,
+  getSchema,
+  hasSchema,
+  Tag,
+} from "./component.js"
 import {Entity, idHi, idLo, LO_MASK, makeId} from "./entity.js"
 import {Graph, Node} from "./graph.js"
 import {ChildOf} from "./index.js"
 import {Monitor} from "./monitor.js"
-import {QueryAPI, Query} from "./query.js"
+import {Query, QueryAPI} from "./query.js"
 import {makeResource, Resource} from "./resource.js"
 import {System} from "./system.js"
-import {
-  hasSchema,
-  Component,
-  Tag,
-  ComponentValue,
-  ComponentInitValues,
-  getSchema,
-  express,
-  Dynamic,
-} from "./component.js"
 import {Transaction, TransactionIteratee} from "./transaction.js"
 import {
   hashQueryTerms,

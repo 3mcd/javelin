@@ -1,21 +1,42 @@
 import {
   assert,
-  HASH_BASE,
   hashWord,
   hashWords,
+  HASH_BASE,
   normalizeHash,
 } from "@javelin/lib"
-import {idHi, idLo, LO_MASK} from "./entity.js"
-import {ChildOf, getRelation, isRelation, Not, Relation} from "./relation.js"
-import {Component} from "./component.js"
-import {isSlot} from "./slot.js"
+import {
+  Component,
+  getSchema,
+  hasSchema,
+  makeTagComponent,
+  makeValueComponent,
+  setSchema,
+  Tag,
+} from "./component.js"
+import {HI_MASK, idHi, idLo, LO_MASK, makeId} from "./entity.js"
+import {Schema, SchemaOf} from "./schema.js"
 
 export type QueryTerm = QuerySelector | Component | Relation
 export type QueryTerms = QueryTerm[]
 
+export interface Relation {
+  relationId: number
+  relationTag: Component<Tag>
+  (to: number | Relation): QuerySelector<[Component<Tag>]>
+}
+
 export const ERR_CHILD_OF = "An entity may have only one ChildOf relationship"
 export const ERR_SLOT =
   "An entity may have at most one component for a given slot"
+export const ERR_SLOT_DEFINITION =
+  "A slot only accepts components defined in its enum"
+
+let slots = [] as Relation[]
+let relationIds = 1
+let relations: Relation[] = []
+
+export let isSlot = (relationId: number) => relationId in slots
 
 export let validateComponents = (components: Component[]) => {
   let includesChildOfRelation = false
@@ -83,6 +104,7 @@ export let hashQueryTerms = (queryTerms: QueryTerms) => {
 }
 
 export class Type {
+  static VOID = new Type([], HASH_BASE)
   static cache = [] as Type[]
   static sort = (a: number, b: number) => a - b
 
@@ -102,8 +124,8 @@ export class Type {
 }
 
 export class QuerySelector<T extends QueryTerms = QueryTerms> {
-  static cache = [] as QuerySelector[]
   static VOID = new QuerySelector([])
+  static cache = [] as QuerySelector[]
 
   readonly hash
   readonly type
@@ -154,4 +176,93 @@ export function makeQuerySelector() {
   }
   queryTermsHash = normalizeHash(queryTermsHash)
   return (QuerySelector.cache[queryTermsHash] ??= new QuerySelector(queryTerms))
+}
+
+export let makeTagSelector = (): QuerySelector<[Component<typeof Tag>]> => {
+  let tagComponent = makeTagComponent()
+  return new QuerySelector([tagComponent])
+}
+
+export function makeValueSelector<T>(
+  componentSchema: SchemaOf<T>,
+): QuerySelector<[Component<SchemaOf<T>>]>
+export function makeValueSelector<T>(): QuerySelector<[Component<T>]>
+export function makeValueSelector<T extends Schema>(
+  componentSchema: T,
+): QuerySelector<[Component<T>]>
+export function makeValueSelector() {
+  let valueComponent = makeValueComponent.apply(
+    null,
+    arguments as unknown as [Schema],
+  )
+  return new QuerySelector([valueComponent])
+}
+
+export let makeRelation = (): Relation => {
+  let relationId = relationIds++
+  let relationTag = makeTagComponent()
+  assert(relationId <= HI_MASK)
+  let relationAttrs = {relationId, relationTag}
+  let makeRelationship = (to: number | Relation) => {
+    return makeQuerySelector(
+      makeId(
+        typeof to === "number" ? idLo(to) : to.relationTag,
+        relationId,
+      ) as Component<void>,
+    )
+  }
+  let relation = Object.assign(
+    makeRelationship,
+    relationAttrs,
+  ) as unknown as Relation
+  relations[relationId] = relation
+  return relation
+}
+
+export let getRelation = (relationId: number) => relations[relationId]
+
+export let isRelation = (object: object): object is Relation =>
+  "relation_id" in object
+
+export let isRelationship = (term: Component) => idHi(term) > 0
+
+/**
+ * Creates a relation pair (entity, relation type) that can be used like a term
+ * to create a relationship between two entities.
+ * @example <caption>A simple parent-child relationship</caption>
+ * let parent = world.make()
+ * let child = world.make(ChildOf(parent))
+ * @example <caption>Deeply nested children</caption>
+ * let a = world.make()
+ * let b = world.make(ChildOf(a))
+ * let c = world.make(ChildOf(b))
+ */
+export let ChildOf = makeRelation()
+let Without = makeRelation()
+export let Not = Object.assign(
+  (selector: QuerySelector<[Component]>) => Without(selector.components[0]),
+  Without,
+)
+
+export let makeSlot = <T extends QuerySelector<[Component]>[]>(
+  ...componentSelectors: T
+) => {
+  let slotRelation = makeRelation()
+  let slotRelationships = [] as QuerySelector<[Component]>[]
+  let slotComponents = new Set(componentSelectors)
+  slots[slotRelation.relationId] = slotRelation
+  for (let i = 0; i < componentSelectors.length; i++) {
+    let componentSelector = componentSelectors[i]
+    let component = componentSelector.components[0]
+    let componentRelationship = slotRelation(component)
+    slotRelationships[component] = componentRelationship
+    if (hasSchema(component)) {
+      setSchema(componentRelationship.components[0], getSchema(component))
+    }
+  }
+  let makeSlotComponent = <U extends T[number]>(component: U) => {
+    assert(slotComponents.has(component), ERR_SLOT_DEFINITION)
+    return slotRelation(component.components[0]) as U
+  }
+  return Object.assign(makeSlotComponent, slotRelation)
 }

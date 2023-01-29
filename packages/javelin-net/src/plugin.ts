@@ -3,7 +3,7 @@ import {ITransport} from "./transport.js"
 import {IAwareness} from "./awareness.js"
 import {makeProtocol, IProtocol} from "./protocol.js"
 import {exists, Maybe} from "@javelin/lib"
-import {interestMessageType} from "./interest.js"
+import {presenceMessageType} from "./presence.js"
 import {ReadStream, WriteStream} from "./stream.js"
 
 export let Transport = value<ITransport>()
@@ -21,8 +21,7 @@ let serverUpdateClientsSystem = (world: World) => {
   world.of(Client).each((_, transport, awareness) => {
     for (let i = 0; i < awareness.interests.length; i++) {
       let interest = awareness.interests[i]
-      interest.prioritize(world)
-      protocol.encode(world, writeStream, interestMessageType, interest)
+      protocol.encode(world, writeStream, presenceMessageType, interest)
       transport.push(writeStream.bytes(), true)
       writeStream.reset()
     }
@@ -49,7 +48,7 @@ export let clientPlugin = (app: App) => {
     protocol = makeProtocol()
     app.addResource(Protocol, protocol)
   }
-  protocol.addMessageType(interestMessageType)
+  protocol.addMessageType(presenceMessageType)
   if (!app.hasResource(RemoteWorld)) {
     app.addResource(RemoteWorld, new World())
   }
@@ -62,6 +61,6 @@ export let serverPlugin = (app: App) => {
     protocol = makeProtocol()
     app.addResource(Protocol, protocol)
   }
-  protocol.addMessageType(interestMessageType)
+  protocol.addMessageType(presenceMessageType)
   app.addSystemToGroup(Group.Early, serverUpdateClientsSystem)
 }

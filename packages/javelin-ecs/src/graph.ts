@@ -1,18 +1,17 @@
 import {
   exists,
-  HASH_BASE,
   hashWord,
   hashWords,
+  HASH_BASE,
   Maybe,
   normalizeHash,
   SparseSet,
 } from "@javelin/lib"
-import {Entity} from "./entity.js"
-import {isRelationship} from "./relation.js"
-import {Signal} from "./signal.js"
 import {Component} from "./component.js"
+import {Entity} from "./entity.js"
+import {Signal} from "./signal.js"
 import {TransactionEvent} from "./transaction.js"
-import {Type, validateComponents} from "./type.js"
+import {isRelationship, Type, validateComponents} from "./type.js"
 
 type NodeIteratee = (node: Node) => void
 type NodePredicate = (node: Node) => boolean

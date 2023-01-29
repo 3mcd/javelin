@@ -16,11 +16,17 @@ let websocketServer = new WebSocketServer({server: httpServer})
 let openedWebsocketQueue: WebSocket[] = []
 let closedClientQueue: j.Entity[] = []
 
+let i = 0
+
 let app = j
   .app()
-  .addSystemToGroup(j.Group.Init, world => {
-    world.create(j.type(Transform))
-  })
+  .addSystem(
+    world => {
+      console.log(world.create(j.type(Transform)))
+    },
+    null,
+    w => i++ % 100 == 0,
+  )
   .addSystemToGroup(j.Group.Early, world => {
     let socket: WebSocket | undefined
     while ((socket = openedWebsocketQueue.pop())) {

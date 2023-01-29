@@ -5,16 +5,16 @@ import {
   normalizeHash,
   SparseSet,
 } from "@javelin/lib"
+import {Component, ComponentValue, hasSchema} from "./component.js"
 import {Entity} from "./entity.js"
 import {Node} from "./graph.js"
-import {Component, ComponentValue, hasSchema} from "./component.js"
 import {
   ComponentsOf,
+  isRelation,
   normalizeQueryTerms,
   QuerySelector,
   QueryTerms,
 } from "./type.js"
-import {isRelation} from "./relation.js"
 
 export type QueryEachIteratee<T extends QueryTerms> = (
   entity: Entity,
@@ -69,7 +69,7 @@ let compileEachIterator = <T extends Component[]>(
 export interface QueryAPI<T extends QueryTerms = QueryTerms> {
   each(iteratee: QueryEachIteratee<T>): void
   as<T extends QueryTerms>(...queryTerms: T): QueryAPI<T>
-  size: number
+  length: number
 }
 
 export class QueryView<T extends QueryTerms = QueryTerms>
@@ -83,8 +83,8 @@ export class QueryView<T extends QueryTerms = QueryTerms>
     this.#iterator = compileEachIterator(query, components.filter(hasSchema))
   }
 
-  get size() {
-    return this.#query.size
+  get length() {
+    return this.#query.length
   }
 
   as<T extends QueryTerms>(...queryTerms: T): QueryAPI<T>
@@ -128,7 +128,7 @@ export class Query<T extends QueryTerms = QueryTerms> implements QueryAPI<T> {
     this.nodes.delete(node.type.hash)
   }
 
-  get size() {
+  get length() {
     let size = 0
     let nodes = this.nodes.values()
     for (let i = 0; i < nodes.length; i++) {
