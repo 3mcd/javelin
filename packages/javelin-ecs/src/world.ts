@@ -3,11 +3,11 @@ import {
   Component,
   ComponentInitValues,
   ComponentValue,
-  _dynamic,
   express,
   getSchema,
   hasSchema,
   Tag,
+  _dynamic,
 } from "./component.js"
 import {Entity, idHi, idLo, LO_MASK, makeId} from "./entity.js"
 import {Graph, Node} from "./graph.js"
@@ -17,13 +17,7 @@ import {Query, QueryAPI} from "./query.js"
 import {makeResource, Resource} from "./resource.js"
 import {System} from "./system.js"
 import {Transaction, TransactionIteratee} from "./transaction.js"
-import {
-  hashQueryTerms,
-  normalizeQueryTerms,
-  Type,
-  QueryTerms,
-  NormalizedType,
-} from "./type.js"
+import {hashQueryTerms, QueryTerms, Type} from "./type.js"
 
 const makeEntityLabel = (entity: Entity, entityId = idLo(entity)) =>
   `entity ${entity} (${entityId})`
@@ -39,7 +33,7 @@ const ERR_INVALID_ENTITY_VERSION = (entity: Entity, entityId: number) =>
   `Failed to validate entity: ${makeEntityLabel(
     entity,
     entityId,
-  )} is invalid—has it been destroyed?`
+  )} is invalid—has it been deleted?`
 const ERR_EXPECTED_ENTITY_HAS_COMPONENT = (
   entity: Entity,
   component: Component,
@@ -50,7 +44,7 @@ const ERR_EXPECTED_ENTITY_HAS_COMPONENT = (
 const ERR_PARENT_INVALID = (entity: Entity) =>
   `Failed to reparent entity: you may have tried to add a ChildOf relationship between ${makeEntityLabel(
     entity,
-  )} and an invalid entity`
+  )} and an invalid entity—has the parent been deleted?`
 
 /**
  * @private

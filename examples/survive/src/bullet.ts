@@ -86,9 +86,9 @@ let collideBulletsSystem = (world: j.World) =>
 
 export let bulletPlugin = (app: j.App) =>
   app
-    .addSystemToGroup(j.Group.Update, moveBulletsSystem)
+    .addSystemToGroup(j.FixedGroup.Update, moveBulletsSystem)
     .addSystemToGroup(
-      j.Group.Update,
+      j.FixedGroup.Update,
       collideBulletsSystem,
       j.after(moveBulletsSystem),
     )

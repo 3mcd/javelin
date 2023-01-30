@@ -22,9 +22,7 @@ export let presenceMessageType: ProtocolMessageType<Presence> = {
       .eachExcluded(subject => {
         presence.subjectQueue.remove(subject)
       })
-    writeStream.grow(
-      1 + 2 + subjectType.normalized.components.length * 4 + subjectCount * 4,
-    )
+    writeStream.grow(1 + 2 + subjectComponents.length * 4 + subjectCount * 4)
     // (1)
     writeStream.writeU8(subjectComponents.length)
     // (2)

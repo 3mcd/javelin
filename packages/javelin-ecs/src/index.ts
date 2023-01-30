@@ -34,4 +34,13 @@ export {
   _qualifyEntity,
   _reserveEntity,
 } from "./world.js"
-export {Tick, tickSystem} from "./tick.js"
+export {Tick, advanceTickSystem} from "./tick_plugin.js"
+export {Time, advanceTimeSystem} from "./time_plugin.js"
+export {
+  FixedGroup,
+  FixedTimestepConfig,
+  FixedTick,
+  FixedTime,
+  advanceFixedTickSystem,
+  advanceFixedTimestepSystem,
+} from "./fixed_timestep_plugin.js"

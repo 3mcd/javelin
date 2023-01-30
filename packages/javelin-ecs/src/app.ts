@@ -1,4 +1,5 @@
 import {assert, expect, Maybe} from "@javelin/lib"
+import {fixedTimestepPlugin} from "./fixed_timestep_plugin.js"
 import {Resource} from "./resource.js"
 import {
   Constraints,
@@ -9,7 +10,8 @@ import {
   SystemGroup,
 } from "./schedule.js"
 import {SystemImpl} from "./system.js"
-import {tickPlugin} from "./tick.js"
+import {tickPlugin} from "./tick_plugin.js"
+import {timePlugin} from "./time_plugin.js"
 import {
   CurrentSystem,
   World,
@@ -102,7 +104,10 @@ export class App {
     this.#systemGroups = [] as SystemGroup[]
     this.#systemGroupScheduleIsStale = true
     this.world = world
-    this.use(defaultGroupsPlugin).use(tickPlugin)
+    this.use(defaultGroupsPlugin)
+      .use(tickPlugin)
+      .use(timePlugin)
+      .use(fixedTimestepPlugin)
   }
 
   #updateSystemGroupSchedule() {
@@ -192,7 +197,8 @@ export class App {
     this.#updateSystemGroupSchedule()
     for (let i = 0; i < this.#systemGroups.length; i++) {
       let systemGroup = this.#systemGroups[i]
-      if (systemGroup.isEnabled(world)) {
+      let systemGroupRuns = systemGroup.runs(world)
+      while (systemGroupRuns-- > 0) {
         for (let j = 0; j < systemGroup.systems.length; j++) {
           let system = systemGroup.systems[j]
           if (system.isEnabled(world)) {

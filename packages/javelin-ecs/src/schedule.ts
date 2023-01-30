@@ -2,7 +2,7 @@ import {assert, exists, expect, Maybe} from "@javelin/lib"
 import {System, SystemImpl} from "./system.js"
 import {World} from "./world.js"
 
-export type Predicate = (world: World) => boolean
+export type Predicate = (world: World) => boolean | number
 
 export type Constraint<T> = {
   kind: "before" | "after"
@@ -146,14 +146,18 @@ export class SystemGroup {
     this.#systemScheduleStale = true
   }
 
-  isEnabled(world: World) {
+  runs(world: World) {
     if (this.#systemScheduleStale) {
       this.#systems = this.#systemSchedule
         .build()
         .map(impl => expect(this.#systemsByImpl.get(impl)))
       this.#systemScheduleStale = false
     }
-    return this.#predicate?.(world) ?? true
+    let isEnabledOrRuns = this.#predicate?.(world) ?? 1
+    if (isEnabledOrRuns === false) {
+      return 0
+    }
+    return +isEnabledOrRuns
   }
 }
 

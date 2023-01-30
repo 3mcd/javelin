@@ -1,14 +1,12 @@
 import * as j from "@javelin/ecs"
 import {auraPlugin} from "./aura.js"
 import {bulletPlugin} from "./bullet.js"
-import {clockPlugin} from "./clock.js"
 import {disposePlugin} from "./dispose.js"
 import {enemyPlugin} from "./enemy.js"
 import {healthPlugin} from "./health.js"
 import {lootPlugin} from "./loot.js"
 import {playerPlugin} from "./player.js"
 import {renderPlugin} from "./render.js"
-import {timePlugin} from "./time.js"
 
 let canvas = document.querySelector("canvas")!
 let canvasContext = canvas.getContext("2d")!
@@ -25,8 +23,6 @@ window.addEventListener("resize", onResize)
 let game = j
   .app()
   .addSystemGroup("render", j.after(j.Group.LateUpdate).before(j.Group.Late))
-  .use(timePlugin)
-  .use(clockPlugin)
   .use(disposePlugin)
   .use(bulletPlugin)
   .use(healthPlugin)
