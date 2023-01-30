@@ -11,7 +11,7 @@ import {
   _hasComponent,
   _reserveEntity,
 } from "@javelin/ecs"
-import {exists} from "@javelin/lib"
+import {COMPILED_LABEL, exists} from "@javelin/lib"
 import {ReadStream, WriteStream} from "./stream.js"
 
 type EncodeEntity = ((entity: Entity, writeStream: WriteStream) => void) & {
@@ -106,7 +106,8 @@ export let compileEncodeEntity = (
   )
   let encodeEntity = Function(
     "V",
-    components.map((_, i) => `let V${i}=V[${i}];`).join("") +
+    COMPILED_LABEL +
+      components.map((_, i) => `let V${i}=V[${i}];`).join("") +
       "return function encodeEntity(e,s){" +
       "s.writeU32(e);" +
       componentSchemas
@@ -142,7 +143,8 @@ export let compileDecodeEntityCompose = (
     "E",
     "A",
     "R",
-    "return function decodeEntityCompose(s){" +
+    COMPILED_LABEL +
+      "return function decodeEntityCompose(s){" +
       "let e=s.readU32();" +
       `E(e)?A(e,S):R(e,S)` +
       "}",
@@ -201,7 +203,8 @@ export let compileDecodeEntityUpdate = (
     "S",
     "V",
     "H",
-    components.map((_, i) => `let v${i}=V[${i}];`).join("") +
+    COMPILED_LABEL +
+      components.map((_, i) => `let v${i}=V[${i}];`).join("") +
       "return function decodeEntityUpdate(s){" +
       "let e=s.readU32();" +
       componentValuesExp +

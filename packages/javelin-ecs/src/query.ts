@@ -1,4 +1,5 @@
 import {
+  COMPILED_LABEL,
   exists,
   hashWord,
   HASH_BASE,
@@ -50,7 +51,8 @@ let compileEachIterator = <T extends Component[]>(
   return Function(
     "N",
     "V",
-    components.map((component, i) => `let v${i}=V[${component}];`).join("") +
+    COMPILED_LABEL +
+      components.map((component, i) => `let v${i}=V[${component}];`).join("") +
       "return function eachEntity(f){" +
       "for(let i=0;i<N.length;i++){" +
       "let e=N[i];" +
