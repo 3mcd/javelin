@@ -54,10 +54,12 @@ importers:
   packages/javelin-ecs:
     specifiers:
       '@javelin/lib': workspace:*
+      '@javelin/perf': workspace:*
       vitest: ^0.25.1
     dependencies:
       '@javelin/lib': link:../javelin-lib
     devDependencies:
+      '@javelin/perf': link:../javelin-perf
       vitest: 0.25.1
 
   packages/javelin-lib:

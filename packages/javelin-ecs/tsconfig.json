@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "references": [
-    {"path": "../javelin-lib"}
+    {"path": "../javelin-lib"},
+    {"path": "../javelin-perf"}
   ]
 }
