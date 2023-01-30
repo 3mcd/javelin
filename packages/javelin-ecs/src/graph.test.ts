@@ -1,40 +1,31 @@
 import {Maybe} from "@javelin/lib"
 import {expect, suite, test} from "vitest"
-import {makeTagComponent} from "./component.js"
 import {Graph, Node} from "./graph.js"
 import {
   ChildOf,
   ERR_CHILD_OF,
   ERR_SLOT,
-  makeQuerySelector,
+  makeType,
   makeSlot,
-  Type,
+  makeTagType,
+  NormalizedType,
 } from "./type.js"
 
-let a = makeTagComponent()
-let b = makeTagComponent()
-let c = makeTagComponent()
+let [a, b, c] = Array.from({length: 3}, makeTagType)
 
 suite("Graph", () => {
   test("node links", () => {
     let graph = new Graph()
-    let A = Type.fromComponents([a])
-    let BC = Type.fromComponents([b, c])
-    let ABC = Type.fromComponents([a, b, c])
-    let nodeABC = graph.nodeOfType(ABC)
-    let nodeA = graph.nodeOfType(A)
-    expect(graph.nodeRemoveType(nodeABC, BC)).toBe(nodeA)
-    expect(graph.nodeAddType(nodeA, BC)).toBe(nodeABC)
+    let nodeABC = graph.nodeOfType(makeType(a, b, c))
+    let nodeA = graph.nodeOfType(a)
+    expect(graph.nodeRemoveType(nodeABC, makeType(b, c))).toBe(nodeA)
+    expect(graph.nodeAddType(nodeA, makeType(b, c))).toBe(nodeABC)
   })
   test("onNodeCreated", () => {
     let graph = new Graph()
-    let ABC = Type.fromComponents([a, b, c])
-    let A = Type.fromComponents([a])
-    let C = Type.fromComponents([c])
-    let BC = Type.fromComponents([b, c])
-    let nodeA = graph.nodeOfType(A)
-    let nodeC = graph.nodeOfType(C)
-    let nodeBC = graph.nodeOfType(BC)
+    let nodeA = graph.nodeOfType(a)
+    let nodeC = graph.nodeOfType(c)
+    let nodeBC = graph.nodeOfType(makeType(b, c))
     let resA: Maybe<Node>
     let resC: Maybe<Node>
     let resBC: Maybe<Node>
@@ -47,57 +38,54 @@ suite("Graph", () => {
     nodeBC.onNodeCreated.add(node => {
       resBC = node
     })
-    let nodeABC = graph.nodeOfType(ABC)
+    let nodeABC = graph.nodeOfType(makeType(a, b, c))
     expect(resA).toBe(nodeABC)
     expect(resC).toBe(nodeABC)
     expect(resBC).toBe(nodeABC)
   })
   test("traverseAdd", () => {
     let graph = new Graph()
-    let AC = Type.fromComponents([a, c])
-    let ABC = Type.fromComponents([a, b, c])
-    let B = Type.fromComponents([b])
-    let BC = Type.fromComponents([b, c])
-    let expectedMatches = new Set([B, BC, ABC])
-    let traverseMatches = new Set<Type>()
-    let nodeB = graph.nodeOfType(B)
-    graph.nodeOfType(ABC)
-    graph.nodeOfType(AC)
-    graph.nodeOfType(BC)
+    let expectedMatches = new Set(
+      [b, makeType(b, c), makeType(a, b, c)].map(type => type.normalized),
+    )
+    let traverseMatches = new Set<NormalizedType>()
+    let nodeB = graph.nodeOfType(b)
+    graph.nodeOfType(makeType(a, b, c))
+    graph.nodeOfType(makeType(a, c))
+    graph.nodeOfType(makeType(b, c))
     nodeB.traverseAdd(node => traverseMatches.add(node.type))
     expect(traverseMatches).toEqual(expectedMatches)
   })
   test("traverseRem", () => {
     let graph = new Graph()
-    let A = Type.fromComponents([a])
-    let AB = Type.fromComponents([a, b])
-    let AC = Type.fromComponents([a, c])
-    let ABC = Type.fromComponents([a, b, c])
-    let B = Type.fromComponents([b])
-    let BC = Type.fromComponents([b, c])
-    let expectedTypes = [A, AC, B, BC, AB, ABC]
+    let expectedTypes = [
+      a,
+      makeType(a, c),
+      makeType(b),
+      makeType(b, c),
+      makeType(a, b),
+      makeType(a, b, c),
+    ].map(type => type.normalized)
     let expectedMatches = new Set([graph.root.type, ...expectedTypes])
-    let traverseMatches = new Set<Type>()
-    let nodeABC = graph.nodeOfType(ABC)
-    graph.nodeOfType(B)
-    graph.nodeOfType(AC)
-    graph.nodeOfType(BC)
+    let traverseMatches = new Set<NormalizedType>()
+    let nodeABC = graph.nodeOfType(makeType(a, b, c))
+    graph.nodeOfType(b)
+    graph.nodeOfType(makeType(a, c))
+    graph.nodeOfType(makeType(b, c))
     nodeABC.traverseRem(node => traverseMatches.add(node.type))
     expect(traverseMatches).toEqual(expectedMatches)
   })
   test("ChildOf validation", () => {
     let graph = new Graph()
-    let ChildOf0 = ChildOf(0)
-    let ChildOf1 = ChildOf(1)
-    let node = graph.nodeOfType(ChildOf0.type)
-    expect(() => graph.nodeAddType(node, ChildOf1.type)).toThrow(ERR_CHILD_OF)
+    let childOf0 = ChildOf(0)
+    let childOf1 = ChildOf(1)
+    let node = graph.nodeOfType(childOf0)
+    expect(() => graph.nodeAddType(node, childOf1)).toThrow(ERR_CHILD_OF)
   })
   test("slot validation", () => {
     let graph = new Graph()
-    let A = makeQuerySelector(a)
-    let B = makeQuerySelector(b)
-    let AorB = makeSlot(A, B)
-    let node = graph.nodeOfType(AorB(A).type)
-    expect(() => graph.nodeAddType(node, AorB(B).type)).toThrow(ERR_SLOT)
+    let aOrB = makeSlot(a, b)
+    let node = graph.nodeOfType(aOrB(a))
+    expect(() => graph.nodeAddType(node, aOrB(b))).toThrow(ERR_SLOT)
   })
 })

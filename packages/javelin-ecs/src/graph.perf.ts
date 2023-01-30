@@ -1,19 +1,18 @@
 import {perf} from "@javelin/perf"
 import {Graph} from "./graph.js"
-import {type, tag} from "./index.js"
+import {makeType, makeTagType} from "./type.js"
 
-let [a, b, c, d, e, f, g, h, i, j, k] = Array.from({length: 11}, tag)
+let [a, b, c, d, e, f, g, h, i, j, k] = Array.from({length: 11}, makeTagType)
 
 let fixture = () => {
   let graph = new Graph()
-  graph.nodeOfType(type(b, c, d, e, j))
-  graph.nodeOfType(type(f, g, h, i, j))
-  graph.nodeOfType(type(a, b, h, i, j))
-
-  graph.nodeOfType(type(a, k))
-  graph.nodeOfType(type(b, h))
-  graph.nodeOfType(type(i, j))
-  graph.nodeOfType(type(d, e, j))
+  graph.nodeOfType(makeType(b, c, d, e, j))
+  graph.nodeOfType(makeType(f, g, h, i, j))
+  graph.nodeOfType(makeType(a, b, h, i, j))
+  graph.nodeOfType(makeType(a, k))
+  graph.nodeOfType(makeType(b, h))
+  graph.nodeOfType(makeType(i, j))
+  graph.nodeOfType(makeType(d, e, j))
   return {graph}
 }
 
@@ -33,7 +32,7 @@ perf("insert simple", () => {
 
 perf("insert complex", () => {
   let {graph} = fixture()
-  let T = type(a, b, c, d, e, f, g, h, i, j)
+  let T = makeType(a, b, c, d, e, f, g, h, i, j)
   return () => {
     graph.nodeOfType(T)
   }
@@ -41,7 +40,7 @@ perf("insert complex", () => {
 
 perf("insert simple add", () => {
   let {graph} = fixture()
-  let node = graph.nodeOfType(type(b, c, d, e, j))
+  let node = graph.nodeOfType(makeType(b, c, d, e, j))
   return () => {
     graph.nodeAddType(node, i)
   }
@@ -49,8 +48,8 @@ perf("insert simple add", () => {
 
 perf("insert complex add", () => {
   let {graph} = fixture()
-  let node = graph.nodeOfType(type(a, b, c, d, e))
-  let T = type(f, g, h, i, j)
+  let node = graph.nodeOfType(makeType(a, b, c, d, e))
+  let T = makeType(f, g, h, i, j)
   return () => {
     graph.nodeAddType(node, T)
   }
@@ -58,7 +57,7 @@ perf("insert complex add", () => {
 
 perf("insert simple rem", () => {
   let {graph} = fixture()
-  let node = graph.nodeOfType(type(b, c, d, e, j))
+  let node = graph.nodeOfType(makeType(b, c, d, e, j))
   return () => {
     graph.nodeRemoveType(node, b)
   }
@@ -66,8 +65,8 @@ perf("insert simple rem", () => {
 
 perf("insert complex rem", () => {
   let {graph} = fixture()
-  let node = graph.nodeOfType(type(a, b, c, d, e, f, g, h, i))
-  let T = type(a, c, e, g, i)
+  let node = graph.nodeOfType(makeType(a, b, c, d, e, f, g, h, i))
+  let T = makeType(a, c, e, g, i)
   return () => {
     graph.nodeRemoveType(node, T)
   }

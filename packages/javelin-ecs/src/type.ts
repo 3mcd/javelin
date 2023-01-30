@@ -17,13 +17,13 @@ import {
 import {HI_MASK, idHi, idLo, LO_MASK, makeId} from "./entity.js"
 import {Schema, SchemaOf} from "./schema.js"
 
-export type QueryTerm = QuerySelector | Component | Relation
+export type QueryTerm = Type | Component | Relation
 export type QueryTerms = QueryTerm[]
 
 export interface Relation {
   relationId: number
   relationTag: Component<Tag>
-  (to: number | Relation): QuerySelector<[Component<Tag>]>
+  (to: number | Relation): Type<[Component<Tag>]>
 }
 
 export const ERR_CHILD_OF = "An entity may have only one ChildOf relationship"
@@ -103,18 +103,18 @@ export let hashQueryTerms = (queryTerms: QueryTerms) => {
   return normalizeHash(queryTermsHash)
 }
 
-export class Type {
-  static VOID = new Type([], HASH_BASE)
-  static cache = [] as Type[]
+export class NormalizedType {
+  static VOID = new NormalizedType([], HASH_BASE)
+  static cache = [] as NormalizedType[]
   static sort = (a: number, b: number) => a - b
 
   readonly hash
   readonly components
 
   static fromComponents(components: Component[]) {
-    components = components.slice().sort(Type.sort)
+    components = components.slice().sort(NormalizedType.sort)
     let hash = hashWords.apply(null, components)
-    return (Type.cache[hash] ??= new Type(components, hash))
+    return (NormalizedType.cache[hash] ??= new NormalizedType(components, hash))
   }
 
   private constructor(components: Component[], hash: number) {
@@ -123,19 +123,19 @@ export class Type {
   }
 }
 
-export class QuerySelector<T extends QueryTerms = QueryTerms> {
-  static VOID = new QuerySelector([])
-  static cache = [] as QuerySelector[]
+export class Type<T extends QueryTerms = QueryTerms> {
+  static VOID = new Type([])
+  static cache = [] as Type[]
 
   readonly hash
-  readonly type
+  readonly normalized
   readonly components
   readonly excludedComponents
 
   constructor(queryTerms: T) {
     let {components, excludedComponents} = normalizeQueryTerms(queryTerms)
     this.hash = hashWords.apply(null, components)
-    this.type = Type.fromComponents(components)
+    this.normalized = NormalizedType.fromComponents(components)
     this.components = components
     this.excludedComponents = excludedComponents
   }
@@ -150,16 +150,16 @@ export type ComponentsOf<
   ? Tail extends QueryTerms
     ? Head extends Component
       ? ComponentsOf<Tail, [...U, Head]>
-      : Head extends QuerySelector<infer QT>
+      : Head extends Type<infer QT>
       ? ComponentsOf<Tail, [...U, ...ComponentsOf<QT>]>
       : never
     : never
   : never
 
-export function makeQuerySelector<T extends QueryTerms>(
+export function makeType<T extends QueryTerms>(
   ...queryTerms: T
-): QuerySelector<ComponentsOf<T>>
-export function makeQuerySelector() {
+): Type<ComponentsOf<T>>
+export function makeType() {
   let queryTerms = arguments as unknown as QueryTerms
   let queryTermsHash = HASH_BASE
   for (let i = 0; i < queryTerms.length; i++) {
@@ -175,27 +175,25 @@ export function makeQuerySelector() {
     }
   }
   queryTermsHash = normalizeHash(queryTermsHash)
-  return (QuerySelector.cache[queryTermsHash] ??= new QuerySelector(queryTerms))
+  return (Type.cache[queryTermsHash] ??= new Type(queryTerms))
 }
 
-export let makeTagSelector = (): QuerySelector<[Component<typeof Tag>]> => {
+export let makeTagType = (): Type<[Component<typeof Tag>]> => {
   let tagComponent = makeTagComponent()
-  return new QuerySelector([tagComponent])
+  return new Type([tagComponent])
 }
 
-export function makeValueSelector<T>(
-  componentSchema: SchemaOf<T>,
-): QuerySelector<[Component<SchemaOf<T>>]>
-export function makeValueSelector<T>(): QuerySelector<[Component<T>]>
-export function makeValueSelector<T extends Schema>(
-  componentSchema: T,
-): QuerySelector<[Component<T>]>
-export function makeValueSelector() {
+export function makeValueType<T>(
+  schema: SchemaOf<T>,
+): Type<[Component<SchemaOf<T>>]>
+export function makeValueType<T>(): Type<[Component<T>]>
+export function makeValueType<T extends Schema>(schema: T): Type<[Component<T>]>
+export function makeValueType() {
   let valueComponent = makeValueComponent.apply(
     null,
     arguments as unknown as [Schema],
   )
-  return new QuerySelector([valueComponent])
+  return new Type([valueComponent])
 }
 
 export let makeRelation = (): Relation => {
@@ -204,7 +202,7 @@ export let makeRelation = (): Relation => {
   assert(relationId <= HI_MASK)
   let relationAttrs = {relationId, relationTag}
   let makeRelationship = (to: number | Relation) => {
-    return makeQuerySelector(
+    return makeType(
       makeId(
         typeof to === "number" ? idLo(to) : to.relationTag,
         relationId,
@@ -240,24 +238,24 @@ export let isRelationship = (term: Component) => idHi(term) > 0
 export let ChildOf = makeRelation()
 let Without = makeRelation()
 export let Not = Object.assign(
-  (selector: QuerySelector<[Component]>) => Without(selector.components[0]),
+  (type: Type<[Component]>) => Without(type.components[0]),
   Without,
 )
 
-export let makeSlot = <T extends QuerySelector<[Component]>[]>(
-  ...componentSelectors: T
-) => {
+export let makeSlot = <T extends Type<[Component]>[]>(...componentTypes: T) => {
   let slotRelation = makeRelation()
-  let slotRelationships = [] as QuerySelector<[Component]>[]
-  let slotComponents = new Set(componentSelectors)
+  let slotRelationships = [] as Type<[Component]>[]
+  let slotComponents = new Set(componentTypes)
   slots[slotRelation.relationId] = slotRelation
-  for (let i = 0; i < componentSelectors.length; i++) {
-    let componentSelector = componentSelectors[i]
-    let component = componentSelector.components[0]
-    let componentRelationship = slotRelation(component)
-    slotRelationships[component] = componentRelationship
-    if (hasSchema(component)) {
-      setSchema(componentRelationship.components[0], getSchema(component))
+  for (let i = 0; i < componentTypes.length; i++) {
+    let slotComponent = componentTypes[i].components[0]
+    let slotComponentRelationship = slotRelation(slotComponent)
+    slotRelationships[slotComponent] = slotComponentRelationship
+    if (hasSchema(slotComponent)) {
+      setSchema(
+        slotComponentRelationship.components[0],
+        getSchema(slotComponent),
+      )
     }
   }
   let makeSlotComponent = <U extends T[number]>(component: U) => {

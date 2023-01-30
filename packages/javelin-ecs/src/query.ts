@@ -13,7 +13,7 @@ import {
   ComponentsOf,
   isRelation,
   normalizeQueryTerms,
-  QuerySelector,
+  Type,
   QueryTerms,
 } from "./type.js"
 
@@ -96,25 +96,25 @@ export class QueryView<T extends QueryTerms = QueryTerms>
 }
 
 export class Query<T extends QueryTerms = QueryTerms> implements QueryAPI<T> {
-  #selector
+  #type
   #view
   #views
 
   readonly entities
   readonly stores
 
-  constructor(selector: QuerySelector<T>, stores: unknown[][]) {
+  constructor(type: Type<T>, stores: unknown[][]) {
     this.entities = new SparseSet<Entity[]>()
     this.stores = stores
-    this.#selector = selector
-    this.#view = new QueryView(this, selector.components) as QueryView<any>
+    this.#type = type
+    this.#view = new QueryView(this, type.components) as QueryView<any>
     this.#views = [] as QueryAPI[]
-    this.#views[selector.hash] = this.#view
+    this.#views[type.hash] = this.#view
   }
 
   includeNode(node: Node) {
-    for (let i = 0; i < this.#selector.excludedComponents.length; i++) {
-      let term = this.#selector.excludedComponents[i]
+    for (let i = 0; i < this.#type.excludedComponents.length; i++) {
+      let term = this.#type.excludedComponents[i]
       if (node.hasComponent(term)) {
         return
       }

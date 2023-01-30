@@ -1,5 +1,5 @@
 import * as j from "@javelin/ecs"
-import {Entity, Group, resource} from "@javelin/ecs"
+import {Entity, resource} from "@javelin/ecs"
 import {
   awareness,
   Client,
@@ -14,30 +14,24 @@ import {Position, Velocity} from "./model.js"
 let http = createServer()
 let wss = new WebSocketServer({server: http})
 
-let Tick = resource<number>()
 let SocketsOpened = resource<WebSocket[]>()
 let ClientsClosed = resource<Entity[]>()
 
-let i = 0
-
 let app = j
   .app()
-  .addResource(Tick, 0)
   .addResource(SocketsOpened, [])
   .addResource(ClientsClosed, [])
-  .addSystemToGroup(Group.Early, world => {
-    world.setResource(Tick, world.getResource(Tick) + 1)
-  })
   .addSystem(
     world => {
+      let tick = world.getResource(j.Tick)
       world.create(j.type(Velocity, Position), {
         x: Math.random(),
-        y: -i / 5,
+        y: -tick / 5,
       })
     },
     null,
     world => {
-      let tick = world.getResource(Tick)
+      let tick = world.getResource(j.Tick)
       return tick % 5 === 0 && tick < 1000
     },
   )

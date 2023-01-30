@@ -2,13 +2,14 @@ import {assert, expect, Maybe} from "@javelin/lib"
 import {Resource} from "./resource.js"
 import {
   Constraints,
-  SystemGroup,
-  Predicate,
-  Schedule,
   makeConstraintsWithAfter,
   makeConstraintsWithBefore,
+  Predicate,
+  Schedule,
+  SystemGroup,
 } from "./schedule.js"
 import {SystemImpl} from "./system.js"
+import {tickPlugin} from "./tick.js"
 import {
   CurrentSystem,
   World,
@@ -49,7 +50,7 @@ export enum DefaultGroup {
   Late = "Late",
 }
 
-let defaultPlugin = (app: App) => {
+let defaultGroupsPlugin = (app: App) => {
   let initGroupEnabled = true
   let disableInitGroupSystem = () => {
     initGroupEnabled = false
@@ -101,7 +102,7 @@ export class App {
     this.#systemGroups = [] as SystemGroup[]
     this.#systemGroupScheduleIsStale = true
     this.world = world
-    this.use(defaultPlugin)
+    this.use(defaultGroupsPlugin).use(tickPlugin)
   }
 
   #updateSystemGroupSchedule() {

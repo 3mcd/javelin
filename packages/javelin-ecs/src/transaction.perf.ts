@@ -1,9 +1,10 @@
 import {perf} from "@javelin/perf"
+import {Entity} from "./entity.js"
 import {Graph} from "./graph.js"
-import {Entity, type, tag} from "./index.js"
 import {Transaction} from "./transaction.js"
+import {makeType, makeTagType} from "./type.js"
 
-let [a, b, c, d, e, f, g, h, i, j, k] = Array.from({length: 11}, tag)
+let [a, b, c, d, e, f, g, h, i, j, k] = Array.from({length: 11}, makeTagType)
 
 let fixture = () => {
   let transaction = new Transaction()
@@ -39,15 +40,15 @@ perf("drain 1_000 entities", () => {
   let count = 1_000
   let graph = new Graph()
   let types = [
-    type(),
-    type(a),
-    type(a, b, c),
-    type(d, e),
-    type(e, f, g, h, i, j),
-    type(k),
-    type(a, b, c, d, e, f, g, h, i, j, k),
-    type(a, b),
-  ].map(selector => selector.type)
+    makeType(),
+    makeType(a),
+    makeType(a, b, c),
+    makeType(d, e),
+    makeType(e, f, g, h, i, j),
+    makeType(k),
+    makeType(a, b, c, d, e, f, g, h, i, j, k),
+    makeType(a, b),
+  ]
   for (let i = 0; i < types.length; i++) {
     graph.nodeOfType(types[i])
   }

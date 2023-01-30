@@ -3,7 +3,7 @@ import {
   Entity,
   Format,
   getSchema,
-  QuerySelector,
+  Type,
   Schema,
   World,
   Keys,
@@ -59,13 +59,13 @@ let streamReadMethods: Record<Format, keyof ReadStream> = {
   number: "readF32",
 }
 
-export let getEncodedEntityLength = (subject: QuerySelector) => {
+export let getEncodedEntityLength = (subject: Type) => {
   let length = subjectLengths[subject.hash]
   if (exists(length)) {
     return length
   }
   length = 4
-  for (let component of subject.type.components) {
+  for (let component of subject.normalized.components) {
     let schema = getSchema(component)
     if (exists(schema) && schema !== Dynamic) {
       if (typeof schema === "string") {
@@ -92,11 +92,8 @@ let compileReadExp = (format: Format, stream: string) => {
   return `${stream}.${method}()`
 }
 
-export let compileEncodeEntity = (
-  selector: QuerySelector,
-  world: World,
-): EncodeEntity => {
-  let components = selector.type.components.filter(component => {
+export let compileEncodeEntity = (type: Type, world: World): EncodeEntity => {
+  let components = type.normalized.components.filter(component => {
     let schema = getSchema(component)
     return exists(schema) && schema !== Dynamic
   })
@@ -135,7 +132,7 @@ export let compileEncodeEntity = (
 }
 
 export let compileDecodeEntityCompose = (
-  selector: QuerySelector,
+  type: Type,
   world: World,
 ): DecodeEntity => {
   let decodeEntity = Function(
@@ -149,7 +146,7 @@ export let compileDecodeEntityCompose = (
       `E(e)?A(e,S):R(e,S)` +
       "}",
   )(
-    selector,
+    type,
     world.exists.bind(world),
     world.add.bind(world),
     world[_reserveEntity].bind(world),
@@ -158,10 +155,10 @@ export let compileDecodeEntityCompose = (
 }
 
 export let compileDecodeEntityUpdate = (
-  selector: QuerySelector,
+  type: Type,
   world: World,
 ): DecodeEntity => {
-  let components = selector.type.components.filter(component => {
+  let components = type.normalized.components.filter(component => {
     let schema = getSchema(component)
     return exists(schema) && schema !== Dynamic
   })
@@ -209,7 +206,7 @@ export let compileDecodeEntityUpdate = (
       "let e=s.readU32();" +
       componentValuesExp +
       "}",
-  )(selector, componentStores, world[_hasComponent].bind(world))
+  )(type, componentStores, world[_hasComponent].bind(world))
   return decodeEntity
 }
 
@@ -221,19 +218,19 @@ export class EntityEncoder {
   readonly decodeEntityUpdate
   readonly bytesPerEntity
 
-  static getEntityEncoder(world: World, selector: QuerySelector) {
+  static getEntityEncoder(world: World, type: Type) {
     let encoders = this.encodersByWorld.get(world)
     if (!exists(encoders)) {
       encoders = []
       this.encodersByWorld.set(world, encoders)
     }
-    return (encoders[selector.hash] ??= new EntityEncoder(selector, world))
+    return (encoders[type.hash] ??= new EntityEncoder(type, world))
   }
 
-  constructor(selector: QuerySelector, world: World) {
-    this.encodeEntity = compileEncodeEntity(selector, world)
-    this.decodeEntityCompose = compileDecodeEntityCompose(selector, world)
-    this.decodeEntityUpdate = compileDecodeEntityUpdate(selector, world)
-    this.bytesPerEntity = getEncodedEntityLength(selector)
+  constructor(type: Type, world: World) {
+    this.encodeEntity = compileEncodeEntity(type, world)
+    this.decodeEntityCompose = compileDecodeEntityCompose(type, world)
+    this.decodeEntityUpdate = compileDecodeEntityUpdate(type, world)
+    this.bytesPerEntity = getEncodedEntityLength(type)
   }
 }

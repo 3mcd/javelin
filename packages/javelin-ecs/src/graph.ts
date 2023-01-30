@@ -11,7 +11,12 @@ import {Component} from "./component.js"
 import {Entity} from "./entity.js"
 import {Signal} from "./signal.js"
 import {TransactionEvent} from "./transaction.js"
-import {isRelationship, Type, validateComponents} from "./type.js"
+import {
+  isRelationship,
+  NormalizedType,
+  Type,
+  validateComponents,
+} from "./type.js"
 
 type NodeIteratee = (node: Node) => void
 type NodePredicate = (node: Node) => boolean
@@ -126,7 +131,7 @@ export class Node {
     nodeAdd.edgesRem.delete(diffHash)
   }
 
-  constructor(type: Type) {
+  constructor(type: NormalizedType) {
     let sparseComponents = [] as number[]
     for (let i = 0; i < type.components.length; i++) {
       sparseComponents[type.components[i]] = i
@@ -140,7 +145,7 @@ export class Node {
     this.onNodeCreated = new Signal<Node>()
     this.onNodeDeleted = new Signal<Node>()
     this.sparseComponents = sparseComponents
-    this.type = Type.fromComponents(type.components)
+    this.type = NormalizedType.fromComponents(type.components)
   }
 
   /**
@@ -300,7 +305,7 @@ export class Graph {
 
   constructor() {
     this.nodes = [] as Node[]
-    this.root = new Node(Type.fromComponents([]))
+    this.root = new Node(NormalizedType.fromComponents([]))
     this.root.onNodeDeleted.add(node => {
       this.nodes[node.type.hash] = undefined!
     })
@@ -310,7 +315,7 @@ export class Graph {
    * Create and insert a node whose type is a union of a node's type and
    * another type.
    */
-  #createNodeAdd(node: Node, type: Type) {
+  #createNodeAdd(node: Node, type: NormalizedType) {
     if (node === this.root) {
       return this.#createNode(type.components)
     }
@@ -351,7 +356,7 @@ export class Graph {
    * Create and insert a node whose type is the symmetric difference of a
    * node's type and another type.
    */
-  #createNodeRem(node: Node, type: Type) {
+  #createNodeRem(node: Node, type: NormalizedType) {
     if (node === this.root) {
       return node
     }
@@ -430,7 +435,7 @@ export class Graph {
       if (nodeAdd === undefined) {
         let nextHash = hashWords.apply(null, components)
         nodeAdd = this.nodes[nextHash] ??= new Node(
-          Type.fromComponents(Array.from(components)),
+          NormalizedType.fromComponents(Array.from(components)),
         )
         Node.link(nodeRem, nodeAdd, componentHash)
       }
@@ -445,7 +450,7 @@ export class Graph {
    */
   #createNode(components: Component[]) {
     validateComponents(components)
-    let nodeType = Type.fromComponents(components)
+    let nodeType = NormalizedType.fromComponents(components)
     let node = this.nodes[nodeType.hash]
     if (exists(node)) {
       return node
@@ -470,19 +475,22 @@ export class Graph {
    * Get the node of a given type within the graph.
    */
   nodeOfType(type: Type) {
-    return this.nodes[type.hash] ?? this.#createNode(type.components)
+    return (
+      this.nodes[type.normalized.hash] ??
+      this.#createNode(type.normalized.components)
+    )
   }
 
   /**
    * Get the node whose type is a union of a node's type and another type.
    */
   nodeAddType(node: Node, type: Type): Node {
-    let nodeAdd = node.edgesAdd.get(type.hash)
+    let nodeAdd = node.edgesAdd.get(type.normalized.hash)
     if (nodeAdd) {
       return nodeAdd
     }
     nodeAdd = this.#createNodeAdd(node, type)
-    node.edgesAdd.set(type.hash, nodeAdd)
+    node.edgesAdd.set(type.normalized.hash, nodeAdd)
     return nodeAdd
   }
 
@@ -491,12 +499,12 @@ export class Graph {
    * another type.
    */
   nodeRemoveType(node: Node, type: Type): Node {
-    let nodeRem = node.edgesRem.get(type.hash)
+    let nodeRem = node.edgesRem.get(type.normalized.hash)
     if (nodeRem) {
       return nodeRem
     }
-    nodeRem = this.#createNodeRem(node, type)
-    node.edgesRem.set(type.hash, nodeRem)
+    nodeRem = this.#createNodeRem(node, type.normalized)
+    node.edgesRem.set(type.normalized.hash, nodeRem)
     return nodeRem
   }
 }

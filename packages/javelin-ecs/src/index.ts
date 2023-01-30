@@ -14,15 +14,15 @@ export type {Format, Schema} from "./schema.js"
 export type {SystemImpl as System} from "./system.js"
 export {
   ChildOf,
-  makeQuerySelector as type,
+  makeType as type,
   makeRelation as relation,
   makeSlot as slot,
-  makeTagSelector as tag,
-  makeValueSelector as value,
+  makeTagType as tag,
+  makeValueType as value,
   normalizeQueryTerms,
   Not,
-  QuerySelector,
   Type,
+  NormalizedType,
 } from "./type.js"
 export {
   Phase,
@@ -34,3 +34,4 @@ export {
   _qualifyEntity,
   _reserveEntity,
 } from "./world.js"
+export {Tick, tickSystem} from "./tick.js"
