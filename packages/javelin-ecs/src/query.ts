@@ -49,21 +49,20 @@ let compileEachIterator = <T extends Component[]>(
 ): QueryEachIterator<T> => {
   return Function(
     "N",
-    "S",
-    components.map((component, i) => `let s${i}=S[${component}];`).join("") +
+    "V",
+    components.map((component, i) => `let v${i}=V[${component}];`).join("") +
       "return f=>{" +
       "for(let i=0;i<N.length;i++){" +
-      // TODO: make this compatible with property mangling
-      "let e=N[i].entities;" +
+      "let e=N[i];" +
       "for(let j=e.length-1;j>=0;j--){" +
       "let _=e[j];" +
       "f(_," +
-      components.map((_, i) => `s${i}[_]`).join(",") +
+      components.map((_, i) => `v${i}[_]`).join(",") +
       ")" +
       "}" +
       "}" +
       "}",
-  )(query.nodes.values(), query.stores) as QueryEachIterator<T>
+  )(query.entities.values(), query.stores) as QueryEachIterator<T>
 }
 
 export interface QueryAPI<T extends QueryTerms = QueryTerms> {
@@ -102,11 +101,11 @@ export class Query<T extends QueryTerms = QueryTerms> implements QueryAPI<T> {
   #view
   #views
 
-  readonly nodes
+  readonly entities
   readonly stores
 
   constructor(selector: QuerySelector<T>, stores: unknown[][]) {
-    this.nodes = new SparseSet<Node>()
+    this.entities = new SparseSet<Entity[]>()
     this.stores = stores
     this.#selector = selector
     this.#view = new QueryView(this, selector.components) as QueryView<any>
@@ -121,18 +120,18 @@ export class Query<T extends QueryTerms = QueryTerms> implements QueryAPI<T> {
         return
       }
     }
-    this.nodes.set(node.type.hash, node)
+    this.entities.set(node.type.hash, node.entities)
   }
 
   excludeNode(node: Node) {
-    this.nodes.delete(node.type.hash)
+    this.entities.delete(node.type.hash)
   }
 
   get length() {
     let size = 0
-    let nodes = this.nodes.values()
+    let nodes = this.entities.values()
     for (let i = 0; i < nodes.length; i++) {
-      size += nodes[i].entities.length
+      size += nodes[i].length
     }
     return size
   }

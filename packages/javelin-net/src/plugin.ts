@@ -1,4 +1,13 @@
-import {App, Group, resource, type, value, World} from "@javelin/ecs"
+import {
+  App,
+  Group,
+  resource,
+  type,
+  value,
+  World,
+  _commitStagedChanges,
+  _emitStagedChanges,
+} from "@javelin/ecs"
 import {exists, Maybe} from "@javelin/lib"
 import {IAwareness} from "./awareness.js"
 import {interestMessageType} from "./interest.js"
@@ -49,8 +58,8 @@ let clientProcessMessagesSystem = (world: World) => {
       protocol.decode(remoteWorld, readStream)
     }
   })
-  remoteWorld.emitStagedChanges()
-  remoteWorld.commitStagedChanges()
+  remoteWorld[_emitStagedChanges]()
+  remoteWorld[_commitStagedChanges]()
 }
 
 export let clientPlugin = (app: App) => {

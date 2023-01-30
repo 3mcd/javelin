@@ -24,4 +24,13 @@ export {
   QuerySelector,
   Type,
 } from "./type.js"
-export {Phase, World} from "./world.js"
+export {
+  Phase,
+  World,
+  _commitStagedChanges,
+  _emitStagedChanges,
+  _getComponentStore,
+  _hasComponent,
+  _qualifyEntity,
+  _reserveEntity,
+} from "./world.js"

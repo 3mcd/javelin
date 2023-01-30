@@ -14,9 +14,9 @@ suite("Presence", () => {
   test("encode/decode", () => {
     let count = 20
     let stream = new WriteStream()
-    let interest = makePresence(99 as Entity, T)
     let sourceApp = app()
     let targetApp = app()
+    let interest = makePresence(sourceApp.world.create(), T)
     let entities: Entity[] = []
     sourceApp
       .addInitSystem(world => {

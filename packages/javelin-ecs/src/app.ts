@@ -9,7 +9,12 @@ import {
   makeConstraintsWithBefore,
 } from "./schedule.js"
 import {SystemImpl} from "./system.js"
-import {CurrentSystem, World} from "./world.js"
+import {
+  CurrentSystem,
+  World,
+  _commitStagedChanges,
+  _emitStagedChanges,
+} from "./world.js"
 
 export type Constrain<T> = (constraints: Constraints<T>) => Constraints<T>
 export type Plugin = (app: App) => void
@@ -202,13 +207,13 @@ export class App {
               monitor.clear()
             }
             // Notify immediate monitors of intra-step entity modifications.
-            this.world.emitStagedChanges()
+            this.world[_emitStagedChanges]()
           }
         }
       }
     }
     // Notify monitors of inter-step entity modifications.
-    this.world.commitStagedChanges()
+    this.world[_commitStagedChanges]()
     return this
   }
 }

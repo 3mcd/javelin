@@ -7,9 +7,11 @@ import {
   Schema,
   World,
   Keys,
+  _getComponentStore,
+  _hasComponent,
+  _reserveEntity,
 } from "@javelin/ecs"
 import {exists} from "@javelin/lib"
-import {PatchStage} from "./interest.js"
 import {ReadStream, WriteStream} from "./stream.js"
 
 type EncodeEntity = ((entity: Entity, writeStream: WriteStream) => void) & {
@@ -100,16 +102,16 @@ export let compileEncodeEntity = (
   })
   let componentSchemas = components.map(getSchema) as Schema[]
   let componentStores = components.map(component =>
-    world.getComponentStore(component),
+    world[_getComponentStore](component),
   )
   let encodeEntity = Function(
-    "CS",
-    components.map((_, i) => `let s${i}=CS[${i}];`).join("") +
+    "V",
+    components.map((_, i) => `let V${i}=V[${i}];`).join("") +
       "return(e,s)=>{" +
       "s.writeU32(e);" +
       componentSchemas
         .map((schema, i) => {
-          let encodeExp = `let v${i}=s${i}[e];`
+          let encodeExp = `let v${i}=V${i}[e];`
           if (typeof schema === "string") {
             let writeExp = compileWriteExp(schema, "s", `v${i}`)
             encodeExp += `${writeExp};`
@@ -137,12 +139,16 @@ export let compileDecodeComposeEntity = (
 ): DecodeEntity => {
   let decodeEntity = Function(
     "S",
-    "W",
-    "return s=>{" +
-      "let e=s.readU32();" +
-      `W.exists(e)?W.add(e,S):W.reserve(e,S)` +
-      "}",
-  )(selector, world)
+    "E",
+    "A",
+    "R",
+    "return s=>{" + "let e=s.readU32();" + `E(e)?A(e,S):R(e,S)` + "}",
+  )(
+    selector,
+    world.exists.bind(world),
+    world.add.bind(world),
+    world[_reserveEntity].bind(world),
+  )
   return decodeEntity
 }
 
@@ -155,10 +161,13 @@ export let compileDecodeEntityPatch = (
     return exists(schema) && schema !== Dynamic
   })
   let componentSchemas = components.map(getSchema) as Schema[]
+  let componentStores = components.map(component =>
+    world[_getComponentStore](component),
+  )
   let componentValuesExp = componentSchemas
     .map((schema, i) => {
       let exp = ""
-      exp += `if(W.hasComponent(e,${components[i]})){`
+      exp += `if(H(e,${components[i]})){`
       if (typeof schema === "string") {
         let readExp = compileReadExp(schema, "s")
         exp += `v${i}[e]=${readExp}`
@@ -186,15 +195,14 @@ export let compileDecodeEntityPatch = (
     .join("")
   let decodeEntity = Function(
     "S",
-    "W",
-    components
-      .map((component, i) => `let v${i}=W.getComponentStore(${component});`)
-      .join("") +
+    "V",
+    "H",
+    components.map((_, i) => `let v${i}=V[${i}];`).join("") +
       "return s=>{" +
       "let e=s.readU32();" +
       componentValuesExp +
       "}",
-  )(selector, world)
+  )(selector, componentStores, world[_hasComponent].bind(world))
   return decodeEntity
 }
 
