@@ -18,11 +18,10 @@ suite("Presence", () => {
     let sourceApp = app()
     let targetApp = app()
     let entities: Entity[] = []
-    let bValue = {x: 5, y: 6}
     sourceApp
       .addInitSystem(world => {
         for (let i = 0; i < count; i++) {
-          entities.push(world.create(T, bValue))
+          entities.push(world.create(T))
         }
       })
       .step()
@@ -31,7 +30,7 @@ suite("Presence", () => {
     protocol.decode(targetApp.world, new ReadStream(stream.bytes()))
     targetApp.step()
     for (let i = 0; i < count; i++) {
-      expect(targetApp.world.get(entities[i], B)).toEqual(bValue)
+      expect(targetApp.world.get(entities[i], B)).toEqual({x: 0, y: 0})
     }
   })
 })
