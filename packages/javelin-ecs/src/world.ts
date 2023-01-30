@@ -3,7 +3,7 @@ import {
   Component,
   ComponentInitValues,
   ComponentValue,
-  Dynamic,
+  _dynamic,
   express,
   getSchema,
   hasSchema,
@@ -106,6 +106,7 @@ export class World {
     this.#componentStores = [] as unknown[][]
     this.#disposableNodes = new Set<Node>()
     this.#entityChildren = [] as Set<Entity>[]
+    this.#entityDeltas = [] as unknown[][]
     this.#entityIdVersions = [] as number[]
     this.#entityNodes = [] as Node[]
     this.#entityParents = [] as Entity[]
@@ -114,7 +115,6 @@ export class World {
     this.#resources = [] as unknown[]
     this.#stageTransaction = new Transaction()
     this.graph = new Graph()
-    this.#entityDeltas = [] as unknown[][]
     this.setResource(CurrentSystem, new System(() => {}))
   }
 
@@ -376,7 +376,7 @@ export class World {
       let component = selector.components[i]
       let componentSchema = getSchema(component)
       if (exists(componentSchema)) {
-        if (componentSchema === Dynamic) {
+        if (componentSchema === _dynamic) {
           // Values must be provided for components without schema.
           entityDelta[component] = expect(selectorValues[j++])
         } else {

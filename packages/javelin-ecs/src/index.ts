@@ -1,6 +1,6 @@
 export {DefaultGroup as Group, makeApp as app} from "./app.js"
 export type {App, Constrain, Plugin} from "./app.js"
-export {Dynamic, getSchema, Keys} from "./component.js"
+export {_dynamic as Dynamic, getSchema, _keys as Keys} from "./component.js"
 export type {Component} from "./component.js"
 export type {Entity} from "./entity.js"
 export {Node} from "./graph.js"
