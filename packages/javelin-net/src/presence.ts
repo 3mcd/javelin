@@ -59,7 +59,7 @@ export let presenceMessageType: ProtocolMessageType<Presence> = {
     let subjectCount = readStream.readU16()
     // (4)
     for (let i = 0; i < subjectCount; i++) {
-      subjectEncoder.decodeCompose(readStream)
+      subjectEncoder.decodeEntityCompose(readStream)
     }
   },
 }

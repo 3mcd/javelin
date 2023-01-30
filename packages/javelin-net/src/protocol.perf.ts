@@ -17,17 +17,17 @@ perf("encode", () => {
   let world = new World()
   let writeStream = new WriteStream()
   return () => {
-    protocol.encode(world, writeStream, messageType, 0)
+    protocol.encodeMessage(world, writeStream, messageType, 0)
   }
 })
 
 perf("decode", () => {
   let world = new World()
   let writeStream = new WriteStream()
-  protocol.encode(world, writeStream, messageType, 0)
+  protocol.encodeMessage(world, writeStream, messageType, 0)
   let writeStreamBytes = writeStream.bytes()
   let readStream = new ReadStream(writeStreamBytes)
   return () => {
-    protocol.decode(world, readStream)
+    protocol.decodeMessage(world, readStream)
   }
 })

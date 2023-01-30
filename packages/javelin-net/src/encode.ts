@@ -107,7 +107,7 @@ export let compileEncodeEntity = (
   let encodeEntity = Function(
     "V",
     components.map((_, i) => `let V${i}=V[${i}];`).join("") +
-      "return(e,s)=>{" +
+      "return function encodeEntity(e,s){" +
       "s.writeU32(e);" +
       componentSchemas
         .map((schema, i) => {
@@ -133,7 +133,7 @@ export let compileEncodeEntity = (
   return encodeEntity
 }
 
-export let compileDecodeComposeEntity = (
+export let compileDecodeEntityCompose = (
   selector: QuerySelector,
   world: World,
 ): DecodeEntity => {
@@ -142,7 +142,10 @@ export let compileDecodeComposeEntity = (
     "E",
     "A",
     "R",
-    "return s=>{" + "let e=s.readU32();" + `E(e)?A(e,S):R(e,S)` + "}",
+    "return function decodeEntityCompose(s){" +
+      "let e=s.readU32();" +
+      `E(e)?A(e,S):R(e,S)` +
+      "}",
   )(
     selector,
     world.exists.bind(world),
@@ -152,7 +155,7 @@ export let compileDecodeComposeEntity = (
   return decodeEntity
 }
 
-export let compileDecodeEntityPatch = (
+export let compileDecodeEntityUpdate = (
   selector: QuerySelector,
   world: World,
 ): DecodeEntity => {
@@ -198,7 +201,7 @@ export let compileDecodeEntityPatch = (
     "V",
     "H",
     components.map((_, i) => `let v${i}=V[${i}];`).join("") +
-      "return s=>{" +
+      "return function decodeEntityUpdate(s){" +
       "let e=s.readU32();" +
       componentValuesExp +
       "}",
@@ -209,9 +212,9 @@ export let compileDecodeEntityPatch = (
 export class EntityEncoder {
   static encodersByWorld = new WeakMap<World, EncoderMap>()
 
-  readonly encode
-  readonly decodeCompose
-  readonly decodePatch
+  readonly encodeEntity
+  readonly decodeEntityCompose
+  readonly decodeEntityUpdate
   readonly bytesPerEntity
 
   static getEntityEncoder(world: World, selector: QuerySelector) {
@@ -224,9 +227,9 @@ export class EntityEncoder {
   }
 
   constructor(selector: QuerySelector, world: World) {
-    this.encode = compileEncodeEntity(selector, world)
-    this.decodeCompose = compileDecodeComposeEntity(selector, world)
-    this.decodePatch = compileDecodeEntityPatch(selector, world)
+    this.encodeEntity = compileEncodeEntity(selector, world)
+    this.decodeEntityCompose = compileDecodeEntityCompose(selector, world)
+    this.decodeEntityUpdate = compileDecodeEntityUpdate(selector, world)
     this.bytesPerEntity = getEncodedEntityLength(selector)
   }
 }

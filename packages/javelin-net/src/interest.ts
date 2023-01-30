@@ -51,7 +51,7 @@ export let interestMessageType: ProtocolMessageType<Interest> = {
     while (writeStream.offset < MTU_SIZE && !interest.subjectQueue.isEmpty()) {
       let entity = interest.subjectQueue.pop()!
       // (4)
-      subjectEncoder.encode(entity, writeStream)
+      subjectEncoder.encodeEntity(entity, writeStream)
       subjectCount++
     }
     writeStream.writeU16At(subjectCount, subjectCountOffset)
@@ -70,7 +70,7 @@ export let interestMessageType: ProtocolMessageType<Interest> = {
     let subjectCount = readStream.readU16()
     // (4)
     for (let i = 0; i < subjectCount; i++) {
-      subjectEncoder.decodePatch(readStream)
+      subjectEncoder.decodeEntityUpdate(readStream)
     }
   },
 }

@@ -24,7 +24,7 @@ perf("presenceMessageType.encode", () => {
     .step()
     .step()
   return () => {
-    protocol.encode(world, writeStream, presenceMessageType, interest)
+    protocol.encodeMessage(world, writeStream, presenceMessageType, interest)
   }
 })
 
@@ -42,9 +42,14 @@ perf("presenceMessageType.decode", () => {
     })
     .step()
     .step()
-  protocol.encode(sourceWorld, writeStream, presenceMessageType, interest)
+  protocol.encodeMessage(
+    sourceWorld,
+    writeStream,
+    presenceMessageType,
+    interest,
+  )
   let readStream = new ReadStream(writeStream.bytes())
   return () => {
-    protocol.decode(targetWorld, readStream)
+    protocol.decodeMessage(targetWorld, readStream)
   }
 })

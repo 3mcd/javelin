@@ -51,7 +51,7 @@ let compileEachIterator = <T extends Component[]>(
     "N",
     "V",
     components.map((component, i) => `let v${i}=V[${component}];`).join("") +
-      "return f=>{" +
+      "return function eachEntity(f){" +
       "for(let i=0;i<N.length;i++){" +
       "let e=N[i];" +
       "for(let j=e.length-1;j>=0;j--){" +
@@ -75,11 +75,12 @@ export class QueryView<T extends QueryTerms = QueryTerms>
   implements QueryAPI<T>
 {
   #query
-  #iterator
+
+  readonly each: Query<T>["each"]
 
   constructor(query: Query, components: Component[]) {
     this.#query = query
-    this.#iterator = compileEachIterator(query, components.filter(hasSchema))
+    this.each = compileEachIterator(query, components.filter(hasSchema))
   }
 
   get length() {
@@ -89,10 +90,6 @@ export class QueryView<T extends QueryTerms = QueryTerms>
   as<T extends QueryTerms>(...queryTerms: T): QueryAPI<T>
   as() {
     return this.#query.as.apply(this.#query, arguments as unknown as QueryTerms)
-  }
-
-  each(iteratee: QueryEachIteratee<T>) {
-    this.#iterator(iteratee)
   }
 }
 

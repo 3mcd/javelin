@@ -26,8 +26,13 @@ suite("Presence", () => {
       })
       .step()
       .step()
-    protocol.encode(sourceApp.world, stream, presenceMessageType, interest)
-    protocol.decode(targetApp.world, new ReadStream(stream.bytes()))
+    protocol.encodeMessage(
+      sourceApp.world,
+      stream,
+      presenceMessageType,
+      interest,
+    )
+    protocol.decodeMessage(targetApp.world, new ReadStream(stream.bytes()))
     targetApp.step()
     for (let i = 0; i < count; i++) {
       expect(targetApp.world.get(entities[i], B)).toEqual({x: 0, y: 0})
