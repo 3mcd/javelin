@@ -1,7 +1,7 @@
 import {World} from "@javelin/ecs"
 import {perf} from "@javelin/perf"
 import {makeProtocol} from "./protocol.js"
-import {ReadStream, WriteStream} from "./stream.js"
+import {ReadStream, WriteStream} from "./structs/stream.js"
 
 let messageType = {
   encode(writeStream: WriteStream, _: World, n: number) {

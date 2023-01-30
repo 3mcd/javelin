@@ -4,7 +4,7 @@ import {
   FixedTimestepConfig as FixedTimestepImplConfig,
   FixedTimestepImpl,
   TerminationCondition,
-} from "./fixed_timestep"
+} from "./fixed_timestep.js"
 import {makeResource} from "./resource.js"
 import {World} from "./world.js"
 import {makeConstraintsWithAfter} from "./schedule.js"
@@ -25,6 +25,7 @@ export enum FixedGroup {
 
 export type FixedTimestepConfig = Partial<FixedTimestepImplConfig>
 export let FixedTimestepConfig = makeResource<Partial<FixedTimestepConfig>>()
+export let FixedTimestepTargetTime = makeResource<number>()
 export let FixedTimestep = makeResource<FixedTimestepImpl>()
 export let FixedTick = makeResource<number>()
 export let FixedTime = makeResource<Time>()
@@ -32,7 +33,10 @@ export let FixedTime = makeResource<Time>()
 export let advanceFixedTimestepSystem = (world: World) => {
   let {currentTime, deltaTime} = world.getResource(Time)
   let fixedTimestep = world.getResource(FixedTimestep)
-  fixedTimestep.update(deltaTime, currentTime)
+  fixedTimestep.update(
+    deltaTime,
+    world.tryGetResource(FixedTimestepTargetTime) ?? currentTime,
+  )
 }
 
 export let advanceFixedTickSystem = (world: World) => {

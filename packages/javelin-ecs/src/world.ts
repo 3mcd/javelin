@@ -552,6 +552,14 @@ export class World {
   }
 
   /**
+   * Get the value of a resource. Returns undefined if no value has been set for the
+   * resource
+   */
+  tryGetResource<T>(resource: Resource<T>): Maybe<T> {
+    return this.#resources[resource] as Maybe<T>
+  }
+
+  /**
    * Check to see if an entity is alive. Returns `true` if the entity is alive,
    * otherwise returns `false`.
    */

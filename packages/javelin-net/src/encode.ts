@@ -12,7 +12,7 @@ import {
   _reserveEntity,
 } from "@javelin/ecs"
 import {COMPILED_LABEL, exists} from "@javelin/lib"
-import {ReadStream, WriteStream} from "./stream.js"
+import {ReadStream, WriteStream} from "./structs/stream.js"
 
 type EncodeEntity = ((entity: Entity, writeStream: WriteStream) => void) & {
   BYTES_PER_ELEMENT: number

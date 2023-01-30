@@ -1,7 +1,7 @@
-import {Component, Entity, Type, resource, type, World} from "@javelin/ecs"
+import {Component, Entity, resource, Type, type, World} from "@javelin/ecs"
 import {EntityEncoder} from "./encode.js"
-import {PriorityQueueInt} from "./priority_queue_int.js"
 import {ProtocolMessageType} from "./protocol.js"
+import {PriorityQueueInt} from "./structs/priority_queue_int.js"
 
 const MTU_SIZE = 1_200
 
