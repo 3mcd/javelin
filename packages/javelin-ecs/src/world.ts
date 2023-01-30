@@ -25,6 +25,33 @@ import {
   Type,
 } from "./type.js"
 
+const makeEntityLabel = (entity: Entity, entityId = idLo(entity)) =>
+  `entity ${entity} (${entityId})`
+
+const ERR_AT_ENTITY_CAP = `Failed to allocate entity id: surpassed the limit of ${LO_MASK.toLocaleString()} living entities`
+const ERR_MISSING_COMPONENT = (entity: Entity) =>
+  `Failed to get component for entity: you may have tried to read or write a component value before ${makeEntityLabel(
+    entity,
+  )} was initialized`
+const ERR_EXPECTED_VALUE_COMPONENT = (component: Component) =>
+  `Failed to get component value array: component with id ${component} is not a value component`
+const ERR_INVALID_ENTITY_VERSION = (entity: Entity, entityId: number) =>
+  `Failed to validate entity: ${makeEntityLabel(
+    entity,
+    entityId,
+  )} is invalid—has it been destroyed?`
+const ERR_EXPECTED_ENTITY_HAS_COMPONENT = (
+  entity: Entity,
+  component: Component,
+) =>
+  `Failed to update component value: ${makeEntityLabel(
+    entity,
+  )} does not have component with id ${component}`
+const ERR_PARENT_INVALID = (entity: Entity) =>
+  `Failed to reparent entity: you may have tried to add a ChildOf relationship between ${makeEntityLabel(
+    entity,
+  )} and an invalid entity`
+
 export enum Phase {
   Stage = "stage",
   Apply = "apply",
@@ -78,31 +105,31 @@ export class World {
       }
       entityId = this.#nextEntityId
       entityVersion = this.#entityIdVersions[entityId] = 0
-      assert(entityId <= LO_MASK, "too many living entities")
+      assert(entityId <= LO_MASK, ERR_AT_ENTITY_CAP)
     }
     return makeId(entityId, entityVersion) as Entity
   }
 
-  #freeEntityId(entity: Entity) {
+  #freeEntityId(entity: Entity): void {
     let entityId = idLo(entity)
     this.#freeEntityIds.push(entityId)
   }
 
-  #validateEntityVersion(entity: Entity) {
+  #validateEntityVersion(entity: Entity): number {
     let entityId = idLo(entity)
     let entityIdVersion = idHi(entity)
     assert(
       this.#entityIdVersions[entityId] === entityIdVersion,
-      `Entity ${entity} (id ${entityId}) is invalid because it has been deleted`,
+      ERR_INVALID_ENTITY_VERSION(entity, entityId),
     )
     return entityId
   }
 
-  #getEntityIdVersion(entityId: number): number | undefined {
+  #getEntityIdVersion(entityId: number): Maybe<number> {
     return this.#entityIdVersions[entityId]
   }
 
-  #incrementEntityIdVersion(entityId: number) {
+  #incrementEntityIdVersion(entityId: number): void {
     let entityVersion = this.#entityIdVersions[entityId]
     this.#entityIdVersions[entityId] = exists(entityVersion)
       ? entityVersion + 1
@@ -113,34 +140,34 @@ export class World {
     entity: Entity,
     component: Component,
     componentValue: unknown,
-  ) {
+  ): void {
     let componentStore = this.getComponentStore(component)
     componentStore[entity] = componentValue
   }
 
-  #freeEntityComponentValue(entity: Entity, component: Component) {
+  #freeEntityComponentValue(entity: Entity, component: Component): void {
     let componentStore = this.getComponentStore(component)
     componentStore[entity] = undefined!
   }
 
-  #ensureEntityDelta(entity: Entity) {
+  #ensureEntityDelta(entity: Entity): unknown[] {
     return (this.#entityDeltas[idLo(entity)] ??= [])
   }
 
-  #freeEntityDelta(entity: Entity) {
+  #freeEntityDelta(entity: Entity): void {
     this.#entityDeltas[entity] = undefined!
   }
 
-  #ensureEntityChildren(entity: Entity) {
+  #ensureEntityChildren(entity: Entity): Set<Entity> {
     return (this.#entityChildren[entity] ??= new Set())
   }
 
-  #setEntityParent(entity: Entity, entityParent: Entity) {
+  #setEntityParent(entity: Entity, entityParent: Entity): void {
     this.#ensureEntityChildren(entityParent).add(entity)
     this.#entityParents[entity] = entityParent
   }
 
-  #freeEntityParent(entity: Entity) {
+  #freeEntityParent(entity: Entity): void {
     let entityParent = this.parentOf(entity)
     if (exists(entityParent)) {
       this.#ensureEntityChildren(entityParent).delete(entity)
@@ -148,19 +175,19 @@ export class World {
     }
   }
 
-  #getEntityNode(entity: Entity) {
+  #getEntityNode(entity: Entity): Maybe<Node> {
     return this.#entityNodes[entity]
   }
 
-  #setEntityNode(entity: Entity, node: Node) {
+  #setEntityNode(entity: Entity, node: Node): void {
     this.#entityNodes[entity] = node
   }
 
-  #freeEntityNode(entity: Entity) {
+  #freeEntityNode(entity: Entity): void {
     this.#entityNodes[entity] = undefined!
   }
 
-  #getStagedEntityNode(entity: Entity) {
+  #getStagedEntityNode(entity: Entity): Maybe<Node> {
     // First check if the entity has already been relocated during the step.
     let stagedNodeHash = this.#applyTransaction.locateEntity(entity)
     if (exists(stagedNodeHash)) {
@@ -174,7 +201,7 @@ export class World {
     return this.#entityNodes[entity]
   }
 
-  #relocateEntity(entity: Entity, prevNode?: Node, nextNode?: Node) {
+  #relocateEntity(entity: Entity, prevNode?: Node, nextNode?: Node): void {
     let prevHash = prevNode?.type.hash ?? 0
     let nextHash = nextNode?.type.hash ?? 0
     // Update both stage and apply transactions. The stage transaction is
@@ -184,7 +211,7 @@ export class World {
     this.#applyTransaction.relocateEntity(entity, prevHash, nextHash)
   }
 
-  #commitMake(entity: Entity, nextNode: Node) {
+  #commitMake(entity: Entity, nextNode: Node): void {
     let entityDelta = this.#ensureEntityDelta(entity)
     for (let i = 0; i < nextNode.type.components.length; i++) {
       let component = nextNode.type.components[i]
@@ -211,7 +238,7 @@ export class World {
     this.#freeEntityDelta(entity)
   }
 
-  #commitUpdate(entity: Entity, nextNode: Node) {
+  #commitUpdate(entity: Entity, nextNode: Node): void {
     let entityDelta = this.#ensureEntityDelta(entity)
     // Overwrite the updated entity's existing component values in their
     // respective component stores.
@@ -227,7 +254,7 @@ export class World {
     this.#freeEntityDelta(entity)
   }
 
-  #commitDelete(entity: Entity, prevNode: Node) {
+  #commitDelete(entity: Entity, prevNode: Node): void {
     let entityId = idLo(entity)
     let entityChildren = this.#entityChildren[entityId]
     // Recursively delete the deleted entity's children, if any.
@@ -259,7 +286,7 @@ export class World {
     }
   }
 
-  #commitMove(entity: Entity, prevNode: Node, nextNode: Node) {
+  #commitMove(entity: Entity, prevNode: Node, nextNode: Node): void {
     let entityDelta = this.#ensureEntityDelta(entity)
     for (let i = 0; i < prevNode.type.components.length; i++) {
       let component = prevNode.type.components[i]
@@ -292,7 +319,10 @@ export class World {
         if (componentHi === ChildOf.relationId) {
           // Attach the modified entity to its new parent.
           let parentEntityId = idLo(component)
-          let parentEntity = expect(this.qualify(parentEntityId))
+          let parentEntity = expect(
+            this.qualify(parentEntityId),
+            ERR_PARENT_INVALID(entity),
+          )
           this.#setEntityParent(entity, parentEntity)
         }
       }
@@ -314,7 +344,7 @@ export class World {
     entity: Entity,
     selector: QuerySelector,
     selectorValues: unknown[],
-  ) {
+  ): void {
     let entityDelta = this.#ensureEntityDelta(entity)
     let j = 0
     for (let i = 0; i < selector.components.length; i++) {
@@ -336,7 +366,7 @@ export class World {
     }
   }
 
-  #initQuery(query: Query, hash: number, node: Node, system: System) {
+  #initQuery(query: Query, hash: number, node: Node, system: System): void {
     let includeExistingNode = (node: Node) => {
       query.includeNode(node)
     }
@@ -360,7 +390,12 @@ export class World {
     system.queries.set(hash, query)
   }
 
-  #initMonitor(monitor: Monitor, hash: number, node: Node, system: System) {
+  #initMonitor(
+    monitor: Monitor,
+    hash: number,
+    node: Node,
+    system: System,
+  ): void {
     let unbindMonitor = (deletedNode: Node) => {
       if (node === deletedNode) {
         system.monitors.delete(hash)
@@ -375,7 +410,7 @@ export class World {
   /**
    * Set the value of a resource.
    */
-  setResource<T>(resource: Resource<T>, value: T) {
+  setResource<T>(resource: Resource<T>, value: T): void {
     this.#resources[resource] = value
   }
 
@@ -383,15 +418,15 @@ export class World {
    * Check for the presence of a resource. Returns true if a value has been set
    * for the resource, otherwise returns false.
    */
-  hasResource(resource: Resource<unknown>) {
-    return resource in this.#resources
+  hasResource(resource: Resource<unknown>): boolean {
+    return exists(this.#resources[resource])
   }
 
   /**
    * Get the value of a resource. Throws an error if no value has been set for
    * the resource.
    */
-  getResource<T>(resource: Resource<T>) {
+  getResource<T>(resource: Resource<T>): T {
     return expect(this.#resources[resource]) as T
   }
 
@@ -401,11 +436,11 @@ export class World {
    */
   qualify(entityId: number): Maybe<Entity> {
     let entityIdVersion = this.#getEntityIdVersion(entityId)
-    if (entityIdVersion === undefined) return
+    if (!exists(entityIdVersion)) return
     return makeId(entityId, entityIdVersion) as Entity
   }
 
-  exists(entity: Entity) {
+  exists(entity: Entity): boolean {
     try {
       this.#validateEntityVersion(entity)
       return true
@@ -425,7 +460,7 @@ export class World {
   create<T extends Component[]>(
     selector: QuerySelector<T>,
     ...selectorValues: ComponentInitValues<T>
-  ) {
+  ): Entity {
     let entity = this.#allocEntityId()
     let nextNode = this.graph.nodeOfType(selector.type)
     this.#relocateEntity(entity, undefined, nextNode)
@@ -441,7 +476,7 @@ export class World {
     entityId: number,
     selector: QuerySelector<T>,
     ...selectorValues: ComponentInitValues<T>
-  ) {
+  ): Entity {
     assert(this.#getEntityIdVersion(entityId) === undefined)
     let entity = makeId(entityId, 0) as Entity
     let nextNode = this.graph.nodeOfType(selector.type)
@@ -458,7 +493,7 @@ export class World {
     entity: Entity,
     selector: QuerySelector<T>,
     ...selectorValues: ComponentInitValues<T>
-  ) {
+  ): void {
     this.#validateEntityVersion(entity)
     let prevNode = this.#getStagedEntityNode(entity)
     if (!exists(prevNode)) {
@@ -475,7 +510,7 @@ export class World {
   /**
    * Remove a type from an entity.
    */
-  remove(entity: Entity, selector: QuerySelector) {
+  remove(entity: Entity, selector: QuerySelector): void {
     this.#validateEntityVersion(entity)
     let prevNode = this.#getStagedEntityNode(entity)
     if (!exists(prevNode)) {
@@ -493,7 +528,7 @@ export class World {
    * @example
    * world.delete(entity)
    */
-  delete(entity: Entity) {
+  delete(entity: Entity): void {
     this.#validateEntityVersion(entity)
     let prevNode = this.#getStagedEntityNode(entity)
     if (!exists(prevNode)) {
@@ -503,25 +538,34 @@ export class World {
   }
 
   /**
-   * Get the value of a component for an entity.
-   * * If the component is a tag, returns `true` if present, otherwise
-   * returns `undefined`
-   * * If the component is a component, the component value is returned
-   * if present, otherwise returns `undefined`
+   * Get the value of a value component for an entity. Returns the component value if
+   * present, otherwise returns `undefined`.
    * @example
    * let position = world.get(entity, Position)
    */
   get<T>(
     entity: Entity,
     componentSelector: QuerySelector<[Component<T>]>,
-  ): ComponentValue<T>
-  get(entity: Entity, selector: QuerySelector<[Component<Tag>]>): boolean
-  get(entity: Entity, selector: QuerySelector) {
+  ): Maybe<ComponentValue<T>>
+  /**
+   * Check if an entity has a tag component. Returns `true` if present, otherwise returns
+   * `undefined`.
+   */
+  get(
+    entity: Entity,
+    componentSelector: QuerySelector<[Component<Tag>]>,
+  ): Maybe<boolean>
+  get(entity: Entity, componentSelector: QuerySelector) {
     this.#validateEntityVersion(entity)
-    let entityNode = this.#getEntityNode(entity)
-    let component = selector.components[0]
+    let entityNode = expect(
+      this.#getEntityNode(entity),
+      ERR_MISSING_COMPONENT(entity),
+    )
+    let component = componentSelector.components[0]
     return entityNode.hasComponent(component)
-      ? !hasSchema(component) || this.getComponentStore(component)[entity]
+      ? hasSchema(component)
+        ? this.getComponentStore(component)[entity]
+        : true
       : undefined
   }
 
@@ -533,16 +577,25 @@ export class World {
     entity: Entity,
     componentSelector: QuerySelector<[Component<T>]>,
     componentValue: ComponentValue<T>,
-  ) {
+  ): void {
     this.#validateEntityVersion(entity)
-    let entityNode = this.#getEntityNode(entity)
+    let entityNode = expect(
+      this.#getEntityNode(entity),
+      ERR_MISSING_COMPONENT(entity),
+    )
     let component = componentSelector.components[0]
-    assert(entityNode.hasComponent(component))
+    assert(
+      entityNode.hasComponent(component),
+      ERR_EXPECTED_ENTITY_HAS_COMPONENT(entity, component),
+    )
     this.#setEntityComponentValue(entity, component, componentValue)
   }
 
-  has(entity: Entity, componentSelector: QuerySelector<[Component]>) {
-    let entityNode = this.#getEntityNode(entity)
+  has(entity: Entity, componentSelector: QuerySelector<[Component]>): boolean {
+    let entityNode = expect(
+      this.#getEntityNode(entity),
+      ERR_MISSING_COMPONENT(entity),
+    )
     let component = componentSelector.components[0]
     if (exists(entityNode)) {
       return entityNode.hasComponent(component)
@@ -553,7 +606,7 @@ export class World {
   /**
    * @private
    */
-  hasComponent(entity: Entity, component: Component) {
+  hasComponent(entity: Entity, component: Component): boolean {
     let entityNode = this.#getEntityNode(entity)
     if (exists(entityNode)) {
       return entityNode.hasComponent(component)
@@ -562,19 +615,19 @@ export class World {
   }
 
   /**
-   * Get the array of component values for a given component.
+   * Get the array of component values for a given value component.
    * @private
    */
-  getComponentStore(component: Component) {
-    assert(hasSchema(component))
-    return (this.#componentStores[component] ??= [])
+  getComponentStore<T>(component: Component<T>): T[] {
+    assert(hasSchema(component), ERR_EXPECTED_VALUE_COMPONENT(component))
+    return (this.#componentStores[component] ??= []) as T[]
   }
 
   /**
    * Dispatch transient entity modification events.
    * @private
    */
-  emitStagedChanges() {
+  emitStagedChanges(): void {
     this.#stageTransaction.drainEntities(this.graph, Phase.Stage)
   }
 
@@ -583,7 +636,7 @@ export class World {
    * modification events.
    * @private
    */
-  commitStagedChanges() {
+  commitStagedChanges(): void {
     let commitBatch: TransactionIteratee = (batch, prevNode, nextNode) => {
       if (!exists(prevNode)) {
         /* @__PURE__ */ assert(exists(nextNode))
@@ -636,7 +689,7 @@ export class World {
    * @example <caption>Find all ancestors of an entity</caption>
    * while (exists(e = world.parentOf(e))) parents.push(e)
    */
-  parentOf(entity: Entity) {
+  parentOf(entity: Entity): Maybe<Entity> {
     this.#validateEntityVersion(entity)
     return this.#entityParents[entity]
   }

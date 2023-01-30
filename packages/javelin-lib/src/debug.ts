@@ -1,12 +1,14 @@
 import {Maybe} from "./types.js"
 
+const ERR_INTERNAL = "Unexpected error"
+
 class AssertionError extends Error {
   name = "AssertionError"
 }
 
 export function assert(
   condition: boolean,
-  message?: string,
+  message: string = ERR_INTERNAL,
 ): asserts condition {
   if (!condition) {
     throw new AssertionError(message)
