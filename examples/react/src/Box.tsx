@@ -1,27 +1,12 @@
 import { type, value } from "@javelin/ecs"
-import { Entities, useCurrentEntity, useSystem } from "@javelin/react"
-import { useRef } from "react"
-import { MathUtils, Mesh, Quaternion as ThreeQuaternion } from "three"
+import { Component, Entities, useCurrentEntity, useSystem } from "@javelin/react"
+import { Mesh, Quaternion as ThreeQuaternion, Vector3 } from "three"
 import { Time } from "./App"
 
-type Position = {
-  x: number
-  y: number,
-  z: number
-}
 
-export const Position = value<Position>({ x: "f32", y: "f32", z: "f32" })
-
-type Quaternion = {
-  x: number,
-  y: number,
-  z: number,
-  w: number,
-} 
-
-export const Quaternion = value<Quaternion>({ x: "f32", y: "f32", z: "f32", w: "f32" })
-
-
+export const MeshComponent = value<Mesh>()
+export const Position = value<Vector3>()
+export const Quaternion = value<ThreeQuaternion>()
 export const Color = value<string>()
 
 export type BoxDimensions = {
@@ -32,12 +17,11 @@ export type BoxDimensions = {
 export const BoxDimensions = value<BoxDimensions>({ width: "f32", height: "f32" })
 
 export const Box = type(
-  Position,
+  Position, 
   Quaternion,
   Color,
   BoxDimensions,
 )
-
 
 export interface BoxProps {
   color: string,
@@ -47,12 +31,12 @@ export interface BoxProps {
 
 let last = 0;
 const _tempQuaternion = new ThreeQuaternion()
+const _tempVector3 = new Vector3()
 export const CreateBoxSystem = () => {
   useSystem((world) => {
-    _tempQuaternion.random()
    world.create(Box, 
-      { x: MathUtils.randInt(-10, 10), y: MathUtils.randInt(-10, 10), z: MathUtils.randInt(-10, 10) },
-      { x: _tempQuaternion.x, y: _tempQuaternion.y, z: _tempQuaternion.z, w: _tempQuaternion.w },
+      _tempVector3.random().multiplyScalar(10).clone(),
+      _tempQuaternion.random().clone(),
       (Math.random() * 0xffffff).toString(16),
       {  width: 1, height: 1 },
     )
@@ -71,24 +55,27 @@ export const CreateBoxSystem = () => {
 }
 
 export const BoxRender: React.FC<BoxProps> = (props) => {
-  const ref = useRef<Mesh>(null)
   const entity = useCurrentEntity()
 
   useSystem((world) => {
     const position= world.get(entity, Position)
     const quaternion = world.get(entity, Quaternion)
-    const mesh = ref.current
-    if (!mesh) return
+    const mesh = world.get(entity, MeshComponent)
+
+    if (!mesh || !position || !quaternion) return
     mesh.position.set(position.x, position.y, position.z)
     mesh.quaternion.set(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
   }, {
-    predicate: world => world.exists(entity) && world.has(entity, Position) && world.has(entity, Quaternion),
+    predicate: world => world.exists(entity) && world.has(entity, Position) && world.has(entity, Quaternion) && world.has(entity, MeshComponent)
   })
 
-  return <mesh ref={ref} >
-    <boxGeometry attach="geometry" args={[props.width, props.height, 1]} />
-    <meshStandardMaterial attach="material" color={props.color} />
-  </mesh>
+  return (
+  <Component type={MeshComponent}>
+    <mesh >
+      <boxGeometry attach="geometry" args={[props.width, props.height, 1]} />
+      <meshStandardMaterial attach="material" color={props.color} />
+    </mesh>
+  </Component>)
 }
 
 

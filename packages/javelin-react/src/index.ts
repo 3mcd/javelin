@@ -1,3 +1,4 @@
+export * from "./components/component/Component";
 export * from "./components/entity/Entity";
 export * from "./hooks/use-monitor/useMonitor";
 export * from "./hooks/use-plugin/usePlugin";

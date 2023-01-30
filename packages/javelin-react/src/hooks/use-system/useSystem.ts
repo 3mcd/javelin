@@ -1,5 +1,4 @@
-import { System } from "@javelin/ecs";
-import { Constraints, Predicate } from "@javelin/ecs/src/schedule";
+import { Constraints, Predicate, System } from "@javelin/ecs";
 import { Maybe } from "@javelin/lib";
 import { usePlugin } from "../use-plugin/usePlugin";
 

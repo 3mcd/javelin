@@ -1,11 +1,10 @@
-import { Entity } from "@javelin/ecs";
-import { QueryTerm, QueryTerms } from "@javelin/ecs/src/type";
+import { Entity, QueryTerms } from "@javelin/ecs";
 import { useState } from "react";
 import { useSystem } from "../use-system/useSystem";
 import { useUpdate } from "../use-update/useUpdate";
 
 // returns an array of entities that match the query terms
-export function useEntitiesMonitor(queryTerms: QueryTerm | QueryTerms) {
+export function useEntitiesMonitor(queryTerms: QueryTerms) {
   const [set] = useState(new Set<Entity>())
   const update = useUpdate()
 

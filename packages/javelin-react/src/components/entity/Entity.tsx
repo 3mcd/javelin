@@ -1,5 +1,4 @@
-import { Entity as JavelinEntity, QuerySelector, type } from "@javelin/ecs"
-import { QueryTerms } from "@javelin/ecs/src/type"
+import { Entity as JavelinEntity, QueryTerms, type } from "@javelin/ecs"
 import * as React from "react"
 import { useEntitiesMonitor } from "../../hooks/use-monitor/useMonitor"
 import useIsomorphicLayoutEffect from "../../hooks/useIsomorphicLayoutEffect"
@@ -11,29 +10,25 @@ export const useCurrentEntity = () => React.useContext(EntityContext)
 
 export interface EntityProps {
   entity?: JavelinEntity,
-  selector?: QuerySelector
 }
 
-export const Entity: React.FC<React.PropsWithChildren<EntityProps>> = ({ children, entity, selector }) => {
-  const [update, setUpdate] = React.useState(0)
-  const entityRef = React.useRef<JavelinEntity>(entity!)
-
+export const Entity: React.FC<React.PropsWithChildren<EntityProps>> = ({ entity: useProvidedEntity, children }) => {
   const app = useApp()
 
-  useIsomorphicLayoutEffect(() => {
-    if (!app) { return }
-    const entity = entityRef.current
-    if (!entity) {
-      entityRef.current = app.world.create(type())
-      setUpdate(update + 1)
+  const entityRef = React.useRef<JavelinEntity>(null!)
+  if (entityRef.current === null) { 
+    if (useProvidedEntity) {
+      entityRef.current = useProvidedEntity
+    } else {
+      entityRef.current = app.world.create()
     }
-    return () => {
-      if (entityRef.current) {
-        app.world.remove(entityRef.current, type())
-      }
-    }
-  }, [app, entityRef.current, update, selector])
+  }
 
+  useIsomorphicLayoutEffect(() => {
+    return () => {
+      app.world.remove(entityRef.current, type())
+    }
+  }, [useProvidedEntity])
 
   return <EntityContext.Provider value={entityRef.current}>{children}</EntityContext.Provider>
 }
@@ -43,8 +38,8 @@ export const Entities: React.FC<React.PropsWithChildren<{ query: QueryTerms }>> 
 
   return (
     <>
-      {entities.map((entity, i) => (
-        <Entity key={i} entity={entity}>
+      {entities.map((entity) => (
+        <Entity key={entity} entity={entity}>
           {children}
         </Entity>
       ))}
