@@ -1,16 +1,15 @@
 import * as j from "@javelin/ecs"
-import {Clock} from "./clock.js"
 
 export let DisposeTimer = j.value("f32")
 
 let pruneExpiredDisposablesSystem = (world: j.World) => {
-  let clock = world.getResource(Clock)
+  let time = world.getResource(j.FixedTime)
   world.of(DisposeTimer).each((e, timer) => {
-    if (clock.time > timer) {
+    if (time.currentTime > timer) {
       world.delete(e)
     }
   })
 }
 
 export let disposePlugin = (app: j.App) =>
-  app.addSystemToGroup(j.Group.EarlyUpdate, pruneExpiredDisposablesSystem)
+  app.addSystemToGroup(j.FixedGroup.EarlyUpdate, pruneExpiredDisposablesSystem)

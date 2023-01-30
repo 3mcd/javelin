@@ -1,3 +1,4 @@
-import "./priority_queue_int.perf.ts"
-import "./presence.perf.ts"
-import "./protocol.perf.ts"
+import "./priority_queue_int.perf.js"
+import "./presence.perf.js"
+import "./protocol.perf.js"
+import "./encode.perf.js"

@@ -1,4 +1,5 @@
 import * as j from "@javelin/ecs"
+import {Entity, resource} from "@javelin/ecs"
 import {
   awareness,
   Client,
@@ -10,25 +11,29 @@ import {createServer} from "http"
 import {WebSocket, WebSocketServer} from "ws"
 import {Position, Velocity} from "./model.js"
 
-let httpServer = createServer()
+let http = createServer()
+let wss = new WebSocketServer({server: http})
 
-let websocketServer = new WebSocketServer({server: httpServer})
-let openedWebsocketQueue: WebSocket[] = []
-let closedClientQueue: j.Entity[] = []
-
-let i = 0
+let SocketsOpened = resource<WebSocket[]>()
+let ClientsClosed = resource<Entity[]>()
 
 let app = j
   .app()
+  .addResource(SocketsOpened, [])
+  .addResource(ClientsClosed, [])
   .addSystem(
     world => {
-      world.create(j.type(Position, Velocity), undefined, {
+      let tick = world.getResource(j.Tick)
+      world.create(j.type(Velocity, Position), {
         x: Math.random(),
-        y: -i / 5,
+        y: -tick / 5,
       })
     },
     null,
-    () => i++ % 5 == 0 && i < 1000,
+    world => {
+      let tick = world.getResource(j.Tick)
+      return tick % 5 === 0 && tick < 1000
+    },
   )
   .addSystem(world => {
     world.of(j.type(Position, Velocity)).each((_, p, v) => {
@@ -38,36 +43,39 @@ let app = j
   })
   .addSystemToGroup(j.Group.Early, world => {
     let socket: WebSocket | undefined
-    while ((socket = openedWebsocketQueue.pop())) {
+    let socketsOpened = world.getResource(SocketsOpened)
+    let clientsClosed = world.getResource(ClientsClosed)
+    while ((socket = socketsOpened.pop())) {
       if (socket.readyState !== socket.OPEN) {
         continue
       }
-      let clientTransport = new WebsocketTransport(socket as any)
+      let clientTransport = new WebsocketTransport(
+        socket as unknown as globalThis.WebSocket,
+      )
+      let client = world.create()
       let clientKineticPresence = presence(
-        0 as j.Entity,
+        client,
         j.type(Position, Velocity),
-        (e, s) => (s % 2 === 0 ? 100 : 10),
+        (_, subjectEntity) => (subjectEntity % 2 === 0 ? 100 : 10),
       )
       let clientAwareness = awareness().addPresence(clientKineticPresence)
-      let client = world.create(Client, clientTransport, clientAwareness)
-      // @ts-ignore
-      clientKineticPresence.entity = client
+      world.add(client, Client, clientTransport, clientAwareness)
       socket.on("close", () => {
-        closedClientQueue.push(client)
+        clientsClosed.push(client)
       })
     }
     let client: j.Entity | undefined
-    while ((client = closedClientQueue.pop()) !== undefined) {
+    while ((client = clientsClosed.pop()) !== undefined) {
       world.delete(client)
     }
   })
   .use(serverPlugin)
 
-websocketServer.on("connection", socket => {
-  openedWebsocketQueue.push(socket)
+wss.on("connection", socket => {
+  app.world.getResource(SocketsOpened).push(socket)
 })
 
-httpServer.listen(8080)
+http.listen(8080)
 
 console.log(`
 call of

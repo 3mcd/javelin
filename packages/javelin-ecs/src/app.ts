@@ -1,15 +1,23 @@
 import {assert, expect, Maybe} from "@javelin/lib"
+import {fixedTimestepPlugin} from "./fixed_timestep_plugin.js"
 import {Resource} from "./resource.js"
 import {
   Constraints,
-  SystemGroup,
-  Predicate,
-  Schedule,
   makeConstraintsWithAfter,
   makeConstraintsWithBefore,
+  Predicate,
+  Schedule,
+  SystemGroup,
 } from "./schedule.js"
 import {SystemImpl} from "./system.js"
-import {CurrentSystem, World} from "./world.js"
+import {tickPlugin} from "./tick_plugin.js"
+import {timePlugin} from "./time_plugin.js"
+import {
+  CurrentSystem,
+  World,
+  _commitStagedChanges,
+  _emitStagedChanges,
+} from "./world.js"
 
 export type Constrain<T> = (constraints: Constraints<T>) => Constraints<T>
 export type Plugin = (app: App) => void
@@ -44,7 +52,7 @@ export enum DefaultGroup {
   Late = "Late",
 }
 
-let defaultPlugin = (app: App) => {
+let defaultGroupsPlugin = (app: App) => {
   let initGroupEnabled = true
   let disableInitGroupSystem = () => {
     initGroupEnabled = false
@@ -96,7 +104,10 @@ export class App {
     this.#systemGroups = [] as SystemGroup[]
     this.#systemGroupScheduleIsStale = true
     this.world = world
-    this.use(defaultPlugin)
+    this.use(defaultGroupsPlugin)
+      .use(tickPlugin)
+      .use(timePlugin)
+      .use(fixedTimestepPlugin)
   }
 
   #updateSystemGroupSchedule() {
@@ -186,7 +197,8 @@ export class App {
     this.#updateSystemGroupSchedule()
     for (let i = 0; i < this.#systemGroups.length; i++) {
       let systemGroup = this.#systemGroups[i]
-      if (systemGroup.isEnabled(world)) {
+      let systemGroupRuns = systemGroup.runs(world)
+      while (systemGroupRuns-- > 0) {
         for (let j = 0; j < systemGroup.systems.length; j++) {
           let system = systemGroup.systems[j]
           if (system.isEnabled(world)) {
@@ -202,13 +214,13 @@ export class App {
               monitor.clear()
             }
             // Notify immediate monitors of intra-step entity modifications.
-            this.world.emitStagedChanges()
+            this.world[_emitStagedChanges]()
           }
         }
       }
     }
     // Notify monitors of inter-step entity modifications.
-    this.world.commitStagedChanges()
+    this.world[_commitStagedChanges]()
     return this
   }
 }

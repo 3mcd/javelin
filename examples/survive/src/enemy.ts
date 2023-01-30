@@ -1,7 +1,6 @@
 import * as j from "@javelin/ecs"
 import {AuraImmune} from "./aura.js"
 import {Box} from "./box.js"
-import {Clock} from "./clock.js"
 import {Heading} from "./heading.js"
 import {Health} from "./health.js"
 import {boxIntersects, distance, normalize, Vector2} from "./math.js"
@@ -91,7 +90,7 @@ let acquireEnemyTarget = (
 }
 
 let spawnEnemiesSystem = (world: j.World) => {
-  let {tick} = world.getResource(Clock)
+  let tick = world.getResource(j.FixedTick)
   let enemySpawnCount = Math.ceil(tick / ENEMY_SPAWN_FACTOR)
   world
     .of(Player)
@@ -140,7 +139,7 @@ let moveEnemiesSystem = (world: j.World) =>
     })
 
 let enemyAttackSystem = (world: j.World) => {
-  let clock = world.getResource(Clock)
+  let time = world.getResource(j.FixedTime)
   world
     .of(Player)
     .as(Position, Box, Health)
@@ -150,11 +149,11 @@ let enemyAttackSystem = (world: j.World) => {
         .as(Position, Box, EnemyAttackTime)
         .each((enemy, enemyPos, enemyBox, enemyAttackTime) => {
           if (
-            clock.time >= enemyAttackTime &&
+            time.currentTime >= enemyAttackTime &&
             boxIntersects(playerPos, playerBox, enemyPos, enemyBox)
           ) {
             let nextPlayerHealth = playerHealth - Math.ceil(Math.random() * 2)
-            let nextEnemyAttackTime = clock.time + 4
+            let nextEnemyAttackTime = time.currentTime + 4
             world.set(player, Health, nextPlayerHealth)
             world.set(enemy, EnemyAttackTime, nextEnemyAttackTime)
           }
@@ -165,11 +164,15 @@ let enemyAttackSystem = (world: j.World) => {
 export let enemyPlugin = (app: j.App) =>
   app
     .addSystemToGroup(
-      j.Group.EarlyUpdate,
+      j.FixedGroup.EarlyUpdate,
       spawnEnemiesSystem,
       null,
-      world => world.getResource(Clock).tick % ENEMY_SPAWN_FREQUENCY === 0,
+      world => world.getResource(j.FixedTick) % ENEMY_SPAWN_FREQUENCY === 0,
     )
-    .addSystem(acquireEnemyTargetsSystem)
-    .addSystem(moveEnemiesSystem, j.after(acquireEnemyTargetsSystem))
-    .addSystem(enemyAttackSystem)
+    .addSystemToGroup(j.FixedGroup.Update, acquireEnemyTargetsSystem)
+    .addSystemToGroup(
+      j.FixedGroup.Update,
+      moveEnemiesSystem,
+      j.after(acquireEnemyTargetsSystem),
+    )
+    .addSystemToGroup(j.FixedGroup.Update, enemyAttackSystem)

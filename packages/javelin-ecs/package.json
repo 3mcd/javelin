@@ -2,7 +2,7 @@
   "name": "@javelin/ecs",
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "license": "MIT",
-  "version": "2.0.0-alpha.3",
+  "version": "2.0.0-alpha.4",
   "description": "A TypeScript/JavaScript Entity-Component System",
   "keywords": ["ecs", "entity-component system", "game", "gamedev", "multiplayer", "mog"],
   "type": "module",
@@ -14,7 +14,8 @@
   },
   "files": ["dist"],
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "perf": "ts-node src/index.perf.ts"
   },
   "preconstruct": {
     "entrypoints": [
@@ -25,6 +26,7 @@
     "@javelin/lib": "workspace:*"
   },
   "devDependencies": {
+    "@javelin/perf": "workspace:*",
     "vitest": "^0.25.1"
   }
 }

@@ -1,4 +1,5 @@
 import {
+  COMPILED_LABEL,
   exists,
   hashWord,
   HASH_BASE,
@@ -12,7 +13,7 @@ import {
   ComponentsOf,
   isRelation,
   normalizeQueryTerms,
-  QuerySelector,
+  Type,
   QueryTerms,
 } from "./type.js"
 
@@ -49,21 +50,21 @@ let compileEachIterator = <T extends Component[]>(
 ): QueryEachIterator<T> => {
   return Function(
     "N",
-    "S",
-    components.map((component, i) => `let s${i}=S[${component}];`).join("") +
-      "return f=>{" +
+    "V",
+    COMPILED_LABEL +
+      components.map((component, i) => `let v${i}=V[${component}];`).join("") +
+      "return function eachEntity(f){" +
       "for(let i=0;i<N.length;i++){" +
-      // TODO: make this compatible with property mangling
-      "let e=N[i].entities;" +
+      "let e=N[i];" +
       "for(let j=e.length-1;j>=0;j--){" +
       "let _=e[j];" +
       "f(_," +
-      components.map((_, i) => `s${i}[_]`).join(",") +
+      components.map((_, i) => `v${i}[_]`).join(",") +
       ")" +
       "}" +
       "}" +
       "}",
-  )(query.nodes.values(), query.stores) as QueryEachIterator<T>
+  )(query.entities.values(), query.stores) as QueryEachIterator<T>
 }
 
 export interface QueryAPI<T extends QueryTerms = QueryTerms> {
@@ -76,11 +77,12 @@ export class QueryView<T extends QueryTerms = QueryTerms>
   implements QueryAPI<T>
 {
   #query
-  #iterator
+
+  readonly each: Query<T>["each"]
 
   constructor(query: Query, components: Component[]) {
     this.#query = query
-    this.#iterator = compileEachIterator(query, components.filter(hasSchema))
+    this.each = compileEachIterator(query, components.filter(hasSchema))
   }
 
   get length() {
@@ -91,48 +93,44 @@ export class QueryView<T extends QueryTerms = QueryTerms>
   as() {
     return this.#query.as.apply(this.#query, arguments as unknown as QueryTerms)
   }
-
-  each(iteratee: QueryEachIteratee<T>) {
-    this.#iterator(iteratee)
-  }
 }
 
 export class Query<T extends QueryTerms = QueryTerms> implements QueryAPI<T> {
-  #selector
+  #type
   #view
   #views
 
-  readonly nodes
+  readonly entities
   readonly stores
 
-  constructor(selector: QuerySelector<T>, stores: unknown[][]) {
-    this.nodes = new SparseSet<Node>()
+  constructor(type: Type<T>, stores: unknown[][]) {
+    this.entities = new SparseSet<Entity[]>()
     this.stores = stores
-    this.#selector = selector
-    this.#view = new QueryView(this, selector.components) as QueryView<any>
+    this.#type = type
+    this.#view = new QueryView(this, type.components) as QueryView<any>
     this.#views = [] as QueryAPI[]
-    this.#views[selector.hash] = this.#view
+    this.#views[type.hash] = this.#view
   }
 
   includeNode(node: Node) {
-    for (let i = 0; i < this.#selector.excludedComponents.length; i++) {
-      let term = this.#selector.excludedComponents[i]
+    for (let i = 0; i < this.#type.excludedComponents.length; i++) {
+      let term = this.#type.excludedComponents[i]
       if (node.hasComponent(term)) {
         return
       }
     }
-    this.nodes.set(node.type.hash, node)
+    this.entities.set(node.type.hash, node.entities)
   }
 
   excludeNode(node: Node) {
-    this.nodes.delete(node.type.hash)
+    this.entities.delete(node.type.hash)
   }
 
   get length() {
     let size = 0
-    let nodes = this.nodes.values()
+    let nodes = this.entities.values()
     for (let i = 0; i < nodes.length; i++) {
-      size += nodes[i].entities.length
+      size += nodes[i].length
     }
     return size
   }

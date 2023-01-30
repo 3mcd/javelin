@@ -63,7 +63,7 @@ export class PriorityQueueInt<T extends number> {
     }
   }
 
-  #bubbleDown(i = 0) {
+  #bubbleDown(i: number) {
     let curr = i
     while (
       left(curr) < this.#heap.length &&

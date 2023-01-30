@@ -3,13 +3,15 @@ import {
   Entity,
   Format,
   getSchema,
-  QuerySelector,
+  Type,
   Schema,
   World,
   Keys,
+  _getComponentStore,
+  _hasComponent,
+  _reserveEntity,
 } from "@javelin/ecs"
-import {exists} from "@javelin/lib"
-import {PatchStage} from "./interest.js"
+import {COMPILED_LABEL, exists} from "@javelin/lib"
 import {ReadStream, WriteStream} from "./stream.js"
 
 type EncodeEntity = ((entity: Entity, writeStream: WriteStream) => void) & {
@@ -57,13 +59,13 @@ let streamReadMethods: Record<Format, keyof ReadStream> = {
   number: "readF32",
 }
 
-export let getEncodedEntityLength = (subject: QuerySelector) => {
+export let getEncodedEntityLength = (subject: Type) => {
   let length = subjectLengths[subject.hash]
   if (exists(length)) {
     return length
   }
   length = 4
-  for (let component of subject.type.components) {
+  for (let component of subject.normalized.components) {
     let schema = getSchema(component)
     if (exists(schema) && schema !== Dynamic) {
       if (typeof schema === "string") {
@@ -90,26 +92,24 @@ let compileReadExp = (format: Format, stream: string) => {
   return `${stream}.${method}()`
 }
 
-export let compileEncodeEntity = (
-  selector: QuerySelector,
-  world: World,
-): EncodeEntity => {
-  let components = selector.type.components.filter(component => {
+export let compileEncodeEntity = (type: Type, world: World): EncodeEntity => {
+  let components = type.normalized.components.filter(component => {
     let schema = getSchema(component)
     return exists(schema) && schema !== Dynamic
   })
   let componentSchemas = components.map(getSchema) as Schema[]
   let componentStores = components.map(component =>
-    world.getComponentStore(component),
+    world[_getComponentStore](component),
   )
   let encodeEntity = Function(
-    "CS",
-    components.map((_, i) => `let s${i}=CS[${i}];`).join("") +
-      "return(e,s)=>{" +
+    "V",
+    COMPILED_LABEL +
+      components.map((_, i) => `let V${i}=V[${i}];`).join("") +
+      "return function encodeEntity(e,s){" +
       "s.writeU32(e);" +
       componentSchemas
         .map((schema, i) => {
-          let encodeExp = `let v${i}=s${i}[e];`
+          let encodeExp = `let v${i}=V${i}[e];`
           if (typeof schema === "string") {
             let writeExp = compileWriteExp(schema, "s", `v${i}`)
             encodeExp += `${writeExp};`
@@ -131,41 +131,53 @@ export let compileEncodeEntity = (
   return encodeEntity
 }
 
-export let compileDecodeComposeEntity = (
-  selector: QuerySelector,
+export let compileDecodeEntityCompose = (
+  type: Type,
   world: World,
 ): DecodeEntity => {
   let decodeEntity = Function(
     "S",
-    "W",
-    "return s=>{" +
+    "E",
+    "A",
+    "R",
+    COMPILED_LABEL +
+      "return function decodeEntityCompose(s){" +
       "let e=s.readU32();" +
-      `W.exists(e)?W.add(e,S):W.reserve(e,S)` +
+      `E(e)?A(e,S):R(e,S)` +
       "}",
-  )(selector, world)
+  )(
+    type,
+    world.exists.bind(world),
+    world.add.bind(world),
+    world[_reserveEntity].bind(world),
+  )
   return decodeEntity
 }
 
-export let compileDecodeEntityPatch = (
-  selector: QuerySelector,
+export let compileDecodeEntityUpdate = (
+  type: Type,
   world: World,
 ): DecodeEntity => {
-  let components = selector.type.components.filter(component => {
+  let components = type.normalized.components.filter(component => {
     let schema = getSchema(component)
     return exists(schema) && schema !== Dynamic
   })
   let componentSchemas = components.map(getSchema) as Schema[]
+  let componentStores = components.map(component =>
+    world[_getComponentStore](component),
+  )
   let componentValuesExp = componentSchemas
     .map((schema, i) => {
       let exp = ""
-      exp += `if(W.hasComponent(e,${components[i]})){`
+      exp += `if(H(e,${components[i]})){`
       if (typeof schema === "string") {
         let readExp = compileReadExp(schema, "s")
         exp += `v${i}[e]=${readExp}`
       } else {
+        exp += `let v=v${i}[e];`
         for (let schemaKey of Reflect.get(schema, Keys)) {
           let readExp = compileReadExp(schema[schemaKey], "s")
-          exp += `v${i}[e].${schemaKey}=${readExp};`
+          exp += `v.${schemaKey}=${readExp};`
         }
       }
       exp += "}else{"
@@ -186,39 +198,39 @@ export let compileDecodeEntityPatch = (
     .join("")
   let decodeEntity = Function(
     "S",
-    "W",
-    components
-      .map((component, i) => `let v${i}=W.getComponentStore(${component});`)
-      .join("") +
-      "return s=>{" +
+    "V",
+    "H",
+    COMPILED_LABEL +
+      components.map((_, i) => `let v${i}=V[${i}];`).join("") +
+      "return function decodeEntityUpdate(s){" +
       "let e=s.readU32();" +
       componentValuesExp +
       "}",
-  )(selector, world)
+  )(type, componentStores, world[_hasComponent].bind(world))
   return decodeEntity
 }
 
 export class EntityEncoder {
   static encodersByWorld = new WeakMap<World, EncoderMap>()
 
-  readonly encode
-  readonly decodeCompose
-  readonly decodePatch
+  readonly encodeEntity
+  readonly decodeEntityCompose
+  readonly decodeEntityUpdate
   readonly bytesPerEntity
 
-  static getEntityEncoder(world: World, selector: QuerySelector) {
+  static getEntityEncoder(world: World, type: Type) {
     let encoders = this.encodersByWorld.get(world)
     if (!exists(encoders)) {
       encoders = []
       this.encodersByWorld.set(world, encoders)
     }
-    return (encoders[selector.hash] ??= new EntityEncoder(selector, world))
+    return (encoders[type.hash] ??= new EntityEncoder(type, world))
   }
 
-  constructor(selector: QuerySelector, world: World) {
-    this.encode = compileEncodeEntity(selector, world)
-    this.decodeCompose = compileDecodeComposeEntity(selector, world)
-    this.decodePatch = compileDecodeEntityPatch(selector, world)
-    this.bytesPerEntity = getEncodedEntityLength(selector)
+  constructor(type: Type, world: World) {
+    this.encodeEntity = compileEncodeEntity(type, world)
+    this.decodeEntityCompose = compileDecodeEntityCompose(type, world)
+    this.decodeEntityUpdate = compileDecodeEntityUpdate(type, world)
+    this.bytesPerEntity = getEncodedEntityLength(type)
   }
 }

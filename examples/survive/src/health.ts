@@ -10,4 +10,4 @@ export let pruneDeadSystem = (world: j.World) =>
   })
 
 export let healthPlugin = (app: j.App) =>
-  app.addSystemToGroup(j.Group.LateUpdate, pruneDeadSystem)
+  app.addSystemToGroup(j.FixedGroup.LateUpdate, pruneDeadSystem)

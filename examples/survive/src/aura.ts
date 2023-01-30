@@ -32,4 +32,5 @@ export let pushAuraSystem = (world: j.World) =>
       })
   })
 
-export let auraPlugin = (app: j.App) => app.addSystem(pushAuraSystem)
+export let auraPlugin = (app: j.App) =>
+  app.addSystemToGroup(j.FixedGroup.Update, pushAuraSystem)

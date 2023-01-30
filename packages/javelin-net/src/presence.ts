@@ -1,4 +1,4 @@
-import {Component, Entity, QuerySelector, type, World} from "@javelin/ecs"
+import {Component, Entity, Type, type, World} from "@javelin/ecs"
 import {EntityEncoder} from "./encode.js"
 import {Interest, SubjectPrioritizer} from "./interest.js"
 import {ProtocolMessageType} from "./protocol.js"
@@ -8,10 +8,10 @@ import {ProtocolMessageType} from "./protocol.js"
  */
 export let presenceMessageType: ProtocolMessageType<Presence> = {
   encode(writeStream, world, presence) {
-    let {subjectSelector} = presence
-    let subjectQuery = world.of(subjectSelector)
-    let subjectMonitor = world.monitor(subjectSelector)
-    let subjectComponents = subjectSelector.type.components
+    let {subjectType} = presence
+    let subjectQuery = world.of(subjectType)
+    let subjectMonitor = world.monitor(subjectType)
+    let subjectComponents = subjectType.normalized.components
     let subjectCount = presence.isNew()
       ? subjectQuery.length
       : subjectMonitor.includedLength
@@ -22,9 +22,7 @@ export let presenceMessageType: ProtocolMessageType<Presence> = {
       .eachExcluded(subject => {
         presence.subjectQueue.remove(subject)
       })
-    writeStream.grow(
-      1 + 2 + subjectSelector.type.components.length * 4 + subjectCount * 4,
-    )
+    writeStream.grow(1 + 2 + subjectComponents.length * 4 + subjectCount * 4)
     // (1)
     writeStream.writeU8(subjectComponents.length)
     // (2)
@@ -53,13 +51,13 @@ export let presenceMessageType: ProtocolMessageType<Presence> = {
     for (let i = 0; i < subjectComponentsLength; i++) {
       subjectComponents.push(readStream.readU32() as Component)
     }
-    let subjectSelector = type.apply(null, subjectComponents)
-    let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectSelector)
+    let subjectType = type.apply(null, subjectComponents)
+    let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
     // (3)
     let subjectCount = readStream.readU16()
     // (4)
     for (let i = 0; i < subjectCount; i++) {
-      subjectEncoder.decodeCompose(readStream)
+      subjectEncoder.decodeEntityCompose(readStream)
     }
   },
 }
@@ -69,10 +67,10 @@ export class Presence extends Interest {
 
   constructor(
     entity: Entity,
-    subjectSelector: QuerySelector,
+    subjectType: Type,
     subjectPrioritizer: SubjectPrioritizer,
   ) {
-    super(entity, subjectSelector, subjectPrioritizer)
+    super(entity, subjectType, subjectPrioritizer)
     this.#new = true
   }
 
@@ -86,7 +84,7 @@ export class Presence extends Interest {
 
   prioritize(world: World) {
     world
-      .monitor(this.subjectSelector)
+      .monitor(this.subjectType)
       .eachIncluded(subject => {
         this.subjectQueue.push(subject, 0)
       })
@@ -99,6 +97,6 @@ export class Presence extends Interest {
 
 export let makePresence = (
   entity: Entity,
-  subjectSelector: QuerySelector,
+  subjectType: Type,
   subjectPrioritizer: SubjectPrioritizer = () => 1,
-) => new Presence(entity, subjectSelector, subjectPrioritizer)
+) => new Presence(entity, subjectType, subjectPrioritizer)

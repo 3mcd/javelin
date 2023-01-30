@@ -1,11 +1,4 @@
-import {
-  Component,
-  Entity,
-  QuerySelector,
-  resource,
-  type,
-  World,
-} from "@javelin/ecs"
+import {Component, Entity, Type, resource, type, World} from "@javelin/ecs"
 import {EntityEncoder} from "./encode.js"
 import {PriorityQueueInt} from "./priority_queue_int.js"
 import {ProtocolMessageType} from "./protocol.js"
@@ -23,9 +16,9 @@ export type SubjectPrioritizer = (
 
 export let interestMessageType: ProtocolMessageType<Interest> = {
   encode(writeStream, world, interest) {
-    let {subjectSelector} = interest
-    let subjectComponents = interest.subjectSelector.type.components
-    let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectSelector)
+    let {subjectType} = interest
+    let subjectComponents = interest.subjectType.normalized.components
+    let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
     let mtuDiff = MTU_SIZE - writeStream.offset
     if (mtuDiff <= 0) {
       return
@@ -33,7 +26,7 @@ export let interestMessageType: ProtocolMessageType<Interest> = {
     let growAmount =
       1 +
       2 +
-      subjectSelector.type.components.length * 4 +
+      subjectType.normalized.components.length * 4 +
       Math.min(
         mtuDiff,
         interest.subjectQueue.length * subjectEncoder.bytesPerEntity,
@@ -51,7 +44,7 @@ export let interestMessageType: ProtocolMessageType<Interest> = {
     while (writeStream.offset < MTU_SIZE && !interest.subjectQueue.isEmpty()) {
       let entity = interest.subjectQueue.pop()!
       // (4)
-      subjectEncoder.encode(entity, writeStream)
+      subjectEncoder.encodeEntity(entity, writeStream)
       subjectCount++
     }
     writeStream.writeU16At(subjectCount, subjectCountOffset)
@@ -64,13 +57,13 @@ export let interestMessageType: ProtocolMessageType<Interest> = {
     for (let i = 0; i < subjectComponentsLength; i++) {
       subjectComponents.push(readStream.readU32() as Component)
     }
-    let subjectSelector = type.apply(null, subjectComponents)
-    let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectSelector)
+    let subjectType = type.apply(null, subjectComponents)
+    let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
     // (3)
     let subjectCount = readStream.readU16()
     // (4)
     for (let i = 0; i < subjectCount; i++) {
-      subjectEncoder.decodePatch(readStream)
+      subjectEncoder.decodeEntityUpdate(readStream)
     }
   },
 }
@@ -79,21 +72,21 @@ export class Interest {
   readonly entity: Entity
   readonly subjectQueue
   readonly subjectPrioritizer
-  readonly subjectSelector
+  readonly subjectType
 
   constructor(
     entity: Entity,
-    subjectSelector: QuerySelector,
+    subjectType: Type,
     subjectPrioritizer: SubjectPrioritizer,
   ) {
     this.entity = entity
     this.subjectQueue = new PriorityQueueInt<Entity>()
     this.subjectPrioritizer = subjectPrioritizer
-    this.subjectSelector = subjectSelector
+    this.subjectType = subjectType
   }
 
   prioritize(world: World) {
-    world.of(this.subjectSelector).each(subject => {
+    world.of(this.subjectType).each(subject => {
       let currSubjectPriority = this.subjectQueue.getPriority(subject)
       let nextSubjectPriority =
         (currSubjectPriority ?? 0) +
@@ -105,6 +98,6 @@ export class Interest {
 
 export let makeInterest = (
   entity: Entity,
-  subjectSelector: QuerySelector,
+  subjectType: Type,
   subjectPrioritizer: SubjectPrioritizer = () => 1,
-) => new Interest(entity, subjectSelector, subjectPrioritizer)
+) => new Interest(entity, subjectType, subjectPrioritizer)

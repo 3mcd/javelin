@@ -1,7 +1,6 @@
 import * as j from "@javelin/ecs"
 import {Aura} from "./aura.js"
 import {Box} from "./box.js"
-import {Clock} from "./clock.js"
 import {DisposeTimer} from "./dispose.js"
 import {Enemy} from "./enemy.js"
 import {Health, pruneDeadSystem} from "./health.js"
@@ -20,13 +19,13 @@ let makeLoot = (world: j.World, x: number, y: number) =>
     LootBag,
     {x, y},
     {x: 1, y: 1},
-    world.getResource(Clock).time + 10,
+    world.getResource(j.FixedTime).currentTime + 10,
   )
 
 let dropLootSystem = (world: j.World) =>
   world.monitorImmediate(Enemy).eachExcluded(enemy => {
     if (Math.random() > 0.2) {
-      let {x, y} = world.get(enemy, Position)
+      let {x, y} = world.get(enemy, Position)!
       let loot = makeLoot(world, x, y)
       world.create(
         j.type(j.ChildOf(loot), HealthPotion),
@@ -68,12 +67,12 @@ let pickUpLootSystem = (world: j.World) =>
 export let lootPlugin = (app: j.App) =>
   app
     .addSystemToGroup(
-      j.Group.LateUpdate,
+      j.FixedGroup.LateUpdate,
       dropLootSystem,
       j.after(pruneDeadSystem),
     )
     .addSystemToGroup(
-      j.Group.LateUpdate,
+      j.FixedGroup.LateUpdate,
       pickUpLootSystem,
       j.after(dropLootSystem),
     )

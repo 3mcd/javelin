@@ -2,7 +2,6 @@ import * as j from "@javelin/ecs"
 import {Aura} from "./aura.js"
 import {Box} from "./box.js"
 import {makeBullet} from "./bullet.js"
-import {Clock} from "./clock.js"
 import {Health} from "./health.js"
 import {Quiver} from "./loot.js"
 import {Position} from "./position.js"
@@ -16,7 +15,7 @@ export const PLAYER_MAX_HEALTH = 10
 export let IsPlayer = j.tag()
 export let Player = j.type(IsPlayer, Position, Box, Health, Quiver, Aura)
 
-export let makePlayer = (world: j.World) =>
+export let makePlayerSystem = (world: j.World) =>
   world.create(
     Player,
     {x: 0, y: 0},
@@ -53,7 +52,7 @@ export let playerMovementSystem = (world: j.World) =>
     })
 
 export let playerWeaponsSystem = (world: j.World) => {
-  let clock = world.getResource(Clock)
+  let time = world.getResource(j.FixedTime)
   world
     .of(Player)
     .as(Position, Quiver)
@@ -74,7 +73,7 @@ export let playerWeaponsSystem = (world: j.World) => {
           bulletY,
           playerPos.x,
           playerPos.y,
-          clock.time + 1,
+          time.currentTime + 1,
           bulletPierce,
         )
         world.set(player, Quiver, playerQuiver)
@@ -84,10 +83,11 @@ export let playerWeaponsSystem = (world: j.World) => {
 
 export let playerPlugin = (app: j.App) =>
   app
-    .addSystemToGroup(j.Group.Init, makePlayer)
-    .addSystem(playerMovementSystem)
-    .addSystem(
+    .addInitSystem(makePlayerSystem)
+    .addSystemToGroup(j.FixedGroup.EarlyUpdate, playerMovementSystem)
+    .addSystemToGroup(
+      j.FixedGroup.EarlyUpdate,
       playerWeaponsSystem,
       null,
-      (world: j.World) => world.getResource(Clock).tick % 100 === 0,
+      (world: j.World) => world.getResource(j.FixedTick) % 100 === 0,
     )

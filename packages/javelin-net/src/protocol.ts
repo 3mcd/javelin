@@ -3,13 +3,13 @@ import {expect} from "@javelin/lib"
 import {ReadStream, WriteStream} from "./stream.js"
 
 export interface IProtocol {
-  encode<T>(
+  encodeMessage<T>(
     world: World,
     stream: WriteStream,
     messageType: ProtocolMessageType<T>,
     message: T,
   ): void
-  decode(world: World, stream: ReadStream): void
+  decodeMessage(world: World, stream: ReadStream): void
   addMessageType(messageType: ProtocolMessageType<unknown>): IProtocol
 }
 
@@ -29,7 +29,7 @@ class ProtocolBuilder implements IProtocol {
     this.#messageTypeIds = new Map<ProtocolMessageType<unknown>, number>()
   }
 
-  encode<T>(
+  encodeMessage<T>(
     world: World,
     stream: WriteStream,
     messageType: ProtocolMessageType<T>,
@@ -48,7 +48,7 @@ class ProtocolBuilder implements IProtocol {
     stream.writeU32At(messageLength, messageLengthOffset)
   }
 
-  decode(world: World, stream: ReadStream) {
+  decodeMessage(world: World, stream: ReadStream) {
     let bytes = stream.bytes()
     while (stream.offset < bytes.byteLength) {
       let messageTypeId = stream.readU8()

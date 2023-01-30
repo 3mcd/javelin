@@ -14,24 +14,28 @@ suite("Presence", () => {
   test("encode/decode", () => {
     let count = 20
     let stream = new WriteStream()
-    let interest = makePresence(99 as Entity, T)
     let sourceApp = app()
     let targetApp = app()
+    let interest = makePresence(sourceApp.world.create(), T)
     let entities: Entity[] = []
-    let bValue = {x: 5, y: 6}
     sourceApp
       .addInitSystem(world => {
         for (let i = 0; i < count; i++) {
-          entities.push(world.create(T, bValue))
+          entities.push(world.create(T))
         }
       })
       .step()
       .step()
-    protocol.encode(sourceApp.world, stream, presenceMessageType, interest)
-    protocol.decode(targetApp.world, new ReadStream(stream.bytes()))
+    protocol.encodeMessage(
+      sourceApp.world,
+      stream,
+      presenceMessageType,
+      interest,
+    )
+    protocol.decodeMessage(targetApp.world, new ReadStream(stream.bytes()))
     targetApp.step()
     for (let i = 0; i < count; i++) {
-      expect(targetApp.world.get(entities[i], B)).toEqual(bValue)
+      expect(targetApp.world.get(entities[i], B)).toEqual({x: 0, y: 0})
     }
   })
 })

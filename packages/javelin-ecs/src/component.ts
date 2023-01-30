@@ -5,17 +5,17 @@ import {Express, Schema, SchemaOf} from "./schema.js"
 /**
  * @private
  */
-export const Keys = Symbol()
+export const _keys = Symbol()
 
 /**
  * @private
  */
-export const Dynamic = Symbol()
+export const _dynamic = Symbol()
 
 /**
  * @private
  */
-export type Dynamic = typeof Dynamic
+export type Dynamic = typeof _dynamic
 
 export declare const Tag: unique symbol
 export type Tag = typeof Tag
@@ -77,7 +77,7 @@ export let setSchema = (component: Component, schema: Schema | Dynamic) =>
  */
 export let express = <T>(component: Component<T>): ComponentValue<T> => {
   let schema = expect(getSchema(component))
-  assert(schema !== Dynamic)
+  assert(schema !== _dynamic)
   if (typeof schema === "string") {
     return 0 as unknown as ComponentValue<T>
   }
@@ -102,12 +102,12 @@ export function makeValueComponent<T extends Schema>(schema: T): Component<T>
 export function makeValueComponent(schema?: Schema) {
   let component = makeTagComponent() as Component
   if (typeof schema === "object") {
-    Object.defineProperty(schema, Keys, {
+    Object.defineProperty(schema, _keys, {
       value: Object.keys(schema).sort(),
       enumerable: false,
     })
   }
-  setSchema(component, schema ?? Dynamic)
-  componentSchemas[component] = schema ?? Dynamic
+  setSchema(component, schema ?? _dynamic)
+  componentSchemas[component] = schema ?? _dynamic
   return component
 }

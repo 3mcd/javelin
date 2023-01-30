@@ -1,4 +1,13 @@
-import { App, Group, resource, type, value, World } from "@javelin/ecs"
+import {
+  App,
+  Group,
+  resource,
+  type,
+  value,
+  World,
+  _commitStagedChanges,
+  _emitStagedChanges
+} from "@javelin/ecs"
 import { exists, Maybe } from "@javelin/lib"
 import { IAwareness } from "./awareness.js"
 import { interestMessageType } from "./interest.js"
@@ -18,14 +27,19 @@ let writeStreamReliable = new WriteStream()
 let writeStreamUnreliable = new WriteStream()
 let readStream = new ReadStream(new Uint8Array())
 
-let serverUpdateClientsSystem = (world: World) => {
+let sendServerMessagesSystem = (world: World) => {
   let protocol = world.getResource(Protocol)
-  world.of(Client).each((_, transport, awareness) => {
+  world.of(Client).each(function sendServerMessages(_, transport, awareness) {
     for (let i = 0; i < awareness.presences.length; i++) {
       let presence = awareness.presences[i]
       presence.prioritize(world)
-      protocol.encode(world, writeStreamReliable, presenceMessageType, presence)
-      protocol.encode(
+      protocol.encodeMessage(
+        world,
+        writeStreamReliable,
+        presenceMessageType,
+        presence,
+      )
+      protocol.encodeMessage(
         world,
         writeStreamUnreliable,
         interestMessageType,
@@ -39,18 +53,18 @@ let serverUpdateClientsSystem = (world: World) => {
   })
 }
 
-let clientProcessMessagesSystem = (world: World) => {
+let processClientMessagesSystem = (world: World) => {
   let protocol = world.getResource(Protocol)
   let remoteWorld = world.getResource(RemoteWorld)
-  world.of(Transport).each((_, transport) => {
+  world.of(Transport).each(function processClientMessages(_, transport) {
     let message: Maybe<Uint8Array>
     while (exists((message = transport.pull()))) {
       readStream.reset(message)
-      protocol.decode(remoteWorld, readStream)
+      protocol.decodeMessage(remoteWorld, readStream)
     }
   })
-  remoteWorld.emitStagedChanges()
-  remoteWorld.commitStagedChanges()
+  remoteWorld[_emitStagedChanges]()
+  remoteWorld[_commitStagedChanges]()
 }
 
 export let clientPlugin = (app: App) => {
@@ -66,7 +80,7 @@ export let clientPlugin = (app: App) => {
     let remoteWorld = new World()
     app.addResource(RemoteWorld, remoteWorld)
   }
-  app.addSystemToGroup(Group.Early, clientProcessMessagesSystem)
+  app.addSystemToGroup(Group.Early, processClientMessagesSystem)
 }
 
 export let serverPlugin = (app: App) => {
@@ -78,5 +92,5 @@ export let serverPlugin = (app: App) => {
   protocol
     .addMessageType(presenceMessageType)
     .addMessageType(interestMessageType)
-  app.addSystemToGroup(Group.Early, serverUpdateClientsSystem)
+  app.addSystemToGroup(Group.Early, sendServerMessagesSystem)
 }
