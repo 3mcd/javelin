@@ -175,9 +175,10 @@ export let compileDecodeEntityUpdate = (
         let readExp = compileReadExp(schema, "s")
         exp += `v${i}[e]=${readExp}`
       } else {
+        exp += `let v=v${i}[e];`
         for (let schemaKey of Reflect.get(schema, Keys)) {
           let readExp = compileReadExp(schema[schemaKey], "s")
-          exp += `v${i}[e].${schemaKey}=${readExp};`
+          exp += `v.${schemaKey}=${readExp};`
         }
       }
       exp += "}else{"
