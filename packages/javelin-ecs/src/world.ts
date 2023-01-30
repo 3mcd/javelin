@@ -431,7 +431,7 @@ export class World {
   }
 
   /**
-   * Upgrade an entity id to a complete entity handle.
+   * Upgrade an entity id to a versioned entity handle.
    * @private
    */
   qualify(entityId: number): Maybe<Entity> {
@@ -440,6 +440,10 @@ export class World {
     return makeId(entityId, entityIdVersion) as Entity
   }
 
+  /**
+   * Check to see if an entity is alive. Returns `true` if the entity is alive,
+   * otherwise returns `false`.
+   */
   exists(entity: Entity): boolean {
     try {
       this.#validateEntityVersion(entity)
@@ -450,17 +454,25 @@ export class World {
   }
 
   /**
-   * Create an entity.
-   * @example <caption>Create an entity with no data</caption>
+   * Create a void entity.
+   * @example <caption>Create an entity with no components</caption>
    * let entity = world.create()
-   * @example <caption>Create an entity with a type</caption>
+   */
+  create(): Entity
+  /**
+   * Create an entity with components.
+   * @example
    * let Body = type(Position, Velocity)
    * let entity = world.create(Body)
    */
   create<T extends Component[]>(
     selector: QuerySelector<T>,
     ...selectorValues: ComponentInitValues<T>
-  ): Entity {
+  ): Entity
+  create(
+    selector: QuerySelector = QuerySelector.VOID,
+    ...selectorValues: unknown[]
+  ) {
     let entity = this.#allocEntityId()
     let nextNode = this.graph.nodeOfType(selector.type)
     this.#relocateEntity(entity, undefined, nextNode)
