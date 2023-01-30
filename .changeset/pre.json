@@ -2,10 +2,10 @@
   "mode": "pre",
   "tag": "alpha",
   "initialVersions": {
-    "@javelin/ecs": "2.0.0-alpha.3",
-    "@javelin/lib": "2.0.0-alpha.3",
-    "@javelin/net": "2.0.0-alpha.3",
-    "@javelin/perf": "2.0.0-alpha.3"
+    "@javelin/ecs": "2.0.0-alpha.4",
+    "@javelin/lib": "2.0.0-alpha.4",
+    "@javelin/net": "2.0.0-alpha.4",
+    "@javelin/perf": "2.0.0-alpha.4"
   },
   "changesets": [
     "bright-guests-travel",

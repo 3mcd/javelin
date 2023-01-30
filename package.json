@@ -3,7 +3,7 @@
   "private": true,
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "license": "MIT",
-  "version": "2.0.0-alpha.0",
+  "version": "2.0.0-alpha.4",
   "description": "",
   "type": "module",
   "main": "index.js",
