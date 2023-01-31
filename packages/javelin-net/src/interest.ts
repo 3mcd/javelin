@@ -19,7 +19,7 @@ export let interestMessageType: ProtocolMessageType<Interest> = {
   encode(writeStream, world, interest) {
     let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
     let {subjectType} = interest
-    let subjectComponents = interest.subjectType.normalized.components
+    let subjectComponents = subjectType.normalized.components
     let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
     let mtuDiff = MTU_SIZE - writeStream.offset
     if (mtuDiff <= 0) {
