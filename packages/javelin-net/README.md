@@ -1,9 +1,19 @@
 # @javelin/net
 
 ```ts
+import * as jn from "@javelin/net"
+
+let PlayerStatus = j.slot(Alive, Dead)
+let Body = j.type(Position, Velocity, Rotation, PlayerStatus)
+let Player = j.type(Health, Body)
+
+let networkModel = {
+  components: [Position, Velocity, Rotation, PlayerStatus],
+}
+
 app
   // configure networked components
-  .addResource(jn.NetworkModel, [Position, Velocity])
+  .addResource(jn.NetworkModel, networkModel)
   // install server plugin
   .addPlugin(jn.serverPlugin)
 ```
@@ -11,10 +21,6 @@ app
 When and how components are sent is configured using per-client **awarenesses**. An awareness is composed of **presences**—the entities (called subjects) that are in scope for a given client, and **interests**—the components of present entities that a client should know about.
 
 ```ts
-let PlayerStatus = j.slot(Alive, Dead)
-let Body = j.type(Position, Velocity, Rotation)
-let Player = j.type(Health, Body)
-
 let client = world.create()
 
 let alivePlayerPresence = jn.presence(j.type(Player, PlayerStatus(Alive)))
