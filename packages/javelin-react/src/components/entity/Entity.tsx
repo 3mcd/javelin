@@ -1,4 +1,4 @@
-import { Entity as JavelinEntity, QueryTerms, type } from "@javelin/ecs"
+import { Entity as JavelinEntity, QueryTerm, QueryTerms, type } from "@javelin/ecs"
 import * as React from "react"
 import { useEntitiesMonitor } from "../../hooks/use-monitor/useMonitor"
 import useIsomorphicLayoutEffect from "../../hooks/useIsomorphicLayoutEffect"
@@ -33,7 +33,7 @@ export const Entity: React.FC<React.PropsWithChildren<EntityProps>> = ({ entity:
   return <EntityContext.Provider value={entityRef.current}>{children}</EntityContext.Provider>
 }
 
-export const Entities: React.FC<React.PropsWithChildren<{ query: QueryTerms }>> = ({ children, query }) => {
+export const Entities: React.FC<React.PropsWithChildren<{ query: QueryTerms | QueryTerm }>> = ({ children, query }) => {
   const entities = useEntitiesMonitor(query)
 
   return (

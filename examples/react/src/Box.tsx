@@ -80,7 +80,7 @@ export const BoxRender: React.FC<BoxProps> = (props) => {
 
 
 export const BoxEntities: React.FC = () => {
-  return <Entities query={[Box]}>
+  return <Entities query={Box}>
     <BoxRender color="#fff666" width={1} height={1} />
   </Entities>
 }
