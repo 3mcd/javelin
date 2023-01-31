@@ -1,12 +1,16 @@
 export { DefaultGroup as Group, makeApp as app } from "./app.js"
 export type { App, Constrain, Plugin } from "./app.js"
-export { getSchema, _dynamic as Dynamic, _keys as Keys } from "./component.js"
+export { getSchema, _dynamic, _keys } from "./component.js"
 export type { Component } from "./component.js"
 export type { Entity } from "./entity.js"
 export {
   advanceFixedTickSystem,
-  advanceFixedTimestepSystem, FixedGroup, FixedTick,
-  FixedTime, FixedTimestepConfig
+  advanceFixedTimestepSystem,
+  FixedGroup,
+  FixedTick,
+  FixedTime,
+  FixedTimestepConfig,
+  FixedTimestepTargetTime
 } from "./fixed_timestep_plugin.js"
 export { Node } from "./graph.js"
 export { Monitor } from "./monitor.js"
@@ -24,12 +28,18 @@ export type { SystemImpl as System } from "./system.js"
 export { advanceTickSystem, Tick } from "./tick_plugin.js"
 export { advanceTimeSystem, Time } from "./time_plugin.js"
 export {
-  ChildOf, makeRelation as relation,
+  ChildOf, isRelation,
+  isRelationship, makeRelation as relation,
   makeSlot as slot,
-  makeTagType as tag, makeType as type, makeValueType as value, NormalizedType, normalizeQueryTerms,
-  Not, Type
+  makeTagType as tag,
+  makeType as type,
+  makeValueType as value,
+  NormalizedType,
+  normalizeQueryTerms,
+  Not,
+  Type
 } from "./type.js"
-export type { QueryTerm, QueryTerms } from "./type.js"
+export type { QueryTerm, QueryTerms, Relation } from "./type.js"
 export {
   Phase,
   World,

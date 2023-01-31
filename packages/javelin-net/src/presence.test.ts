@@ -2,7 +2,7 @@ import {app, Entity, tag, type, value} from "@javelin/ecs"
 import {expect, suite, test} from "vitest"
 import {makePresence, presenceMessageType} from "./presence.js"
 import {makeProtocol} from "./protocol.js"
-import {ReadStream, WriteStream} from "./stream.js"
+import {ReadStream, WriteStream} from "./structs/stream.js"
 
 let A = tag()
 let B = value({x: "f32", y: "f32"})
@@ -32,7 +32,11 @@ suite("Presence", () => {
       presenceMessageType,
       interest,
     )
-    protocol.decodeMessage(targetApp.world, new ReadStream(stream.bytes()))
+    protocol.decodeMessage(
+      targetApp.world,
+      new ReadStream(stream.bytes()),
+      0 as Entity,
+    )
     targetApp.step()
     for (let i = 0; i < count; i++) {
       expect(targetApp.world.get(entities[i], B)).toEqual({x: 0, y: 0})

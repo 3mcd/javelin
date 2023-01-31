@@ -1,28 +1,22 @@
 import * as j from "@javelin/ecs"
-import {
-  clientPlugin,
-  RemoteWorld,
-  Transport,
-  WebsocketTransport,
-} from "@javelin/net"
-import {Position, Vector2} from "../../server/model.js"
+import * as jn from "@javelin/net"
+import {networkModel, Position, Vector2} from "../../server/model.js"
 
 let socket = new WebSocket("ws://localhost:8080")
 
 let app = j
   .app()
+  .addResource(jn.NetworkModel, networkModel)
   .addInitSystem(world => {
-    world.create(j.type(Transport), new WebsocketTransport(socket))
+    world.create(j.type(jn.Transport), new jn.WebsocketTransport(socket))
   })
   .addSystem(world => {
-    world
-      .getResource(RemoteWorld)
-      .of(Position)
-      .each((e, p) => {
-        renderEntity(e, p)
-      })
+    let serverWorld = world.getResource(jn.ServerWorld)
+    serverWorld.of(Position).each((e, p) => {
+      renderEntity(e, p)
+    })
   })
-  .use(clientPlugin)
+  .use(jn.clientPlugin)
 
 let loop = () => {
   app.step()

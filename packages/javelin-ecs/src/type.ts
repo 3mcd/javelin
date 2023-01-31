@@ -220,7 +220,7 @@ export let makeRelation = (): Relation => {
 export let getRelation = (relationId: number) => relations[relationId]
 
 export let isRelation = (object: object): object is Relation =>
-  "relation_id" in object
+  "relationId" in object
 
 export let isRelationship = (term: Component) => idHi(term) > 0
 

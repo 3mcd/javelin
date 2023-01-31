@@ -2,7 +2,7 @@ import {app, Entity, tag, type, value} from "@javelin/ecs"
 import {perf} from "@javelin/perf"
 import {makePresence, presenceMessageType} from "./presence.js"
 import {makeProtocol} from "./protocol.js"
-import {ReadStream, WriteStream} from "./stream.js"
+import {ReadStream, WriteStream} from "./structs/stream.js"
 
 let protocol = makeProtocol().addMessageType(presenceMessageType)
 
@@ -32,7 +32,7 @@ perf("presenceMessageType.decode", () => {
   let count = 10
   let T = type(a, b, c)
   let writeStream = new WriteStream()
-  let interest = makePresence(99 as Entity, T)
+  let interest = makePresence(0 as Entity, T)
   let {world: targetWorld} = app()
   let {world: sourceWorld} = app()
     .addInitSystem(world => {
@@ -50,6 +50,6 @@ perf("presenceMessageType.decode", () => {
   )
   let readStream = new ReadStream(writeStream.bytes())
   return () => {
-    protocol.decodeMessage(targetWorld, readStream)
+    protocol.decodeMessage(targetWorld, readStream, 0 as Entity)
   }
 })
