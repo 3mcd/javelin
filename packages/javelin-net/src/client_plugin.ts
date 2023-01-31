@@ -86,10 +86,6 @@ export let clientPlugin = (app: j.App) => {
     protocol = makeProtocol()
     app.addResource(Protocol, protocol)
   }
-  protocol
-    .addMessageType(presenceMessageType)
-    .addMessageType(interestMessageType)
-    .addMessageType(clockSyncMessageType)
   if (!app.hasResource(ServerWorld)) {
     let serverWorld = new j.World()
     serverWorld.create(ClockSyncPayload)

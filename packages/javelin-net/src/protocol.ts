@@ -1,5 +1,8 @@
 import {Entity, World} from "@javelin/ecs"
 import {expect} from "@javelin/lib"
+import {clockSyncMessageType} from "./clock_sync.js"
+import {interestMessageType} from "./interest.js"
+import {presenceMessageType} from "./presence.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
 
 export interface IProtocol {
@@ -73,4 +76,8 @@ class ProtocolBuilder implements IProtocol {
   }
 }
 
-export let makeProtocol = () => new ProtocolBuilder()
+export let makeProtocol = () =>
+  new ProtocolBuilder()
+    .addMessageType(presenceMessageType)
+    .addMessageType(interestMessageType)
+    .addMessageType(clockSyncMessageType)

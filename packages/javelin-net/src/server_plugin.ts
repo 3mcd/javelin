@@ -84,10 +84,6 @@ export let serverPlugin = (app: j.App) => {
     protocol = makeProtocol()
     app.addResource(Protocol, protocol)
   }
-  protocol
-    .addMessageType(presenceMessageType)
-    .addMessageType(interestMessageType)
-    .addMessageType(clockSyncMessageType)
   app
     .addResource(
       NormalizedNetworkModel,
