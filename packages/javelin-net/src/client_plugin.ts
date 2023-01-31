@@ -1,14 +1,19 @@
 import * as j from "@javelin/ecs"
-import {exists, Maybe} from "@javelin/lib"
+import {exists, expect, Maybe} from "@javelin/lib"
 import {ClockSyncImpl, clockSyncMessageType} from "./clock_sync.js"
 import {ClockSyncPayload, Transport} from "./components.js"
 import {interestMessageType} from "./interest.js"
+import {
+  NetworkModel,
+  NormalizedNetworkModel,
+  normalizeNetworkModel,
+} from "./network_model.js"
 import {presenceMessageType} from "./presence.js"
 import {makeProtocol} from "./protocol.js"
 import {Protocol} from "./resources.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
 
-export let RemoteWorld = j.resource<j.World>()
+export let ServerWorld = j.resource<j.World>()
 export let ClockSync = j.resource<ClockSyncImpl>()
 export let ClockSyncRequestInterval = j.resource<number>()
 export let ClockSyncRequestTime = j.resource<number>()
@@ -18,23 +23,23 @@ let readStream = new ReadStream(new Uint8Array())
 
 let processClientMessagesSystem = (world: j.World) => {
   let protocol = world.getResource(Protocol)
-  let remoteWorld = world.getResource(RemoteWorld)
+  let serverWorld = world.getResource(ServerWorld)
   world.of(Transport).each(function processClientMessages(client, transport) {
     let message: Maybe<Uint8Array>
     while (exists((message = transport.pull()))) {
       readStream.reset(message)
-      protocol.decodeMessage(remoteWorld, readStream, client)
+      protocol.decodeMessage(serverWorld, readStream, client)
     }
   })
-  remoteWorld[j._emitStagedChanges]()
-  remoteWorld[j._commitStagedChanges]()
+  serverWorld[j._emitStagedChanges]()
+  serverWorld[j._commitStagedChanges]()
 }
 
 let processClientClockSyncResponsesSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
   let clockSync = world.getResource(ClockSync)
-  let remoteWorld = world.getResource(RemoteWorld)
-  remoteWorld.of(ClockSyncPayload).each((_, clockSyncPayload) => {
+  let serverWorld = world.getResource(ServerWorld)
+  serverWorld.of(ClockSyncPayload).each((_, clockSyncPayload) => {
     if (clockSyncPayload.serverTime > 0) {
       clockSync.addSample(
         clockSyncPayload.serverTime -
@@ -85,12 +90,16 @@ export let clientPlugin = (app: j.App) => {
     .addMessageType(presenceMessageType)
     .addMessageType(interestMessageType)
     .addMessageType(clockSyncMessageType)
-  if (!app.hasResource(RemoteWorld)) {
-    let remoteWorld = new j.World()
-    remoteWorld.create(ClockSyncPayload)
-    remoteWorld[j._emitStagedChanges]()
-    remoteWorld[j._commitStagedChanges]()
-    app.addResource(RemoteWorld, remoteWorld)
+  if (!app.hasResource(ServerWorld)) {
+    let serverWorld = new j.World()
+    serverWorld.create(ClockSyncPayload)
+    serverWorld[j._emitStagedChanges]()
+    serverWorld[j._commitStagedChanges]()
+    app.addResource(ServerWorld, serverWorld)
+    serverWorld.setResource(
+      NormalizedNetworkModel,
+      normalizeNetworkModel(expect(app.getResource(NetworkModel))),
+    )
   }
   if (!app.hasResource(ClockSyncRequestInterval)) {
     app.addResource(ClockSyncRequestInterval, 0.2)

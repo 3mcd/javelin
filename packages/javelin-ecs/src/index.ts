@@ -1,6 +1,6 @@
 export {DefaultGroup as Group, makeApp as app} from "./app.js"
 export type {App, Constrain, Plugin} from "./app.js"
-export {getSchema, _dynamic as Dynamic, _keys as Keys} from "./component.js"
+export {getSchema, _dynamic, _keys} from "./component.js"
 export type {Component} from "./component.js"
 export type {Entity} from "./entity.js"
 export {
@@ -34,7 +34,10 @@ export {
   normalizeQueryTerms,
   Not,
   Type,
+  isRelation,
+  isRelationship,
 } from "./type.js"
+export type {QueryTerm, QueryTerms, Relation} from "./type.js"
 export {
   Phase,
   World,

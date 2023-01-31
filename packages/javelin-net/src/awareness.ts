@@ -8,8 +8,8 @@ export interface IAwareness {
 export class AwarenessBuilder implements IAwareness {
   readonly presences
 
-  constructor() {
-    this.presences = [] as Presence[]
+  constructor(presences: Presence[]) {
+    this.presences = presences
   }
 
   addPresence(interest: Presence): IAwareness {
@@ -18,4 +18,5 @@ export class AwarenessBuilder implements IAwareness {
   }
 }
 
-export let makeAwareness = () => new AwarenessBuilder()
+export let makeAwareness = (...presences: Presence[]) =>
+  new AwarenessBuilder(presences)

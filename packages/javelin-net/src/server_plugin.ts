@@ -1,5 +1,5 @@
 import * as j from "@javelin/ecs"
-import {exists, Maybe} from "@javelin/lib"
+import {exists, expect, Maybe} from "@javelin/lib"
 import {interestMessageType} from "./interest.js"
 import {presenceMessageType} from "./presence.js"
 import {makeProtocol} from "./protocol.js"
@@ -7,6 +7,11 @@ import {ReadStream, WriteStream} from "./structs/stream.js"
 import {Client, ClockSyncPayload, Transport} from "./components.js"
 import {Protocol} from "./resources.js"
 import {clockSyncMessageType} from "./clock_sync.js"
+import {
+  NetworkModel,
+  NormalizedNetworkModel,
+  normalizeNetworkModel,
+} from "./network_model.js"
 
 let readStream = new ReadStream(new Uint8Array())
 let writeStreamReliable = new WriteStream()
@@ -84,6 +89,10 @@ export let serverPlugin = (app: j.App) => {
     .addMessageType(interestMessageType)
     .addMessageType(clockSyncMessageType)
   app
+    .addResource(
+      NormalizedNetworkModel,
+      normalizeNetworkModel(expect(app.getResource(NetworkModel))),
+    )
     .addSystemToGroup(j.Group.Early, processClientMessagesSystem)
     .addSystemToGroup(
       j.Group.Early,

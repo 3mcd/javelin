@@ -1,21 +1,23 @@
-import {Component, Entity, resource, Type, type, World} from "@javelin/ecs"
+import * as j from "@javelin/ecs"
 import {EntityEncoder} from "./encode.js"
+import {NormalizedNetworkModel} from "./network_model.js"
 import {ProtocolMessageType} from "./protocol.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
 
 const MTU_SIZE = 1_200
 
 export type PatchStage = []
-export let PatchStage = resource<PatchStage>()
+export let PatchStage = j.resource<PatchStage>()
 
 export type SubjectPrioritizer = (
-  entity: Entity,
-  subject: Entity,
-  world: World,
+  entity: j.Entity,
+  subject: j.Entity,
+  world: j.World,
 ) => number
 
 export let interestMessageType: ProtocolMessageType<Interest> = {
   encode(writeStream, world, interest) {
+    let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
     let {subjectType} = interest
     let subjectComponents = interest.subjectType.normalized.components
     let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
@@ -36,7 +38,8 @@ export let interestMessageType: ProtocolMessageType<Interest> = {
     writeStream.writeU8(subjectComponents.length)
     // (2)
     for (let i = 0; i < subjectComponents.length; i++) {
-      writeStream.writeU32(subjectComponents[i])
+      let isoComponent = localComponentsToIso[subjectComponents[i]]
+      writeStream.writeU32(isoComponent)
     }
     // (3)
     let subjectCount = 0
@@ -50,14 +53,16 @@ export let interestMessageType: ProtocolMessageType<Interest> = {
     writeStream.writeU16At(subjectCount, subjectCountOffset)
   },
   decode(readStream, world) {
+    let {localComponents} = world.getResource(NormalizedNetworkModel)
     // (1)
     let subjectComponentsLength = readStream.readU8()
     // (2)
-    let subjectComponents: Component[] = []
+    let subjectComponents: j.Component[] = []
     for (let i = 0; i < subjectComponentsLength; i++) {
-      subjectComponents.push(readStream.readU32() as Component)
+      let localComponent = localComponents[readStream.readU32()]
+      subjectComponents.push(localComponent)
     }
-    let subjectType = type.apply(null, subjectComponents)
+    let subjectType = j.type.apply(null, subjectComponents)
     let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
     // (3)
     let subjectCount = readStream.readU16()
@@ -69,23 +74,23 @@ export let interestMessageType: ProtocolMessageType<Interest> = {
 }
 
 export class Interest {
-  readonly entity: Entity
+  readonly entity: j.Entity
   readonly subjectQueue
   readonly subjectPrioritizer
   readonly subjectType
 
   constructor(
-    entity: Entity,
-    subjectType: Type,
+    entity: j.Entity,
+    subjectType: j.Type,
     subjectPrioritizer: SubjectPrioritizer,
   ) {
     this.entity = entity
-    this.subjectQueue = new PriorityQueueInt<Entity>()
+    this.subjectQueue = new PriorityQueueInt<j.Entity>()
     this.subjectPrioritizer = subjectPrioritizer
     this.subjectType = subjectType
   }
 
-  prioritize(world: World) {
+  prioritize(world: j.World) {
     world.of(this.subjectType).each(subject => {
       let currSubjectPriority = this.subjectQueue.getPriority(subject)
       let nextSubjectPriority =
@@ -97,7 +102,7 @@ export class Interest {
 }
 
 export let makeInterest = (
-  entity: Entity,
-  subjectType: Type,
+  entity: j.Entity,
+  subjectType: j.Type,
   subjectPrioritizer: SubjectPrioritizer = () => 1,
 ) => new Interest(entity, subjectType, subjectPrioritizer)

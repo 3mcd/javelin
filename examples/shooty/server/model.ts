@@ -7,3 +7,4 @@ export interface Vector2 {
 
 export let Position = j.value<Vector2>({x: "f32", y: "f32"})
 export let Velocity = j.value<Vector2>({x: "f32", y: "f32"})
+export let networkModel = [Position, Velocity]

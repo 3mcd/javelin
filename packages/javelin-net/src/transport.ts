@@ -7,10 +7,12 @@ export interface ITransport {
 
 export class WebsocketTransport implements ITransport {
   #inbox
+  #outbox
   #socket
 
   constructor(socket: WebSocket) {
     this.#inbox = [] as Uint8Array[]
+    this.#outbox = [] as Uint8Array[]
     this.#socket = socket
     this.#socket.binaryType = "arraybuffer"
     this.#socket.addEventListener("message", message => {
@@ -19,6 +21,16 @@ export class WebsocketTransport implements ITransport {
   }
 
   push(message: Uint8Array) {
+    if (this.#socket.readyState !== this.#socket.OPEN) {
+      this.#outbox.unshift(message)
+      return
+    }
+    if (this.#outbox.length > 0) {
+      let message: Maybe<Uint8Array>
+      while (exists((message = this.#outbox.pop()))) {
+        this.#socket.send(message)
+      }
+    }
     this.#socket.send(message)
   }
 
