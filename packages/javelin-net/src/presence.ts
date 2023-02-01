@@ -16,6 +16,10 @@ export let presenceMessageType: ProtocolMessageType<PresenceState> = {
     let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
     let {subjectType} = presence
     let subjectComponents = subjectType.normalized.components
+    let subjectQueueLength = presence.subjectQueue.length
+    if (subjectQueueLength === 0) {
+      return
+    }
     let mtuDiff = MTU_SIZE - writeStream.offset
     if (mtuDiff <= 0) {
       return
@@ -23,8 +27,8 @@ export let presenceMessageType: ProtocolMessageType<PresenceState> = {
     let growAmount =
       1 +
       2 +
-      subjectType.normalized.components.length * 4 +
-      Math.min(mtuDiff, presence.subjectQueue.length * 4)
+      subjectComponents.length * 4 +
+      Math.min(mtuDiff, subjectQueueLength * 4)
     writeStream.grow(growAmount)
     // (1)
     writeStream.writeU8(subjectComponents.length)

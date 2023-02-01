@@ -42,8 +42,11 @@ let sendServerMessagesSystem = (world: j.World) => {
           presenceMessageType,
           presence,
         )
-        transport.push(writeStreamReliable.bytes(), true)
-        writeStreamReliable.reset()
+        if (writeStreamReliable.offset > 0) {
+          let message = writeStreamReliable.bytes()
+          transport.push(message, true)
+          writeStreamReliable.reset()
+        }
       }
       for (let i = 0; i < awareness.interests.length; i++) {
         let interest = awareness.interests[i]
@@ -54,8 +57,11 @@ let sendServerMessagesSystem = (world: j.World) => {
           interestMessageType,
           interest,
         )
-        transport.push(writeStreamUnreliable.bytes(), false)
-        writeStreamUnreliable.reset()
+        if (writeStreamUnreliable.offset > 0) {
+          let message = writeStreamUnreliable.bytes()
+          transport.push(message, true)
+          writeStreamUnreliable.reset()
+        }
       }
     })
 }

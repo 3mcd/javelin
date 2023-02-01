@@ -19,7 +19,7 @@ let app = j
       })
     },
     null,
-    w => i % 2 === 0,
+    () => i % 2 === 0,
   )
   .use(jn.clientPlugin)
 

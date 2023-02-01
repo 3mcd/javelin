@@ -32,6 +32,8 @@ class ProtocolBuilder implements IProtocol {
   #messageTypes: ProtocolMessageType<unknown>[]
   #messageTypeIds: Map<ProtocolMessageType<unknown>, number>
 
+  private static BASE_BYTE_LENGTH = 5
+
   constructor() {
     this.#messageTypes = [] as ProtocolMessageType<unknown>[]
     this.#messageTypeIds = new Map<ProtocolMessageType<unknown>, number>()
@@ -47,13 +49,17 @@ class ProtocolBuilder implements IProtocol {
       this.#messageTypeIds.get(messageType),
       ERR_INVALID_PROTOCOL_MESSAGE_TYPE,
     )
-    writeStream.grow(1 + 4)
+    writeStream.grow(ProtocolBuilder.BASE_BYTE_LENGTH)
     writeStream.writeU8(messageTypeId)
     let messageLengthOffset = writeStream.writeU32(0)
     let messageStartOffset = writeStream.offset
     messageType.encode(writeStream, world, message)
     let messageLength = writeStream.offset - messageStartOffset
-    writeStream.writeU32At(messageLength, messageLengthOffset)
+    if (messageLength === 0) {
+      writeStream.reset()
+    } else {
+      writeStream.writeU32At(messageLength, messageLengthOffset)
+    }
   }
 
   decodeMessage(world: World, readStream: ReadStream, entity: Entity) {
