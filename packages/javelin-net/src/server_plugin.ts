@@ -1,18 +1,22 @@
 import * as j from "@javelin/ecs"
 import {exists, expect, Maybe} from "@javelin/lib"
-import {interestMessageType} from "./interest.js"
-import {presenceMessageType} from "./presence.js"
-import {makeProtocol} from "./protocol.js"
-import {ReadStream, WriteStream} from "./structs/stream.js"
-import {Awareness, Client, ClockSyncPayload, Transport} from "./components.js"
-import {Protocol} from "./resources.js"
+import {AwarenessState} from "./awareness.js"
 import {clockSyncMessageType} from "./clock_sync.js"
+import {Awareness, Client, ClockSyncPayload, Transport} from "./components.js"
+import {interestMessageType} from "./interest.js"
 import {
   NetworkModel,
   NormalizedNetworkModel,
   normalizeNetworkModel,
 } from "./network_model.js"
-import {AwarenessState} from "./awareness.js"
+import {presenceMessageType} from "./presence.js"
+import {makeProtocol} from "./protocol.js"
+import {Protocol} from "./resources.js"
+import {
+  snapshotInterestMessageType,
+  SnapshotInterestStateImpl,
+} from "./snapshot_interest.js"
+import {ReadStream, WriteStream} from "./structs/stream.js"
 
 let readStream = new ReadStream(new Uint8Array())
 let writeStreamReliable = new WriteStream()
@@ -28,6 +32,7 @@ let initClientAwarenessesSystem = (world: j.World) => {
 }
 
 let sendServerMessagesSystem = (world: j.World) => {
+  let time = world.getResource(j.FixedTime)
   let protocol = world.getResource(Protocol)
   world
     .of(Client, AwarenessState)
@@ -51,16 +56,21 @@ let sendServerMessagesSystem = (world: j.World) => {
       for (let i = 0; i < awareness.interests.length; i++) {
         let interest = awareness.interests[i]
         interest.prioritize(world, client, awareness.subjects)
-        protocol.encodeMessage(
-          world,
-          writeStreamUnreliable,
-          interestMessageType,
-          interest,
-        )
-        if (writeStreamUnreliable.offset > 0) {
-          let message = writeStreamUnreliable.bytes()
-          transport.push(message, true)
-          writeStreamUnreliable.reset()
+        if (time.currentTime > interest.lastSendTime + interest.sendRate) {
+          protocol.encodeMessage(
+            world,
+            writeStreamUnreliable,
+            interest instanceof SnapshotInterestStateImpl
+              ? snapshotInterestMessageType
+              : interestMessageType,
+            interest,
+          )
+          if (writeStreamUnreliable.offset > 0) {
+            let message = writeStreamUnreliable.bytes()
+            transport.push(message, true)
+            writeStreamUnreliable.reset()
+          }
+          interest.lastSendTime = time.currentTime
         }
       }
     })

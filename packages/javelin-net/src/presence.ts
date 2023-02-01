@@ -3,7 +3,7 @@ import {MTU_SIZE} from "./const.js"
 import {EntityEncoder} from "./encode.js"
 import {SubjectPrioritizer} from "./interest.js"
 import {NormalizedNetworkModel} from "./network_model.js"
-import {ProtocolMessageType} from "./protocol.js"
+import {NetworkMessageType} from "./protocol.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
 
 let subjectComponents: j.Component[] = []
@@ -11,7 +11,7 @@ let subjectComponents: j.Component[] = []
 /**
  * Encodes and decodes entity presence messages.
  */
-export let presenceMessageType: ProtocolMessageType<PresenceState> = {
+export let presenceMessageType: NetworkMessageType<PresenceState> = {
   encode(writeStream, world, presence) {
     let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
     let {subjectType} = presence
@@ -67,7 +67,11 @@ export let presenceMessageType: ProtocolMessageType<PresenceState> = {
   },
 }
 
-export class PresenceState {
+export interface PresenceState extends Presence {
+  readonly subjectQueue: PriorityQueueInt<j.Entity>
+}
+
+export class PresenceStateImpl {
   #new
 
   readonly subjectPrioritizer
@@ -111,7 +115,12 @@ export class PresenceState {
   }
 }
 
-export class Presence {
+export interface Presence {
+  readonly subjectPrioritizer: SubjectPrioritizer
+  readonly subjectType: j.Type
+}
+
+export class PresenceImpl implements Presence {
   readonly subjectPrioritizer
   readonly subjectType
 
@@ -121,11 +130,11 @@ export class Presence {
   }
 
   init() {
-    return new PresenceState(this.subjectType, this.subjectPrioritizer)
+    return new PresenceStateImpl(this.subjectType, this.subjectPrioritizer)
   }
 }
 
 export let makePresence = (
   subjectType: j.Type,
   subjectPrioritizer: SubjectPrioritizer = () => 1,
-) => new Presence(subjectType, subjectPrioritizer)
+): Presence => new PresenceImpl(subjectType, subjectPrioritizer)

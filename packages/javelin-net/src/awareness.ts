@@ -1,19 +1,19 @@
 import * as j from "@javelin/ecs"
-import {Interest, InterestStateImpl} from "./interest.js"
-import {Presence, PresenceState} from "./presence.js"
+import {Interest, InterestImpl, InterestStateImpl} from "./interest.js"
+import {Presence, PresenceImpl, PresenceStateImpl} from "./presence.js"
 
 export interface Awareness {
-  readonly interests: Interest[]
-  readonly presences: Presence[]
-  addInterest(interest: Interest): Awareness
-  addPresence(interest: Presence): Awareness
+  readonly interests: InterestImpl[]
+  readonly presences: PresenceImpl[]
+  addInterest(interest: InterestImpl): Awareness
+  addPresence(interest: PresenceImpl): Awareness
   init(): AwarenessState
 }
 
 export interface AwarenessState {
   readonly subjects: Set<j.Entity>
   readonly interests: InterestStateImpl[]
-  readonly presences: PresenceState[]
+  readonly presences: PresenceStateImpl[]
 }
 
 export class AwarenessStateImpl implements AwarenessState {
@@ -21,7 +21,7 @@ export class AwarenessStateImpl implements AwarenessState {
   readonly interests
   readonly presences
 
-  constructor(presences: PresenceState[], interests: InterestStateImpl[]) {
+  constructor(presences: PresenceStateImpl[], interests: InterestStateImpl[]) {
     this.subjects = new Set<j.Entity>()
     this.presences = presences
     this.interests = interests
@@ -32,17 +32,17 @@ export class AwarenessImpl implements Awareness {
   readonly presences
   readonly interests
 
-  constructor(presences: Presence[], interests: Interest[]) {
+  constructor(presences: PresenceImpl[], interests: InterestImpl[]) {
     this.presences = presences
     this.interests = interests
   }
 
-  addInterest(interest: Interest): Awareness {
+  addInterest(interest: InterestImpl): Awareness {
     this.interests.push(interest)
     return this
   }
 
-  addPresence(presence: Presence): Awareness {
+  addPresence(presence: PresenceImpl): Awareness {
     this.presences.push(presence)
     return this
   }
@@ -57,6 +57,6 @@ export class AwarenessImpl implements Awareness {
 
 export let makeAwareness = (...spec: (Presence | Interest)[]): Awareness =>
   new AwarenessImpl(
-    spec.filter((term): term is Presence => term instanceof Presence),
-    spec.filter((term): term is Interest => term instanceof Interest),
+    spec.filter((term): term is PresenceImpl => term instanceof PresenceImpl),
+    spec.filter((term): term is InterestImpl => term instanceof InterestImpl),
   )

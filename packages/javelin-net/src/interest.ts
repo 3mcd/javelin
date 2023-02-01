@@ -2,8 +2,9 @@ import * as j from "@javelin/ecs"
 import {MTU_SIZE} from "./const.js"
 import {EntityEncoder} from "./encode.js"
 import {NormalizedNetworkModel} from "./network_model.js"
-import {ProtocolMessageType} from "./protocol.js"
+import {NetworkMessageType, NetworkProtocol} from "./protocol.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
+import {WriteStream} from "./structs/stream.js"
 
 export type PatchStage = []
 export let PatchStage = j.resource<PatchStage>()
@@ -16,7 +17,7 @@ export type SubjectPrioritizer = (
 
 let subjectComponents: j.Component[] = []
 
-export let interestMessageType: ProtocolMessageType<InterestStateImpl> = {
+export let interestMessageType: NetworkMessageType<InterestState> = {
   encode(writeStream, world, interest) {
     let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
     let {subjectType} = interest
@@ -74,10 +75,9 @@ export let interestMessageType: ProtocolMessageType<InterestStateImpl> = {
   },
 }
 
-export interface InterestState {
-  readonly subjectPrioritizer: SubjectPrioritizer
+export interface InterestState extends Interest {
   readonly subjectQueue: PriorityQueueInt<j.Entity>
-  readonly subjectType: j.Type
+  lastSendTime: number
 }
 
 export class InterestStateImpl implements InterestState {
@@ -85,7 +85,16 @@ export class InterestStateImpl implements InterestState {
   readonly subjectQueue
   readonly subjectType
 
-  constructor(subjectType: j.Type, subjectPrioritizer: SubjectPrioritizer) {
+  sendRate
+  lastSendTime
+
+  constructor(
+    subjectType: j.Type,
+    subjectPrioritizer: SubjectPrioritizer,
+    sendRate: number,
+  ) {
+    this.lastSendTime = 0
+    this.sendRate = sendRate
     this.subjectPrioritizer = subjectPrioritizer
     this.subjectQueue = new PriorityQueueInt<j.Entity>()
     this.subjectType = subjectType
@@ -106,21 +115,38 @@ export class InterestStateImpl implements InterestState {
   }
 }
 
-export class Interest {
+export interface Interest {
+  readonly subjectPrioritizer: SubjectPrioritizer
+  readonly subjectType: j.Type
+  sendRate: number
+}
+
+export class InterestImpl implements Interest {
   readonly subjectPrioritizer
   readonly subjectType
 
-  constructor(subjectType: j.Type, subjectPrioritizer: SubjectPrioritizer) {
+  sendRate
+
+  constructor(
+    subjectType: j.Type,
+    subjectPrioritizer: SubjectPrioritizer,
+    sendRate: number,
+  ) {
+    this.sendRate = sendRate
     this.subjectPrioritizer = subjectPrioritizer
     this.subjectType = subjectType
   }
 
   init() {
-    return new InterestStateImpl(this.subjectType, this.subjectPrioritizer)
+    return new InterestStateImpl(
+      this.subjectType,
+      this.subjectPrioritizer,
+      this.sendRate,
+    )
   }
 }
 
 export let makeInterest = (
   subjectType: j.Type,
   subjectPrioritizer: SubjectPrioritizer = () => 1,
-) => new Interest(subjectType, subjectPrioritizer)
+): Interest => new InterestImpl(subjectType, subjectPrioritizer, 1 / 20)

@@ -32,12 +32,12 @@ loop()
 
 let entityNodes = [] as HTMLDivElement[]
 let renderEntity = (e: j.Entity, pos: Vector2) => {
-  let entityNode = entityNodes[e]
-  if (entityNode === undefined) {
-    entityNode = document.createElement("div")
-    entityNode.classList.add("entity")
-    entityNodes[e] = entityNode
-    document.body.appendChild(entityNode)
-  }
-  entityNode.textContent = `${e} ${pos.x.toFixed(2)},${pos.y.toFixed(2)}`
+  // let entityNode = entityNodes[e]
+  // if (entityNode === undefined) {
+  // entityNode = document.createElement("div")
+  // entityNode.classList.add("entity")
+  // entityNodes[e] = entityNode
+  // document.body.appendChild(entityNode)
+  // }
+  // entityNode.textContent = `${e} ${pos.x.toFixed(2)},${pos.y.toFixed(2)}`
 }

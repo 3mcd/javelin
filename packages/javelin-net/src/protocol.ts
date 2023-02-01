@@ -3,20 +3,21 @@ import {expect} from "@javelin/lib"
 import {clockSyncMessageType} from "./clock_sync.js"
 import {interestMessageType} from "./interest.js"
 import {presenceMessageType} from "./presence.js"
+import {snapshotInterestMessageType} from "./snapshot_interest.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
 
-export interface IProtocol {
+export interface NetworkProtocol {
   encodeMessage<T>(
     world: World,
     writeStream: WriteStream,
-    messageType: ProtocolMessageType<T>,
+    messageType: NetworkMessageType<T>,
     message: T,
   ): void
   decodeMessage(world: World, readStream: ReadStream, client: Entity): void
-  addMessageType(messageType: ProtocolMessageType<unknown>): IProtocol
+  addMessageType(messageType: NetworkMessageType<unknown>): NetworkProtocol
 }
 
-export interface ProtocolMessageType<T> {
+export interface NetworkMessageType<T> {
   encode(writeStream: WriteStream, world: World, message: T): void
   decode(
     readStream: ReadStream,
@@ -28,28 +29,28 @@ export interface ProtocolMessageType<T> {
 
 const ERR_INVALID_PROTOCOL_MESSAGE_TYPE = "invalid message type"
 
-class ProtocolBuilder implements IProtocol {
-  #messageTypes: ProtocolMessageType<unknown>[]
-  #messageTypeIds: Map<ProtocolMessageType<unknown>, number>
+class NetworkProtocolImpl implements NetworkProtocol {
+  #messageTypes: NetworkMessageType<unknown>[]
+  #messageTypeIds: Map<NetworkMessageType<unknown>, number>
 
   private static BASE_BYTE_LENGTH = 5
 
   constructor() {
-    this.#messageTypes = [] as ProtocolMessageType<unknown>[]
-    this.#messageTypeIds = new Map<ProtocolMessageType<unknown>, number>()
+    this.#messageTypes = [] as NetworkMessageType<unknown>[]
+    this.#messageTypeIds = new Map<NetworkMessageType<unknown>, number>()
   }
 
   encodeMessage<T>(
     world: World,
     writeStream: WriteStream,
-    messageType: ProtocolMessageType<T>,
+    messageType: NetworkMessageType<T>,
     message: T,
   ) {
     let messageTypeId = expect(
       this.#messageTypeIds.get(messageType),
       ERR_INVALID_PROTOCOL_MESSAGE_TYPE,
     )
-    writeStream.grow(ProtocolBuilder.BASE_BYTE_LENGTH)
+    writeStream.grow(NetworkProtocolImpl.BASE_BYTE_LENGTH)
     writeStream.writeU8(messageTypeId)
     let messageLengthOffset = writeStream.writeU32(0)
     let messageStartOffset = writeStream.offset
@@ -75,15 +76,16 @@ class ProtocolBuilder implements IProtocol {
     }
   }
 
-  addMessageType(messageType: ProtocolMessageType<unknown>) {
+  addMessageType(messageType: NetworkMessageType<unknown>) {
     let messageTypeId = this.#messageTypes.push(messageType) - 1
     this.#messageTypeIds.set(messageType, messageTypeId)
     return this
   }
 }
 
-export let makeProtocol = () =>
-  new ProtocolBuilder()
+export let makeProtocol = (): NetworkProtocol =>
+  new NetworkProtocolImpl()
     .addMessageType(presenceMessageType)
     .addMessageType(interestMessageType)
+    .addMessageType(snapshotInterestMessageType)
     .addMessageType(clockSyncMessageType)
