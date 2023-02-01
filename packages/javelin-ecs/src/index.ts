@@ -1,8 +1,8 @@
-export {DefaultGroup as Group, makeApp as app} from "./app.js"
-export type {App, Constrain, Plugin} from "./app.js"
-export {getSchema, _dynamic, _keys} from "./component.js"
-export type {Component} from "./component.js"
-export type {Entity} from "./entity.js"
+export { DefaultGroup as Group, makeApp as app } from "./app.js"
+export type { App, Constrain, Plugin } from "./app.js"
+export { getSchema, _dynamic, _keys } from "./component.js"
+export type { Component } from "./component.js"
+export type { Entity } from "./entity.js"
 export {
   advanceFixedTickSystem,
   advanceFixedTimestepSystem,
@@ -10,22 +10,26 @@ export {
   FixedTick,
   FixedTime,
   FixedTimestepConfig,
-  FixedTimestepTargetTime,
+  FixedTimestepTargetTime
 } from "./fixed_timestep_plugin.js"
-export {Node} from "./graph.js"
-export {Monitor} from "./monitor.js"
-export {makeResource as resource} from "./resource.js"
+export { Node } from "./graph.js"
+export { Monitor } from "./monitor.js"
+export { makeResource as resource } from "./resource.js"
 export {
   makeConstraintsWithAfter as after,
-  makeConstraintsWithBefore as before,
+  makeConstraintsWithBefore as before
 } from "./schedule.js"
-export type {Format, Schema} from "./schema.js"
-export type {SystemImpl as System} from "./system.js"
-export {advanceTickSystem, Tick} from "./tick_plugin.js"
-export {advanceTimeSystem, Time} from "./time_plugin.js"
+export type {
+  Constraints,
+  Predicate
+} from "./schedule.js"
+export type { Format, Schema } from "./schema.js"
+export type { SystemImpl as System } from "./system.js"
+export { advanceTickSystem, Tick } from "./tick_plugin.js"
+export { advanceTimeSystem, Time } from "./time_plugin.js"
 export {
-  ChildOf,
-  makeRelation as relation,
+  ChildOf, isRelation,
+  isRelationship, makeRelation as relation,
   makeSlot as slot,
   makeTagType as tag,
   makeType as type,
@@ -33,11 +37,9 @@ export {
   NormalizedType,
   normalizeQueryTerms,
   Not,
-  Type,
-  isRelation,
-  isRelationship,
+  Type
 } from "./type.js"
-export type {QueryTerm, QueryTerms, Relation} from "./type.js"
+export type { QueryTerm, QueryTerms, Relation } from "./type.js"
 export {
   Phase,
   World,
@@ -46,5 +48,6 @@ export {
   _getComponentStore,
   _hasComponent,
   _qualifyEntity,
-  _reserveEntity,
+  _reserveEntity
 } from "./world.js"
+

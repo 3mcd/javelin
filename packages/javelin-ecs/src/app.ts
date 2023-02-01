@@ -1,22 +1,22 @@
-import {assert, expect, Maybe} from "@javelin/lib"
-import {fixedTimestepPlugin} from "./fixed_timestep_plugin.js"
-import {Resource} from "./resource.js"
+import { assert, expect, Maybe } from "@javelin/lib"
+import { fixedTimestepPlugin } from "./fixed_timestep_plugin.js"
+import { Resource } from "./resource.js"
 import {
   Constraints,
   makeConstraintsWithAfter,
   makeConstraintsWithBefore,
   Predicate,
   Schedule,
-  SystemGroup,
+  SystemGroup
 } from "./schedule.js"
-import {SystemImpl} from "./system.js"
-import {tickPlugin} from "./tick_plugin.js"
-import {timePlugin} from "./time_plugin.js"
+import { SystemImpl } from "./system.js"
+import { tickPlugin } from "./tick_plugin.js"
+import { timePlugin } from "./time_plugin.js"
 import {
   CurrentSystem,
   World,
   _commitStagedChanges,
-  _emitStagedChanges,
+  _emitStagedChanges
 } from "./world.js"
 
 export type Constrain<T> = (constraints: Constraints<T>) => Constraints<T>

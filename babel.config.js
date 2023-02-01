@@ -1,3 +1,3 @@
 export default {
-  presets: ["@babel/preset-typescript"],
+  presets: ["@babel/preset-typescript", "@babel/preset-react"],
 }

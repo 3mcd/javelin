@@ -1,11 +1,11 @@
 import * as j from "@javelin/ecs"
-import {Box} from "./box.js"
-import {DisposeTimer} from "./dispose.js"
-import {Enemy} from "./enemy.js"
-import {Heading} from "./heading.js"
-import {Health} from "./health.js"
-import {boxIntersects, normalize} from "./math.js"
-import {Position} from "./position.js"
+import { Box } from "./box.js"
+import { DisposeTimer } from "./dispose.js"
+import { Enemy } from "./enemy.js"
+import { Heading } from "./heading.js"
+import { Health } from "./health.js"
+import { boxIntersects, normalize } from "./math.js"
+import { Position } from "./position.js"
 
 const BULLET_SIZE = 1
 

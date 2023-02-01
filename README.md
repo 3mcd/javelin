@@ -20,12 +20,13 @@ Visit https://javelin.dev
 
 ## Packages
 
-| Name                                     | Description                                  |
-| ---------------------------------------- | -------------------------------------------- |
-| [@javelin/ecs](./packages/javelin-ecs)   | ECS framework                                |
-| [@javelin/net](./packages/javelin-net)   | Authoritative game server and client plugins |
-| [@javelin/lib](./packages/javelin-lib)   | Shared helpers and types                     |
-| [@javelin/perf](./packages/javelin-perf) | Performance testing library                  |
+| Name                                       | Description                                  |
+| ------------------------------------------ | -------------------------------------------- |
+| [@javelin/ecs](./packages/javelin-ecs)     | ECS framework                                |
+| [@javelin/net](./packages/javelin-net)     | Authoritative game server and client plugins |
+| [@javelin/lib](./packages/javelin-lib)     | Shared helpers and types                     |
+| [@javelin/perf](./packages/javelin-perf)   | Performance testing library                  |
+| [@javelin/react](./packages/javelin-react) | React bindings                               |
 
 ## Examples
 
@@ -33,6 +34,7 @@ Visit https://javelin.dev
 | ----------------------------- | ------------------------------------- |
 | [survive](./examples/survive) | Single-player vampire survivors clone |
 | [shooty](./examples/shooty)   | Multi-player first-person shooter     |
+| [react-demo](./examples/react)   | React example   |
 
 ## Development
 

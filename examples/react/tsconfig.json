@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  },
+  "references": [
+    {"path": "../../packages/javelin-ecs"},
+    {"path": "../../packages/javelin-react"}
+  ]
+}
