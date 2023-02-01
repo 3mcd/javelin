@@ -123,7 +123,7 @@ export let compileEncodeEntity = (
   return encodeEntity
 }
 
-export let compileDecodeEntityCompose = (
+export let compileDecodeEntityPresence = (
   type: j.Type,
   world: j.World,
 ): DecodeEntity => {
@@ -206,7 +206,7 @@ export class EntityEncoder {
   static encodersByWorld = new WeakMap<j.World, EncoderMap>()
 
   readonly encodeEntity
-  readonly decodeEntityCompose
+  readonly decodeEntityPresence
   readonly decodeEntityUpdate
   readonly bytesPerEntity
 
@@ -221,7 +221,7 @@ export class EntityEncoder {
 
   constructor(type: j.Type, world: j.World) {
     this.encodeEntity = compileEncodeEntity(type, world)
-    this.decodeEntityCompose = compileDecodeEntityCompose(type, world)
+    this.decodeEntityPresence = compileDecodeEntityPresence(type, world)
     this.decodeEntityUpdate = compileDecodeEntityUpdate(type, world)
     this.bytesPerEntity = getEncodedEntityLength(type)
   }

@@ -4,7 +4,7 @@ import {interestMessageType} from "./interest.js"
 import {presenceMessageType} from "./presence.js"
 import {makeProtocol} from "./protocol.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
-import {Client, ClockSyncPayload, Transport} from "./components.js"
+import {Awareness, Client, ClockSyncPayload, Transport} from "./components.js"
 import {Protocol} from "./resources.js"
 import {clockSyncMessageType} from "./clock_sync.js"
 import {
@@ -12,35 +12,52 @@ import {
   NormalizedNetworkModel,
   normalizeNetworkModel,
 } from "./network_model.js"
+import {AwarenessState} from "./awareness.js"
 
 let readStream = new ReadStream(new Uint8Array())
 let writeStreamReliable = new WriteStream()
 let writeStreamUnreliable = new WriteStream()
 
+let AwarenessState = j.value<AwarenessState>()
+
+let initClientAwarenessesSystem = (world: j.World) => {
+  world.monitor(Client).eachIncluded(client => {
+    let clientAwareness = expect(world.get(client, Awareness))
+    world.add(client, AwarenessState, clientAwareness.init())
+  })
+}
+
 let sendServerMessagesSystem = (world: j.World) => {
   let protocol = world.getResource(Protocol)
-  world.of(Client).each(function sendServerMessages(_, transport, awareness) {
-    for (let i = 0; i < awareness.presences.length; i++) {
-      let presence = awareness.presences[i]
-      presence.prioritize(world)
-      protocol.encodeMessage(
-        world,
-        writeStreamReliable,
-        presenceMessageType,
-        presence,
-      )
-      protocol.encodeMessage(
-        world,
-        writeStreamUnreliable,
-        interestMessageType,
-        presence,
-      )
-      transport.push(writeStreamReliable.bytes(), true)
-      transport.push(writeStreamUnreliable.bytes(), false)
-      writeStreamReliable.reset()
-      writeStreamUnreliable.reset()
-    }
-  })
+  world
+    .of(Client, AwarenessState)
+    .as(Transport, AwarenessState)
+    .each(function sendServerMessages(client, transport, awareness) {
+      for (let i = 0; i < awareness.presences.length; i++) {
+        let presence = awareness.presences[i]
+        presence.prioritize(world, client, awareness.subjects)
+        protocol.encodeMessage(
+          world,
+          writeStreamReliable,
+          presenceMessageType,
+          presence,
+        )
+        transport.push(writeStreamReliable.bytes(), true)
+        writeStreamReliable.reset()
+      }
+      for (let i = 0; i < awareness.interests.length; i++) {
+        let interest = awareness.interests[i]
+        interest.prioritize(world, client, awareness.subjects)
+        protocol.encodeMessage(
+          world,
+          writeStreamUnreliable,
+          interestMessageType,
+          interest,
+        )
+        transport.push(writeStreamUnreliable.bytes(), false)
+        writeStreamUnreliable.reset()
+      }
+    })
 }
 
 let processClientMessagesSystem = (world: j.World) => {
@@ -89,6 +106,7 @@ export let serverPlugin = (app: j.App) => {
       NormalizedNetworkModel,
       normalizeNetworkModel(expect(app.getResource(NetworkModel))),
     )
+    .addSystemToGroup(j.Group.Early, initClientAwarenessesSystem)
     .addSystemToGroup(j.Group.Early, processClientMessagesSystem)
     .addSystemToGroup(
       j.Group.Early,

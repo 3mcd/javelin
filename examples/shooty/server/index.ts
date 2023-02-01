@@ -8,6 +8,12 @@ let http = createServer()
 let wss = new WebSocketServer({server: http})
 
 let Kinetic = j.type(Position, Velocity)
+let kineticPresence = jn.presence(Kinetic, (_entity, subject) =>
+  subject % 3 === 0 ? 100 : 10,
+)
+let kineticInterest = jn.interest(Kinetic, (_entity, subject) =>
+  subject % 2 === 0 ? 100 : 10,
+)
 
 let app = j
   .app()
@@ -37,10 +43,7 @@ wss.on("connection", socket => {
   let clientTransport = new jn.WebsocketTransport(
     socket as unknown as globalThis.WebSocket,
   )
-  let clientKineticPresence = jn.presence(client, Kinetic, (_, subject) =>
-    subject % 2 === 0 ? 100 : 10,
-  )
-  let clientAwareness = jn.awareness(clientKineticPresence)
+  let clientAwareness = jn.awareness(kineticPresence, kineticInterest)
   app.world.add(client, jn.Client, clientTransport, clientAwareness)
   socket.on("close", () => {
     app.world.delete(client)

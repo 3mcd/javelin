@@ -1,5 +1,4 @@
 import * as j from "@javelin/ecs"
-import * as jn from "@javelin/net"
 
 export interface Vector2 {
   x: number

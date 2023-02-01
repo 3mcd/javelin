@@ -1,11 +1,11 @@
 import {exists, Maybe} from "@javelin/lib"
 
-export interface ITransport {
+export interface Transport {
   push(message: Uint8Array, reliable: boolean): void
   pull(): Maybe<Uint8Array>
 }
 
-export class WebsocketTransport implements ITransport {
+export class WebsocketTransport implements Transport {
   #inbox
   #outbox
   #socket

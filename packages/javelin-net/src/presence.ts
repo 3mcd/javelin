@@ -1,102 +1,127 @@
-import {Component, Entity, Type, type, World} from "@javelin/ecs"
+import * as j from "@javelin/ecs"
+import {MTU_SIZE} from "./const.js"
 import {EntityEncoder} from "./encode.js"
-import {Interest, SubjectPrioritizer} from "./interest.js"
+import {SubjectPrioritizer} from "./interest.js"
+import {NormalizedNetworkModel} from "./network_model.js"
 import {ProtocolMessageType} from "./protocol.js"
+import {PriorityQueueInt} from "./structs/priority_queue_int.js"
+
+let subjectComponents: j.Component[] = []
 
 /**
  * Encodes and decodes entity presence messages.
  */
-export let presenceMessageType: ProtocolMessageType<Presence> = {
+export let presenceMessageType: ProtocolMessageType<PresenceState> = {
   encode(writeStream, world, presence) {
+    let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
     let {subjectType} = presence
-    let subjectQuery = world.of(subjectType)
-    let subjectMonitor = world.monitor(subjectType)
     let subjectComponents = subjectType.normalized.components
-    let subjectCount = presence.isNew()
-      ? subjectQuery.length
-      : subjectMonitor.includedLength
-    subjectMonitor
-      .eachIncluded(subject => {
-        presence.subjectQueue.push(subject, 0)
-      })
-      .eachExcluded(subject => {
-        presence.subjectQueue.remove(subject)
-      })
-    writeStream.grow(1 + 2 + subjectComponents.length * 4 + subjectCount * 4)
+    let mtuDiff = MTU_SIZE - writeStream.offset
+    if (mtuDiff <= 0) {
+      return
+    }
+    let growAmount =
+      1 +
+      2 +
+      subjectType.normalized.components.length * 4 +
+      Math.min(mtuDiff, presence.subjectQueue.length * 4)
+    writeStream.grow(growAmount)
     // (1)
     writeStream.writeU8(subjectComponents.length)
     // (2)
     for (let i = 0; i < subjectComponents.length; i++) {
-      writeStream.writeU32(subjectComponents[i])
+      writeStream.writeU32(localComponentsToIso[subjectComponents[i]])
     }
     // (3)
-    writeStream.writeU16(subjectCount)
-    // (4)
-    if (presence.isNew()) {
-      subjectQuery.each(entity => {
-        writeStream.writeU32(entity)
-      })
-      presence.init()
-    } else {
-      subjectMonitor.eachIncluded(entity => {
-        writeStream.writeU32(entity)
-      })
+    let subjectCount = 0
+    let subjectCountOffset = writeStream.writeU16(0)
+    while (writeStream.offset < MTU_SIZE && !presence.subjectQueue.isEmpty()) {
+      let subject = presence.subjectQueue.pop()!
+      // (4)
+      writeStream.writeU32(subject)
+      subjectCount++
     }
+    writeStream.writeU16At(subjectCount, subjectCountOffset)
   },
   decode(readStream, world) {
+    let {isoComponentsToLocal} = world.getResource(NormalizedNetworkModel)
     // (1)
     let subjectComponentsLength = readStream.readU8()
+    subjectComponents.length = subjectComponentsLength
     // (2)
-    let subjectComponents: Component[] = []
     for (let i = 0; i < subjectComponentsLength; i++) {
-      subjectComponents.push(readStream.readU32() as Component)
+      subjectComponents[i] = isoComponentsToLocal[readStream.readU32()]
     }
-    let subjectType = type.apply(null, subjectComponents)
+    let subjectType = j.type.apply(null, subjectComponents)
     let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
     // (3)
     let subjectCount = readStream.readU16()
     // (4)
     for (let i = 0; i < subjectCount; i++) {
-      subjectEncoder.decodeEntityCompose(readStream)
+      subjectEncoder.decodeEntityPresence(readStream)
     }
   },
 }
 
-export class Presence extends Interest {
+export class PresenceState {
   #new
 
-  constructor(
-    entity: Entity,
-    subjectType: Type,
-    subjectPrioritizer: SubjectPrioritizer,
-  ) {
-    super(entity, subjectType, subjectPrioritizer)
+  readonly subjectPrioritizer
+  readonly subjectQueue
+  readonly subjectType
+
+  constructor(subjectType: j.Type, subjectPrioritizer: SubjectPrioritizer) {
     this.#new = true
+    this.subjectQueue = new PriorityQueueInt<j.Entity>()
+    this.subjectPrioritizer = subjectPrioritizer
+    this.subjectType = subjectType
   }
 
-  isNew() {
-    return this.#new
+  prioritize(world: j.World, entity: j.Entity, subjects: Set<j.Entity>) {
+    if (this.#new) {
+      world.of(this.subjectType).each(subject => {
+        let subjectPriority = this.subjectPrioritizer(entity, subject, world)
+        this.subjectQueue.push(subject, subjectPriority)
+        subjects.add(subject)
+      })
+      this.#new = false
+    } else {
+      world
+        .monitor(this.subjectType)
+        .eachIncluded(subject => {
+          let subjectPriority = this.subjectPrioritizer(entity, subject, world)
+          this.subjectQueue.push(subject, subjectPriority)
+          subjects.add(subject)
+        })
+        .eachExcluded(subject => {
+          subjects.delete(subject)
+          this.subjectQueue.remove(subject)
+        })
+    }
+    subjects.forEach(subject => {
+      let subjectPriority = this.subjectPrioritizer(entity, subject, world)
+      if (subjectPriority <= 0) {
+        this.subjectQueue.remove(subject)
+      }
+    })
+  }
+}
+
+export class Presence {
+  readonly subjectPrioritizer
+  readonly subjectType
+
+  constructor(subjectType: j.Type, subjectPrioritizer: SubjectPrioritizer) {
+    this.subjectPrioritizer = subjectPrioritizer
+    this.subjectType = subjectType
   }
 
   init() {
-    this.#new = false
-  }
-
-  prioritize(world: World) {
-    world
-      .monitor(this.subjectType)
-      .eachIncluded(subject => {
-        this.subjectQueue.push(subject, 0)
-      })
-      .eachExcluded(subject => {
-        this.subjectQueue.remove(subject)
-      })
-    super.prioritize(world)
+    return new PresenceState(this.subjectType, this.subjectPrioritizer)
   }
 }
 
 export let makePresence = (
-  entity: Entity,
-  subjectType: Type,
+  subjectType: j.Type,
   subjectPrioritizer: SubjectPrioritizer = () => 1,
-) => new Presence(entity, subjectType, subjectPrioritizer)
+) => new Presence(subjectType, subjectPrioritizer)

@@ -1,4 +1,4 @@
-import {expect} from "@javelin/lib"
+import {exists, expect} from "@javelin/lib"
 
 let left = (i: number) => 2 * i + 1
 let right = (i: number) => 2 * i + 2
@@ -82,6 +82,10 @@ export class PriorityQueueInt<T extends number> {
       throw new Error("ahh")
     }
     return this.#priorities[item]
+  }
+
+  has(item: T) {
+    return exists(this.#priorities[item])
   }
 
   push(item: T, priority: number) {
