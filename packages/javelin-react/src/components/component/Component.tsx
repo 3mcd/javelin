@@ -1,15 +1,14 @@
-import {Component as JComponent, Type} from "@javelin/ecs"
-import {ComponentInitValues} from "@javelin/ecs/src/component"
+import { Component as JComponent, ComponentInitValues, Type } from "@javelin/ecs"
 import * as React from "react"
-import {usePlugin} from "../../hooks/use-plugin/usePlugin"
+import { usePlugin } from "../../hooks/use-plugin/usePlugin"
 import useIsomorphicLayoutEffect from "../../hooks/useIsomorphicLayoutEffect"
-import {useApp} from "../../Javelin"
-import {mergeRefs} from "../../utils/mergeRefs"
-import {useCurrentEntity} from "../entity/Entity"
+import { useApp } from "../../Javelin"
+import { mergeRefs } from "../../utils/mergeRefs"
+import { useCurrentEntity } from "../entity/Entity"
 
 export interface ComponentProps {
-  type: Type
-  values?: ComponentInitValues<any>
+  type: Type<any>
+  values?: any
 }
 
 export const Component: React.FC<React.PropsWithChildren<ComponentProps>> = ({
@@ -24,19 +23,20 @@ export const Component: React.FC<React.PropsWithChildren<ComponentProps>> = ({
   }
 
   useIsomorphicLayoutEffect(() => {
+    if (values) {
+      app.world.add(entity, type, values)
+    }
     return () => {
       app.world.remove(entity, type)
     }
-  }, [])
+  }, [values])
 
-  if (children) {
+  if (children && !values) {
     const child = React.Children.only(children) as React.ReactElement
     const mergedRefs = mergeRefs([
       (child as any).ref,
       value => {
         if (!app.world.has(entity, type)) {
-          // TODO fix this
-          // @ts-ignore
           app.world.add(entity, type, value)
         }
       },
@@ -49,8 +49,8 @@ export const Component: React.FC<React.PropsWithChildren<ComponentProps>> = ({
   return null
 }
 
-export function useComponent<T extends JComponent[]>(
-  type: Type<T>,
+export function useComponent<T>(
+  type: Type<[JComponent<T>]>,
   ...values: ComponentInitValues<T>
 ) {
   const entity = useCurrentEntity()
@@ -64,4 +64,21 @@ export function useComponent<T extends JComponent[]>(
     },
     [values],
   )
+}
+
+export function useCaptureComponent<T>(
+  type: Type<[JComponent<T>]>
+) {
+  const entity = useCurrentEntity()
+  const app = useApp()
+
+  useIsomorphicLayoutEffect(() => {
+    return () => {
+      app.world.remove(entity, type)
+    }
+  }, [])
+
+  return function captureRefValue(value: T) {
+    app.world.add(entity, type, value)
+  }
 }

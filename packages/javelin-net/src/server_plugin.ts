@@ -1,28 +1,28 @@
 import * as j from "@javelin/ecs"
-import {exists, expect, Maybe} from "@javelin/lib"
-import {AwarenessState} from "./awareness.js"
-import {clockSyncMessageType} from "./clock_sync.js"
-import {Awareness, Client, ClockSyncPayload, Transport} from "./components.js"
-import {interestMessageType} from "./interest.js"
+import { exists, expect, Maybe } from "@javelin/lib"
+import { AwarenessState as JAwarenessState } from "./awareness.js"
+import { clockSyncMessageType } from "./clock_sync.js"
+import { Awareness, Client, ClockSyncPayload, Transport } from "./components.js"
+import { interestMessageType } from "./interest.js"
 import {
   NetworkModel,
   NormalizedNetworkModel,
-  normalizeNetworkModel,
+  normalizeNetworkModel
 } from "./network_model.js"
-import {presenceMessageType} from "./presence.js"
-import {makeProtocol} from "./protocol.js"
-import {Protocol} from "./resources.js"
+import { presenceMessageType } from "./presence.js"
+import { makeProtocol } from "./protocol.js"
+import { Protocol } from "./resources.js"
 import {
   snapshotInterestMessageType,
-  SnapshotInterestStateImpl,
+  SnapshotInterestStateImpl
 } from "./snapshot_interest.js"
-import {ReadStream, WriteStream} from "./structs/stream.js"
+import { ReadStream, WriteStream } from "./structs/stream.js"
 
 let readStream = new ReadStream(new Uint8Array())
 let writeStreamReliable = new WriteStream()
 let writeStreamUnreliable = new WriteStream()
 
-let AwarenessState = j.value<AwarenessState>()
+let AwarenessState = j.value<JAwarenessState>()
 
 let initClientAwarenessesSystem = (world: j.World) => {
   world.monitor(Client).eachIncluded(client => {

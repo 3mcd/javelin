@@ -1,7 +1,7 @@
-import {type, value} from "@javelin/ecs"
-import {Component, Entities, useCurrentEntity, useSystem} from "@javelin/react"
-import {Mesh, Quaternion as ThreeQuaternion, Vector3} from "three"
-import {Time} from "./App"
+import { type, value } from "@javelin/ecs"
+import { Entities, useCaptureComponent, useCurrentEntity, useSystem } from "@javelin/react"
+import { Mesh, Quaternion as ThreeQuaternion, Vector3 } from "three"
+import { Time } from "./App"
 
 export const MeshComponent = value<Mesh>()
 export const Position = value<Vector3>()
@@ -80,12 +80,10 @@ export const BoxRender: React.FC<BoxProps> = props => {
   )
 
   return (
-    <Component type={MeshComponent}>
-      <mesh>
+      <mesh ref={useCaptureComponent(MeshComponent)}>
         <boxGeometry attach="geometry" args={[props.width, props.height, 1]} />
         <meshStandardMaterial attach="material" color={props.color} />
       </mesh>
-    </Component>
   )
 }
 
