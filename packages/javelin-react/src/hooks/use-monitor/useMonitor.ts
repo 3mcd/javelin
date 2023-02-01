@@ -1,7 +1,7 @@
-import { Entity, QueryTerm, QueryTerms } from "@javelin/ecs";
-import { useState } from "react";
-import { useSystem } from "../use-system/useSystem";
-import { useUpdate } from "../use-update/useUpdate";
+import {Entity, QueryTerm, QueryTerms} from "@javelin/ecs"
+import {useState} from "react"
+import {useSystem} from "../use-system/useSystem"
+import {useUpdate} from "../use-update/useUpdate"
 
 // returns an array of entities that match the query terms
 export function useEntitiesMonitor(queryTerms: QueryTerms | QueryTerm) {
@@ -18,11 +18,11 @@ export function useEntitiesMonitor(queryTerms: QueryTerms | QueryTerm) {
     update()
   }
 
-  useSystem((world) => {
+  useSystem(world => {
     world
-    .monitor(...Array.isArray(queryTerms) ? queryTerms : [queryTerms])
-    .eachIncluded(handleIncluded)
-    .eachExcluded(handleExcluded)
+      .monitor(...(Array.isArray(queryTerms) ? queryTerms : [queryTerms]))
+      .eachIncluded(handleIncluded)
+      .eachExcluded(handleExcluded)
   })
 
   return Array.from(set)

@@ -1,10 +1,12 @@
-import * as React from 'react';
+import * as React from "react"
 
-import { app, App } from "@javelin/ecs";
+import {app, App} from "@javelin/ecs"
 
-export const javelinAppContext = React.createContext<App>(null as unknown as App);
+export const javelinAppContext = React.createContext<App>(
+  null as unknown as App,
+)
 
-export const Javelin: React.FC<React.PropsWithChildren<{ app?: App }>> = ({
+export const Javelin: React.FC<React.PropsWithChildren<{app?: App}>> = ({
   app: appValue = app(),
   children,
 }) => {
@@ -12,7 +14,7 @@ export const Javelin: React.FC<React.PropsWithChildren<{ app?: App }>> = ({
     <javelinAppContext.Provider value={appValue}>
       {children}
     </javelinAppContext.Provider>
-  );
+  )
 }
 
-export const useApp = () => React.useContext(javelinAppContext);
+export const useApp = () => React.useContext(javelinAppContext)
