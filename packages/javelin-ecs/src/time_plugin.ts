@@ -11,9 +11,8 @@ export let Time = makeResource<Time>()
 
 export let advanceTimeSystem = (world: World) => {
   let time = world.getResource(Time)
-  let {previousTime} = time
   let currentTime = performance.now() / 1_000
-  if (previousTime === 0) previousTime = currentTime
+  let previousTime = time.currentTime
   time.previousTime = previousTime
   time.currentTime = currentTime
   time.deltaTime = currentTime - previousTime

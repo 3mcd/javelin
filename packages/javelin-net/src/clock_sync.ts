@@ -15,7 +15,7 @@ export type ClockSyncConfig = {
    * calculated when a new sample is added) before the client and server are
    * considered out of sync.
    */
-  maxTolerableDeviation: number
+  maxDeviation: number
   /**
    * The required number of samples to await before calculating the first mean
    * clock offset.
@@ -65,7 +65,7 @@ export class ClockSyncImpl {
       config.expectedOutlierRate,
     )
     this.#meanOffset = Infinity
-    this.#maxTolerableDeviation = config.maxTolerableDeviation
+    this.#maxTolerableDeviation = config.maxDeviation
     this.#requiredSampleCount =
       config.requiredSampleCount + samplesToDiscardPerExtreme * 2
     this.#samplesToDiscardPerExtreme = samplesToDiscardPerExtreme

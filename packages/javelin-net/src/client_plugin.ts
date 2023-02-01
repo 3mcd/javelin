@@ -2,13 +2,11 @@ import * as j from "@javelin/ecs"
 import {exists, expect, Maybe} from "@javelin/lib"
 import {ClockSyncImpl, clockSyncMessageType} from "./clock_sync.js"
 import {ClockSyncPayload, Transport} from "./components.js"
-import {interestMessageType} from "./interest.js"
 import {
   NetworkModel,
   NormalizedNetworkModel,
   normalizeNetworkModel,
 } from "./network_model.js"
-import {presenceMessageType} from "./presence.js"
 import {makeProtocol} from "./protocol.js"
 import {Protocol} from "./resources.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
@@ -50,25 +48,33 @@ let processClientClockSyncResponsesSystem = (world: j.World) => {
   })
 }
 
-let updateFixedTimestepTargetTimeSystem = (world: j.World) => {
+let controlFixedTimestepSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
-  let clockSync = world.getResource(ClockSync)
-  let offset = clockSync.getMeanOffset()
-  let estimatedServerTime =
-    offset === Infinity ? 0 : time.currentTime + offset + 0.3 // lag compensation latency;
-  if (estimatedServerTime > 0) {
-    world.setResource(j.FixedTimestepTargetTime, estimatedServerTime)
+  let serverOffset = world.getResource(ClockSync).getMeanOffset()
+  if (serverOffset < Infinity) {
+    world.setResource(
+      j.FixedTimestepTargetTime,
+      time.currentTime + serverOffset + 0.3, // lag compensation latency
+    )
   }
+}
+
+let clockSyncPayload = {
+  clientTime: 0,
+  serverTime: 0,
 }
 
 let sendClientClockSyncRequestsSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
   let protocol = world.getResource(Protocol)
   world.of(Transport).each(function sendClientClockSyncRequest(_, transport) {
-    protocol.encodeMessage(world, writeStreamReliable, clockSyncMessageType, {
-      clientTime: time.currentTime,
-      serverTime: 0,
-    })
+    clockSyncPayload.clientTime = time.currentTime
+    protocol.encodeMessage(
+      world,
+      writeStreamReliable,
+      clockSyncMessageType,
+      clockSyncPayload,
+    )
     transport.push(writeStreamReliable.bytes(), true)
     writeStreamReliable.reset()
   })
@@ -78,7 +84,7 @@ let sendClientClockSyncRequestsSystem = (world: j.World) => {
 export let clientPlugin = (app: j.App) => {
   let clockSync = new ClockSyncImpl({
     expectedOutlierRate: 0.2,
-    maxTolerableDeviation: 0.1,
+    maxDeviation: 0.1,
     requiredSampleCount: 8,
   })
   let protocol = app.getResource(Protocol)
@@ -122,7 +128,7 @@ export let clientPlugin = (app: j.App) => {
     )
     .addSystemToGroup(
       j.Group.Early,
-      updateFixedTimestepTargetTimeSystem,
+      controlFixedTimestepSystem,
       j.before(j.advanceFixedTimestepSystem),
     )
 }

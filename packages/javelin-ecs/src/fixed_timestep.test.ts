@@ -22,10 +22,10 @@ function testTermination(
   let timestep = new FixedTimestepImpl({
     timeStep: TIME_STEP,
     maxUpdateDelta: 0.25,
-    timeSkipThreshold: 1 / 60,
+    maxDrift: 1 / 60,
     terminationCondition,
   })
-  timestep.update(TIME_STEP * frames, TIME_STEP * frames)
+  timestep.advance(TIME_STEP * frames, TIME_STEP * frames)
   return timestep.steps
 }
 
@@ -72,7 +72,7 @@ let interestingFramesPerUpdate = [1, 1.7, 0.5, 2.5, 2]
 let defaultConfig = {
   timeStep: TIME_STEP,
   maxUpdateDelta: 0.25,
-  timeSkipThreshold: 1,
+  maxDrift: 1,
   terminationCondition: TerminationCondition.FirstOvershoot,
 }
 
@@ -84,7 +84,7 @@ let update = (
 ) => {
   let deltaTime = TIME_STEP * frames
   let targetTime = time + deltaTime - drift
-  timestep.update(deltaTime, targetTime)
+  timestep.advance(deltaTime, targetTime)
   return targetTime
 }
 
@@ -133,9 +133,9 @@ test("corrects timestamp when timestep drifts beyond a frame", () => {
 })
 
 test("skips timestamps when drift is beyond threshold", () => {
-  let timeSkipThreshold = 1
+  let maxDrift = 1
   let maxUpdateDelta = 0.25
-  let maxSkipDelta = timeSkipThreshold + maxUpdateDelta
+  let maxSkipDelta = maxDrift + maxUpdateDelta
   let drifts = [
     maxSkipDelta,
     -maxSkipDelta,
@@ -152,7 +152,7 @@ test("skips timestamps when drift is beyond threshold", () => {
     let timestep = new FixedTimestepImpl({
       timeStep: TIME_STEP,
       maxUpdateDelta,
-      timeSkipThreshold,
+      maxDrift: maxDrift,
       terminationCondition: TerminationCondition.FirstOvershoot,
     })
     timestep.reset(time)
@@ -172,7 +172,7 @@ test("should not drift while delta is changing", () => {
     for (let frames of interestingFramesPerUpdate) {
       let delta = TIME_STEP * frames
       time += delta
-      timestep.update(delta, time)
+      timestep.advance(delta, time)
       expect(timestep.measureDrift(time)).toBeCloseTo(0)
     }
   }

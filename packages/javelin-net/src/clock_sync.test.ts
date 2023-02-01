@@ -5,7 +5,7 @@ test("initial offset", () => {
   let clockDesync = 9
   let clockSyncSamples = new ClockSyncImpl({
     expectedOutlierRate: 0.2,
-    maxTolerableDeviation: 1,
+    maxDeviation: 1,
     requiredSampleCount: 4,
   })
   let offset = 0
@@ -21,7 +21,7 @@ test("tolerated desync", () => {
   let clockDesync = 0.5
   let clockSyncSamples = new ClockSyncImpl({
     expectedOutlierRate: 0.2,
-    maxTolerableDeviation,
+    maxDeviation: maxTolerableDeviation,
     requiredSampleCount: 5,
   })
   let offset = 0
@@ -40,7 +40,7 @@ test("untolerated desync", () => {
   let clockDesync = 0.5
   let clockSyncSamples = new ClockSyncImpl({
     expectedOutlierRate: 0.2,
-    maxTolerableDeviation,
+    maxDeviation: maxTolerableDeviation,
     requiredSampleCount: 5,
   })
   let offset = 0
@@ -61,7 +61,7 @@ test("outlier exclusion", () => {
   let clockDesync = 1
   let clockSyncSamples = new ClockSyncImpl({
     expectedOutlierRate: 0.5,
-    maxTolerableDeviation,
+    maxDeviation: maxTolerableDeviation,
     requiredSampleCount,
   })
   let offset = 0
@@ -83,7 +83,7 @@ test("outlier inclusion (desync)", () => {
   let clockSyncSamples = new ClockSyncImpl({
     requiredSampleCount: 10,
     expectedOutlierRate: 0.5,
-    maxTolerableDeviation,
+    maxDeviation: maxTolerableDeviation,
   })
   let offset = 0
   for (let i = 0; i < clockSyncSamples.getRequiredSampleCount(); i++) {

@@ -11,6 +11,16 @@ export enum TerminationCondition {
 
 export type FixedTimestepConfig = {
   /**
+   * Due to floating-point rounding errors, and the `maxUpdateDelta` limit, the
+   * `FixedTimestep` might slowly drift away from the target time. `FixedTimestep`
+   * compensates for small amounts of drift by calculating fewer or more steps than
+   * usual. If the discepancy becomes too large, `FixedTimestep` will perform a
+   * "time-skip" without publishing the corresponding steps. This option defines the
+   * threshold for drift before a time-skip occurs.
+   */
+  maxDrift: number
+
+  /**
    * The maximum time to step forward in a single call to `FixedTimestep#update`. This
    * option exists to avoid freezing the process when the `FixedTimestep`'s current time
    * drifts too far from the target time.
@@ -21,16 +31,6 @@ export type FixedTimestepConfig = {
    * Decides whether to keep the current time slightly over or behind the target time.
    */
   terminationCondition: TerminationCondition
-
-  /**
-   * Due to floating-point rounding errors, and the `maxUpdateDelta` limit, the
-   * `FixedTimestep` might slowly drift away from the target time. `FixedTimestep`
-   * compensates for small amounts of drift by calculating fewer or more steps than
-   * usual. If the discepancy becomes too large, `FixedTimestep` will perform a
-   * "time-skip" without publishing the corresponding steps. This option defines the
-   * threshold for drift before a time-skip occurs.
-   */
-  timeSkipThreshold: number
 
   /**
    * The number of seconds that should make up a single fixed step on any
@@ -46,20 +46,22 @@ export class FixedTimestepImpl {
   #currentTime
   #lastSkipTime
   #lastOvershootTime
+  #step
   #steps
+  readonly #maxDrift
   readonly #maxUpdateDelta
   readonly #terminationCondition
-  readonly #timeSkipThreshold
   readonly #timeStep
 
   constructor(config: FixedTimestepConfig) {
     this.#currentTime = 0
     this.#lastSkipTime = 0
     this.#lastOvershootTime = 0
+    this.#step = 0
     this.#steps = 0
     this.#timeStep = config.timeStep
     this.#terminationCondition = config.terminationCondition
-    this.#timeSkipThreshold = config.timeSkipThreshold
+    this.#maxDrift = config.maxDrift
     this.#maxUpdateDelta = config.maxUpdateDelta
   }
 
@@ -85,6 +87,7 @@ export class FixedTimestepImpl {
       steps++
     }
     this.#steps = steps
+    this.#step += steps
   }
 
   measureDrift(targetTime: number) {
@@ -104,12 +107,12 @@ export class FixedTimestepImpl {
     return compensatedDeltaTime
   }
 
-  update(deltaTime: number, targetTime: number) {
+  advance(deltaTime: number, targetTime: number) {
     let compensatedDeltaTime = this.#compensateDeltaTime(deltaTime, targetTime)
     let steps = this.#advance(compensatedDeltaTime)
     // Skip time if necessary.
     let drift = this.measureDrift(targetTime)
-    if (Math.abs(drift) >= this.#timeSkipThreshold) {
+    if (Math.abs(drift) >= this.#maxDrift) {
       this.reset(targetTime)
     }
     return steps
@@ -127,6 +130,10 @@ export class FixedTimestepImpl {
     }
     this.#currentTime = targetDecomposedTime
     this.#lastOvershootTime = targetDecomposedTime - targetTime
+  }
+
+  get step() {
+    return this.#step
   }
 
   get steps() {

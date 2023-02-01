@@ -122,10 +122,14 @@ export let serverPlugin = (app: j.App) => {
       NormalizedNetworkModel,
       normalizeNetworkModel(expect(app.getResource(NetworkModel))),
     )
-    .addSystemToGroup(j.Group.Early, initClientAwarenessesSystem)
-    .addSystemToGroup(j.Group.Early, processClientMessagesSystem)
+    .addSystemToGroup(j.FixedGroup.EarlyUpdate, initClientAwarenessesSystem)
     .addSystemToGroup(
-      j.Group.Early,
+      j.FixedGroup.EarlyUpdate,
+      processClientMessagesSystem,
+      j.after(initClientAwarenessesSystem),
+    )
+    .addSystemToGroup(
+      j.FixedGroup.EarlyUpdate,
       processClientClockSyncRequestsSystem,
       j.after(processClientMessagesSystem),
     )

@@ -1,4 +1,3 @@
-import {Time, advanceTimeSystem} from "./time_plugin.js"
 import {App, DefaultGroup} from "./app.js"
 import {
   FixedTimestepConfig as FixedTimestepImplConfig,
@@ -6,12 +5,13 @@ import {
   TerminationCondition,
 } from "./fixed_timestep.js"
 import {makeResource} from "./resource.js"
-import {World} from "./world.js"
 import {makeConstraintsWithAfter} from "./schedule.js"
+import {advanceTimeSystem, Time} from "./time_plugin.js"
+import {World} from "./world.js"
 
 export let defaultFixedTimestepConfig: FixedTimestepImplConfig = {
   timeStep: 1 / 60,
-  timeSkipThreshold: 1,
+  maxDrift: 1,
   terminationCondition: TerminationCondition.FirstOvershoot,
   maxUpdateDelta: 0.1,
 }
@@ -21,37 +21,95 @@ export enum FixedGroup {
   EarlyUpdate = "FixedEarlyUpdate",
   Update = "FixedUpdate",
   LateUpdate = "FixedLateUpdate",
+  Late = "FixedLate",
 }
 
 export type FixedTimestepConfig = Partial<FixedTimestepImplConfig>
 export let FixedTimestepConfig = makeResource<Partial<FixedTimestepConfig>>()
 export let FixedTimestepTargetTime = makeResource<number>()
+export let FixedTimestepControlled = makeResource<boolean>()
 export let FixedTimestep = makeResource<FixedTimestepImpl>()
-export let FixedTick = makeResource<number>()
+export let FixedStep = makeResource<number>()
 export let FixedTime = makeResource<Time>()
 
+/**
+ * Mark the fixed timestep as controlled when the `FixedTimestepTargetTime` resource is
+ * first set. Also resets the fixed timestep's current time to the provided target time.
+ */
+export let controlFixedTimestepSystem = (world: World) => {
+  let fixedTimestep = world.getResource(FixedTimestep)
+  let fixedTimestepTargetTime = world.getResource(FixedTimestepTargetTime)
+  fixedTimestep.reset(fixedTimestepTargetTime)
+  world.setResource(FixedTimestepControlled, true)
+}
+
+/**
+ * Advances the fixed timestep each app step.
+ */
 export let advanceFixedTimestepSystem = (world: World) => {
   let {currentTime, deltaTime} = world.getResource(Time)
   let fixedTimestep = world.getResource(FixedTimestep)
-  fixedTimestep.update(
-    deltaTime,
-    world.tryGetResource(FixedTimestepTargetTime) ?? currentTime,
-  )
+  let targetTime = world.tryGetResource(FixedTimestepTargetTime) ?? currentTime
+  fixedTimestep.advance(deltaTime, targetTime)
 }
 
-export let advanceFixedTickSystem = (world: World) => {
+/**
+ * Initialize the fixed steps once at the beginning of each fixed group.
+ */
+export let initFixedTickSystem = (world: World) => {
   let fixedTimestep = world.getResource(FixedTimestep)
-  world.setResource(
-    FixedTick,
-    world.getResource(FixedTick) + fixedTimestep.steps,
-  )
+  world.setResource(FixedStep, fixedTimestep.step - fixedTimestep.steps)
 }
 
-export let advanceFixedTimeSystem = (world: World) => {
+/**
+ * Increment the fixed steps at the end of each fixed group.
+ */
+export let incrementFixedGroupTickSystem = (world: World) => {
+  let fixedTick = world.getResource(FixedStep)
+  world.setResource(FixedStep, fixedTick + 1)
+}
+
+/**
+ * Synchronize the `FixedTime` resource with the fixed group's tick.
+ */
+export let advanceFixedGroupTimeSystem = (world: World) => {
   let fixedTime = world.getResource(FixedTime)
+  let fixedTick = world.getResource(FixedStep)
   let fixedTimestep = world.getResource(FixedTimestep)
   fixedTime.previousTime = fixedTime.currentTime
-  fixedTime.currentTime = fixedTimestep.currentTime
+  fixedTime.currentTime = fixedTick * fixedTimestep.timeStep
+  fixedTime.deltaTime = fixedTimestep.timeStep
+}
+
+let fixedTimestepSteps = (world: World) =>
+  world.getResource(FixedTimestep).steps
+
+let lastFixedGroupCompleted = (world: World) => {
+  let fixedTimestep = world.getResource(FixedTimestep)
+  let fixedTick = world.getResource(FixedStep)
+  return fixedTick === fixedTimestep.step
+}
+
+let initFixedGroup = (app: App, fixedGroup: FixedGroup) => {
+  app
+    .addSystemToGroup(
+      fixedGroup,
+      initFixedTickSystem,
+      null,
+      lastFixedGroupCompleted,
+    )
+    .addSystemToGroup(
+      fixedGroup,
+      advanceFixedGroupTimeSystem,
+      makeConstraintsWithAfter(initFixedTickSystem).before(
+        incrementFixedGroupTickSystem,
+      ),
+    )
+    .addSystemToGroup(
+      fixedGroup,
+      incrementFixedGroupTickSystem,
+      makeConstraintsWithAfter(initFixedTickSystem),
+    )
 }
 
 export let fixedTimestepPlugin = (app: App) => {
@@ -60,48 +118,68 @@ export let fixedTimestepPlugin = (app: App) => {
     ...app.getResource(FixedTimestepConfig),
   }
   let fixedTimestep = new FixedTimestepImpl(fixedTimestepConfig)
-  let getFixedRuns = (world: World) => world.getResource(FixedTimestep).steps
   app
     .addResource(FixedTimestep, fixedTimestep)
-    .addResource(FixedTick, 0)
+    .addResource(FixedTimestepControlled, false)
+    .addResource(FixedStep, -1)
     .addResource(FixedTime, {
       currentTime: 0,
       previousTime: 0,
-      deltaTime: fixedTimestepConfig.timeStep,
+      deltaTime: 0,
     })
     .addSystemGroup(
       FixedGroup.Early,
       makeConstraintsWithAfter(DefaultGroup.Early).before(
         DefaultGroup.EarlyUpdate,
       ),
-      getFixedRuns,
+      fixedTimestepSteps,
     )
     .addSystemGroup(
       FixedGroup.EarlyUpdate,
       makeConstraintsWithAfter(DefaultGroup.EarlyUpdate).before(
         DefaultGroup.Update,
       ),
-      getFixedRuns,
+      fixedTimestepSteps,
     )
     .addSystemGroup(
       FixedGroup.Update,
       makeConstraintsWithAfter<FixedGroup | DefaultGroup>(
         FixedGroup.Update,
       ).before(DefaultGroup.LateUpdate),
-      getFixedRuns,
+      fixedTimestepSteps,
     )
     .addSystemGroup(
       FixedGroup.LateUpdate,
       makeConstraintsWithAfter<FixedGroup | DefaultGroup>(
         FixedGroup.LateUpdate,
       ).before(DefaultGroup.Late),
-      getFixedRuns,
+      fixedTimestepSteps,
+    )
+    .addSystemGroup(
+      FixedGroup.Late,
+      makeConstraintsWithAfter<FixedGroup | DefaultGroup>(
+        FixedGroup.LateUpdate,
+      ).after(DefaultGroup.Late),
+      fixedTimestepSteps,
+    )
+    .addSystemToGroup(
+      DefaultGroup.Early,
+      controlFixedTimestepSystem,
+      null,
+      world =>
+        world.getResource(FixedTimestepControlled) === false &&
+        world.hasResource(FixedTimestepTargetTime),
     )
     .addSystemToGroup(
       DefaultGroup.Early,
       advanceFixedTimestepSystem,
-      makeConstraintsWithAfter(advanceTimeSystem),
+      makeConstraintsWithAfter(advanceTimeSystem).after(
+        controlFixedTimestepSystem,
+      ),
     )
-    .addSystemToGroup(FixedGroup.Early, advanceFixedTimeSystem)
-    .addSystemToGroup(FixedGroup.Early, advanceFixedTickSystem)
+  initFixedGroup(app, FixedGroup.Early)
+  initFixedGroup(app, FixedGroup.EarlyUpdate)
+  initFixedGroup(app, FixedGroup.Update)
+  initFixedGroup(app, FixedGroup.LateUpdate)
+  initFixedGroup(app, FixedGroup.Late)
 }
