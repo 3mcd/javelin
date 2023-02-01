@@ -57,7 +57,7 @@ export function useComponent<T extends JComponent[]>(
 
   usePlugin(
     app => {
-      app.world.add(entity, type, values)
+      app.world.add(entity, type, ...values)
       return () => {
         app.world.remove(entity, type)
       }
