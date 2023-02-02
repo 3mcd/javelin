@@ -1,8 +1,18 @@
 import * as j from "@javelin/ecs"
 import * as jn from "@javelin/net"
+import {ServerWorld} from "@javelin/net"
 import {Input, networkModel, Position, Vector2} from "../../server/model.js"
 
 let socket = new WebSocket("ws://localhost:8080")
+
+let keys: Record<string, boolean> = {}
+
+document.addEventListener("keydown", e => {
+  keys[e.key] = true
+})
+document.addEventListener("keyup", e => {
+  keys[e.key] = false
+})
 
 let app = j
   .app()
@@ -11,7 +21,15 @@ let app = j
     world.create(j.type(jn.Transport), new jn.WebsocketTransport(socket))
   })
   .addSystemToGroup(j.FixedGroup.EarlyUpdate, world => {
-    world.getResource(jn.ServerWorld).dispatch(Input, {up: 12})
+    let serverWorld = world.getResource(jn.ServerWorld)
+    serverWorld
+      .of(Position)
+      .as()
+      .each(entity => {
+        if (keys.w) {
+          world.getResource(jn.ServerWorld).dispatch(Input, entity)
+        }
+      })
   })
   .addSystem(world => {
     let serverWorld = world.getResource(jn.ServerWorld)

@@ -3,6 +3,7 @@ import * as jn from "@javelin/net"
 import {createServer} from "http"
 import {WebSocketServer} from "ws"
 import {networkModel, Position, Velocity} from "./model.js"
+import {movePlayerSystem} from "./player.js"
 
 let http = createServer()
 let wss = new WebSocketServer({server: http})
@@ -18,24 +19,16 @@ let kineticInterest = jn.snapshotInterest(Kinetic, (_entity, subject) =>
 let app = j
   .app()
   .addResource(jn.NetworkModel, networkModel)
-  .addSystem(
-    world => {
-      let tick = world.getResource(j.Tick)
-      let v = {x: Math.random(), y: -tick / 5}
-      world.create(Kinetic, undefined, v)
-    },
-    null,
-    world => {
-      let tick = world.getResource(j.Tick)
-      return tick % 5 === 0 && tick < 500
-    },
-  )
+  .addInitSystem(world => {
+    world.create(Kinetic)
+  })
   .addSystem(world => {
     world.of(Kinetic).each((_, p, v) => {
       p.x += v.x
       p.y += v.y
     })
   })
+  .addSystem(movePlayerSystem)
   .use(jn.serverPlugin)
 
 wss.on("connection", socket => {

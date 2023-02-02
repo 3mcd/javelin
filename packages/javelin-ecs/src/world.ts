@@ -816,12 +816,12 @@ export class World {
     return monitor
   }
 
-  dispatch<T>(commandType: Singleton<T>, command: ComponentValue<T>) {
+  dispatch<T>(commandType: Singleton<T>, command: ComponentValue<T>): void {
     this.#ensureCommandQueue(commandType).unshift(command)
   }
 
-  commands<T>(commandType: Singleton<T>) {
-    return this.#ensureCommandQueue(commandType)
+  commands<T>(commandType: Singleton<T>): ComponentValue<T>[] {
+    return this.#ensureCommandQueue(commandType) as ComponentValue<T>[]
   }
 }
 

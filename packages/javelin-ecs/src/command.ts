@@ -6,7 +6,7 @@ export type Command<T = unknown> = Singleton<T>
 
 let commands: Command[] = []
 
-export let makeCommand = (schema: Schema) => {
+export let makeCommand = <T extends Schema>(schema: T): Singleton<T> => {
   let commandType = makeValueType(schema)
   commands[commandType.components[0]] = commandType
   return commandType

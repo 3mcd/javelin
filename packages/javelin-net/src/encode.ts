@@ -21,6 +21,7 @@ let formatLengths: Record<j.Format, number> = {
   f32: 4,
   f64: 8,
   number: 4,
+  entity: 4,
 }
 
 let writeStreamMethodsByFormat: Record<j.Format, keyof WriteStream> = {
@@ -33,6 +34,7 @@ let writeStreamMethodsByFormat: Record<j.Format, keyof WriteStream> = {
   f32: "writeF32",
   f64: "writeF64",
   number: "writeF32",
+  entity: "writeU32",
 }
 
 let readStreamMethodsByFormat: Record<j.Format, keyof ReadStream> = {
@@ -45,6 +47,7 @@ let readStreamMethodsByFormat: Record<j.Format, keyof ReadStream> = {
   f32: "readF32",
   f64: "readF64",
   number: "readF32",
+  entity: "readU32",
 }
 
 export let getEncodedValuesLength = (type: j.Type) => {
