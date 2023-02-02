@@ -28,13 +28,15 @@ export class WebsocketTransport implements Transport {
       )
       return
     }
-    if (this.#outbox.length > 0) {
-      let message: Maybe<Uint8Array>
-      while (exists((message = this.#outbox.pop()))) {
-        this.#socket.send(message)
+    if (this.#socket.readyState === this.#socket.OPEN) {
+      if (this.#outbox.length > 0) {
+        let message: Maybe<Uint8Array>
+        while (exists((message = this.#outbox.pop()))) {
+          this.#socket.send(message)
+        }
       }
+      this.#socket.send(message)
     }
-    this.#socket.send(message)
   }
 
   pull() {

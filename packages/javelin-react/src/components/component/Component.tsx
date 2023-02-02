@@ -1,5 +1,5 @@
 import {Component as JComponent, Type} from "@javelin/ecs"
-import {ComponentInitValues} from "@javelin/ecs/src/component"
+import {ValuesInit} from "@javelin/ecs/src/component"
 import * as React from "react"
 import {usePlugin} from "../../hooks/use-plugin/usePlugin"
 import useIsomorphicLayoutEffect from "../../hooks/useIsomorphicLayoutEffect"
@@ -9,7 +9,7 @@ import {useCurrentEntity} from "../entity/Entity"
 
 export interface ComponentProps {
   type: Type
-  values?: ComponentInitValues<any>
+  values?: ValuesInit<any>
 }
 
 export const Component: React.FC<React.PropsWithChildren<ComponentProps>> = ({
@@ -51,7 +51,7 @@ export const Component: React.FC<React.PropsWithChildren<ComponentProps>> = ({
 
 export function useComponent<T extends JComponent[]>(
   type: Type<T>,
-  ...values: ComponentInitValues<T>
+  ...values: ValuesInit<T>
 ) {
   const entity = useCurrentEntity()
 

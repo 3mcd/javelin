@@ -101,8 +101,10 @@ let sendClientCommandsSystem = (world: j.World) => {
       }
     }
     let bytes = writeStreamReliable.bytes()
-    transport.push(bytes, true)
-    writeStreamReliable.reset()
+    if (bytes.length > 0) {
+      transport.push(bytes, true)
+      writeStreamReliable.reset()
+    }
   })
 }
 

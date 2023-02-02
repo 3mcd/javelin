@@ -1,8 +1,8 @@
 import {assert, exists, expect, Maybe, SparseSet} from "@javelin/lib"
 import {
   Component,
-  ComponentInitValues,
-  ComponentValue,
+  ValuesInit,
+  Value,
   express,
   getSchema,
   hasSchema,
@@ -536,7 +536,7 @@ export class World {
   [_reserveEntity]<T extends Component[]>(
     entityId: number,
     type: Type<T>,
-    ...values: ComponentInitValues<T>
+    ...values: ValuesInit<T>
   ): Entity {
     assert(this.#getEntityIdVersion(entityId) === undefined)
     let entity = makeId(entityId, 0) as Entity
@@ -613,10 +613,7 @@ export class World {
    * let Body = type(Position, Velocity)
    * let entity = world.create(Body)
    */
-  create<T extends Component[]>(
-    type: Type<T>,
-    ...values: ComponentInitValues<T>
-  ): Entity
+  create<T extends Component[]>(type: Type<T>, ...values: ValuesInit<T>): Entity
   create(type: Type = Type.VOID, ...values: unknown[]) {
     let entity = this.#allocEntityId()
     let nextNode = this.graph.nodeOfType(type)
@@ -631,7 +628,7 @@ export class World {
   add<T extends Component[]>(
     entity: Entity,
     type: Type<T>,
-    ...values: ComponentInitValues<T>
+    ...values: ValuesInit<T>
   ): void {
     this.#validateEntityVersion(entity)
     let prevNode = this.#getStagedEntityNode(entity)
@@ -682,7 +679,7 @@ export class World {
    * @example
    * let position = world.get(entity, Position)
    */
-  get<T>(entity: Entity, type: Singleton<T>): Maybe<ComponentValue<T>>
+  get<T>(entity: Entity, type: Singleton<T>): Maybe<Value<T>>
   /**
    * Check if an entity has a tag component. Returns `true` if present, otherwise returns
    * `undefined`.
@@ -706,7 +703,7 @@ export class World {
    * Set the value of a component for an entity. Throws an error if the entity
    * does not have the component.
    */
-  set<T>(entity: Entity, type: Singleton<T>, value: ComponentValue<T>): void {
+  set<T>(entity: Entity, type: Singleton<T>, value: Value<T>): void {
     this.#validateEntityVersion(entity)
     let entityNode = expect(
       this.#getEntityNode(entity),
@@ -816,12 +813,12 @@ export class World {
     return monitor
   }
 
-  dispatch<T>(commandType: Singleton<T>, command: ComponentValue<T>): void {
+  dispatch<T>(commandType: Singleton<T>, command: Value<T>): void {
     this.#ensureCommandQueue(commandType).unshift(command)
   }
 
-  commands<T>(commandType: Singleton<T>): ComponentValue<T>[] {
-    return this.#ensureCommandQueue(commandType) as ComponentValue<T>[]
+  commands<T>(commandType: Singleton<T>): Value<T>[] {
+    return this.#ensureCommandQueue(commandType) as Value<T>[]
   }
 }
 

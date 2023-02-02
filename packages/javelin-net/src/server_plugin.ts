@@ -25,10 +25,10 @@ import {
 } from "./snapshot_interest.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
 
-export type ClientCommandValidator = (
+export type ClientCommandValidator = <T>(
   entity: j.Entity,
-  commandType: j.Command,
-  command: unknown,
+  commandType: j.Command<T>,
+  command: j.ComponentValue<T>,
 ) => boolean
 export let ClientCommandValidator = j.resource<ClientCommandValidator>()
 

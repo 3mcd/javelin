@@ -8,9 +8,12 @@ let commands: Command[] = []
 
 export let makeCommand = <T extends Schema>(schema: T): Singleton<T> => {
   let commandType = makeValueType(schema)
-  commands[commandType.components[0]] = commandType
+  let commandComponent = commandType.components[0]
+  commands[commandComponent] = commandType
   return commandType
 }
 
-export let isCommand = (type: Singleton): boolean =>
-  exists(commands[type.components[0]])
+export let isCommand = (commandType: Singleton): boolean => {
+  let commandComponent = commandType.components[0]
+  return exists(commands[commandComponent])
+}

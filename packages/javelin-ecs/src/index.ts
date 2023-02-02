@@ -3,7 +3,12 @@ export type {App, Constrain, Plugin} from "./app.js"
 export {isCommand, makeCommand as command} from "./command.js"
 export type {Command} from "./command.js"
 export {getSchema, _dynamic, _keys} from "./component.js"
-export type {Component, ComponentInitValue, Tag} from "./component.js"
+export type {
+  Component,
+  ValueInit as ComponentInitValue,
+  Value as ComponentValue,
+  Tag,
+} from "./component.js"
 export type {Entity} from "./entity.js"
 export {
   advanceFixedGroupTimeSystem as advanceFixedTimeSystem,

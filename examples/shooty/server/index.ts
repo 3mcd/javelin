@@ -2,7 +2,7 @@ import * as j from "@javelin/ecs"
 import * as jn from "@javelin/net"
 import {createServer} from "http"
 import {WebSocketServer} from "ws"
-import {networkModel, Position, Velocity} from "./model.js"
+import {Input, networkModel, Position, Velocity} from "./model.js"
 import {movePlayerSystem} from "./player.js"
 
 let http = createServer()
@@ -19,14 +19,17 @@ let kineticInterest = jn.snapshotInterest(Kinetic, (_entity, subject) =>
 let app = j
   .app()
   .addResource(jn.NetworkModel, networkModel)
+  .addResource(jn.ClientCommandValidator, (entity, commandType, command) => {
+    switch (commandType) {
+      case Input:
+        // TODO: get player entity
+        // return command === entity
+        return true
+    }
+    return false
+  })
   .addInitSystem(world => {
     world.create(Kinetic)
-  })
-  .addSystem(world => {
-    world.of(Kinetic).each((_, p, v) => {
-      p.x += v.x
-      p.y += v.y
-    })
   })
   .addSystem(movePlayerSystem)
   .use(jn.serverPlugin)
