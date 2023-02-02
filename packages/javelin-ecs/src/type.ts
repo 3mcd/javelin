@@ -17,13 +17,14 @@ import {
 import {HI_MASK, idHi, idLo, LO_MASK, makeId} from "./entity.js"
 import {Schema, SchemaOf} from "./schema.js"
 
+export type Singleton<T = unknown> = Type<[Component<T>]>
 export type QueryTerm = Type | Component | Relation
 export type QueryTerms = QueryTerm[]
 
 export interface Relation {
   relationId: number
   relationTag: Component<Tag>
-  (to: number | Relation): Type<[Component<Tag>]>
+  (to: number | Relation): Singleton<Tag>
 }
 
 export const ERR_CHILD_OF = "An entity may have only one ChildOf relationship"
@@ -178,16 +179,14 @@ export function makeType() {
   return (Type.cache[queryTermsHash] ??= new Type(queryTerms))
 }
 
-export let makeTagType = (): Type<[Component<typeof Tag>]> => {
+export let makeTagType = (): Singleton<Tag> => {
   let tagComponent = makeTagComponent()
   return new Type([tagComponent])
 }
 
-export function makeValueType<T>(
-  schema: SchemaOf<T>,
-): Type<[Component<SchemaOf<T>>]>
-export function makeValueType<T>(): Type<[Component<T>]>
-export function makeValueType<T extends Schema>(schema: T): Type<[Component<T>]>
+export function makeValueType<T>(schema: SchemaOf<T>): Singleton<SchemaOf<T>>
+export function makeValueType<T>(): Singleton<T>
+export function makeValueType<T extends Schema>(schema: T): Singleton<T>
 export function makeValueType() {
   let valueComponent = makeValueComponent.apply(
     null,
@@ -238,13 +237,13 @@ export let isRelationship = (term: Component) => idHi(term) > 0
 export let ChildOf = makeRelation()
 let Without = makeRelation()
 export let Not = Object.assign(
-  (type: Type<[Component]>) => Without(type.components[0]),
+  (type: Singleton) => Without(type.components[0]),
   Without,
 )
 
-export let makeSlot = <T extends Type<[Component]>[]>(...componentTypes: T) => {
+export let makeSlot = <T extends Singleton[]>(...componentTypes: T) => {
   let slotRelation = makeRelation()
-  let slotRelationships = [] as Type<[Component]>[]
+  let slotRelationships = [] as Singleton[]
   let slotComponents = new Set(componentTypes)
   slots[slotRelation.relationId] = slotRelation
   for (let i = 0; i < componentTypes.length; i++) {

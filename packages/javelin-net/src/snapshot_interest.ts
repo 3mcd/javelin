@@ -1,5 +1,5 @@
 import * as j from "@javelin/ecs"
-import {FixedTick, Tick} from "@javelin/ecs"
+import {FixedTime} from "@javelin/ecs"
 import {
   Interest,
   InterestImpl,
@@ -14,11 +14,11 @@ export let snapshotInterestMessageType: NetworkMessageType<SnapshotInterestState
   {
     encode(writeStream, world, message) {
       writeStream.grow(4)
-      writeStream.writeU32(world.getResource(FixedTick))
+      writeStream.writeF64(world.getResource(FixedTime).currentTime)
       interestMessageType.encode(writeStream, world, message)
     },
     decode(readStream, world, entity, length) {
-      let serverTick = readStream.readU32()
+      let serverTime = readStream.readF64()
       interestMessageType.decode(readStream, world, entity, length)
     },
   }

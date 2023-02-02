@@ -1,15 +1,17 @@
 import * as j from "@javelin/ecs"
 import * as jn from "@javelin/net"
-import {networkModel, Position, Vector2} from "../../server/model.js"
+import {Input, networkModel, Position, Vector2} from "../../server/model.js"
 
 let socket = new WebSocket("ws://localhost:8080")
 
-let i = 0
 let app = j
   .app()
   .addResource(jn.NetworkModel, networkModel)
   .addInitSystem(world => {
     world.create(j.type(jn.Transport), new jn.WebsocketTransport(socket))
+  })
+  .addSystemToGroup(j.FixedGroup.EarlyUpdate, world => {
+    world.getResource(jn.ServerWorld).dispatch(Input, {up: 12})
   })
   .addSystem(world => {
     let serverWorld = world.getResource(jn.ServerWorld)

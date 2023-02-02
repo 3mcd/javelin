@@ -1,8 +1,15 @@
 import * as j from "@javelin/ecs"
-import {exists, expect, Maybe} from "@javelin/lib"
+import {command, Command} from "@javelin/ecs"
+import {exists, expect, Maybe, SparseSet} from "@javelin/lib"
 import {AwarenessState} from "./awareness.js"
 import {clockSyncMessageType} from "./clock_sync.js"
-import {Awareness, Client, ClockSyncPayload, Transport} from "./components.js"
+import {
+  Awareness,
+  Client,
+  ClockSyncPayload,
+  Commands,
+  Transport,
+} from "./components.js"
 import {interestMessageType} from "./interest.js"
 import {
   NetworkModel,
@@ -11,31 +18,45 @@ import {
 } from "./network_model.js"
 import {presenceMessageType} from "./presence.js"
 import {makeProtocol} from "./protocol.js"
-import {Protocol} from "./resources.js"
+import {NetworkProtocol} from "./resources.js"
 import {
   snapshotInterestMessageType,
   SnapshotInterestStateImpl,
 } from "./snapshot_interest.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
 
+export type ClientCommandValidator = (
+  entity: j.Entity,
+  commandType: j.Command,
+  command: unknown,
+) => boolean
+export let ClientCommandValidator = j.resource<ClientCommandValidator>()
+
+let AwarenessState = j.value<AwarenessState>()
+let InitializedClient = j.type(Client, AwarenessState, Commands)
+
 let readStream = new ReadStream(new Uint8Array())
 let writeStreamReliable = new WriteStream()
 let writeStreamUnreliable = new WriteStream()
 
-let AwarenessState = j.value<AwarenessState>()
-
 let initClientAwarenessesSystem = (world: j.World) => {
   world.monitor(Client).eachIncluded(client => {
     let clientAwareness = expect(world.get(client, Awareness))
-    world.add(client, AwarenessState, clientAwareness.init())
+    let clientCommandQueues = new SparseSet<unknown[]>()
+    world.add(
+      client,
+      j.type(AwarenessState, Commands),
+      clientAwareness.init(),
+      clientCommandQueues,
+    )
   })
 }
 
 let sendServerMessagesSystem = (world: j.World) => {
-  let time = world.getResource(j.FixedTime)
-  let protocol = world.getResource(Protocol)
+  let time = world.getResource(j.Time)
+  let protocol = world.getResource(NetworkProtocol)
   world
-    .of(Client, AwarenessState)
+    .of(InitializedClient)
     .as(Transport, AwarenessState)
     .each(function sendServerMessages(client, transport, awareness) {
       for (let i = 0; i < awareness.presences.length; i++) {
@@ -57,12 +78,14 @@ let sendServerMessagesSystem = (world: j.World) => {
         let interest = awareness.interests[i]
         interest.prioritize(world, client, awareness.subjects)
         if (time.currentTime > interest.lastSendTime + interest.sendRate) {
+          let messageType =
+            interest instanceof SnapshotInterestStateImpl
+              ? snapshotInterestMessageType
+              : interestMessageType
           protocol.encodeMessage(
             world,
             writeStreamUnreliable,
-            interest instanceof SnapshotInterestStateImpl
-              ? snapshotInterestMessageType
-              : interestMessageType,
+            messageType,
             interest,
           )
           if (writeStreamUnreliable.offset > 0) {
@@ -77,19 +100,43 @@ let sendServerMessagesSystem = (world: j.World) => {
 }
 
 let processClientMessagesSystem = (world: j.World) => {
-  let protocol = world.getResource(Protocol)
-  world.of(Client).each(function recvClientMessages(client, transport) {
-    let message: Maybe<Uint8Array>
-    while (exists((message = transport.pull()))) {
-      readStream.reset(message)
-      protocol.decodeMessage(world, readStream, client)
-    }
-  })
+  let protocol = world.getResource(NetworkProtocol)
+  world
+    .of(InitializedClient)
+    .as(Transport)
+    .each(function recvClientMessages(client, transport) {
+      let message: Maybe<Uint8Array>
+      while (exists((message = transport.pull()))) {
+        readStream.reset(message)
+        protocol.decodeMessage(world, readStream, client)
+      }
+    })
+}
+
+let processClientCommandsSystem = (world: j.World) => {
+  let clientCommandValidator = world.getResource(ClientCommandValidator)
+  world
+    .of(InitializedClient)
+    .as(Commands)
+    .each((client, commands) => {
+      let commandComponents = commands.keys()
+      let commandQueues = commands.values()
+      for (let i = 0; i < commandQueues.length; i++) {
+        let commandType = j.type(commandComponents[i] as j.Component)
+        let commandQueue = commandQueues[i]
+        let command: Maybe<unknown>
+        while (exists((command = commandQueue.pop()))) {
+          if (clientCommandValidator(client, commandType, command)) {
+            world.dispatch(commandType, command)
+          }
+        }
+      }
+    })
 }
 
 let processClientClockSyncRequestsSystem = (world: j.World) => {
-  let protocol = world.getResource(Protocol)
-  let time = world.getResource(j.FixedTime)
+  let protocol = world.getResource(NetworkProtocol)
+  let time = world.getResource(j.Time)
   world
     .of(Client)
     .as(Transport, ClockSyncPayload)
@@ -112,25 +159,31 @@ let processClientClockSyncRequestsSystem = (world: j.World) => {
 }
 
 export let serverPlugin = (app: j.App) => {
-  let protocol = app.getResource(Protocol)
+  let protocol = app.getResource(NetworkProtocol)
   if (!exists(protocol)) {
     protocol = makeProtocol()
-    app.addResource(Protocol, protocol)
+    app.addResource(NetworkProtocol, protocol)
+  }
+  let clientCommandValidator = app.getResource(ClientCommandValidator)
+  if (!exists(clientCommandValidator)) {
+    clientCommandValidator = () => true
+    app.addResource(ClientCommandValidator, clientCommandValidator)
   }
   app
     .addResource(
       NormalizedNetworkModel,
       normalizeNetworkModel(expect(app.getResource(NetworkModel))),
     )
-    .addSystemToGroup(j.FixedGroup.EarlyUpdate, initClientAwarenessesSystem)
+    .addSystemToGroup(j.Group.Late, initClientAwarenessesSystem)
+    .addSystemToGroup(j.Group.Early, processClientMessagesSystem)
     .addSystemToGroup(
-      j.FixedGroup.EarlyUpdate,
-      processClientMessagesSystem,
-      j.after(initClientAwarenessesSystem),
+      j.Group.Early,
+      processClientClockSyncRequestsSystem,
+      j.after(processClientMessagesSystem),
     )
     .addSystemToGroup(
-      j.FixedGroup.EarlyUpdate,
-      processClientClockSyncRequestsSystem,
+      j.Group.Early,
+      processClientCommandsSystem,
       j.after(processClientMessagesSystem),
     )
     .addSystemToGroup(j.Group.Late, sendServerMessagesSystem)

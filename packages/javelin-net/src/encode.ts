@@ -1,6 +1,5 @@
 import * as j from "@javelin/ecs"
 import {COMPILED_LABEL, exists} from "@javelin/lib"
-import {NetworkModel, NormalizedNetworkModel} from "./network_model.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
 
 type EncodeEntity = ((entity: j.Entity, writeStream: WriteStream) => void) & {
@@ -11,7 +10,7 @@ type DecodeEntity = ((readStream: ReadStream) => void) & {
 }
 type EncoderMap = Record<number, EntityEncoder>
 
-let subjectLengths: Record<number, number> = {}
+let valuesLengths: Record<number, number> = {}
 let formatLengths: Record<j.Format, number> = {
   u8: 1,
   u16: 2,
@@ -24,7 +23,7 @@ let formatLengths: Record<j.Format, number> = {
   number: 4,
 }
 
-let streamWriteMethods: Record<j.Format, keyof WriteStream> = {
+let writeStreamMethodsByFormat: Record<j.Format, keyof WriteStream> = {
   u8: "writeU8",
   u16: "writeU16",
   u32: "writeU32",
@@ -36,7 +35,7 @@ let streamWriteMethods: Record<j.Format, keyof WriteStream> = {
   number: "writeF32",
 }
 
-let streamReadMethods: Record<j.Format, keyof ReadStream> = {
+let readStreamMethodsByFormat: Record<j.Format, keyof ReadStream> = {
   u8: "readU8",
   u16: "readU16",
   u32: "readU32",
@@ -48,37 +47,117 @@ let streamReadMethods: Record<j.Format, keyof ReadStream> = {
   number: "readF32",
 }
 
-export let getEncodedEntityLength = (subject: j.Type) => {
-  let length = subjectLengths[subject.hash]
-  if (exists(length)) {
-    return length
+export let getEncodedValuesLength = (type: j.Type) => {
+  let valuesLength = valuesLengths[type.hash]
+  if (exists(valuesLength)) {
+    return valuesLength
   }
-  length = 4
-  for (let component of subject.normalized.components) {
+  valuesLength = 0
+  for (let component of type.normalized.components) {
     let schema = j.getSchema(component)
     if (exists(schema) && schema !== j._dynamic) {
       if (typeof schema === "string") {
-        length += formatLengths[schema]
+        valuesLength += formatLengths[schema]
       } else {
         for (let prop in schema) {
           let format = schema[prop]
-          length += formatLengths[format]
+          valuesLength += formatLengths[format]
         }
       }
     }
   }
-  subjectLengths[subject.hash] = length
-  return length
+  valuesLengths[type.hash] = valuesLength
+  return valuesLength
 }
 
-let compileWriteExp = (format: j.Format, stream: string, value: string) => {
-  let method = streamWriteMethods[format]
-  return `${stream}.${method}(${value})`
+let compileWriteExp = (
+  format: j.Format,
+  writeStreamExp: string,
+  valueExp: string,
+) => {
+  let writeStreamMethod = writeStreamMethodsByFormat[format]
+  return `${writeStreamExp}.${writeStreamMethod}(${valueExp})`
 }
 
-let compileReadExp = (format: j.Format, stream: string) => {
-  let method = streamReadMethods[format]
-  return `${stream}.${method}()`
+let compileReadExp = (format: j.Format, readStreamExp: string) => {
+  let readStreamMethod = readStreamMethodsByFormat[format]
+  return `${readStreamExp}.${readStreamMethod}()`
+}
+
+export let compileWriteValueExp = (
+  schema: j.Schema,
+  writeStreamExp: string,
+  valueExp: string,
+) => {
+  let writeValueExp = ""
+  if (typeof schema === "string") {
+    writeValueExp = compileWriteExp(schema, writeStreamExp, valueExp)
+    writeValueExp += ";"
+  } else {
+    for (let schemaKey of Reflect.get(schema, j._keys)) {
+      writeValueExp += compileWriteExp(
+        schema[schemaKey],
+        writeStreamExp,
+        `${valueExp}.${schemaKey}`,
+      )
+      writeValueExp += ";"
+    }
+  }
+  return writeValueExp
+}
+
+export let compileReadValueExp = (schema: j.Schema, readStreamExp: string) => {
+  let readValueExp = ""
+  if (typeof schema === "string") {
+    readValueExp = compileReadExp(schema, readStreamExp)
+  } else {
+    readValueExp = `{`
+    for (let schemaKey of Reflect.get(schema, j._keys)) {
+      let readExp = compileReadExp(schema[schemaKey], readStreamExp)
+      readValueExp += `${schemaKey}:${readExp},`
+    }
+    readValueExp += "}"
+  }
+  return readValueExp
+}
+
+export let compileEncodeValues = (type: j.Type) => {
+  let components = type.normalized.components.filter(component => {
+    let schema = j.getSchema(component)
+    return exists(schema) && schema !== j._dynamic
+  })
+  let componentSchemas = components.map(j.getSchema) as j.Schema[]
+  let encodeValues = Function(
+    "v",
+    "s",
+    COMPILED_LABEL +
+      "for(let i=0;i<v.length;i++){" +
+      componentSchemas
+        .map(schema => compileWriteValueExp(schema, "s", "v[i]"))
+        .join("") +
+      "}",
+  )
+  return encodeValues
+}
+
+export let compileDecodeValues = (type: j.Type) => {
+  let components = type.normalized.components.filter(component => {
+    let schema = j.getSchema(component)
+    return exists(schema) && schema !== j._dynamic
+  })
+  let componentSchemas = components.map(j.getSchema) as j.Schema[]
+  let decodeValues = Function(
+    "v",
+    "s",
+    "c",
+    COMPILED_LABEL +
+      "while(c-->0){" +
+      componentSchemas.map(
+        schema => `v.unshift(${compileReadValueExp(schema, "s")})`,
+      ) +
+      "}",
+  )
+  return decodeValues
 }
 
 export let compileEncodeEntity = (
@@ -102,19 +181,7 @@ export let compileEncodeEntity = (
       componentSchemas
         .map((schema, i) => {
           let encodeExp = `let v${i}=V${i}[e];`
-          if (typeof schema === "string") {
-            let writeExp = compileWriteExp(schema, "s", `v${i}`)
-            encodeExp += `${writeExp};`
-          } else {
-            for (let schemaKey of Reflect.get(schema, j._keys)) {
-              let writeExp = compileWriteExp(
-                schema[schemaKey],
-                "s",
-                `v${i}.${schemaKey}`,
-              )
-              encodeExp += `${writeExp};`
-            }
-          }
+          encodeExp += compileWriteValueExp(schema, "s", `v${i}`)
           return encodeExp
         })
         .join("") +
@@ -173,17 +240,7 @@ export let compileDecodeEntityUpdate = (
         }
       }
       exp += "}else{"
-      if (typeof schema === "string") {
-        return compileReadExp(schema, "s")
-      } else {
-        let componentValue = `v${i}[e]={`
-        for (let schemaKey of Reflect.get(schema, j._keys)) {
-          let readExp = compileReadExp(schema[schemaKey], "s")
-          componentValue += `${schemaKey}:${readExp},`
-        }
-        componentValue += "}"
-        exp += componentValue
-      }
+      exp += `v${i}[e]=${compileReadValueExp(schema, "s")}`
       exp += "}"
       return exp
     })
@@ -205,10 +262,13 @@ export let compileDecodeEntityUpdate = (
 export class EntityEncoder {
   static encodersByWorld = new WeakMap<j.World, EncoderMap>()
 
+  readonly bytesPerEntity
+  readonly bytesPerValues
   readonly encodeEntity
+  readonly encodeValues
   readonly decodeEntityPresence
   readonly decodeEntityUpdate
-  readonly bytesPerEntity
+  readonly decodeValues
 
   static getEntityEncoder(world: j.World, type: j.Type) {
     let encoders = this.encodersByWorld.get(world)
@@ -220,9 +280,12 @@ export class EntityEncoder {
   }
 
   constructor(type: j.Type, world: j.World) {
-    this.encodeEntity = compileEncodeEntity(type, world)
+    this.bytesPerValues = getEncodedValuesLength(type)
+    this.bytesPerEntity = 4 + this.bytesPerValues
     this.decodeEntityPresence = compileDecodeEntityPresence(type, world)
     this.decodeEntityUpdate = compileDecodeEntityUpdate(type, world)
-    this.bytesPerEntity = getEncodedEntityLength(type)
+    this.decodeValues = compileDecodeValues(type)
+    this.encodeEntity = compileEncodeEntity(type, world)
+    this.encodeValues = compileEncodeValues(type)
   }
 }

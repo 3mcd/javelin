@@ -1,4 +1,4 @@
-import {assert, exists, expect, Maybe} from "@javelin/lib"
+import {assert, exists, expect, Maybe, SparseSet} from "@javelin/lib"
 import {
   Component,
   ComponentInitValues,
@@ -17,7 +17,7 @@ import {Query, QueryAPI} from "./query.js"
 import {makeResource, Resource} from "./resource.js"
 import {System} from "./system.js"
 import {Transaction, TransactionIteratee} from "./transaction.js"
-import {hashQueryTerms, QueryTerms, Type} from "./type.js"
+import {hashQueryTerms, QueryTerms, Singleton, Type} from "./type.js"
 
 const makeEntityLabel = (entity: Entity, entityId = idLo(entity)) =>
   `entity ${entity} (${entityId})`
@@ -70,6 +70,14 @@ export const _qualifyEntity = Symbol()
  * @private
  */
 export const _reserveEntity = Symbol()
+/**
+ * @private
+ */
+export const _commandQueues = Symbol()
+/**
+ * @private
+ */
+export const _drainCommands = Symbol()
 
 export enum Phase {
   Stage = "stage",
@@ -80,6 +88,7 @@ export let CurrentSystem = makeResource<System>()
 
 export class World {
   readonly #applyTransaction
+  readonly #commandQueues
   readonly #componentStores
   readonly #disposableNodes
   readonly #entityChildren
@@ -90,13 +99,13 @@ export class World {
   readonly #freeEntityIds
   readonly #resources
   readonly #stageTransaction
-
   #nextEntityId
 
   readonly graph
 
   constructor() {
     this.#applyTransaction = new Transaction()
+    this.#commandQueues = new SparseSet<unknown[]>()
     this.#componentStores = [] as unknown[][]
     this.#disposableNodes = new Set<Node>()
     this.#entityChildren = [] as Set<Entity>[]
@@ -110,6 +119,16 @@ export class World {
     this.#stageTransaction = new Transaction()
     this.graph = new Graph()
     this.setResource(CurrentSystem, new System(() => {}))
+  }
+
+  #ensureCommandQueue(command: Singleton) {
+    let commandComponent = command.components[0]
+    let commandQueue = this.#commandQueues.get(commandComponent)
+    if (!exists(commandQueue)) {
+      commandQueue = []
+      this.#commandQueues.set(commandComponent, commandQueue)
+    }
+    return commandQueue
   }
 
   #allocEntityId(): Entity {
@@ -528,6 +547,16 @@ export class World {
     return entity
   }
 
+  [_drainCommands]() {
+    let commandQueues = this.#commandQueues.values()
+    for (let i = 0; i < commandQueues.length; i++) {
+      let commandQueue = commandQueues[i]
+      while (commandQueue.length > 0) {
+        commandQueue.pop()
+      }
+    }
+  }
+
   /**
    * Set the value of a resource.
    */
@@ -653,12 +682,12 @@ export class World {
    * @example
    * let position = world.get(entity, Position)
    */
-  get<T>(entity: Entity, type: Type<[Component<T>]>): Maybe<ComponentValue<T>>
+  get<T>(entity: Entity, type: Singleton<T>): Maybe<ComponentValue<T>>
   /**
    * Check if an entity has a tag component. Returns `true` if present, otherwise returns
    * `undefined`.
    */
-  get(entity: Entity, type: Type<[Component<Tag>]>): Maybe<boolean>
+  get(entity: Entity, type: Singleton<Tag>): Maybe<boolean>
   get(entity: Entity, type: Type) {
     this.#validateEntityVersion(entity)
     let entityNode = expect(
@@ -677,11 +706,7 @@ export class World {
    * Set the value of a component for an entity. Throws an error if the entity
    * does not have the component.
    */
-  set<T>(
-    entity: Entity,
-    type: Type<[Component<T>]>,
-    value: ComponentValue<T>,
-  ): void {
+  set<T>(entity: Entity, type: Singleton<T>, value: ComponentValue<T>): void {
     this.#validateEntityVersion(entity)
     let entityNode = expect(
       this.#getEntityNode(entity),
@@ -695,7 +720,7 @@ export class World {
     this.#setEntityComponentValue(entity, component, value)
   }
 
-  has(entity: Entity, type: Type<[Component]>): boolean {
+  has(entity: Entity, type: Singleton): boolean {
     let entityNode = expect(
       this.#getEntityNode(entity),
       ERR_MISSING_COMPONENT(entity),
@@ -789,6 +814,14 @@ export class World {
       this.#initMonitor(monitor, monitorTermsHash, monitorNode, monitorSystem)
     }
     return monitor
+  }
+
+  dispatch<T>(commandType: Singleton<T>, command: ComponentValue<T>) {
+    this.#ensureCommandQueue(commandType).unshift(command)
+  }
+
+  commands<T>(commandType: Singleton<T>) {
+    return this.#ensureCommandQueue(commandType)
   }
 }
 

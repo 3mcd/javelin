@@ -1,6 +1,7 @@
 import {Entity, World} from "@javelin/ecs"
 import {expect} from "@javelin/lib"
 import {clockSyncMessageType} from "./clock_sync.js"
+import {commandsMessageType} from "./commands.js"
 import {interestMessageType} from "./interest.js"
 import {presenceMessageType} from "./presence.js"
 import {snapshotInterestMessageType} from "./snapshot_interest.js"
@@ -35,9 +36,13 @@ class NetworkProtocolImpl implements NetworkProtocol {
 
   private static BASE_BYTE_LENGTH = 5
 
-  constructor() {
-    this.#messageTypes = [] as NetworkMessageType<unknown>[]
+  constructor(...messageTypes: NetworkMessageType<unknown>[]) {
+    this.#messageTypes = []
     this.#messageTypeIds = new Map<NetworkMessageType<unknown>, number>()
+    for (let i = 0; i < messageTypes.length; i++) {
+      let messageType = messageTypes[i]
+      this.addMessageType(messageType)
+    }
   }
 
   encodeMessage<T>(
@@ -64,8 +69,7 @@ class NetworkProtocolImpl implements NetworkProtocol {
   }
 
   decodeMessage(world: World, readStream: ReadStream, entity: Entity) {
-    let bytes = readStream.bytes()
-    while (readStream.offset < bytes.byteLength) {
+    while (readStream.offset < readStream.length) {
       let messageTypeId = readStream.readU8()
       let messageType = expect(
         this.#messageTypes[messageTypeId],
@@ -84,8 +88,10 @@ class NetworkProtocolImpl implements NetworkProtocol {
 }
 
 export let makeProtocol = (): NetworkProtocol =>
-  new NetworkProtocolImpl()
-    .addMessageType(presenceMessageType)
-    .addMessageType(interestMessageType)
-    .addMessageType(snapshotInterestMessageType)
-    .addMessageType(clockSyncMessageType)
+  new NetworkProtocolImpl(
+    clockSyncMessageType,
+    commandsMessageType,
+    interestMessageType,
+    presenceMessageType,
+    snapshotInterestMessageType,
+  )

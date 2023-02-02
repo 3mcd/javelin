@@ -12,10 +12,12 @@ export type Format =
   | "f64"
   | "number"
 
+export type Struct = {[key: string]: Format}
+
 /**
  * The shape of a component value.
  */
-export type Schema = Format | {[key: string]: Format}
+export type Schema = Format | Struct
 
 /**
  * Derive the schema type of a component value.

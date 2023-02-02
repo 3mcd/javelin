@@ -1,6 +1,6 @@
 import * as j from "@javelin/ecs"
 
-export type NetworkTerm = j.Type<[j.Component]> | j.Relation
+export type NetworkTerm = j.Singleton | j.Relation
 export type NetworkTerms = NetworkTerm[]
 
 export let NetworkModel = j.resource<NetworkTerms>()
@@ -8,6 +8,7 @@ export let NetworkModel = j.resource<NetworkTerms>()
 type NormalizedNetworkModel = {
   readonly isoComponentsToLocal: j.Component[]
   readonly localComponentsToIso: number[]
+  readonly localCommands: j.Command[]
 }
 export let NormalizedNetworkModel = j.resource<NormalizedNetworkModel>()
 
@@ -16,6 +17,7 @@ export let normalizeNetworkModel = (
 ): NormalizedNetworkModel => {
   let isoComponentsToLocal = [] as j.Component[]
   let localComponentsToIso = [] as number[]
+  let localCommands = [] as j.Command[]
   for (let i = 0; i < networkTerms.length; i++) {
     let networkTerm = networkTerms[i]
     if (j.isRelation(networkTerm)) {
@@ -26,10 +28,14 @@ export let normalizeNetworkModel = (
       let component = networkTerm.components[0]
       isoComponentsToLocal.push(component)
       localComponentsToIso[component] = i
+      if (j.isCommand(networkTerm)) {
+        localCommands.push(networkTerm)
+      }
     }
   }
   return {
     isoComponentsToLocal,
     localComponentsToIso,
+    localCommands,
   }
 }

@@ -12,6 +12,10 @@ export class ReadStream {
     this.#length = u8.byteLength + u8.byteOffset
   }
 
+  get length() {
+    return this.#length
+  }
+
   get offset() {
     return this.#offset
   }
@@ -109,7 +113,10 @@ export class WriteStream {
   bytes() {
     return this.#buffer.u8.length === this.#offset
       ? this.#buffer.u8
-      : this.#buffer.u8.subarray(0, this.#offset)
+      : this.#buffer.u8.subarray(
+          this.#buffer.u8.byteOffset,
+          this.#buffer.u8.byteOffset + this.#offset,
+        )
   }
 
   reset() {
