@@ -1,6 +1,5 @@
 import * as j from "@javelin/ecs"
 import * as jn from "@javelin/net"
-import {ServerWorld} from "@javelin/net"
 import {Input, networkModel, Position, Vector2} from "../../server/model.js"
 
 let socket = new WebSocket("ws://localhost:8080")
@@ -38,6 +37,7 @@ let app = j
     })
   })
   .use(jn.clientPlugin)
+  .use(jn.clientPredictionPlugin)
 
 let loop = () => {
   app.step()

@@ -122,7 +122,8 @@ let processClientCommandsSystem = (world: j.World) => {
       let commandComponents = commands.keys()
       let commandQueues = commands.values()
       for (let i = 0; i < commandQueues.length; i++) {
-        let commandType = j.type(commandComponents[i] as j.Component)
+        let commandComponent = commandComponents[i] as j.Component
+        let commandType = j.type(commandComponent)
         let commandQueue = commandQueues[i]
         let command: Maybe<unknown>
         while (exists((command = commandQueue.pop()))) {
@@ -142,14 +143,12 @@ let processClientClockSyncRequestsSystem = (world: j.World) => {
     .as(Transport, ClockSyncPayload)
     .each((_, transport, clockSyncPayload) => {
       if (clockSyncPayload.clientTime > 0) {
+        clockSyncPayload.serverTime = time.currentTime
         protocol.encodeMessage(
           world,
           writeStreamReliable,
           clockSyncMessageType,
-          {
-            clientTime: clockSyncPayload.clientTime,
-            serverTime: time.currentTime,
-          },
+          clockSyncPayload,
         )
         transport.push(writeStreamReliable.bytes(), true)
         writeStreamReliable.reset()

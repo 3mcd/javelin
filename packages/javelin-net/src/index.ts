@@ -1,5 +1,6 @@
 export {makeAwareness as awareness} from "./awareness.js"
 export * from "./client_plugin.js"
+export * from "./client_prediction_plugin.js"
 export * from "./components.js"
 export {makeInterest as interest} from "./interest.js"
 export {NetworkModel} from "./network_model.js"

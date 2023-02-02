@@ -67,7 +67,9 @@ export let presenceMessageType: NetworkMessageType<PresenceState> = {
   },
 }
 
-export interface PresenceState extends Presence {
+export interface PresenceState {
+  readonly subjectPrioritizer: SubjectPrioritizer
+  readonly subjectType: j.Type
   readonly subjectQueue: PriorityQueueInt<j.Entity>
 }
 
@@ -118,6 +120,7 @@ export class PresenceStateImpl {
 export interface Presence {
   readonly subjectPrioritizer: SubjectPrioritizer
   readonly subjectType: j.Type
+  init(): PresenceState
 }
 
 export class PresenceImpl implements Presence {

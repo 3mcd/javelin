@@ -31,8 +31,6 @@ let processClientMessagesSystem = (world: j.World) => {
       protocol.decodeMessage(serverWorld, readStream, client)
     }
   })
-  serverWorld[j._emitStagedChanges]()
-  serverWorld[j._commitStagedChanges]()
 }
 
 let processClientClockSyncResponsesSystem = (world: j.World) => {
@@ -87,10 +85,9 @@ let sendClientCommandsSystem = (world: j.World) => {
   let serverWorld = world.getResource(ServerWorld)
   let networkProtocol = world.getResource(NetworkProtocol)
   let networkModel = serverWorld.getResource(NormalizedNetworkModel)
-  let commandTypes = networkModel.localCommands
   world.of(Transport).each((_, transport) => {
-    for (let i = 0; i < commandTypes.length; i++) {
-      let commandType = commandTypes[i]
+    for (let i = 0; i < networkModel.commandTypes.length; i++) {
+      let commandType = networkModel.commandTypes[i]
       if (serverWorld.commands(commandType).length > 0) {
         networkProtocol.encodeMessage(
           serverWorld,
@@ -106,6 +103,12 @@ let sendClientCommandsSystem = (world: j.World) => {
       writeStreamReliable.reset()
     }
   })
+}
+
+export let stepServerWorldSystem = (world: j.World) => {
+  let serverWorld = world.getResource(ServerWorld)
+  serverWorld[j._emitStagedChanges]()
+  serverWorld[j._commitStagedChanges]()
 }
 
 let drainServerWorldCommandsSystem = (world: j.World) => {
@@ -163,6 +166,7 @@ export let clientPlugin = (app: j.App) => {
       controlFixedTimestepSystem,
       j.before(j.advanceFixedTimestepSystem),
     )
+    .addSystemToGroup(j.Group.LateUpdate, stepServerWorldSystem)
     .addSystemToGroup(j.Group.Late, sendClientCommandsSystem)
     .addSystemToGroup(
       j.Group.Late,

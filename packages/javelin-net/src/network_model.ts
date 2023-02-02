@@ -8,7 +8,7 @@ export let NetworkModel = j.resource<NetworkTerms>()
 type NormalizedNetworkModel = {
   readonly isoComponentsToLocal: j.Component[]
   readonly localComponentsToIso: number[]
-  readonly localCommands: j.Command[]
+  readonly commandTypes: j.Command[]
 }
 export let NormalizedNetworkModel = j.resource<NormalizedNetworkModel>()
 
@@ -36,6 +36,6 @@ export let normalizeNetworkModel = (
   return {
     isoComponentsToLocal,
     localComponentsToIso,
-    localCommands,
+    commandTypes: localCommands,
   }
 }

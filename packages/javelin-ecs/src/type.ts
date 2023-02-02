@@ -181,7 +181,7 @@ export function makeType() {
 
 export let makeTagType = (): Singleton<Tag> => {
   let tagComponent = makeTagComponent()
-  return new Type([tagComponent])
+  return makeType(tagComponent)
 }
 
 export function makeValueType<T>(schema: SchemaOf<T>): Singleton<SchemaOf<T>>
@@ -192,7 +192,7 @@ export function makeValueType() {
     null,
     arguments as unknown as [Schema],
   )
-  return new Type([valueComponent])
+  return makeType(valueComponent)
 }
 
 export let makeRelation = (): Relation => {

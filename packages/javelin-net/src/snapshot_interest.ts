@@ -1,5 +1,6 @@
 import * as j from "@javelin/ecs"
 import {FixedTime} from "@javelin/ecs"
+import {ServerWorldCorrected} from "./client_prediction_plugin.js"
 import {
   Interest,
   InterestImpl,
@@ -19,7 +20,21 @@ export let snapshotInterestMessageType: NetworkMessageType<SnapshotInterestState
     },
     decode(readStream, world, entity, length) {
       let serverTime = readStream.readF64()
+      // 0. discard shared commands older than snapshot timestamp
+      // 1. copy CorrectedWorld to ServerWorld
+      // 2. apply snapshot to CorrectedWorld
+      // 3. step ServerWorld as usual
+      // 4. start fast-forwarding CorrectedWorld in a performant way towards the latest ServerWorld step as to not block the main thread
+      // 5. when CorrectedWorld is caught up, start blending ServerWorld towards CorrectedWorld (this might happen in userland)
+      // 6. once blending is complete, await next snapshot (can we stop stepping CorrectedWorld at this time??)
       interestMessageType.decode(readStream, world, entity, length)
+      let serverWorldCorrected = world.getResource(ServerWorldCorrected)
+      interestMessageType.decode(
+        readStream,
+        serverWorldCorrected,
+        entity,
+        length,
+      )
     },
   }
 

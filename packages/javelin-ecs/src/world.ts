@@ -519,6 +519,16 @@ export class World {
     this.#disposableNodes.clear()
   }
 
+  [_drainCommands]() {
+    let commandQueues = this.#commandQueues.values()
+    for (let i = 0; i < commandQueues.length; i++) {
+      let commandQueue = commandQueues[i]
+      while (commandQueue.length > 0) {
+        commandQueue.pop()
+      }
+    }
+  }
+
   /**
    * Upgrade an entity id to a versioned entity handle.
    * @private
@@ -545,16 +555,6 @@ export class World {
     this.#relocateEntity(entity, undefined, nextNode)
     this.#updateEntityDelta(entity, type, values)
     return entity
-  }
-
-  [_drainCommands]() {
-    let commandQueues = this.#commandQueues.values()
-    for (let i = 0; i < commandQueues.length; i++) {
-      let commandQueue = commandQueues[i]
-      while (commandQueue.length > 0) {
-        commandQueue.pop()
-      }
-    }
   }
 
   /**

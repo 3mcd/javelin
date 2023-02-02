@@ -1,13 +1,11 @@
 import * as j from "@javelin/ecs"
-import {COMPILED_LABEL, exists} from "@javelin/lib"
+import {COMPILED_LABEL, exists, expect, assert} from "@javelin/lib"
 import {ReadStream, WriteStream} from "./structs/stream.js"
 
-type EncodeEntity = ((entity: j.Entity, writeStream: WriteStream) => void) & {
-  BYTES_PER_ELEMENT: number
-}
-type DecodeEntity = ((readStream: ReadStream) => void) & {
-  BYTES_PER_ELEMENT: number
-}
+type EncodeEntity = (entity: j.Entity, writeStream: WriteStream) => void
+type DecodeEntity = (readStream: ReadStream) => void
+type EncodeValue = (value: unknown, writeStream: WriteStream) => void
+type DecodeValue = (readStream: ReadStream) => void
 type EncoderMap = Record<number, EntityEncoder>
 
 let valuesLengths: Record<number, number> = {}
@@ -50,7 +48,7 @@ let readStreamMethodsByFormat: Record<j.Format, keyof ReadStream> = {
   entity: "readU32",
 }
 
-export let getEncodedValuesLength = (type: j.Type) => {
+export let getBytesPerTypeValues = (type: j.Type) => {
   let valuesLength = valuesLengths[type.hash]
   if (exists(valuesLength)) {
     return valuesLength
@@ -124,43 +122,27 @@ export let compileReadValueExp = (schema: j.Schema, readStreamExp: string) => {
   return readValueExp
 }
 
-export let compileEncodeValues = (type: j.Type) => {
-  let components = type.normalized.components.filter(component => {
-    let schema = j.getSchema(component)
-    return exists(schema) && schema !== j._dynamic
-  })
-  let componentSchemas = components.map(j.getSchema) as j.Schema[]
-  let encodeValues = Function(
+export let compileEncodeValue = (type: j.Type): EncodeValue => {
+  let component = type.components[0]
+  let componentSchema = expect(j.getSchema(component))
+  assert(componentSchema !== j._dynamic)
+  let encodeValue = Function(
     "v",
     "s",
-    COMPILED_LABEL +
-      "for(let i=0;i<v.length;i++){" +
-      componentSchemas
-        .map(schema => compileWriteValueExp(schema, "s", "v[i]"))
-        .join("") +
-      "}",
+    COMPILED_LABEL + compileWriteValueExp(componentSchema, "s", "v"),
   )
-  return encodeValues
+  return encodeValue as EncodeValue
 }
 
-export let compileDecodeValues = (type: j.Type) => {
-  let components = type.normalized.components.filter(component => {
-    let schema = j.getSchema(component)
-    return exists(schema) && schema !== j._dynamic
-  })
-  let componentSchemas = components.map(j.getSchema) as j.Schema[]
-  let decodeValues = Function(
-    "v",
+export let compileDecodeValue = (type: j.Type) => {
+  let component = type.components[0]
+  let componentSchema = expect(j.getSchema(component))
+  assert(componentSchema !== j._dynamic)
+  let encodeValue = Function(
     "s",
-    "c",
-    COMPILED_LABEL +
-      "while(c-->0){" +
-      componentSchemas.map(
-        schema => `v.unshift(${compileReadValueExp(schema, "s")})`,
-      ) +
-      "}",
+    COMPILED_LABEL + "return " + compileReadValueExp(componentSchema, "s"),
   )
-  return decodeValues
+  return encodeValue as DecodeValue
 }
 
 export let compileEncodeEntity = (
@@ -263,32 +245,28 @@ export let compileDecodeEntityUpdate = (
 }
 
 export class EntityEncoder {
-  static encodersByWorld = new WeakMap<j.World, EncoderMap>()
+  static #encodersByWorld = new WeakMap<j.World, EncoderMap>()
 
   readonly bytesPerEntity
   readonly bytesPerValues
   readonly encodeEntity
-  readonly encodeValues
   readonly decodeEntityPresence
   readonly decodeEntityUpdate
-  readonly decodeValues
 
   static getEntityEncoder(world: j.World, type: j.Type) {
-    let encoders = this.encodersByWorld.get(world)
+    let encoders = this.#encodersByWorld.get(world)
     if (!exists(encoders)) {
       encoders = []
-      this.encodersByWorld.set(world, encoders)
+      this.#encodersByWorld.set(world, encoders)
     }
     return (encoders[type.hash] ??= new EntityEncoder(type, world))
   }
 
   constructor(type: j.Type, world: j.World) {
-    this.bytesPerValues = getEncodedValuesLength(type)
+    this.bytesPerValues = getBytesPerTypeValues(type)
     this.bytesPerEntity = 4 + this.bytesPerValues
     this.decodeEntityPresence = compileDecodeEntityPresence(type, world)
     this.decodeEntityUpdate = compileDecodeEntityUpdate(type, world)
-    this.decodeValues = compileDecodeValues(type)
     this.encodeEntity = compileEncodeEntity(type, world)
-    this.encodeValues = compileEncodeValues(type)
   }
 }

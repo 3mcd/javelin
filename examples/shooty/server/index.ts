@@ -3,7 +3,7 @@ import * as jn from "@javelin/net"
 import {createServer} from "http"
 import {WebSocketServer} from "ws"
 import {Input, networkModel, Position, Velocity} from "./model.js"
-import {movePlayerSystem} from "./player.js"
+import {playerPlugin} from "./player.js"
 
 let http = createServer()
 let wss = new WebSocketServer({server: http})
@@ -22,8 +22,7 @@ let app = j
   .addResource(jn.ClientCommandValidator, (entity, commandType, command) => {
     switch (commandType) {
       case Input:
-        // TODO: get player entity
-        // return command === entity
+        // (validate command using client entity)
         return true
     }
     return false
@@ -31,7 +30,7 @@ let app = j
   .addInitSystem(world => {
     world.create(Kinetic)
   })
-  .addSystem(movePlayerSystem)
+  .use(playerPlugin)
   .use(jn.serverPlugin)
 
 wss.on("connection", socket => {
@@ -49,16 +48,15 @@ wss.on("connection", socket => {
 http.listen(8080)
 
 console.log(`
-call of
-  .::::::.   ::   .:      ...         ...     ::::::::::::.-:.     ::-.
- ;;;\`    \`  ,;;   ;;,  .;;;;;;;.   .;;;;;;;.  ;;;;;;;;'''' ';;.   ;;;;'
-  '[==/[[[[,,[[[,,,[[[ ,[[     \[[,,[[     \[[,     [[        '[[,[[['
-  '''    $"$$$"""$$$ $$$,     $$$$$$,     $$$     $$          c$$"
- 88b    dP 888   "88o"888,_ _,88P"888,_ _,88P     88,       ,8P"\`
-  "YMmMY"  MMM    YMM  "YMMMMMP"   "YMMMMMP"      MMM      mM"
+CALL OF
+ ____  _   _  ___   ___ _______   __
+/ ___|| | | |/ _ \\ / _ \\_   _\\ \\ / /
+\\___ \\| |_| | | | | | | || |  \\ V / 
+ ___) |  _  | |_| | |_| || |   | |  
+|____/|_| |_|\\___/ \\___/ |_|   |_|  
 `)
 
-console.log("server listening on port 8080")
+console.log("PORT=8080")
 
 setInterval(() => {
   app.step()
