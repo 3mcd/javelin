@@ -502,21 +502,23 @@ export class World {
     // Adjust entities within the archetype graph, update component stores, and
     // notify interested parties (like monitors).
     this.#applyTransaction.drainEntities(this.graph, Phase.Apply, commitBatch)
-    this.#disposableNodes.forEach(nodeToPrune => {
-      // The node may have been populated after it was flagged for deletion, so
-      // we first check if it is still empty.
-      if (nodeToPrune.isEmpty()) {
-        // If the node and its descendants have no entities, we free each
-        // descendant node and notify all retained ancestor nodes.
-        nodeToPrune.traverseAdd(nodeAdd =>
-          nodeToPrune.traverseRem(nodeRem => {
-            nodeRem.onNodeDeleted.emit(nodeAdd)
-            Node.unlink(nodeRem, nodeAdd)
-          }),
-        )
-      }
-    })
-    this.#disposableNodes.clear()
+    if (this.#disposableNodes.size > 0) {
+      this.#disposableNodes.forEach(nodeToPrune => {
+        // The node may have been populated after it was flagged for deletion, so
+        // we first check if it is still empty.
+        if (nodeToPrune.isEmpty()) {
+          // If the node and its descendants have no entities, we free each
+          // descendant node and notify all retained ancestor nodes.
+          nodeToPrune.traverseAdd(nodeAdd =>
+            nodeToPrune.traverseRem(nodeRem => {
+              nodeRem.onNodeDeleted.emit(nodeAdd)
+              Node.unlink(nodeRem, nodeAdd)
+            }),
+          )
+        }
+      })
+      this.#disposableNodes.clear()
+    }
   }
 
   [_drainCommands]() {
