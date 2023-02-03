@@ -46,3 +46,6 @@ export class WebsocketTransport implements Transport {
     }
   }
 }
+
+export let makeWebsocketTransport = (socket: WebSocket) =>
+  new WebsocketTransport(socket)

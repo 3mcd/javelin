@@ -23,6 +23,19 @@ importers:
       vite: 3.2.3
       vitest: 0.25.1
 
+  examples/protocol:
+    specifiers:
+      '@javelin/ecs': workspace:*
+      '@javelin/net': workspace:*
+      typescript: ^4.9.4
+      vite: ^3.2.3
+    dependencies:
+      '@javelin/ecs': link:../../packages/javelin-ecs
+      '@javelin/net': link:../../packages/javelin-net
+      vite: 3.2.3
+    devDependencies:
+      typescript: 4.9.4
+
   examples/react:
     specifiers:
       '@javelin/ecs': workspace:*
@@ -3942,7 +3955,6 @@ packages:
       rollup: 2.79.1
     optionalDependencies:
       fsevents: 2.3.2
-    dev: true
 
   /vite/3.2.3_@types+node@18.11.17:
     resolution: {integrity: sha512-h8jl1TZ76eGs3o2dIBSsvXDLb1m/Ec1iej8ZMdz+PsaFUsftZeWe2CZOI3qogEsMNaywc17gu0q6cQDzh/weCQ==}

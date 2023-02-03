@@ -1,6 +1,6 @@
 import * as j from "@javelin/ecs"
 import * as jn from "@javelin/net"
-import {Input, networkModel, Position, Vector2} from "../../server/model.js"
+import {Input, model, Position, Vector2} from "../../server/model.js"
 
 let socket = new WebSocket("ws://localhost:8080")
 
@@ -15,9 +15,9 @@ document.addEventListener("keyup", e => {
 
 let app = j
   .app()
-  .addResource(jn.NetworkModel, networkModel)
+  .addResource(jn.NetworkModel, model)
   .addInitSystem(world => {
-    world.create(j.type(jn.Transport), new jn.WebsocketTransport(socket))
+    world.create(j.type(jn.Server), jn.makeWebsocketTransport(socket))
   })
   .addSystemToGroup(j.FixedGroup.EarlyUpdate, world => {
     let serverWorld = world.getResource(jn.ServerWorld)
@@ -26,7 +26,7 @@ let app = j
       .as()
       .each(entity => {
         if (keys.w) {
-          world.getResource(jn.ServerWorld).dispatch(Input, entity)
+          serverWorld.dispatch(Input, {entity})
         }
       })
   })

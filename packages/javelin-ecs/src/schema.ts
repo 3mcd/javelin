@@ -38,4 +38,4 @@ export type Express<T extends Schema> = T extends "entity"
   ? Entity
   : T extends Format
   ? number
-  : {[K in keyof T]: number}
+  : {[K in keyof T]: T[K] extends "entity" ? Entity : number}

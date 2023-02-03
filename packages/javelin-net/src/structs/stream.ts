@@ -98,12 +98,12 @@ export class ReadStream {
 export class WriteStream {
   #buffer
   #offset
-  #initialByteLength
+  #initialLength
 
-  constructor(initialByteLength = 0) {
-    this.#buffer = Buffer.alloc(initialByteLength)
+  constructor(initialLength = 0) {
+    this.#buffer = Buffer.alloc(initialLength)
     this.#offset = 0
-    this.#initialByteLength = initialByteLength
+    this.#initialLength = initialLength
   }
 
   get offset() {
@@ -121,7 +121,7 @@ export class WriteStream {
 
   reset() {
     Buffer.free(this.#buffer)
-    this.#buffer = Buffer.alloc(this.#initialByteLength)
+    this.#buffer = Buffer.alloc(this.#initialLength)
     this.#offset = 0
   }
 
@@ -133,6 +133,10 @@ export class WriteStream {
       Buffer.free(this.#buffer)
       this.#buffer = buffer
     }
+  }
+
+  shrink(byteLength: number) {
+    this.#offset = Math.max(0, this.#offset - byteLength)
   }
 
   writeU8(n: number) {
@@ -207,3 +211,7 @@ export class WriteStream {
     return offset
   }
 }
+
+export let makeWriteStream = (initialLength: number = 0) =>
+  new WriteStream(initialLength)
+export let makeReadStream = (u8: Uint8Array) => new ReadStream(u8)

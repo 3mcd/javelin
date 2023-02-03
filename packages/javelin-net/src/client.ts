@@ -1,39 +1,37 @@
 import * as j from "@javelin/ecs"
 import {exists, expect, Maybe} from "@javelin/lib"
-import {ClockSyncImpl, clockSyncMessageType} from "./clock_sync.js"
-import {commandsMessageType} from "./commands.js"
-import {ClockSyncPayload, Transport} from "./components.js"
 import {
-  NetworkModel,
-  NormalizedNetworkModel,
-  normalizeNetworkModel,
-} from "./network_model.js"
+  ClockSync,
+  ClockSyncRequestInterval,
+  ClockSyncRequestTime,
+  ServerTime,
+  ServerWorld,
+} from "./client_resources.js"
+import {ClockSyncImpl, clockSyncMessage} from "./clock_sync.js"
+import {commandMessage} from "./commands.js"
+import {ClockSyncPayload, Transport} from "./components.js"
+import {Model, NormalizedModel, normalizeModel} from "./model.js"
 import {makeProtocol} from "./protocol.js"
-import {NetworkProtocol} from "./resources.js"
+import {Protocol} from "./resources.js"
+import {DEFAULT_MESSAGES} from "./shared.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
-
-export let ServerWorld = j.resource<j.World>()
-export let ServerTime = j.resource<number>()
-export let ClockSync = j.resource<ClockSyncImpl>()
-export let ClockSyncRequestInterval = j.resource<number>()
-export let ClockSyncRequestTime = j.resource<number>()
 
 let writeStreamReliable = new WriteStream()
 let readStream = new ReadStream(new Uint8Array())
+let noop = () => {}
 
 let processClientMessagesSystem = (world: j.World) => {
-  let protocol = world.getResource(NetworkProtocol)
-  let serverWorld = world.getResource(ServerWorld)
-  world.of(Transport).each(function processClientMessages(client, transport) {
+  let protocol = world.getResource(Protocol)
+  world.of(Transport).each((client, transport) => {
     let message: Maybe<Uint8Array>
     while (exists((message = transport.pull()))) {
       readStream.reset(message)
-      protocol.decodeMessage(serverWorld, readStream, client)
+      protocol.decode(readStream, noop, client)
     }
   })
 }
 
-let processClientClockSyncResponsesSystem = (world: j.World) => {
+let processClockSyncResponsesSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
   let clockSync = world.getResource(ClockSync)
   let serverWorld = world.getResource(ServerWorld)
@@ -66,15 +64,11 @@ let clockSyncPayload = {
 
 let sendClientClockSyncRequestsSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
-  let protocol = world.getResource(NetworkProtocol)
-  world.of(Transport).each(function sendClientClockSyncRequest(_, transport) {
+  let protocol = world.getResource(Protocol)
+  let encodeClockSync = protocol.encoder(clockSyncMessage)
+  world.of(Transport).each((_, transport) => {
     clockSyncPayload.clientTime = time.currentTime
-    protocol.encodeMessage(
-      world,
-      writeStreamReliable,
-      clockSyncMessageType,
-      clockSyncPayload,
-    )
+    encodeClockSync(writeStreamReliable, clockSyncPayload)
     transport.push(writeStreamReliable.bytes(), true)
     writeStreamReliable.reset()
   })
@@ -83,18 +77,15 @@ let sendClientClockSyncRequestsSystem = (world: j.World) => {
 
 let sendClientCommandsSystem = (world: j.World) => {
   let serverWorld = world.getResource(ServerWorld)
-  let networkProtocol = world.getResource(NetworkProtocol)
-  let networkModel = serverWorld.getResource(NormalizedNetworkModel)
+  let model = world.getResource(NormalizedModel)
+  let protocol = world.getResource(Protocol)
+  let encodeCommand = protocol.encoder(commandMessage)
   world.of(Transport).each((_, transport) => {
-    for (let i = 0; i < networkModel.commandTypes.length; i++) {
-      let commandType = networkModel.commandTypes[i]
-      if (serverWorld.commands(commandType).length > 0) {
-        networkProtocol.encodeMessage(
-          serverWorld,
-          writeStreamReliable,
-          commandsMessageType,
-          commandType,
-        )
+    for (let i = 0; i < model.commandTypes.length; i++) {
+      let commandType = model.commandTypes[i]
+      let commandQueue = serverWorld.commands(commandType)
+      for (let i = 0; i < commandQueue.length; i++) {
+        encodeCommand(writeStreamReliable, commandType, commandQueue[i])
       }
     }
     let bytes = writeStreamReliable.bytes()
@@ -121,22 +112,24 @@ export let clientPlugin = (app: j.App) => {
     maxDeviation: 0.1,
     requiredSampleCount: 8,
   })
-  let protocol = app.getResource(NetworkProtocol)
-  if (!exists(protocol)) {
-    protocol = makeProtocol()
-    app.addResource(NetworkProtocol, protocol)
-  }
-  if (!app.hasResource(ServerWorld)) {
-    let serverWorld = new j.World()
-    serverWorld.create(ClockSyncPayload)
+  let serverWorld = app.getResource(ServerWorld)
+  if (!exists(serverWorld)) {
+    serverWorld = new j.World()
     serverWorld[j._emitStagedChanges]()
     serverWorld[j._commitStagedChanges]()
-    app.addResource(ServerWorld, serverWorld)
-    serverWorld.setResource(
-      NormalizedNetworkModel,
-      normalizeNetworkModel(expect(app.getResource(NetworkModel))),
-    )
     serverWorld.setResource(ServerTime, 0)
+  }
+  app.addResource(ServerWorld, serverWorld)
+  app.addResource(
+    NormalizedModel,
+    normalizeModel(expect(app.getResource(Model))),
+  )
+  if (!app.hasResource(Protocol)) {
+    let protocol = makeProtocol(app.world)
+    for (let i = 0; i < DEFAULT_MESSAGES.length; i++) {
+      protocol.register(DEFAULT_MESSAGES[i], i)
+    }
+    app.addResource(Protocol, protocol)
   }
   if (!app.hasResource(ClockSyncRequestInterval)) {
     app.addResource(ClockSyncRequestInterval, 0.2)
@@ -145,7 +138,7 @@ export let clientPlugin = (app: j.App) => {
     .addResource(ClockSync, clockSync)
     .addResource(ClockSyncRequestTime, 0)
     .addSystemToGroup(j.Group.Early, processClientMessagesSystem)
-    .addSystemToGroup(j.Group.Early, processClientClockSyncResponsesSystem)
+    .addSystemToGroup(j.Group.Early, processClockSyncResponsesSystem)
     .addSystemToGroup(
       j.Group.Early,
       sendClientClockSyncRequestsSystem,

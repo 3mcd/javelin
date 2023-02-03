@@ -1,19 +1,22 @@
 import * as j from "@javelin/ecs"
+import {ServerWorld} from "./client_resources.js"
 import {MTU_SIZE} from "./const.js"
 import {EntityEncoder} from "./encode.js"
 import {SubjectPrioritizer} from "./interest.js"
-import {NormalizedNetworkModel} from "./network_model.js"
-import {NetworkMessageType} from "./protocol.js"
+import {NormalizedModel} from "./model.js"
+import {makeMessage} from "./protocol.js"
+import {Sendable} from "./sendable.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
+import {WriteStream} from "./structs/stream.js"
 
 let subjectComponents: j.Component[] = []
 
 /**
  * Encodes and decodes entity presence messages.
  */
-export let presenceMessageType: NetworkMessageType<PresenceState> = {
-  encode(writeStream, world, presence) {
-    let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
+export let presenceMessage = makeMessage(
+  (writeStream, world: j.World, presence: PresenceState) => {
+    let {localComponentsToIso} = world.getResource(NormalizedModel)
     let {subjectType} = presence
     let subjectComponents = subjectType.normalized.components
     let subjectQueueLength = presence.subjectQueue.length
@@ -25,8 +28,8 @@ export let presenceMessageType: NetworkMessageType<PresenceState> = {
       return
     }
     let growAmount =
-      1 +
-      2 +
+      1 + // components length
+      2 + // subject count
       subjectComponents.length * 4 +
       Math.min(mtuDiff, subjectQueueLength * 4)
     writeStream.grow(growAmount)
@@ -47,8 +50,9 @@ export let presenceMessageType: NetworkMessageType<PresenceState> = {
     }
     writeStream.writeU16At(subjectCount, subjectCountOffset)
   },
-  decode(readStream, world) {
-    let {isoComponentsToLocal} = world.getResource(NormalizedNetworkModel)
+  (readStream, world) => {
+    let serverWorld = world.getResource(ServerWorld)
+    let {isoComponentsToLocal} = world.getResource(NormalizedModel)
     // (1)
     let subjectComponentsLength = readStream.readU8()
     subjectComponents.length = subjectComponentsLength
@@ -57,7 +61,10 @@ export let presenceMessageType: NetworkMessageType<PresenceState> = {
       subjectComponents[i] = isoComponentsToLocal[readStream.readU32()]
     }
     let subjectType = j.type.apply(null, subjectComponents)
-    let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
+    let subjectEncoder = EntityEncoder.getEntityEncoder(
+      serverWorld,
+      subjectType,
+    )
     // (3)
     let subjectCount = readStream.readU16()
     // (4)
@@ -65,29 +72,44 @@ export let presenceMessageType: NetworkMessageType<PresenceState> = {
       subjectEncoder.decodeEntityPresence(readStream)
     }
   },
-}
+)
 
-export interface PresenceState {
+export interface PresenceState extends Sendable {
   readonly subjectPrioritizer: SubjectPrioritizer
   readonly subjectType: j.Type
   readonly subjectQueue: PriorityQueueInt<j.Entity>
+  step(
+    world: j.World,
+    entity: j.Entity,
+    subjects: Set<j.Entity>,
+    writeStream: WriteStream,
+  ): void
 }
 
-export class PresenceStateImpl {
+export class PresenceStateImpl implements PresenceState {
   #new
 
   readonly subjectPrioritizer
   readonly subjectQueue
   readonly subjectType
 
-  constructor(subjectType: j.Type, subjectPrioritizer: SubjectPrioritizer) {
+  lastSendTime
+  sendRate
+
+  constructor(
+    subjectType: j.Type,
+    subjectPrioritizer: SubjectPrioritizer,
+    sendRate: number,
+  ) {
     this.#new = true
     this.subjectQueue = new PriorityQueueInt<j.Entity>()
     this.subjectPrioritizer = subjectPrioritizer
     this.subjectType = subjectType
+    this.lastSendTime = 0
+    this.sendRate = sendRate
   }
 
-  prioritize(world: j.World, entity: j.Entity, subjects: Set<j.Entity>) {
+  step(world: j.World, entity: j.Entity, subjects: Set<j.Entity>) {
     if (this.#new) {
       world.of(this.subjectType).each(subject => {
         let subjectPriority = this.subjectPrioritizer(entity, subject, world)
@@ -120,6 +142,7 @@ export class PresenceStateImpl {
 export interface Presence {
   readonly subjectPrioritizer: SubjectPrioritizer
   readonly subjectType: j.Type
+  sendRate: number
   init(): PresenceState
 }
 
@@ -127,17 +150,28 @@ export class PresenceImpl implements Presence {
   readonly subjectPrioritizer
   readonly subjectType
 
-  constructor(subjectType: j.Type, subjectPrioritizer: SubjectPrioritizer) {
+  sendRate
+
+  constructor(
+    subjectType: j.Type,
+    subjectPrioritizer: SubjectPrioritizer,
+    sendRate: number,
+  ) {
     this.subjectPrioritizer = subjectPrioritizer
     this.subjectType = subjectType
+    this.sendRate = sendRate
   }
 
   init() {
-    return new PresenceStateImpl(this.subjectType, this.subjectPrioritizer)
+    return new PresenceStateImpl(
+      this.subjectType,
+      this.subjectPrioritizer,
+      this.sendRate,
+    )
   }
 }
 
 export let makePresence = (
   subjectType: j.Type,
   subjectPrioritizer: SubjectPrioritizer = () => 1,
-): Presence => new PresenceImpl(subjectType, subjectPrioritizer)
+): Presence => new PresenceImpl(subjectType, subjectPrioritizer, 1 / 20)

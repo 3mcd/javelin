@@ -1,6 +1,6 @@
 import {expect} from "@javelin/lib"
 import {ClockSyncPayload} from "./components.js"
-import {NetworkMessageType} from "./protocol.js"
+import {makeMessage} from "./protocol.js"
 import {SortedRingBuffer} from "./structs/sorted_ring_buffer.js"
 
 export type ClockSyncConfig = {
@@ -121,15 +121,15 @@ export class ClockSyncImpl {
   }
 }
 
-export let clockSyncMessageType: NetworkMessageType<ClockSyncPayload> = {
-  encode(writeStream, _, clockSyncPayload) {
-    writeStream.grow(16)
-    writeStream.writeF64(clockSyncPayload.clientTime)
-    writeStream.writeF64(clockSyncPayload.serverTime)
+export let clockSyncMessage = makeMessage(
+  (stream, _, clockSyncPayload: ClockSyncPayload) => {
+    stream.grow(16)
+    stream.writeF64(clockSyncPayload.clientTime)
+    stream.writeF64(clockSyncPayload.serverTime)
   },
-  decode(readStream, world, entity) {
-    let clockSyncPayload = expect(world.get(entity, ClockSyncPayload))
-    clockSyncPayload.clientTime = readStream.readF64()
-    clockSyncPayload.serverTime = readStream.readF64()
+  (stream, world, client) => {
+    let clockSyncPayload = expect(world.get(client, ClockSyncPayload))
+    clockSyncPayload.clientTime = stream.readF64()
+    clockSyncPayload.serverTime = stream.readF64()
   },
-}
+)

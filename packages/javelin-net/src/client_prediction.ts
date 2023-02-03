@@ -1,16 +1,22 @@
 import * as j from "@javelin/ecs"
 import {expect} from "@javelin/lib"
-import {ServerWorld, stepServerWorldSystem} from "./client_plugin.js"
-import {NormalizedNetworkModel} from "./network_model.js"
+import {stepServerWorldSystem} from "./client.js"
+import {ServerWorld} from "./client_resources.js"
+import {NormalizedModel} from "./model.js"
+import {TimestampBuffer} from "./timestamp_buffer.js"
 
+export let PredictionCommands = j.resource<TimestampBuffer<unknown>>()
 export let ServerWorldCorrected = j.resource<j.World>()
+export let ServerWorldCorrectedCommands = j.resource<TimestampBuffer<unknown>>()
+export let ServerSnapshots = j.resource<Uint8Array[]>()
+export let ServerWorldCommands = j.resource<TimestampBuffer<unknown>>()
 
 let forwardCommandsToCorrectedWorldSystem = (world: j.World) => {
   let serverWorld = world.getResource(ServerWorld)
   let serverWorldCorrected = world.getResource(ServerWorldCorrected)
-  let networkModel = serverWorld.getResource(NormalizedNetworkModel)
-  for (let i = 0; i < networkModel.commandTypes.length; i++) {
-    let commandType = networkModel.commandTypes[i]
+  let model = world.getResource(NormalizedModel)
+  for (let i = 0; i < model.commandTypes.length; i++) {
+    let commandType = model.commandTypes[i]
     let commandQueue = serverWorld.commands(commandType)
     if (commandQueue.length > 0) {
       for (let i = 0; i < commandQueue.length; i++) {
@@ -20,6 +26,10 @@ let forwardCommandsToCorrectedWorldSystem = (world: j.World) => {
     }
   }
 }
+
+let applySnapshotsSystem = () => {}
+
+let fastForwardCorrectedWorldSystem = () => {}
 
 export let clientPredictionPlugin = (app: j.App) => {
   let serverWorld = expect(app.getResource(ServerWorld))

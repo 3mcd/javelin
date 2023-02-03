@@ -1,18 +1,16 @@
 import * as j from "@javelin/ecs"
 import {Singleton} from "@javelin/ecs"
-import {exists, expect} from "@javelin/lib"
-import {Commands} from "./components.js"
 import {
   compileDecodeValue,
   compileEncodeValue,
   getBytesPerTypeValues,
 } from "./encode.js"
-import {NormalizedNetworkModel} from "./network_model.js"
-import {NetworkMessageType} from "./protocol.js"
+import {NormalizedModel} from "./model.js"
+import {makeMessage} from "./protocol.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
 
-type EncodeCommand = <T>(command: T, writeStream: WriteStream) => void
-type DecodeCommand = <T>(readStream: ReadStream) => T
+type EncodeCommand = <T>(command: T, stream: WriteStream) => void
+type DecodeCommand = <T>(stream: ReadStream) => T
 
 class CommandEncoder {
   static #encoders = [] as CommandEncoder[]
@@ -34,40 +32,21 @@ class CommandEncoder {
   }
 }
 
-export let commandsMessageType: NetworkMessageType<Singleton> = {
-  encode(writeStream, world, commandType) {
-    let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
+export let commandMessage = makeMessage(
+  (stream, world, commandType: Singleton, command: unknown) => {
+    let {localComponentsToIso} = world.getResource(NormalizedModel)
     let commandEncoder = CommandEncoder.getEncoder(commandType)
     let commandComponent = commandType.normalized.components[0]
-    let commandQueue = world.commands(commandType)
-    let commandCount = commandQueue.length
-    writeStream.grow(4 + 2 + commandCount * commandEncoder.bytesPerValue)
-    // (1)
-    writeStream.writeU32(localComponentsToIso[commandComponent])
-    // (2)
-    writeStream.writeU16(commandCount)
-    // (3)
-    for (let i = commandCount - 1; i >= 0; i--) {
-      commandEncoder.encode(commandQueue[i], writeStream)
-    }
+    stream.grow(4 + 2 + commandEncoder.bytesPerValue)
+    stream.writeU32(localComponentsToIso[commandComponent])
+    commandEncoder.encode(command, stream)
   },
-  decode(readStream, world, entity) {
-    let {isoComponentsToLocal} = world.getResource(NormalizedNetworkModel)
-    // (1)
-    let commandComponent = isoComponentsToLocal[readStream.readU32()]
+  (stream, world) => {
+    let {isoComponentsToLocal} = world.getResource(NormalizedModel)
+    let commandComponent = isoComponentsToLocal[stream.readU32()]
     let commandType = j.type(commandComponent)
     let commandEncoder = CommandEncoder.getEncoder(commandType)
-    // (2)
-    let commandCount = readStream.readU16()
-    let commandQueues = expect(world.get(entity, Commands))
-    let commandQueue = commandQueues.get(commandComponent)
-    if (!exists(commandQueue)) {
-      commandQueue = []
-      commandQueues.set(commandComponent, commandQueue)
-    }
-    // (3)
-    while (commandCount-- > 0) {
-      commandQueue.unshift(commandEncoder.decode(readStream))
-    }
+    let command = commandEncoder.decode(stream)
+    return [commandType, command]
   },
-}
+)

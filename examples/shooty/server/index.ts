@@ -2,7 +2,7 @@ import * as j from "@javelin/ecs"
 import * as jn from "@javelin/net"
 import {createServer} from "http"
 import {WebSocketServer} from "ws"
-import {Input, networkModel, Position, Velocity} from "./model.js"
+import {Input, model, Position, Velocity} from "./model.js"
 import {playerPlugin} from "./player.js"
 
 let http = createServer()
@@ -12,14 +12,14 @@ let Kinetic = j.type(Position, Velocity)
 let kineticPresence = jn.presence(Kinetic, (_entity, subject) =>
   subject % 3 === 0 ? 100 : 10,
 )
-let kineticInterest = jn.snapshotInterest(Kinetic, (_entity, subject) =>
+let kineticInterest = jn.interest(Kinetic, (_entity, subject) =>
   subject % 2 === 0 ? 100 : 10,
 )
 
 let app = j
   .app()
-  .addResource(jn.NetworkModel, networkModel)
-  .addResource(jn.ClientCommandValidator, (entity, commandType, command) => {
+  .addResource(jn.NetworkModel, model)
+  .addResource(jn.CommandValidator, (entity, commandType, command) => {
     switch (commandType) {
       case Input:
         // (validate command using client entity)
@@ -35,7 +35,7 @@ let app = j
 
 wss.on("connection", socket => {
   let client = app.world.create()
-  let clientTransport = new jn.WebsocketTransport(
+  let clientTransport = jn.makeWebsocketTransport(
     socket as unknown as globalThis.WebSocket,
   )
   let clientAwareness = jn.awareness(kineticPresence, kineticInterest)
