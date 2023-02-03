@@ -3,10 +3,12 @@ import * as jn from "@javelin/net"
 
 export let Identity = j.resource<j.Entity>()
 
-export let identityMessage = jn.message(
-  (stream, _, entity: j.Entity) => {
+export let identityMessage = jn.message({
+  encode(stream, _, entity: j.Entity) {
     stream.grow(4)
     stream.writeU32(entity)
   },
-  (stream, world) => world.setResource(Identity, stream.readU32()),
-)
+  decode(stream, world) {
+    world.setResource(Identity, stream.readU32())
+  },
+})

@@ -12,14 +12,14 @@ import {
 } from "./interest.js"
 import {makeMessage} from "./protocol.js"
 
-export let snapshotInterestMessage = makeMessage(
-  (stream, world: j.World, message: InterestState) => {
+export let snapshotInterestMessage = makeMessage({
+  encode(stream, world: j.World, message: InterestState) {
     world = world.getResource(ServerWorld)
     // stream.grow(4)
     // stream.writeF64(world.getResource(FixedTime).currentTime)
     // interestMessageType.encode(stream, world, message)
   },
-  (stream, world: j.World) => {
+  decode(stream, world: j.World) {
     world = world.getResource(ServerWorld)
     // interestMessageType.decode(stream, world, length)
     // let serverTime = stream.readF64()
@@ -38,7 +38,7 @@ export let snapshotInterestMessage = makeMessage(
     // //   length,
     // // )
   },
-)
+})
 
 interface SnapshotInterestState extends InterestState {
   readonly sendRate: number

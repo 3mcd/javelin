@@ -14,8 +14,8 @@ let subjectComponents: j.Component[] = []
 /**
  * Encodes and decodes entity presence messages.
  */
-export let presenceMessage = makeMessage(
-  (writeStream, world: j.World, presence: PresenceState) => {
+export let presenceMessage = makeMessage({
+  encode(stream, world: j.World, presence: PresenceState) {
     let {localComponentsToIso} = world.getResource(NormalizedModel)
     let {subjectType} = presence
     let subjectComponents = subjectType.normalized.components
@@ -23,7 +23,7 @@ export let presenceMessage = makeMessage(
     if (subjectQueueLength === 0) {
       return
     }
-    let mtuDiff = MTU_SIZE - writeStream.offset
+    let mtuDiff = MTU_SIZE - stream.offset
     if (mtuDiff <= 0) {
       return
     }
@@ -32,33 +32,33 @@ export let presenceMessage = makeMessage(
       2 + // subject count
       subjectComponents.length * 4 +
       Math.min(mtuDiff, subjectQueueLength * 4)
-    writeStream.grow(growAmount)
+    stream.grow(growAmount)
     // (1)
-    writeStream.writeU8(subjectComponents.length)
+    stream.writeU8(subjectComponents.length)
     // (2)
     for (let i = 0; i < subjectComponents.length; i++) {
-      writeStream.writeU32(localComponentsToIso[subjectComponents[i]])
+      stream.writeU32(localComponentsToIso[subjectComponents[i]])
     }
     // (3)
     let subjectCount = 0
-    let subjectCountOffset = writeStream.writeU16(0)
-    while (writeStream.offset < MTU_SIZE && !presence.subjectQueue.isEmpty()) {
+    let subjectCountOffset = stream.writeU16(0)
+    while (stream.offset < MTU_SIZE && !presence.subjectQueue.isEmpty()) {
       let subject = presence.subjectQueue.pop()!
       // (4)
-      writeStream.writeU32(subject)
+      stream.writeU32(subject)
       subjectCount++
     }
-    writeStream.writeU16At(subjectCount, subjectCountOffset)
+    stream.writeU16At(subjectCount, subjectCountOffset)
   },
-  (readStream, world) => {
+  decode(stream, world) {
     let serverWorld = world.getResource(ServerWorld)
     let {isoComponentsToLocal} = world.getResource(NormalizedModel)
     // (1)
-    let subjectComponentsLength = readStream.readU8()
+    let subjectComponentsLength = stream.readU8()
     subjectComponents.length = subjectComponentsLength
     // (2)
     for (let i = 0; i < subjectComponentsLength; i++) {
-      subjectComponents[i] = isoComponentsToLocal[readStream.readU32()]
+      subjectComponents[i] = isoComponentsToLocal[stream.readU32()]
     }
     let subjectType = j.type.apply(null, subjectComponents)
     let subjectEncoder = EntityEncoder.getEntityEncoder(
@@ -66,13 +66,13 @@ export let presenceMessage = makeMessage(
       subjectType,
     )
     // (3)
-    let subjectCount = readStream.readU16()
+    let subjectCount = stream.readU16()
     // (4)
     for (let i = 0; i < subjectCount; i++) {
-      subjectEncoder.decodeEntityPresence(readStream)
+      subjectEncoder.decodeEntityPresence(stream)
     }
   },
-)
+})
 
 export interface PresenceState extends Sendable {
   readonly subjectPrioritizer: SubjectPrioritizer
@@ -82,7 +82,7 @@ export interface PresenceState extends Sendable {
     world: j.World,
     entity: j.Entity,
     subjects: Set<j.Entity>,
-    writeStream: WriteStream,
+    stream: WriteStream,
   ): void
 }
 

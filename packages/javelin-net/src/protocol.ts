@@ -80,6 +80,5 @@ export let makeProtocol = (world: j.World): Protocol => {
 }
 
 export let makeMessage = <E extends unknown[], D>(
-  encode: Encode<E>,
-  decode: Decode<D>,
-): Message<E, D> => ({encode, decode})
+  message: Message<E, D>,
+): Message<E, D> => message
