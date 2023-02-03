@@ -2,7 +2,8 @@ import * as j from "@javelin/ecs"
 import * as jn from "@javelin/net"
 import {createServer} from "http"
 import {WebSocketServer} from "ws"
-import {Input, model, Position, Velocity} from "./model.js"
+import {identityMessage} from "../shared/identity.js"
+import {Input, model, Position, Velocity} from "../shared/model.js"
 import {playerPlugin} from "./player.js"
 
 let http = createServer()
@@ -16,22 +17,41 @@ let kineticInterest = jn.interest(Kinetic, (_entity, subject) =>
   subject % 2 === 0 ? 100 : 10,
 )
 
+let Owns = j.relation()
+
 let app = j
   .app()
   .addResource(jn.NetworkModel, model)
-  .addResource(jn.CommandValidator, (entity, commandType, command) => {
+  .addResource(jn.CommandValidator, (world, client, commandType, command) => {
     switch (commandType) {
-      case Input:
-        // (validate command using client entity)
-        return true
+      case Input: {
+        let entity = (command as {entity: j.Entity}).entity
+        return world.has(client, Owns(entity))
+      }
     }
     return false
   })
   .addInitSystem(world => {
     world.create(Kinetic)
   })
+  .addSystemToGroup(j.FixedGroup.EarlyUpdate, world => {
+    let protocol = world.getResource(jn.Protocol)
+    world.monitor(jn.Client).eachIncluded(client => {
+      let clientTransport = world.get(client, jn.Transport)!
+      let clientActor = world.create(Kinetic)
+      let stream = jn.writeStream()
+      protocol.encoder(identityMessage)(stream, clientActor)
+      clientTransport.push(stream.bytes(), true)
+      stream.destroy()
+      world.add(client, Owns(clientActor))
+    })
+  })
   .use(playerPlugin)
   .use(jn.serverPlugin)
+  .use(app => {
+    let protocol = app.getResource(jn.Protocol)!
+    protocol.register(identityMessage, 99)
+  })
 
 wss.on("connection", socket => {
   let client = app.world.create()

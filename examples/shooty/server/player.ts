@@ -1,5 +1,5 @@
 import * as j from "@javelin/ecs"
-import {Input, Position} from "./model.js"
+import {Input, Position} from "../shared/model.js"
 
 let movePlayerSystem = (world: j.World) => {
   world.commands(Input).forEach(command => {

@@ -125,6 +125,10 @@ export class WriteStream {
     this.#offset = 0
   }
 
+  destroy() {
+    Buffer.free(this.#buffer)
+  }
+
   grow(byteLength: number) {
     let newSize = this.#offset + byteLength
     if (this.#buffer.u8.length < newSize) {

@@ -719,14 +719,18 @@ export class World {
     this.#setEntityComponentValue(entity, component, value)
   }
 
-  has(entity: Entity, type: Singleton): boolean {
+  has(entity: Entity, type: Type): boolean {
     let entityNode = expect(
       this.#getEntityNode(entity),
       ERR_MISSING_COMPONENT(entity),
     )
-    let component = type.components[0]
     if (exists(entityNode)) {
-      return entityNode.hasComponent(component)
+      for (let i = 0; i < type.components.length; i++) {
+        if (!entityNode.hasComponent(type.components[i])) {
+          return false
+        }
+      }
+      return true
     }
     return false
   }
