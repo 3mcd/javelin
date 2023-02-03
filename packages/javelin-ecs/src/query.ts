@@ -6,7 +6,7 @@ import {
   normalizeHash,
   SparseSet,
 } from "@javelin/lib"
-import {Component, ComponentValue, hasSchema} from "./component.js"
+import {Component, Value as ComponentValue, hasSchema} from "./component.js"
 import {Entity} from "./entity.js"
 import {Node} from "./graph.js"
 import {

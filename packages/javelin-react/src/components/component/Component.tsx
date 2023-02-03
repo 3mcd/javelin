@@ -1,4 +1,4 @@
-import { Component as JComponent, ComponentInitValues, Type } from "@javelin/ecs"
+import { Component as JComponent, ComponentInitValue, Type } from "@javelin/ecs"
 import * as React from "react"
 import { usePlugin } from "../../hooks/use-plugin/usePlugin"
 import useIsomorphicLayoutEffect from "../../hooks/useIsomorphicLayoutEffect"
@@ -7,8 +7,8 @@ import { mergeRefs } from "../../utils/mergeRefs"
 import { useCurrentEntity } from "../entity/Entity"
 
 export interface ComponentProps {
-  type: Type<any>
-  values?: any
+  type: Type
+  values?: ComponentInitValue<any>
 }
 
 export const Component: React.FC<React.PropsWithChildren<ComponentProps>> = ({
@@ -49,9 +49,9 @@ export const Component: React.FC<React.PropsWithChildren<ComponentProps>> = ({
   return null
 }
 
-export function useComponent<T>(
-  type: Type<[JComponent<T>]>,
-  ...values: ComponentInitValues<T>
+export function useComponent<T extends JComponent[]>(
+  type: Type<T>,
+  ...values: ComponentInitValue<T>
 ) {
   const entity = useCurrentEntity()
 

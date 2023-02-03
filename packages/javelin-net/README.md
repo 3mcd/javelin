@@ -1,6 +1,7 @@
 # @javelin/net
 
 ```ts
+import * as j from "@javelin/ecs"
 import * as jn from "@javelin/net"
 
 let PlayerStatus = j.slot(Alive, Dead)
@@ -52,4 +53,51 @@ let clientAwareness = jn.awareness(
 )
 
 world.add(client, jn.Client, jn.WebsocketTransport(socket), clientAwareness)
+```
+
+## Prediction
+
+shared.ts
+
+```ts
+export let Input = j.command({h: "u8", v: "u8"})
+export let movePlayerSystem = (world: j.World) => {
+  world.commands(Input).each(input => {})
+}
+```
+
+client.ts
+
+```ts
+import {Input, movePlayerSystem} from "./shared"
+
+let handlePlayerInputSystem = (world: j.World) => {
+  let deviceInput = world.getResource(DeviceInput)
+  world.getResource(jn.ServerWorld).dispatch(Input, {
+    entity: world.getResource(PlayerEntity),
+    h: +deviceInput.keys.a,
+    v: +deviceInput.keys.w,
+  })
+}
+
+app
+  .use(jn.clientPlugin)
+  .addInitSystem(world => {
+    world
+      .getResource(jn.ServerWorld)
+      .addSystemToGroup(j.FixedGroup.Update, movePlayerSystem)
+  })
+  .addSystemToGroup(j.Group.Early, handlePlayerInputSystem)
+```
+
+server.ts
+
+```ts
+let playerPresence = jn.presence(Player)
+let playerInterest = jn.snapshotInterest(Player)
+
+app.use(jn.serverPlugin).addSystem(world => {
+  // when client connects...
+  world.create(jn.Client, jn.awareness(playerPresence, playerInterest))
+})
 ```

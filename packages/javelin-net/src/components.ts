@@ -9,6 +9,8 @@ export let ClockSyncPayload = j.value<ClockSyncPayload>({
 })
 let Transport = j.value<JTransport>()
 let Awareness = j.value<JAwareness>()
+
+export let Server = j.type(Transport, ClockSyncPayload)
 export let Client = j.type(Transport, Awareness, ClockSyncPayload)
 
 export { Awareness, Transport };

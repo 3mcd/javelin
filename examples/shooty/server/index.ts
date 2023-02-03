@@ -2,7 +2,8 @@ import * as j from "@javelin/ecs"
 import * as jn from "@javelin/net"
 import {createServer} from "http"
 import {WebSocketServer} from "ws"
-import {networkModel, Position, Velocity} from "./model.js"
+import {Input, model, Position, Velocity} from "./model.js"
+import {playerPlugin} from "./player.js"
 
 let http = createServer()
 let wss = new WebSocketServer({server: http})
@@ -11,36 +12,30 @@ let Kinetic = j.type(Position, Velocity)
 let kineticPresence = jn.presence(Kinetic, (_entity, subject) =>
   subject % 3 === 0 ? 100 : 10,
 )
-let kineticInterest = jn.snapshotInterest(Kinetic, (_entity, subject) =>
+let kineticInterest = jn.interest(Kinetic, (_entity, subject) =>
   subject % 2 === 0 ? 100 : 10,
 )
 
 let app = j
   .app()
-  .addResource(jn.NetworkModel, networkModel)
-  .addSystem(
-    world => {
-      let tick = world.getResource(j.Tick)
-      let v = {x: Math.random(), y: -tick / 5}
-      world.create(Kinetic, undefined, v)
-    },
-    null,
-    world => {
-      let tick = world.getResource(j.Tick)
-      return tick % 5 === 0 && tick < 500
-    },
-  )
-  .addSystem(world => {
-    world.of(Kinetic).each((_, p, v) => {
-      p.x += v.x
-      p.y += v.y
-    })
+  .addResource(jn.NetworkModel, model)
+  .addResource(jn.CommandValidator, (entity, commandType, command) => {
+    switch (commandType) {
+      case Input:
+        // (validate command using client entity)
+        return true
+    }
+    return false
   })
+  .addInitSystem(world => {
+    world.create(Kinetic)
+  })
+  .use(playerPlugin)
   .use(jn.serverPlugin)
 
 wss.on("connection", socket => {
   let client = app.world.create()
-  let clientTransport = new jn.WebsocketTransport(
+  let clientTransport = jn.makeWebsocketTransport(
     socket as unknown as globalThis.WebSocket,
   )
   let clientAwareness = jn.awareness(kineticPresence, kineticInterest)
@@ -53,16 +48,15 @@ wss.on("connection", socket => {
 http.listen(8080)
 
 console.log(`
-call of
-  .::::::.   ::   .:      ...         ...     ::::::::::::.-:.     ::-.
- ;;;\`    \`  ,;;   ;;,  .;;;;;;;.   .;;;;;;;.  ;;;;;;;;'''' ';;.   ;;;;'
-  '[==/[[[[,,[[[,,,[[[ ,[[     \[[,,[[     \[[,     [[        '[[,[[['
-  '''    $"$$$"""$$$ $$$,     $$$$$$,     $$$     $$          c$$"
- 88b    dP 888   "88o"888,_ _,88P"888,_ _,88P     88,       ,8P"\`
-  "YMmMY"  MMM    YMM  "YMMMMMP"   "YMMMMMP"      MMM      mM"
+CALL OF
+ ____  _   _  ___   ___ _______   __
+/ ___|| | | |/ _ \\ / _ \\_   _\\ \\ / /
+\\___ \\| |_| | | | | | | || |  \\ V / 
+ ___) |  _  | |_| | |_| || |   | |  
+|____/|_| |_|\\___/ \\___/ |_|   |_|  
 `)
 
-console.log("server listening on port 8080")
+console.log("PORT=8080")
 
 setInterval(() => {
   app.step()

@@ -1,3 +1,5 @@
+import {Entity} from "./entity.js"
+
 /**
  * Component value attribute formats.
  */
@@ -11,11 +13,14 @@ export type Format =
   | "f32"
   | "f64"
   | "number"
+  | "entity"
+
+export type Struct = {[key: string]: Format}
 
 /**
  * The shape of a component value.
  */
-export type Schema = Format | {[key: string]: Format}
+export type Schema = Format | Struct
 
 /**
  * Derive the schema type of a component value.
@@ -29,6 +34,8 @@ export type SchemaOf<T> = T extends number
 /**
  * Derive the component value type of a schema.
  */
-export type Express<T extends Schema> = T extends Format
+export type Express<T extends Schema> = T extends "entity"
+  ? Entity
+  : T extends Format
   ? number
-  : {[K in keyof T]: number}
+  : {[K in keyof T]: T[K] extends "entity" ? Entity : number}

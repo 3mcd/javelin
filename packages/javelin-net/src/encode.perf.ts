@@ -14,7 +14,7 @@ perf("compileEncodeEntity", () => {
   }
 })
 
-perf("compileDecodeEntityCompose", () => {
+perf("compileDecodeEntityPresence", () => {
   let T = type(a, b, c)
   let world = new World()
   return () => {

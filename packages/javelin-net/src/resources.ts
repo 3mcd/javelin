@@ -1,4 +1,7 @@
 import * as j from "@javelin/ecs"
-import {NetworkProtocol} from "./protocol.js"
+import { Protocol as JnProtocol } from "./protocol.js"
 
-export let Protocol = j.resource<NetworkProtocol>()
+let Protocol = j.resource<JnProtocol>()
+
+export { Protocol }
+

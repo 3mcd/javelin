@@ -1,33 +1,43 @@
-import {World} from "@javelin/ecs"
+import * as j from "@javelin/ecs"
 import {perf} from "@javelin/perf"
-import {makeProtocol} from "./protocol.js"
-import {ReadStream, WriteStream} from "./structs/stream.js"
+import {makeProtocol, makeMessage} from "./protocol.js"
+import {WriteStream, ReadStream} from "./structs/stream.js"
 
-let messageType = {
-  encode(writeStream: WriteStream, _: World, n: number) {
-    writeStream.writeU8(n)
-  },
-  decode(readStream: ReadStream) {
-    readStream.readU8()
-  },
+let fixture = () => {
+  let world = new j.World()
+  let protocol = makeProtocol(world)
+  let message = makeMessage(
+    (w, _, a: number, b: number) => {
+      w.grow(2)
+      w.writeU8(a)
+      w.writeU8(b)
+    },
+    (w, _) => w.readU8() + w.readU8(),
+  )
+  protocol.register(message, 0)
+  return {protocol, message}
 }
-let protocol = makeProtocol().addMessageType(messageType)
 
 perf("encode", () => {
-  let world = new World()
-  let writeStream = new WriteStream()
+  let {protocol, message} = fixture()
+  let encode = protocol.encoder(message)
+  let w = new WriteStream()
   return () => {
-    protocol.encodeMessage(world, writeStream, messageType, 0)
+    for (let i = 0; i < 1_000; i++) {
+      encode(w, 99, 100)
+    }
   }
 })
 
 perf("decode", () => {
-  let world = new World()
-  let writeStream = new WriteStream()
-  protocol.encodeMessage(world, writeStream, messageType, 0)
-  let writeStreamBytes = writeStream.bytes()
-  let readStream = new ReadStream(writeStreamBytes)
+  let {protocol, message} = fixture()
+  let encode = protocol.encoder(message)
+  let w = new WriteStream()
+  for (let i = 0; i < 1_000; i++) {
+    encode(w, 99, 100)
+  }
+  let r = new ReadStream(w.bytes())
   return () => {
-    protocol.decodeMessage(world, readStream)
+    protocol.decode(r, () => {}, 0 as j.Entity)
   }
 })

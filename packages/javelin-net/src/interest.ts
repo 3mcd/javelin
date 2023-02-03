@@ -1,10 +1,11 @@
 import * as j from "@javelin/ecs"
+import {ServerWorld} from "./client_resources.js"
 import {MTU_SIZE} from "./const.js"
 import {EntityEncoder} from "./encode.js"
-import {NormalizedNetworkModel} from "./network_model.js"
-import {NetworkMessageType, NetworkProtocol} from "./protocol.js"
+import {NormalizedModel} from "./model.js"
+import {makeMessage} from "./protocol.js"
+import {Sendable} from "./sendable.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
-import {WriteStream} from "./structs/stream.js"
 
 export type PatchStage = []
 export let PatchStage = j.resource<PatchStage>()
@@ -17,9 +18,9 @@ export type SubjectPrioritizer = (
 
 let subjectComponents: j.Component[] = []
 
-export let interestMessageType: NetworkMessageType<InterestState> = {
-  encode(writeStream, world, interest) {
-    let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
+export let interestMessage = makeMessage(
+  (writeStream, world: j.World, interest: InterestState) => {
+    let {localComponentsToIso} = world.getResource(NormalizedModel)
     let {subjectType} = interest
     let subjectComponents = subjectType.normalized.components
     let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
@@ -54,8 +55,9 @@ export let interestMessageType: NetworkMessageType<InterestState> = {
     }
     writeStream.writeU16At(subjectCount, subjectCountOffset)
   },
-  decode(readStream, world) {
-    let {isoComponentsToLocal} = world.getResource(NormalizedNetworkModel)
+  (readStream, world) => {
+    let serverWorld = world.getResource(ServerWorld)
+    let {isoComponentsToLocal} = world.getResource(NormalizedModel)
     // (1)
     let subjectComponentsLength = readStream.readU8()
     subjectComponents.length = subjectComponentsLength
@@ -65,7 +67,10 @@ export let interestMessageType: NetworkMessageType<InterestState> = {
       subjectComponents[i] = localComponent
     }
     let subjectType = j.type.apply(null, subjectComponents)
-    let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
+    let subjectEncoder = EntityEncoder.getEntityEncoder(
+      serverWorld,
+      subjectType,
+    )
     // (3)
     let subjectCount = readStream.readU16()
     // (4)
@@ -73,11 +78,13 @@ export let interestMessageType: NetworkMessageType<InterestState> = {
       subjectEncoder.decodeEntityUpdate(readStream)
     }
   },
-}
+)
 
-export interface InterestState extends Interest {
+export interface InterestState extends Sendable {
+  readonly subjectPrioritizer: SubjectPrioritizer
+  readonly subjectType: j.Type
   readonly subjectQueue: PriorityQueueInt<j.Entity>
-  lastSendTime: number
+  step(world: j.World, entity: j.Entity, subjects: Set<j.Entity>): void
 }
 
 export class InterestStateImpl implements InterestState {
@@ -100,7 +107,7 @@ export class InterestStateImpl implements InterestState {
     this.subjectType = subjectType
   }
 
-  prioritize(world: j.World, entity: j.Entity, subjects: Set<j.Entity>) {
+  step(world: j.World, entity: j.Entity, subjects: Set<j.Entity>) {
     world.of(this.subjectType).each(subject => {
       if (!subjects.has(subject)) {
         this.subjectQueue.remove(subject)
@@ -119,6 +126,7 @@ export interface Interest {
   readonly subjectPrioritizer: SubjectPrioritizer
   readonly subjectType: j.Type
   sendRate: number
+  init(): InterestState
 }
 
 export class InterestImpl implements Interest {

@@ -21,21 +21,21 @@ export declare const Tag: unique symbol
 export type Tag = typeof Tag
 
 export type ComponentSpec = Dynamic | Schema | Tag | unknown
-export type ComponentValue<T extends ComponentSpec> = unknown extends T
+export type Value<T extends ComponentSpec> = unknown extends T
   ? unknown
   : T extends Schema
   ? Express<T>
   : T extends Tag
   ? never
   : T
-export type ComponentInitValue<T extends ComponentSpec> = unknown extends T
+export type ValueInit<T extends ComponentSpec> = unknown extends T
   ? unknown
   : T extends Schema
   ? Express<T> | void
   : T extends Tag
   ? never
   : T
-export type ComponentInitValues<
+export type ValuesInit<
   T extends Component[],
   U extends unknown[] = [],
 > = T extends []
@@ -43,10 +43,7 @@ export type ComponentInitValues<
   : T extends [infer Head, ...infer Tail]
   ? Tail extends Component[]
     ? Head extends Component<infer Value>
-      ? ComponentInitValues<
-          Tail,
-          Value extends Tag ? U : [...U, ComponentInitValue<Value>]
-        >
+      ? ValuesInit<Tail, Value extends Tag ? U : [...U, ValueInit<Value>]>
       : never
     : never
   : never
@@ -75,17 +72,17 @@ export let setSchema = (component: Component, schema: Schema | Dynamic) =>
 /**
  * @private
  */
-export let express = <T>(component: Component<T>): ComponentValue<T> => {
+export let express = <T>(component: Component<T>): Value<T> => {
   let schema = expect(getSchema(component))
   assert(schema !== _dynamic)
   if (typeof schema === "string") {
-    return 0 as unknown as ComponentValue<T>
+    return 0 as unknown as Value<T>
   }
   let value = {} as Record<string, number>
   for (let prop in schema) {
     value[prop] = 0
   }
-  return value as ComponentValue<T>
+  return value as Value<T>
 }
 
 export let makeTagComponent = (): Component<Tag> => {

@@ -16,28 +16,36 @@ export class WebsocketTransport implements Transport {
     this.#socket = socket
     this.#socket.binaryType = "arraybuffer"
     this.#socket.addEventListener("message", message => {
-      this.#inbox.unshift(message.data)
+      this.#inbox.unshift(new Uint8Array(message.data))
     })
   }
 
   push(message: Uint8Array) {
-    if (this.#socket.readyState !== this.#socket.OPEN) {
-      this.#outbox.unshift(message)
+    if (this.#socket.readyState === this.#socket.CONNECTING) {
+      this.#outbox.unshift(
+        // The message isn't encoded immediately so we store a copy of it
+        message.slice(),
+      )
       return
     }
-    if (this.#outbox.length > 0) {
-      let message: Maybe<Uint8Array>
-      while (exists((message = this.#outbox.pop()))) {
-        this.#socket.send(message)
+    if (this.#socket.readyState === this.#socket.OPEN) {
+      if (this.#outbox.length > 0) {
+        let message: Maybe<Uint8Array>
+        while (exists((message = this.#outbox.pop()))) {
+          this.#socket.send(message)
+        }
       }
+      this.#socket.send(message)
     }
-    this.#socket.send(message)
   }
 
   pull() {
     let message = this.#inbox.pop()
     if (exists(message)) {
-      return new Uint8Array(message)
+      return message
     }
   }
 }
+
+export let makeWebsocketTransport = (socket: WebSocket) =>
+  new WebsocketTransport(socket)
