@@ -114,6 +114,7 @@ export class FixedTimestepImpl {
     let drift = this.measureDrift(targetTime)
     if (Math.abs(drift) >= this.#maxDrift) {
       this.reset(targetTime)
+      // this.#lastSkipTime = this.#currentTime
     }
     return steps
   }

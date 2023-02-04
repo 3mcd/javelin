@@ -1,5 +1,6 @@
 import * as j from "@javelin/ecs"
 import {exists, expect, Maybe} from "@javelin/lib"
+import {clientPredictionPlugin} from "./client_prediction.js"
 import {
   ClockSync,
   ClockSyncRequestInterval,
@@ -34,13 +35,10 @@ let processClientMessagesSystem = (world: j.World) => {
 let processClockSyncResponsesSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
   let clockSync = world.getResource(ClockSync)
-  let serverWorld = world.getResource(ServerWorld)
-  serverWorld.of(ClockSyncPayload).each((_, clockSyncPayload) => {
-    if (clockSyncPayload.serverTime > 0) {
-      clockSync.addSample(
-        clockSyncPayload.serverTime -
-          (clockSyncPayload.clientTime + time.currentTime) / 2,
-      )
+  world.of(ClockSyncPayload).each((_, clockSyncPayload) => {
+    let {serverTime, clientTime} = clockSyncPayload
+    if (serverTime > 0) {
+      clockSync.addSample(serverTime - (clientTime + time.currentTime) / 2)
       clockSyncPayload.serverTime = 0
     }
   })
@@ -48,11 +46,10 @@ let processClockSyncResponsesSystem = (world: j.World) => {
 
 let controlFixedTimestepSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
-  let serverWorld = world.getResource(ServerWorld)
   let serverOffset = world.getResource(ClockSync).getMeanOffset()
   if (serverOffset < Infinity) {
     let serverTime = time.currentTime + serverOffset + 0.3
-    serverWorld.setResource(ServerTime, serverTime)
+    world.setResource(ServerTime, serverTime)
     world.setResource(j.FixedTimestepTargetTime, serverTime)
   }
 }
@@ -76,14 +73,14 @@ let sendClientClockSyncRequestsSystem = (world: j.World) => {
 }
 
 let sendClientCommandsSystem = (world: j.World) => {
-  let serverWorld = world.getResource(ServerWorld)
   let model = world.getResource(NormalizedModel)
   let protocol = world.getResource(Protocol)
+  let commands = world.getResource(j.Commands)
   let encodeCommand = protocol.encoder(commandMessage)
   world.of(Transport).each((_, transport) => {
     for (let i = 0; i < model.commandTypes.length; i++) {
       let commandType = model.commandTypes[i]
-      let commandQueue = serverWorld.commands(commandType)
+      let commandQueue = commands.of(commandType)
       for (let i = 0; i < commandQueue.length; i++) {
         encodeCommand(writeStreamReliable, commandType, commandQueue[i])
       }
@@ -102,10 +99,6 @@ export let stepServerWorldSystem = (world: j.World) => {
   serverWorld[j._commitStagedChanges]()
 }
 
-let drainServerWorldCommandsSystem = (world: j.World) => {
-  world.getResource(ServerWorld)[j._drainCommands]()
-}
-
 export let clientPlugin = (app: j.App) => {
   let clockSync = new ClockSyncImpl({
     expectedOutlierRate: 0.2,
@@ -117,7 +110,6 @@ export let clientPlugin = (app: j.App) => {
     serverWorld = new j.World()
     serverWorld[j._emitStagedChanges]()
     serverWorld[j._commitStagedChanges]()
-    serverWorld.setResource(ServerTime, 0)
   }
   app.addResource(ServerWorld, serverWorld)
   app.addResource(
@@ -161,9 +153,5 @@ export let clientPlugin = (app: j.App) => {
     )
     .addSystemToGroup(j.Group.LateUpdate, stepServerWorldSystem)
     .addSystemToGroup(j.Group.Late, sendClientCommandsSystem)
-    .addSystemToGroup(
-      j.Group.Late,
-      drainServerWorldCommandsSystem,
-      j.after(sendClientCommandsSystem),
-    )
+    .use(clientPredictionPlugin)
 }

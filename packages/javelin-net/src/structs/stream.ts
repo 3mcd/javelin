@@ -20,8 +20,8 @@ export class ReadStream {
     return this.#offset
   }
 
-  bytes() {
-    return this.#buffer.u8.subarray(this.#offset, this.#length)
+  bytes(length = this.#length) {
+    return this.#buffer.u8.subarray(this.#offset, length)
   }
 
   #checkBounds() {

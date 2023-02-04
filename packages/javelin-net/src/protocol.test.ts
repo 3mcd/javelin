@@ -7,20 +7,19 @@ suite("NetworkProtocol2", () => {
   test("test", () => {
     let world = new j.World()
     let protocol = makeProtocol(world)
-    let message = makeMessage(
-      (stream, _, a: number, b: number) => {
+    let message = makeMessage({
+      encode(stream, _, a: number, b: number) {
         stream.grow(8)
         stream.writeU32(a)
         stream.writeU32(b)
       },
-      (stream, _) => {
+      decode(stream) {
         return [stream.readU32(), stream.readU32()]
       },
-    )
+    })
     protocol.register(message, 99)
     let encode = protocol.encoder(message)
     let stream = new WriteStream()
-    console.log(encode.toString())
     encode(stream, 1, 2)
     protocol.decode(
       new ReadStream(stream.bytes()),

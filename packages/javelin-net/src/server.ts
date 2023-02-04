@@ -75,6 +75,7 @@ let sendServerMessagesSystem = (world: j.World) => {
 
 let processClientMessagesSystem = (world: j.World) => {
   let protocol = world.getResource(Protocol)
+  let commands = world.getResource(j.Commands)
   let commandIsValid = world.getResource(CommandValidator)
   world
     .of(InitializedClient)
@@ -93,17 +94,19 @@ let processClientMessagesSystem = (world: j.World) => {
                 if (!commandIsValid(world, client, commandType, command)) {
                   return
                 }
-                world.dispatch(commandType, command)
+                commands.dispatch(commandType, command)
                 world
                   .of(InitializedClient)
                   .as(Transport)
                   .each((nextClient, nextClientTransport) => {
-                    if (nextClient === client) {
-                      return
+                    if (nextClient !== client) {
+                      encodeCommand(writeStreamReliable, commandType, command)
+                      nextClientTransport.push(
+                        writeStreamReliable.bytes(),
+                        true,
+                      )
+                      writeStreamReliable.reset()
                     }
-                    encodeCommand(writeStreamReliable, commandType, command)
-                    nextClientTransport.push(writeStreamReliable.bytes(), true)
-                    writeStreamReliable.reset()
                   })
               }
             }

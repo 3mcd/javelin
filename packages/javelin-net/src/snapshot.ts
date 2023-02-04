@@ -1,7 +1,4 @@
 import * as j from "@javelin/ecs"
-import {FixedTime} from "@javelin/ecs"
-import {ServerWorld} from "./client_resources.js"
-import {ServerWorldCorrected} from "./client_prediction.js"
 import {
   Interest,
   InterestImpl,
@@ -11,32 +8,22 @@ import {
   SubjectPrioritizer,
 } from "./interest.js"
 import {makeMessage} from "./protocol.js"
+import {LatestSnapshotTime, Snapshots} from "./client_prediction.js"
 
 export let snapshotInterestMessage = makeMessage({
-  encode(stream, world: j.World, message: InterestState) {
-    world = world.getResource(ServerWorld)
+  encode(stream, world: j.World, interest: InterestState) {
     // stream.grow(4)
-    // stream.writeF64(world.getResource(FixedTime).currentTime)
-    // interestMessageType.encode(stream, world, message)
+    // stream.writeF64(world.getResource(j.Time).currentTime)
+    // interestMessage.encode(stream, world, interest)
   },
-  decode(stream, world: j.World) {
-    world = world.getResource(ServerWorld)
-    // interestMessageType.decode(stream, world, length)
-    // let serverTime = stream.readF64()
-    // // 0. discard shared commands older than snapshot timestamp
-    // // 1. copy CorrectedWorld to ServerWorld
-    // // 2. apply snapshot to CorrectedWorld
-    // // 3. step ServerWorld as usual
-    // // 4. start fast-forwarding CorrectedWorld in a performant way towards the latest ServerWorld step as to not block the main thread
-    // // 5. when CorrectedWorld is caught up, start blending ServerWorld towards CorrectedWorld (this might happen in userland)
-    // // 6. once blending is complete, await next snapshot (can we stop stepping CorrectedWorld at this time??)
-    // // let serverWorldCorrected = world.getResource(ServerWorldCorrected)
-    // // interestMessageType.decode(
-    // //   stream,
-    // //   serverWorldCorrected,
-    // //   entity,
-    // //   length,
-    // // )
+  decode(stream, world: j.World, _, length) {
+    // let snapshots = world.getResource(Snapshots)
+    // let snapshotTime = stream.readF64()
+    // let latestSnapshotTime = world.getResource(LatestSnapshotTime)
+    // if (snapshotTime > latestSnapshotTime) {
+    //   world.setResource(LatestSnapshotTime, snapshotTime)
+    // }
+    // snapshots.push(stream.bytes(length))
   },
 })
 

@@ -50,10 +50,10 @@ export {
   Phase,
   World,
   _commitStagedChanges,
-  _drainCommands,
   _emitStagedChanges,
   _getComponentStore,
   _hasComponent,
   _qualifyEntity,
   _reserveEntity,
 } from "./world.js"
+export {Commands} from "./command.js"

@@ -7,16 +7,19 @@ type Encode<E extends unknown[]> = (
   world: j.World,
   ...args: E
 ) => void
-type Decode<D> = (stream: ReadStream, world: j.World, client: j.Entity) => D
+type Decode<D> = (
+  stream: ReadStream,
+  world: j.World,
+  client: j.Entity,
+  length: number,
+) => D
 
-type EncodeOpt<E extends unknown[]> = {encode: Encode<E>}
-type DecodeOpt<D> = {decode: Decode<D>}
 type EncodeApi<E extends unknown[]> = (stream: WriteStream, ...args: E) => void
 
-export type Message<E extends unknown[] = unknown[], D = unknown> =
-  | EncodeOpt<E>
-  | DecodeOpt<D>
-  | (EncodeOpt<E> & DecodeOpt<D>)
+export type Message<E extends unknown[] = unknown[], D = unknown> = {
+  encode: Encode<E>
+  decode: Decode<D>
+}
 
 type DecodeIteratee = <D>(messageType: Message<unknown[], D>, value: D) => void
 
@@ -40,11 +43,13 @@ let compileEncoder = (messageId: number, encode: Function, world: j.World) => {
     fArgs += `a${i},`
   }
   let body = `return(s,${fArgs})=>{`
-  body += `s.grow(1);`
+  body += `s.grow(3);`
   body += `s.writeU8(${messageId});`
+  body += `let lo=s.writeU16(0);`
   body += `let o=s.offset;`
   body += `f(s,w,${fArgs});`
-  body += `if(s.offset-o===0)s.shrink(1);`
+  body += `let l=s.offset-o;`
+  body += `if(l===0){s.shrink(3)}else{s.writeU16At(l, lo)}`
   body += "}"
   return Function("f", "w", body)(encode, world)
 }
@@ -57,12 +62,13 @@ export let makeProtocol = (world: j.World): Protocol => {
     encoder(message: Message) {
       return expect(encoders.get(message), ERR_EXPECTED_ENCODER)
     },
-    decode(stream: ReadStream, iteratee: DecodeIteratee, client: j.Entity) {
+    decode(stream, iteratee, client) {
       while (stream.offset < stream.length) {
         let messageId = stream.readU8()
+        let messageLength = stream.readU16()
         let message = expect(messages[messageId], ERR_UNEXPECTED_MESSAGE)
         let decode = expect(decoders[messageId], ERR_EXPECTED_DECODER)
-        iteratee(message, decode(stream, world, client))
+        iteratee(message, decode(stream, world, client, messageLength))
       }
     },
     register(message: Message, messageId: number) {
