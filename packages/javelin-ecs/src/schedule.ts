@@ -1,5 +1,7 @@
-import {assert, exists, expect, Maybe} from "@javelin/lib"
+import {assert, exists, expect, Maybe, SparseSet} from "@javelin/lib"
+import {Value} from "./component.js"
 import {System, SystemImpl} from "./system.js"
+import {Singleton} from "./type.js"
 import {World} from "./world.js"
 
 export type Predicate = (world: World) => boolean | number
@@ -106,6 +108,7 @@ export class Schedule<T> {
 }
 
 export class SystemGroup {
+  #commandQueues
   #predicate
   #systemSchedule
   #systemScheduleStale
@@ -118,6 +121,17 @@ export class SystemGroup {
     this.#systemsByImpl = new Map<SystemImpl, System>()
     this.#predicate = predicate
     this.#systems = [] as System[]
+    this.#commandQueues = new SparseSet<unknown[]>()
+  }
+
+  #ensureCommandQueue(command: Singleton) {
+    let commandComponent = command.components[0]
+    let commandQueue = this.#commandQueues.get(commandComponent)
+    if (!exists(commandQueue)) {
+      commandQueue = []
+      this.#commandQueues.set(commandComponent, commandQueue)
+    }
+    return commandQueue
   }
 
   get systems() {
@@ -158,6 +172,24 @@ export class SystemGroup {
       return 0
     }
     return +isEnabledOrRuns
+  }
+
+  pushCommand<T>(commandType: Singleton<T>, command: Value<T>): void {
+    this.#ensureCommandQueue(commandType).unshift(command)
+  }
+
+  getCommandQueue<T>(commandType: Singleton<T>): Value<T>[] {
+    return this.#ensureCommandQueue(commandType) as Value<T>[]
+  }
+
+  drainCommands() {
+    let commandQueues = this.#commandQueues.values()
+    for (let i = 0; i < commandQueues.length; i++) {
+      let commandQueue = commandQueues[i]
+      while (commandQueue.length > 0) {
+        commandQueue.pop()
+      }
+    }
   }
 }
 

@@ -1,4 +1,5 @@
 import {assert, expect, Maybe} from "@javelin/lib"
+import {commandPlugin} from "./command.js"
 import {fixedTimestepPlugin} from "./fixed_timestep_plugin.js"
 import {Resource} from "./resource.js"
 import {
@@ -14,9 +15,9 @@ import {tickPlugin} from "./tick_plugin.js"
 import {timePlugin} from "./time_plugin.js"
 import {
   CurrentSystem,
+  CurrentSystemGroup,
   World,
   _commitStagedChanges,
-  _drainCommands,
   _emitStagedChanges,
 } from "./world.js"
 
@@ -52,6 +53,11 @@ export enum DefaultGroup {
    */
   Late = "Late",
 }
+
+/**
+ * @private
+ */
+export const _systemGroups = Symbol()
 
 let defaultGroupsPlugin = (app: App) => {
   let initGroupEnabled = true
@@ -94,18 +100,20 @@ let defaultGroupsPlugin = (app: App) => {
 export class App {
   #systemGroupScheduleIsStale
   #systemGroupSchedule
-  #systemGroups
-  #systemGroupsById
+  #systemGroupsById;
+
+  [_systemGroups]: SystemGroup[]
 
   readonly world: World
 
   constructor(world: World) {
     this.#systemGroupSchedule = new Schedule<string>()
     this.#systemGroupsById = new Map<string, SystemGroup>()
-    this.#systemGroups = [] as SystemGroup[]
     this.#systemGroupScheduleIsStale = true
+    this[_systemGroups] = []
     this.world = world
     this.use(defaultGroupsPlugin)
+      .use(commandPlugin)
       .use(tickPlugin)
       .use(timePlugin)
       .use(fixedTimestepPlugin)
@@ -114,7 +122,7 @@ export class App {
   #updateSystemGroupSchedule() {
     if (this.#systemGroupScheduleIsStale) {
       let systemGroups = this.#systemGroupSchedule.build()
-      this.#systemGroups = systemGroups.map(groupId =>
+      this[_systemGroups] = systemGroups.map(groupId =>
         expect(this.#systemGroupsById.get(groupId)),
       )
       this.#systemGroupScheduleIsStale = false
@@ -196,9 +204,13 @@ export class App {
   step() {
     let {world} = this
     this.#updateSystemGroupSchedule()
-    for (let i = 0; i < this.#systemGroups.length; i++) {
-      let systemGroup = this.#systemGroups[i]
+    for (let i = 0; i < this[_systemGroups].length; i++) {
+      let systemGroup = this[_systemGroups][i]
       let systemGroupRuns = systemGroup.runs(world)
+      if (systemGroupRuns > 0) {
+        // The `CurrentSystemGroup` resource is used by the world to dispatch commands.
+        this.world.setResource(CurrentSystemGroup, systemGroup)
+      }
       while (systemGroupRuns-- > 0) {
         for (let j = 0; j < systemGroup.systems.length; j++) {
           let system = systemGroup.systems[j]
@@ -218,11 +230,11 @@ export class App {
             this.world[_emitStagedChanges]()
           }
         }
+        systemGroup.drainCommands()
       }
     }
     // Notify monitors of inter-step entity modifications.
     this.world[_commitStagedChanges]()
-    this.world[_drainCommands]()
     return this
   }
 }

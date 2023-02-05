@@ -1,6 +1,6 @@
 export { DefaultGroup as Group, makeApp as app } from "./app.js"
 export type { App, Constrain, Plugin } from "./app.js"
-export { isCommand, makeCommand as command } from "./command.js"
+export { Commands, isCommand, makeCommand as command } from "./command.js"
 export type { Command } from "./command.js"
 export { getSchema, _dynamic, _keys } from "./component.js"
 export type {
@@ -47,7 +47,6 @@ export {
   Phase,
   World,
   _commitStagedChanges,
-  _drainCommands,
   _emitStagedChanges,
   _getComponentStore,
   _hasComponent,

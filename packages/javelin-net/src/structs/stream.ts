@@ -20,8 +20,8 @@ export class ReadStream {
     return this.#offset
   }
 
-  bytes() {
-    return this.#buffer.u8.subarray(this.#offset, this.#length)
+  bytes(length = this.#length) {
+    return this.#buffer.u8.subarray(this.#offset, length)
   }
 
   #checkBounds() {
@@ -123,6 +123,10 @@ export class WriteStream {
     Buffer.free(this.#buffer)
     this.#buffer = Buffer.alloc(this.#initialLength)
     this.#offset = 0
+  }
+
+  destroy() {
+    Buffer.free(this.#buffer)
   }
 
   grow(byteLength: number) {

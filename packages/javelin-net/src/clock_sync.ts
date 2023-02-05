@@ -121,15 +121,15 @@ export class ClockSyncImpl {
   }
 }
 
-export let clockSyncMessage = makeMessage(
-  (stream, _, clockSyncPayload: ClockSyncPayload) => {
+export let clockSyncMessage = makeMessage({
+  encode(stream, _, clockSyncPayload: ClockSyncPayload) {
     stream.grow(16)
     stream.writeF64(clockSyncPayload.clientTime)
     stream.writeF64(clockSyncPayload.serverTime)
   },
-  (stream, world, client) => {
+  decode(stream, world, client) {
     let clockSyncPayload = expect(world.get(client, ClockSyncPayload))
     clockSyncPayload.clientTime = stream.readF64()
     clockSyncPayload.serverTime = stream.readF64()
   },
-)
+})

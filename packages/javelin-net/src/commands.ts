@@ -32,8 +32,8 @@ class CommandEncoder {
   }
 }
 
-export let commandMessage = makeMessage(
-  (stream, world, commandType: Singleton, command: unknown) => {
+export let commandMessage = makeMessage({
+  encode(stream, world, commandType: Singleton, command: unknown) {
     let {localComponentsToIso} = world.getResource(NormalizedModel)
     let commandEncoder = CommandEncoder.getEncoder(commandType)
     let commandComponent = commandType.normalized.components[0]
@@ -41,7 +41,7 @@ export let commandMessage = makeMessage(
     stream.writeU32(localComponentsToIso[commandComponent])
     commandEncoder.encode(command, stream)
   },
-  (stream, world) => {
+  decode(stream, world) {
     let {isoComponentsToLocal} = world.getResource(NormalizedModel)
     let commandComponent = isoComponentsToLocal[stream.readU32()]
     let commandType = j.type(commandComponent)
@@ -49,4 +49,4 @@ export let commandMessage = makeMessage(
     let command = commandEncoder.decode(stream)
     return [commandType, command]
   },
-)
+})

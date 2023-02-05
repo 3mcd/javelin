@@ -3,7 +3,7 @@ import { exists, expect, Maybe } from "@javelin/lib"
 import { AwarenessState as JnAwarenessState } from "./awareness.js"
 import { clockSyncMessage } from "./clock_sync.js"
 import { commandMessage } from "./commands.js"
-import { Awareness, ClockSyncPayload, Server, Transport } from "./components.js"
+import { Awareness, Client, ClockSyncPayload, Transport } from "./components.js"
 import { interestMessage } from "./interest.js"
 import { Model, NormalizedModel, normalizeModel } from "./model.js"
 import { presenceMessage } from "./presence.js"
@@ -14,6 +14,7 @@ import { DEFAULT_MESSAGES } from "./shared.js"
 import { ReadStream, WriteStream } from "./structs/stream.js"
 
 export type CommandValidator = <T>(
+  world: j.World,
   client: j.Entity,
   commandType: j.Command<T>,
   command: j.ComponentValue<T>,
@@ -21,14 +22,14 @@ export type CommandValidator = <T>(
 export let CommandValidator = j.resource<CommandValidator>()
 
 let AwarenessState = j.value<JnAwarenessState>()
-let InitializedClient = j.type(Server, AwarenessState)
+let InitializedClient = j.type(Client, AwarenessState)
 
 let readStream = new ReadStream(new Uint8Array())
 let writeStreamReliable = new WriteStream()
 let writeStreamUnreliable = new WriteStream()
 
 let initClientAwarenessesSystem = (world: j.World) => {
-  world.monitor(Server).eachIncluded(client => {
+  world.monitor(Client).eachIncluded(client => {
     let clientAwareness = expect(world.get(client, Awareness))
     world.add(client, AwarenessState, clientAwareness.init())
   })
@@ -74,6 +75,7 @@ let sendServerMessagesSystem = (world: j.World) => {
 
 let processClientMessagesSystem = (world: j.World) => {
   let protocol = world.getResource(Protocol)
+  let commands = world.getResource(j.Commands)
   let commandIsValid = world.getResource(CommandValidator)
   world
     .of(InitializedClient)
@@ -89,20 +91,22 @@ let processClientMessagesSystem = (world: j.World) => {
               case commandMessage: {
                 let [commandType, command] = payload as [j.Singleton, unknown]
                 let encodeCommand = protocol.encoder(commandMessage)
-                if (!commandIsValid(client, commandType, command)) {
+                if (!commandIsValid(world, client, commandType, command)) {
                   return
                 }
-                world.dispatch(commandType, command)
+                commands.dispatch(commandType, command)
                 world
                   .of(InitializedClient)
                   .as(Transport)
                   .each((nextClient, nextClientTransport) => {
-                    if (nextClient === client) {
-                      return
+                    if (nextClient !== client) {
+                      encodeCommand(writeStreamReliable, commandType, command)
+                      nextClientTransport.push(
+                        writeStreamReliable.bytes(),
+                        true,
+                      )
+                      writeStreamReliable.reset()
                     }
-                    encodeCommand(writeStreamReliable, commandType, command)
-                    nextClientTransport.push(writeStreamReliable.bytes(), true)
-                    writeStreamReliable.reset()
                   })
               }
             }
@@ -117,7 +121,7 @@ let processClientClockSyncRequestsSystem = (world: j.World) => {
   let protocol = world.getResource(Protocol)
   let encodeClockSync = protocol.encoder(clockSyncMessage)
   world
-    .of(Server)
+    .of(Client)
     .as(Transport, ClockSyncPayload)
     .each((_, transport, clockSyncPayload) => {
       if (clockSyncPayload.clientTime > 0) {

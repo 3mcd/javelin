@@ -15,6 +15,7 @@ import {ChildOf} from "./index.js"
 import {Monitor} from "./monitor.js"
 import {Query, QueryAPI} from "./query.js"
 import {makeResource, Resource} from "./resource.js"
+import {SystemGroup} from "./schedule.js"
 import {System} from "./system.js"
 import {Transaction, TransactionIteratee} from "./transaction.js"
 import {hashQueryTerms, QueryTerms, Singleton, Type} from "./type.js"
@@ -70,14 +71,6 @@ export const _qualifyEntity = Symbol()
  * @private
  */
 export const _reserveEntity = Symbol()
-/**
- * @private
- */
-export const _commandQueues = Symbol()
-/**
- * @private
- */
-export const _drainCommands = Symbol()
 
 export enum Phase {
   Stage = "stage",
@@ -85,10 +78,10 @@ export enum Phase {
 }
 
 export let CurrentSystem = makeResource<System>()
+export let CurrentSystemGroup = makeResource<SystemGroup>()
 
 export class World {
   readonly #applyTransaction
-  readonly #commandQueues
   readonly #componentStores
   readonly #disposableNodes
   readonly #entityChildren
@@ -105,7 +98,6 @@ export class World {
 
   constructor() {
     this.#applyTransaction = new Transaction()
-    this.#commandQueues = new SparseSet<unknown[]>()
     this.#componentStores = [] as unknown[][]
     this.#disposableNodes = new Set<Node>()
     this.#entityChildren = [] as Set<Entity>[]
@@ -118,17 +110,9 @@ export class World {
     this.#resources = [] as unknown[]
     this.#stageTransaction = new Transaction()
     this.graph = new Graph()
+    // TODO: remove these calls, just here for convenience
     this.setResource(CurrentSystem, new System(() => {}))
-  }
-
-  #ensureCommandQueue(command: Singleton) {
-    let commandComponent = command.components[0]
-    let commandQueue = this.#commandQueues.get(commandComponent)
-    if (!exists(commandQueue)) {
-      commandQueue = []
-      this.#commandQueues.set(commandComponent, commandQueue)
-    }
-    return commandQueue
+    this.setResource(CurrentSystemGroup, new SystemGroup())
   }
 
   #allocEntityId(): Entity {
@@ -502,30 +486,22 @@ export class World {
     // Adjust entities within the archetype graph, update component stores, and
     // notify interested parties (like monitors).
     this.#applyTransaction.drainEntities(this.graph, Phase.Apply, commitBatch)
-    this.#disposableNodes.forEach(nodeToPrune => {
-      // The node may have been populated after it was flagged for deletion, so
-      // we first check if it is still empty.
-      if (nodeToPrune.isEmpty()) {
-        // If the node and its descendants have no entities, we free each
-        // descendant node and notify all retained ancestor nodes.
-        nodeToPrune.traverseAdd(nodeAdd =>
-          nodeToPrune.traverseRem(nodeRem => {
-            nodeRem.onNodeDeleted.emit(nodeAdd)
-            Node.unlink(nodeRem, nodeAdd)
-          }),
-        )
-      }
-    })
-    this.#disposableNodes.clear()
-  }
-
-  [_drainCommands]() {
-    let commandQueues = this.#commandQueues.values()
-    for (let i = 0; i < commandQueues.length; i++) {
-      let commandQueue = commandQueues[i]
-      while (commandQueue.length > 0) {
-        commandQueue.pop()
-      }
+    if (this.#disposableNodes.size > 0) {
+      this.#disposableNodes.forEach(nodeToPrune => {
+        // The node may have been populated after it was flagged for deletion, so
+        // we first check if it is still empty.
+        if (nodeToPrune.isEmpty()) {
+          // If the node and its descendants have no entities, we free each
+          // descendant node and notify all retained ancestor nodes.
+          nodeToPrune.traverseAdd(nodeAdd =>
+            nodeToPrune.traverseRem(nodeRem => {
+              nodeRem.onNodeDeleted.emit(nodeAdd)
+              Node.unlink(nodeRem, nodeAdd)
+            }),
+          )
+        }
+      })
+      this.#disposableNodes.clear()
     }
   }
 
@@ -717,14 +693,19 @@ export class World {
     this.#setEntityComponentValue(entity, component, value)
   }
 
-  has(entity: Entity, type: Singleton): boolean {
+  has(entity: Entity, type: Type): boolean {
     let entityNode = expect(
       this.#getEntityNode(entity),
       ERR_MISSING_COMPONENT(entity),
     )
-    let component = type.components[0]
     if (exists(entityNode)) {
-      return entityNode.hasComponent(component)
+      for (let i = 0; i < type.components.length; i++) {
+        let component = type.components[i]
+        if (!entityNode.hasComponent(component)) {
+          return false
+        }
+      }
+      return true
     }
     return false
   }
@@ -811,14 +792,6 @@ export class World {
       this.#initMonitor(monitor, monitorTermsHash, monitorNode, monitorSystem)
     }
     return monitor
-  }
-
-  dispatch<T>(commandType: Singleton<T>, command: Value<T>): void {
-    this.#ensureCommandQueue(commandType).unshift(command)
-  }
-
-  commands<T>(commandType: Singleton<T>): Value<T>[] {
-    return this.#ensureCommandQueue(commandType) as Value<T>[]
   }
 }
 

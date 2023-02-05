@@ -125,6 +125,9 @@ export class Transaction {
   }
 
   drainEntities(graph: Graph, phase: string, iteratee?: TransactionIteratee) {
+    if (this.#entityBatches.size === 0) {
+      return
+    }
     let emitBatch = (batch: Set<Entity>, batchKey: bigint) => {
       let prevHash = decomposeBatchKeyPrev(batchKey)
       let nextHash = decomposeBatchKeyNext(batchKey)
