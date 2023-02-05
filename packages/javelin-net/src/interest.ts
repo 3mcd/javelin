@@ -7,9 +7,6 @@ import {makeMessage} from "./protocol.js"
 import {Sendable} from "./sendable.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
 
-export type PatchStage = []
-export let PatchStage = j.resource<PatchStage>()
-
 export type SubjectPrioritizer = (
   entity: j.Entity,
   subject: j.Entity,

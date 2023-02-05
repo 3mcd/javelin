@@ -1,7 +1,11 @@
 import * as j from "@javelin/ecs"
 import {Interest, InterestImpl, InterestState} from "./interest.js"
 import {Presence, PresenceImpl, PresenceState} from "./presence.js"
-import {SnapshotInterestImpl} from "./snapshot.js"
+import {
+  SnapshotInterest,
+  SnapshotInterestImpl,
+  SnapshotInterestState,
+} from "./snapshot.js"
 
 export interface Awareness {
   readonly interests: Interest[]
@@ -16,7 +20,7 @@ export interface AwarenessState {
   readonly subjects: Set<j.Entity>
   readonly interests: InterestState[]
   readonly presences: PresenceState[]
-  readonly snapshotInterests: InterestState[]
+  readonly snapshotInterests: SnapshotInterestState[]
 }
 
 export class AwarenessStateImpl implements AwarenessState {
@@ -28,7 +32,7 @@ export class AwarenessStateImpl implements AwarenessState {
   constructor(
     presences: PresenceState[],
     interests: InterestState[],
-    snapshotInterests: InterestState[],
+    snapshotInterests: SnapshotInterestState[],
   ) {
     this.subjects = new Set<j.Entity>()
     this.presences = presences
@@ -45,7 +49,7 @@ export class AwarenessImpl implements Awareness {
   constructor(
     presences: Presence[],
     interests: Interest[],
-    snapshotInterests: Interest[],
+    snapshotInterests: SnapshotInterest[],
   ) {
     this.presences = presences
     this.interests = interests
@@ -71,10 +75,12 @@ export class AwarenessImpl implements Awareness {
   }
 }
 
-export let makeAwareness = (...spec: (Presence | Interest)[]): Awareness => {
+export let makeAwareness = (
+  ...spec: (Presence | Interest | SnapshotInterest)[]
+): Awareness => {
   let presences: Presence[] = []
   let interests: Interest[] = []
-  let snapshotInterests: Interest[] = []
+  let snapshotInterests: SnapshotInterest[] = []
   for (let i = 0; i < spec.length; i++) {
     let term = spec[i]
     if (term instanceof PresenceImpl) {

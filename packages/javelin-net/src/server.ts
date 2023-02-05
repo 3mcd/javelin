@@ -11,6 +11,7 @@ import {makeProtocol} from "./protocol.js"
 import {Protocol} from "./resources.js"
 import {eligibleForSend} from "./sendable.js"
 import {DEFAULT_MESSAGES} from "./shared.js"
+import {snapshotMessage} from "./snapshot.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
 
 export type CommandValidator = <T>(
@@ -40,6 +41,7 @@ let sendServerMessagesSystem = (world: j.World) => {
   let protocol = world.getResource(Protocol)
   let encodePresence = protocol.encoder(presenceMessage)
   let encodeInterest = protocol.encoder(interestMessage)
+  let enocdeSnapshotInterest = protocol.encoder(snapshotMessage)
   world
     .of(InitializedClient)
     .as(Transport, AwarenessState)
@@ -61,7 +63,20 @@ let sendServerMessagesSystem = (world: j.World) => {
         let interest = awareness.interests[i]
         interest.step(world, client, awareness.subjects)
         if (eligibleForSend(interest, time.currentTime)) {
-          encodeInterest(writeStreamUnreliable, interest)
+          encodeInterest(writeStreamReliable, interest)
+          if (writeStreamReliable.offset > 0) {
+            let interestMessage = writeStreamReliable.bytes()
+            transport.push(interestMessage, true)
+            writeStreamReliable.reset()
+          }
+          interest.lastSendTime = time.currentTime
+        }
+      }
+      for (let i = 0; i < awareness.snapshotInterests.length; i++) {
+        let interest = awareness.snapshotInterests[i]
+        interest.step(world, client, awareness.subjects)
+        if (eligibleForSend(interest, time.currentTime)) {
+          enocdeSnapshotInterest(writeStreamUnreliable, interest)
           if (writeStreamUnreliable.offset > 0) {
             let interestMessage = writeStreamUnreliable.bytes()
             transport.push(interestMessage, false)

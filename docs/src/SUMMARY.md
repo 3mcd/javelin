@@ -20,6 +20,11 @@
 - [Plugins](./plugins.md)
 - [Glossary](./glossary.md)
 
+# Plugins
+
+- [Commands](./fixed-timestep-plugin.md)
+- [Fixed Timestep](./fixed-timestep-plugin.md)
+
 # Architecture
 
 - [Design Overview](./design.md)

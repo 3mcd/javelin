@@ -13,7 +13,7 @@ let Kinetic = j.type(Position, Velocity)
 let kineticPresence = jn.presence(Kinetic, (_entity, subject) =>
   subject % 3 === 0 ? 100 : 10,
 )
-let kineticInterest = jn.interest(Kinetic, (_entity, subject) =>
+let kineticInterest = jn.snapshotInterest(Kinetic, (_entity, subject) =>
   subject % 2 === 0 ? 100 : 10,
 )
 
