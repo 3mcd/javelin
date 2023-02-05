@@ -1,8 +1,8 @@
 {
   "name": "@javelin/react",
   "license": "MIT",
-  "version": "2.0.0-alpha.0",
-  "description": "React bindings for javelin",
+  "version": "2.0.0-alpha.5",
+  "description": "React bindings for Javelin",
   "keywords": ["ecs", "entity-component system", "game", "gamedev", "multiplayer", "mog", "react", "jsx"],
   "type": "module",
   "main": "dist/javelin-react.cjs.js",

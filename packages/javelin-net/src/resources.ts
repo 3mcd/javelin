@@ -1,6 +1,4 @@
 import * as j from "@javelin/ecs"
-import {Protocol} from "./protocol.js"
+import type {Protocol as _Protocol} from "./protocol.js"
 
-let Protocol = j.resource<Protocol>()
-
-export {Protocol}
+export let Protocol = j.resource<_Protocol>()

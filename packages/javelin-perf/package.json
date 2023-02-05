@@ -5,7 +5,7 @@
   "description": "",
   "keywords": [],
   "type": "module",
-  "version": "2.0.0-alpha.4",
+  "version": "2.0.0-alpha.5",
   "main": "dist/javelin-perf.cjs.js",
   "module": "dist/javelin-perf.esm.js",
   "exports": {

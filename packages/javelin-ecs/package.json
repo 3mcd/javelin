@@ -2,7 +2,7 @@
   "name": "@javelin/ecs",
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "license": "MIT",
-  "version": "2.0.0-alpha.4",
+  "version": "2.0.0-alpha.5",
   "description": "A TypeScript/JavaScript Entity-Component System",
   "keywords": ["ecs", "entity-component system", "game", "gamedev", "multiplayer", "mog"],
   "type": "module",

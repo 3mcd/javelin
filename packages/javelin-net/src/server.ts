@@ -1,6 +1,6 @@
 import * as j from "@javelin/ecs"
 import {exists, expect, Maybe} from "@javelin/lib"
-import {AwarenessState} from "./awareness.js"
+import {AwarenessState as _AwarenessState} from "./awareness.js"
 import {clockSyncMessage} from "./clock_sync.js"
 import {commandMessage} from "./commands.js"
 import {Awareness, Client, ClockSyncPayload, Transport} from "./components.js"
@@ -22,7 +22,7 @@ export type CommandValidator = <T>(
 ) => boolean
 export let CommandValidator = j.resource<CommandValidator>()
 
-let AwarenessState = j.value<AwarenessState>()
+let AwarenessState = j.value<_AwarenessState>()
 let InitializedClient = j.type(Client, AwarenessState)
 
 let readStream = new ReadStream(new Uint8Array())
