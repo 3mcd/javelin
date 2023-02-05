@@ -43,7 +43,7 @@ let sendServerMessagesSystem = (world: j.World) => {
   let encodeInterest = protocol.encoder(interestMessage)
   let enocdeSnapshotInterest = protocol.encoder(snapshotMessage)
   world
-    .of(InitializedClient)
+    .query(InitializedClient)
     .as(Transport, AwarenessState)
     .each(function sendServerMessages(client, transport, awareness) {
       for (let i = 0; i < awareness.presences.length; i++) {
@@ -93,7 +93,7 @@ let processClientMessagesSystem = (world: j.World) => {
   let commands = world.getResource(j.Commands)
   let commandIsValid = world.getResource(CommandValidator)
   world
-    .of(InitializedClient)
+    .query(InitializedClient)
     .as(Transport)
     .each(function recvClientMessages(client, transport) {
       let message: Maybe<Uint8Array>
@@ -111,7 +111,7 @@ let processClientMessagesSystem = (world: j.World) => {
                 }
                 commands.dispatch(commandType, command)
                 world
-                  .of(InitializedClient)
+                  .query(InitializedClient)
                   .as(Transport)
                   .each((nextClient, nextClientTransport) => {
                     if (nextClient !== client) {
@@ -136,7 +136,7 @@ let processClientClockSyncRequestsSystem = (world: j.World) => {
   let protocol = world.getResource(Protocol)
   let encodeClockSync = protocol.encoder(clockSyncMessage)
   world
-    .of(Client)
+    .query(Client)
     .as(Transport, ClockSyncPayload)
     .each((_, transport, clockSyncPayload) => {
       if (clockSyncPayload.clientTime > 0) {

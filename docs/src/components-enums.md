@@ -29,7 +29,7 @@ world.add(character, MovementState(Running))
 You can find entities with a given slot by including the slot in a query's terms.
 
 ```ts
-world.of(MovementState).each(entity => {
+world.query(MovementState).each(entity => {
   // `entity` has a `MovementState`
 })
 ```

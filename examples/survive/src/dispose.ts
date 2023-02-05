@@ -4,7 +4,7 @@ export let DisposeTimer = j.value("f32")
 
 let pruneExpiredDisposablesSystem = (world: j.World) => {
   let time = world.getResource(j.FixedTime)
-  world.of(DisposeTimer).each((e, timer) => {
+  world.query(DisposeTimer).each((e, timer) => {
     if (time.currentTime > timer) {
       world.delete(e)
     }

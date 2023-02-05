@@ -38,7 +38,7 @@ let poll = (key: string) => Boolean(keys[key])
 
 export let playerMovementSystem = (world: j.World) =>
   world
-    .of(Player)
+    .query(Player)
     .as(Position)
     .each((_, playerPos) => {
       let h =
@@ -54,7 +54,7 @@ export let playerMovementSystem = (world: j.World) =>
 export let playerWeaponsSystem = (world: j.World) => {
   let time = world.getResource(j.FixedTime)
   world
-    .of(Player)
+    .query(Player)
     .as(Position, Quiver)
     .each((player, playerPos, playerQuiver) => {
       let bulletCount = Math.ceil(PLAYER_SHOOT_COUNT + playerQuiver / 100)

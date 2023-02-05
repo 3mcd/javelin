@@ -73,7 +73,7 @@ let clearCanvasSystem = (world: j.World) => {
 let drawPlayersSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   world
-    .of(Player)
+    .query(Player)
     .as(Position)
     .each((_, playerPos) =>
       drawSprite(canvasContext, playerPos, ratSprites[2][4]),
@@ -83,7 +83,7 @@ let drawPlayersSystem = (world: j.World) => {
 let drawEnemiesSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   world
-    .of(Enemy)
+    .query(Enemy)
     .as(Position)
     .each((enemy, enemyPos) =>
       drawSprite(
@@ -97,7 +97,7 @@ let drawEnemiesSystem = (world: j.World) => {
 let drawBulletsSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   world
-    .of(Bullet)
+    .query(Bullet)
     .as(Position)
     .each((_, bulletPos) =>
       drawSprite(canvasContext, bulletPos, orbSprites[0][0]),
@@ -107,7 +107,7 @@ let drawBulletsSystem = (world: j.World) => {
 let drawLootSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   world
-    .of(LootBag)
+    .query(LootBag)
     .as(Position)
     .each((_, lootPos) => drawSprite(canvasContext, lootPos, lootSprites[0][0]))
 }
@@ -115,7 +115,7 @@ let drawLootSystem = (world: j.World) => {
 let drawAurasSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   world
-    .of(AuraSource)
+    .query(AuraSource)
     .each((_, aura, auraPos) =>
       drawCircle(
         canvasContext,
@@ -131,7 +131,7 @@ let drawHealthSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   let viewport = world.getResource(Viewport)
   world
-    .of(Player)
+    .query(Player)
     .as(Health)
     .each((_, playerHealth) => {
       canvasContext.font = "2px sans-serif"
@@ -148,7 +148,7 @@ let drawQuiverSystem = (world: j.World) => {
   let canvasContext = world.getResource(CanvasContext)
   let viewport = world.getResource(Viewport)
   world
-    .of(Player)
+    .query(Player)
     .as(Quiver)
     .each((_, playerQuiver) => {
       canvasContext.font = "2px sans-serif"

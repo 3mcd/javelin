@@ -111,7 +111,7 @@ export class PresenceStateImpl implements PresenceState {
 
   step(world: j.World, entity: j.Entity, subjects: Set<j.Entity>) {
     if (this.#new) {
-      world.of(this.subjectType).each(subject => {
+      world.query(this.subjectType).each(subject => {
         let subjectPriority = this.subjectPrioritizer(entity, subject, world)
         this.subjectQueue.push(subject, subjectPriority)
         subjects.add(subject)

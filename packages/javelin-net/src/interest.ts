@@ -105,7 +105,7 @@ export class InterestStateImpl implements InterestState {
   }
 
   step(world: j.World, entity: j.Entity, subjects: Set<j.Entity>) {
-    world.of(this.subjectType).each(subject => {
+    world.query(this.subjectType).each(subject => {
       if (!subjects.has(subject)) {
         this.subjectQueue.remove(subject)
       } else {

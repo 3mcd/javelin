@@ -85,7 +85,7 @@ app
   })
   // systemB
   .addSystem(world => {
-    world.of(Hippo).each(hippo => {
+    world.query(Hippo).each(hippo => {
       // (not called, even though a hippo was created)
     })
   })

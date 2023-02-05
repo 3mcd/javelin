@@ -15,10 +15,10 @@ export let AuraTarget = j.type(Position, Box, Health)
 let tempVec = {x: 0, y: 0}
 
 export let pushAuraSystem = (world: j.World) =>
-  world.of(AuraSource).each((source, sourceAura, sourcePos) => {
+  world.query(AuraSource).each((source, sourceAura, sourcePos) => {
     let sourceAuraRadius = sourceAura * AURA_SCALE_FACTOR
     world
-      .of(AuraTarget, j.Not(AuraImmune))
+      .query(AuraTarget, j.Not(AuraImmune))
       .each((target, targetPos, targetBox) => {
         if (
           source !== target &&

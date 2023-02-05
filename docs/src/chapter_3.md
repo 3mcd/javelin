@@ -104,10 +104,10 @@ let moveBoxSystem = (world: j.World) => {
 }
 ```
 
-Then we'll find and update the box using a query. `world.of` returns an iterable collection of entities that match a list of types and components to a callback function:
+Then we'll find and update the box using a query. `world.query` returns an iterable collection of entities that match a list of types and components to a callback function:
 
 ```ts
-world.of(Box).each((box, boxPos) => {
+world.query(Box).each((box, boxPos) => {
   boxPos.x += Number(key("ArrowRight")) - Number(key("ArrowLeft"))
   boxPos.y += Number(key("ArrowDown")) - Number(key("ArrowUp"))
 })
@@ -148,7 +148,7 @@ Taking everything we've learned so far about systems, queries, and resources, we
 ```ts
 let drawBoxSystem = (world: j.World) => {
   let context = world.getResource(Context2D)
-  world.of(Box).each((box, boxPos, boxColor) => {
+  world.query(Box).each((box, boxPos, boxColor) => {
     context.fillStyle = boxColor
     context.fillRect(poxPos.x, boxPos.y, 50, 50)
   })

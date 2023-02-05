@@ -34,7 +34,7 @@ let app = j
   )
   .addSystem(world => {
     let remote = world.getResource(jn.ServerWorld)
-    remote.of(Position).each((entity, pos) => {
+    remote.query(Position).each((entity, pos) => {
       renderEntity(entity, pos)
     })
   })

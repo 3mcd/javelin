@@ -31,7 +31,7 @@ let app = j
   })
   // find entities by type
   .addSystem(world => {
-    world.of(j.type(Pos, Vel)).each((entity, pos, vel) => {
+    world.query(j.type(Pos, Vel)).each((entity, pos, vel) => {
       pos.x += vel.x
       pos.y += vel.y
     })

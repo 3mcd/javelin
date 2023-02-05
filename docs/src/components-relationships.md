@@ -18,8 +18,8 @@ let spaceship = world.create(j.type(Spaceship, GravitatingTo(planet)))
 Relationships can be used as query terms to resolve related entities.
 
 ```ts
-world.of(Planet).each(planet => {
-  world.of(GravitatingTo(planet), Velocity).each((entity, velocity) => {
+world.query(Planet).each(planet => {
+  world.query(GravitatingTo(planet), Velocity).each((entity, velocity) => {
     // (apply gravity)
   })
 })
@@ -30,7 +30,7 @@ Behind the scenes, `relation` creates a hidden tag component that is also attach
 The following example query finds all entities with relationships of the `GravitatingTo` variety.
 
 ```ts
-world.of(GravitatingTo).each(entity => {
+world.query(GravitatingTo).each(entity => {
   // `entity` is affected by gravity
 })
 ```
@@ -47,7 +47,7 @@ let sword = world.create(j.type(Sword, j.ChildOf(bag)))
 `ChildOf` can be used with queries to find all children of an entity.
 
 ```ts
-world.of(j.ChildOf(bag)).each(item => {
+world.query(j.ChildOf(bag)).each(item => {
   // `item` is a child of `bag`
 })
 ```

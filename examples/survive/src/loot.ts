@@ -40,14 +40,14 @@ let dropLootSystem = (world: j.World) =>
 
 let pickUpLootSystem = (world: j.World) =>
   world
-    .of(Player)
+    .query(Player)
     .as(Position, Box, Health, Quiver, Aura)
     .each(
       (player, playerPos, playerBox, playerHealth, playerQuiver, playerAura) =>
-        world.of(LootBag).each((lootBag, lootPos, lootBox) => {
+        world.query(LootBag).each((lootBag, lootPos, lootBox) => {
           if (boxIntersects(playerPos, playerBox, lootPos, lootBox)) {
             world
-              .of(j.ChildOf(lootBag), HealthPotion)
+              .query(j.ChildOf(lootBag), HealthPotion)
               .each((_, healthPotion) => {
                 let nextPlayerHealth = Math.min(
                   playerHealth + healthPotion,
@@ -55,7 +55,7 @@ let pickUpLootSystem = (world: j.World) =>
                 )
                 world.set(player, Health, nextPlayerHealth)
               })
-            world.of(j.ChildOf(lootBag), Quiver).each((_, quiver) => {
+            world.query(j.ChildOf(lootBag), Quiver).each((_, quiver) => {
               world.set(player, Quiver, playerQuiver + quiver)
             })
             world.set(player, Aura, playerAura + 1)

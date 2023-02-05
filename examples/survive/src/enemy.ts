@@ -72,7 +72,7 @@ let acquireEnemyTarget = (
   let targetPos: Vector2 | undefined
   let targetDistance = Infinity
   world
-    .of(Player)
+    .query(Player)
     .as(Position)
     .each((_, playerPos) => {
       let playerDistance = distance(enemyPos, playerPos)
@@ -93,7 +93,7 @@ let spawnEnemiesSystem = (world: j.World) => {
   let tick = world.getResource(j.FixedTick)
   let enemySpawnCount = Math.ceil(tick / ENEMY_SPAWN_FACTOR)
   world
-    .of(Player)
+    .query(Player)
     .as(Position)
     .each((_, playerPos) => {
       while (enemySpawnCount-- > 0) {
@@ -123,7 +123,7 @@ let spawnEnemiesSystem = (world: j.World) => {
 
 let acquireEnemyTargetsSystem = (world: j.World) =>
   world
-    .of(Enemy, EnemyType(Bat))
+    .query(Enemy, EnemyType(Bat))
     .as(Position, Heading)
     .each((_, enemyPos, enemyHeading) =>
       acquireEnemyTarget(world, enemyPos, enemyHeading),
@@ -131,7 +131,7 @@ let acquireEnemyTargetsSystem = (world: j.World) =>
 
 let moveEnemiesSystem = (world: j.World) =>
   world
-    .of(Enemy)
+    .query(Enemy)
     .as(Position, Heading)
     .each((_, enemyPos, enemyHeading) => {
       enemyPos.x += enemyHeading.x * 0.1
@@ -141,11 +141,11 @@ let moveEnemiesSystem = (world: j.World) =>
 let enemyAttackSystem = (world: j.World) => {
   let time = world.getResource(j.FixedTime)
   world
-    .of(Player)
+    .query(Player)
     .as(Position, Box, Health)
     .each((player, playerPos, playerBox, playerHealth) => {
       world
-        .of(Enemy)
+        .query(Enemy)
         .as(Position, Box, EnemyAttackTime)
         .each((enemy, enemyPos, enemyBox, enemyAttackTime) => {
           if (

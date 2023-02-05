@@ -8,8 +8,8 @@ Systems with reactive entity queries.
 
 ```ts
 let lootSystem = () => {
-  world.of(Player).each((player, playerBox) => {
-    world.of(Loot).each((loot, lootBox) => {
+  world.query(Player).each((player, playerBox) => {
+    world.query(Loot).each((loot, lootBox) => {
       // (pick up loot bag)
     })
   })
@@ -51,7 +51,7 @@ Entity relationships with built-in support for heirarchies.
 
 ```ts
 let parent = world.create()
-let child = world.create(j.ChildOf(parent))
+let child = world.create(j.Childquery(parent))
 world.delete(parent) // also deletes `child`
 ```
 

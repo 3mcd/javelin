@@ -60,7 +60,7 @@ A relation is a function that returns per-entity relationship components. Relati
 
 A relation tag is a tag component automatically given to relations. They provide the means to find all entities with associated relationships.
 
-For example, `world.of(ChildOf)` would find all entities that are a child of another entity.
+For example, `world.query(ChildOf)` would find all entities that are a child of another entity.
 
 ### Relationship component
 
@@ -72,7 +72,7 @@ A slot is a function that builds slot components. Slots are defined with a fixed
 
 ### Slot tag
 
-A slot tag is a tag component automatically given to slots. Slots are subsituted in types with their underlying slot tags. For example, `world.of(MovementState)` would find all entities with a `MovementState`.
+A slot tag is a tag component automatically given to slots. Slots are subsituted in types with their underlying slot tags. For example, `world.query(MovementState)` would find all entities with a `MovementState`.
 
 ### Slot component
 

@@ -10,7 +10,7 @@ A system may query entities using it's world's `of` method.
 let Planet = j.type(PlanetGeometry, PlanetType, ...)
 
 let orbitPlanetsSystem = (world: j.World) => {
-  let planets = world.of(Planet)
+  let planets = world.query(Planet)
 }
 ```
 
@@ -30,7 +30,7 @@ Systems are often highly specific about the entities they resolve while only uti
 
 ```ts
 world
-  .of(Hippo, Element(Lightning), StandingIn(Water), Health)
+  .query(Hippo, Element(Lightning), StandingIn(Water), Health)
   .as(Health)
   .each((hippo, hippoHealth) => {
     // (do something with just the hippo's health)
@@ -46,7 +46,7 @@ The results of a query can be further narrowed using query filters. Javelin curr
 The `Not` filter excludes entities that match a given component.
 
 ```ts
-world.of(Planet, j.Not(Atmosphere)).each(planet => {
+world.query(Planet, j.Not(Atmosphere)).each(planet => {
   // `planet` does not have an atmosphere component
 })
 ```
@@ -54,13 +54,13 @@ world.of(Planet, j.Not(Atmosphere)).each(planet => {
 `Without` can be used with more complex component types like [relationships](./components-relationships.md) and [slots](./components-enums.md). The following query could be expressed in plain terms as _"all gas planets that are not in the Sol system"_:
 
 ```ts
-world.of(Planet, PlanetType(Gas), j.Not(j.ChildOf(solSystem)))
+world.query(Planet, PlanetType(Gas), j.Not(j.ChildOf(solSystem)))
 ```
 
 Another example: _"all non-gas planets"_:
 
 ```ts
-world.of(Planet, j.Not(PlanetType(Gas)))
+world.query(Planet, j.Not(PlanetType(Gas)))
 ```
 
 ### Changed

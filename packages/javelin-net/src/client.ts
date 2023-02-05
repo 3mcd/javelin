@@ -23,7 +23,7 @@ let noop = () => {}
 
 let processClientMessagesSystem = (world: j.World) => {
   let protocol = world.getResource(Protocol)
-  world.of(Transport).each((client, transport) => {
+  world.query(Transport).each((client, transport) => {
     let message: Maybe<Uint8Array>
     while (exists((message = transport.pull()))) {
       readStream.reset(message)
@@ -35,7 +35,7 @@ let processClientMessagesSystem = (world: j.World) => {
 let processClockSyncResponsesSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
   let clockSync = world.getResource(ClockSync)
-  world.of(ClockSyncPayload).each((_, clockSyncPayload) => {
+  world.query(ClockSyncPayload).each((_, clockSyncPayload) => {
     let {serverTime, clientTime} = clockSyncPayload
     if (serverTime > 0) {
       clockSync.addSample(serverTime - (clientTime + time.currentTime) / 2)
@@ -63,7 +63,7 @@ let sendClientClockSyncRequestsSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
   let protocol = world.getResource(Protocol)
   let encodeClockSync = protocol.encoder(clockSyncMessage)
-  world.of(Transport).each((_, transport) => {
+  world.query(Transport).each((_, transport) => {
     clockSyncPayload.clientTime = time.currentTime
     encodeClockSync(writeStreamReliable, clockSyncPayload)
     transport.push(writeStreamReliable.bytes(), true)
@@ -77,7 +77,7 @@ let sendClientCommandsSystem = (world: j.World) => {
   let protocol = world.getResource(Protocol)
   let commands = world.getResource(j.Commands)
   let encodeCommand = protocol.encoder(commandMessage)
-  world.of(Transport).each((_, transport) => {
+  world.query(Transport).each((_, transport) => {
     for (let i = 0; i < model.commandTypes.length; i++) {
       let commandType = model.commandTypes[i]
       let commandQueue = commands.of(commandType)

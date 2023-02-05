@@ -3,7 +3,7 @@ import * as j from "@javelin/ecs"
 export let Health = j.value("f32")
 
 export let pruneDeadSystem = (world: j.World) =>
-  world.of(Health).each((e, health) => {
+  world.query(Health).each((e, health) => {
     if (health <= 0) {
       world.delete(e)
     }

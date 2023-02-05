@@ -8,8 +8,8 @@ Systems are added to an app using the app's `addSystem` method.
 
 ```ts
 let plantGrowthSystem = (world: j.World) => {
-  world.of(Plot).each((plot, plotWater) => {
-    world.of(Plant, j.ChildOf(plot)).each((plant, plantMass) => {
+  world.query(Plot).each((plot, plotWater) => {
+    world.query(Plant, j.ChildOf(plot)).each((plant, plantMass) => {
       // (grow plant using plotWater)
     })
   })

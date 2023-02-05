@@ -729,8 +729,8 @@ export class World {
    * Resolve a query builder for a given set of types, components, and
    * relationships.
    */
-  of<T extends QueryTerms>(...queryTerms: T): QueryAPI<T>
-  of() {
+  query<T extends QueryTerms>(...queryTerms: T): QueryAPI<T>
+  query() {
     let querySystem = this.getResource(CurrentSystem)
     let queryTerms = arguments as unknown as QueryTerms
     let queryTermsHash = hashQueryTerms(queryTerms)
