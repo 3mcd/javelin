@@ -1,17 +1,17 @@
 import * as j from "@javelin/ecs"
-import {exists, expect, Maybe} from "@javelin/lib"
-import {AwarenessState} from "./awareness.js"
-import {clockSyncMessage} from "./clock_sync.js"
-import {commandMessage} from "./commands.js"
-import {Awareness, Client, ClockSyncPayload, Transport} from "./components.js"
-import {interestMessage} from "./interest.js"
-import {Model, NormalizedModel, normalizeModel} from "./model.js"
-import {presenceMessage} from "./presence.js"
-import {makeProtocol} from "./protocol.js"
-import {Protocol} from "./resources.js"
-import {eligibleForSend} from "./sendable.js"
-import {DEFAULT_MESSAGES} from "./shared.js"
-import {ReadStream, WriteStream} from "./structs/stream.js"
+import { exists, expect, Maybe } from "@javelin/lib"
+import { AwarenessState as JnAwarenessState } from "./awareness.js"
+import { clockSyncMessage } from "./clock_sync.js"
+import { commandMessage } from "./commands.js"
+import { Awareness, Client, ClockSyncPayload, Transport } from "./components.js"
+import { interestMessage } from "./interest.js"
+import { Model, NormalizedModel, normalizeModel } from "./model.js"
+import { presenceMessage } from "./presence.js"
+import { makeProtocol } from "./protocol.js"
+import { Protocol } from "./resources.js"
+import { eligibleForSend } from "./sendable.js"
+import { DEFAULT_MESSAGES } from "./shared.js"
+import { ReadStream, WriteStream } from "./structs/stream.js"
 
 export type CommandValidator = <T>(
   world: j.World,
@@ -21,7 +21,7 @@ export type CommandValidator = <T>(
 ) => boolean
 export let CommandValidator = j.resource<CommandValidator>()
 
-let AwarenessState = j.value<AwarenessState>()
+let AwarenessState = j.value<JnAwarenessState>()
 let InitializedClient = j.type(Client, AwarenessState)
 
 let readStream = new ReadStream(new Uint8Array())

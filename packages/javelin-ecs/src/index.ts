@@ -1,15 +1,12 @@
-export {DefaultGroup as Group, makeApp as app} from "./app.js"
-export type {App, Constrain, Plugin} from "./app.js"
-export {isCommand, makeCommand as command} from "./command.js"
-export type {Command} from "./command.js"
-export {getSchema, _dynamic, _keys} from "./component.js"
+export { DefaultGroup as Group, makeApp as app } from "./app.js"
+export type { App, Constrain, Plugin } from "./app.js"
+export { Commands, isCommand, makeCommand as command } from "./command.js"
+export type { Command } from "./command.js"
+export { getSchema, _dynamic, _keys } from "./component.js"
 export type {
-  Component,
-  ValueInit as ComponentInitValue,
-  Value as ComponentValue,
-  Tag,
+  Component, Tag, Value as ComponentValue, ValueInit as ComponentInitValue
 } from "./component.js"
-export type {Entity} from "./entity.js"
+export type { Entity } from "./entity.js"
 export {
   advanceFixedGroupTimeSystem as advanceFixedTimeSystem,
   advanceFixedTimestepSystem,
@@ -17,20 +14,20 @@ export {
   FixedStep as FixedTick,
   FixedTime,
   FixedTimestepConfig,
-  FixedTimestepTargetTime,
+  FixedTimestepTargetTime
 } from "./fixed_timestep_plugin.js"
-export {Node} from "./graph.js"
-export {Monitor} from "./monitor.js"
-export {makeResource as resource} from "./resource.js"
+export { Node } from "./graph.js"
+export { Monitor } from "./monitor.js"
+export { makeResource as resource } from "./resource.js"
 export {
   makeConstraintsWithAfter as after,
-  makeConstraintsWithBefore as before,
+  makeConstraintsWithBefore as before
 } from "./schedule.js"
-export type {Constraints, Predicate} from "./schedule.js"
-export type {Format, Schema, Struct} from "./schema.js"
-export type {SystemImpl as System} from "./system.js"
-export {advanceTickSystem, Tick} from "./tick_plugin.js"
-export {advanceTimeSystem, Time} from "./time_plugin.js"
+export type { Constraints, Predicate } from "./schedule.js"
+export type { Format, Schema, Struct } from "./schema.js"
+export type { SystemImpl as System } from "./system.js"
+export { advanceTickSystem, Tick } from "./tick_plugin.js"
+export { advanceTimeSystem, Time } from "./time_plugin.js"
 export {
   ChildOf,
   isRelation,
@@ -43,9 +40,9 @@ export {
   NormalizedType,
   normalizeQueryTerms,
   Not,
-  Type,
+  Type
 } from "./type.js"
-export type {QueryTerm, QueryTerms, Relation, Singleton} from "./type.js"
+export type { QueryTerm, QueryTerms, Relation, Singleton } from "./type.js"
 export {
   Phase,
   World,
@@ -54,6 +51,6 @@ export {
   _getComponentStore,
   _hasComponent,
   _qualifyEntity,
-  _reserveEntity,
+  _reserveEntity
 } from "./world.js"
-export {Commands} from "./command.js"
+
