@@ -1,17 +1,16 @@
 import * as j from "@javelin/ecs"
 import {exists, expect, Maybe} from "@javelin/lib"
-import {clientPredictionPlugin} from "./client_prediction.js"
 import {
   ClockSync,
   ClockSyncRequestInterval,
   ClockSyncRequestTime,
-  ServerTime,
   ServerWorld,
 } from "./client_resources.js"
 import {ClockSyncImpl, clockSyncMessage} from "./clock_sync.js"
 import {commandMessage} from "./commands.js"
 import {ClockSyncPayload, Transport} from "./components.js"
 import {Model, NormalizedModel, normalizeModel} from "./model.js"
+import {clientPredictionPlugin} from "./prediction.js"
 import {makeProtocol} from "./protocol.js"
 import {Protocol} from "./resources.js"
 import {DEFAULT_MESSAGES} from "./shared.js"
@@ -49,7 +48,6 @@ let controlFixedTimestepSystem = (world: j.World) => {
   let serverOffset = world.getResource(ClockSync).getMeanOffset()
   if (serverOffset < Infinity) {
     let serverTime = time.currentTime + serverOffset + 0.3
-    world.setResource(ServerTime, serverTime)
     world.setResource(j.FixedTimestepTargetTime, serverTime)
   }
 }

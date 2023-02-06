@@ -77,13 +77,13 @@ let sendServerMessagesSystem = (world: j.World) => {
         interest.step(world, client, awareness.subjects)
         if (eligibleForSend(interest, time.currentTime)) {
           enocdeSnapshotInterest(writeStreamUnreliable, interest)
-          if (writeStreamUnreliable.offset > 0) {
-            let interestMessage = writeStreamUnreliable.bytes()
-            transport.push(interestMessage, false)
-            writeStreamUnreliable.reset()
-          }
           interest.lastSendTime = time.currentTime
         }
+      }
+      if (writeStreamUnreliable.offset > 0) {
+        let snapshotInterestMessage = writeStreamUnreliable.bytes()
+        transport.push(snapshotInterestMessage, false)
+        writeStreamUnreliable.reset()
       }
     })
 }

@@ -86,11 +86,9 @@ export let makeAwareness = (
     if (term instanceof PresenceImpl) {
       presences.push(term)
     } else if (term instanceof InterestImpl) {
-      if (term instanceof SnapshotInterestImpl) {
-        snapshotInterests.push(term)
-      } else {
-        interests.push(term)
-      }
+      interests.push(term)
+    } else if (term instanceof SnapshotInterestImpl) {
+      snapshotInterests.push(term)
     }
   }
   return new AwarenessImpl(presences, interests, snapshotInterests)

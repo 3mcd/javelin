@@ -14,7 +14,7 @@ type TimestampBufferIteratee<T> = (value: T, timestamp: Timestamp) => void
 
 const DELETE_OP = {delete: true}
 
-export class TimestampBuffer<T> {
+export class TimestampBuffer<T = unknown> {
   #map
   #timestamp
 
@@ -104,5 +104,17 @@ export class TimestampBuffer<T> {
 
   get length(): number {
     return this.#map.length
+  }
+
+  get timestamp() {
+    return this.#timestamp
+  }
+
+  get maxTimestamp() {
+    return this.#map.maxKey()
+  }
+
+  get minTimestamp() {
+    return this.#map.minKey()
   }
 }
