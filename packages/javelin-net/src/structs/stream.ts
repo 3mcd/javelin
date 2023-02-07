@@ -20,6 +20,11 @@ export class ReadStream {
     return this.#offset
   }
 
+  set offset(offset: number) {
+    this.#offset = offset
+    this.#checkBounds()
+  }
+
   into(length = this.#length) {
     let next = new ReadStream(
       this.#buffer.u8.subarray(this.#offset, this.#offset + length),

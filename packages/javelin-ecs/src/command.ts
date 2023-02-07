@@ -22,7 +22,7 @@ export let isCommand = (commandType: Singleton): boolean => {
   return exists(commands[commandComponent])
 }
 
-type Commands = {
+export type Commands = {
   dispatch(commandType: Singleton, command: unknown): void
   of<T>(commandType: Singleton<T>): Value<T>[]
 }

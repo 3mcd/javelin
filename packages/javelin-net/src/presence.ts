@@ -1,9 +1,11 @@
 import * as j from "@javelin/ecs"
+import {_commitStagedChanges, _emitStagedChanges} from "@javelin/ecs"
 import {ServerWorld} from "./client_resources.js"
 import {MTU_SIZE} from "./const.js"
 import {EntityEncoder} from "./encode.js"
 import {SubjectPrioritizer} from "./interest.js"
 import {NormalizedModel} from "./model.js"
+import {CorrectedWorld} from "./prediction_resources.js"
 import {makeMessage} from "./protocol.js"
 import {Sendable} from "./sendable.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
@@ -68,9 +70,19 @@ export let presenceMessage = makeMessage({
     // (3)
     let subjectCount = stream.readU16()
     // (4)
+    let o = stream.offset
     for (let i = 0; i < subjectCount; i++) {
       subjectEncoder.decodeEntityPresence(stream)
     }
+    // ??
+    let cw = world.getResource(CorrectedWorld)
+    let se = EntityEncoder.getEntityEncoder(cw, subjectType)
+    stream.offset = o
+    for (let i = 0; i < subjectCount; i++) {
+      se.decodeEntityPresence(stream)
+    }
+    cw[_emitStagedChanges]()
+    cw[_commitStagedChanges]()
   },
 })
 

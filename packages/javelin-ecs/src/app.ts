@@ -1,7 +1,7 @@
 import {assert, expect, Maybe} from "@javelin/lib"
 import {commandPlugin} from "./command.js"
 import {fixedTimestepPlugin} from "./fixed_timestep_plugin.js"
-import {Resource} from "./resource.js"
+import {makeResource, Resource} from "./resource.js"
 import {
   Constraints,
   makeConstraintsWithAfter,
@@ -31,33 +31,38 @@ export enum DefaultGroup {
   /**
    * Executed once, at the beginning of an app's first step.
    */
-  Init = "Init",
+  Init = "init",
   /**
    * Executed at the beginning of each step.
    */
-  Early = "Early",
+  Early = "early",
   /**
    * Executed immediately before the update phase.
    */
-  EarlyUpdate = "EarlyUpdate",
+  EarlyUpdate = "early_update",
   /**
    * The main update phase. Systems are added to this group by default.
    */
-  Update = "Update",
+  Update = "update",
   /**
    * Executed immediately after the update group.
    */
-  LateUpdate = "LateUpdate",
+  LateUpdate = "late_update",
   /**
    * Executed at the end of each step.
    */
-  Late = "Late",
+  Late = "late",
 }
 
 /**
  * @private
  */
 export const _systemGroups = Symbol()
+
+/**
+ * @private
+ */
+export let SystemGroups = makeResource<Map<string, SystemGroup>>()
 
 let defaultGroupsPlugin = (app: App) => {
   let initGroupEnabled = true
@@ -117,6 +122,7 @@ export class App {
       .use(tickPlugin)
       .use(timePlugin)
       .use(fixedTimestepPlugin)
+      .addResource(SystemGroups, this.#systemGroupsById)
   }
 
   #updateSystemGroupSchedule() {
@@ -152,7 +158,7 @@ export class App {
 
   addSystemGroup(
     systemGroupId: string,
-    constraints: Maybe<Constraints<string>>,
+    constraints?: Maybe<Constraints<string>>,
     predicate?: Maybe<Predicate>,
   ) {
     expect(!this.#systemGroupsById.has(systemGroupId))
@@ -218,7 +224,7 @@ export class App {
             // The `CurrentSystem` resource is used by the world to attach new
             // queries and monitors to their originating systems.
             this.world.setResource(CurrentSystem, system)
-            system.systemImpl(world)
+            system.run(world)
             // Clear each of the system's monitors after the system is
             // complete.
             let monitors = system.monitors.values()

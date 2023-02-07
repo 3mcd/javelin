@@ -73,11 +73,11 @@ let sendServerMessagesSystem = (world: j.World) => {
         }
       }
       for (let i = 0; i < awareness.snapshotInterests.length; i++) {
-        let interest = awareness.snapshotInterests[i]
-        interest.step(world, client, awareness.subjects)
-        if (eligibleForSend(interest, time.currentTime)) {
-          enocdeSnapshotInterest(writeStreamUnreliable, interest)
-          interest.lastSendTime = time.currentTime
+        let snapshotInterest = awareness.snapshotInterests[i]
+        snapshotInterest.step(world, client, awareness.subjects)
+        if (eligibleForSend(snapshotInterest, time.currentTime)) {
+          enocdeSnapshotInterest(writeStreamUnreliable, snapshotInterest)
+          snapshotInterest.lastSendTime = time.currentTime
         }
       }
       if (writeStreamUnreliable.offset > 0) {

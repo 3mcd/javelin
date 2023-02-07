@@ -11,6 +11,24 @@
       .entity:nth-child(2n) {
         background-color: #ddd;
       }
+      .entity.corrected {
+        background-color: #C4A7E7;
+      }
+      .entity.blended {
+        background-color: #F6C177;
+      }
+      .entity.corrected:after {
+        color: #191724;
+        content: ' (corrected)';
+        font-style: italic;
+        float: right;
+      }
+      .entity.blended:after {
+        color: #191724;
+        content: ' (blended)';
+        font-style: italic;
+        float: right;
+      }
     </style>
   </head>
   <body>

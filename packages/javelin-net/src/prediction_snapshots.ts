@@ -1,5 +1,5 @@
 import * as j from "@javelin/ecs"
-import {exists, SparseSet} from "@javelin/lib"
+import {exists, expect, SparseSet} from "@javelin/lib"
 import {decodeSnapshot} from "./snapshot.js"
 import {ReadStream} from "./structs/stream.js"
 import {makeTimestamp, Timestamp} from "./timestamp.js"
@@ -59,7 +59,10 @@ export class PredictionSnapshotsImpl {
   }
 
   apply(world: j.World) {
-    let timestamp = this.snapshots.maxTimestamp ?? makeTimestamp()
+    if (this.snapshots.length === 0) {
+      return
+    }
+    let timestamp = expect(this.snapshots.maxTimestamp)
     let checkpoint = this.checkpoints.at(timestamp)
     this.checkpoints.drainTo(timestamp, checkpoint => {
       this.checkpointPool.push(checkpoint)
@@ -80,7 +83,7 @@ export class PredictionSnapshotsImpl {
         }
       }
     }
-    this.snapshots.drainTo(timestamp, snapshot => {
+    this.snapshots.drainAll(snapshot => {
       decodeSnapshot(world, snapshot, this.type)
     })
     return timestamp

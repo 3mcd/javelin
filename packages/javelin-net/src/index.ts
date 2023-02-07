@@ -16,3 +16,5 @@ export {
   makeWriteStream as writeStream,
 } from "./structs/stream.js"
 export * from "./client_resources.js"
+export {PredictionGroup} from "./prediction.js"
+export {CorrectedWorld, PredictionRenderWorld} from "./prediction_resources.js"

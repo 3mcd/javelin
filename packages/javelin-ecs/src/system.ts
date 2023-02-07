@@ -10,14 +10,14 @@ export class System {
   readonly isEnabled: (world: World) => boolean
   readonly monitors
   readonly queries
-  readonly systemImpl
+  readonly run
 
-  constructor(systemImpl: SystemImpl, predicate?: Maybe<Predicate>) {
+  constructor(run: SystemImpl, predicate?: Maybe<Predicate>) {
     this.isEnabled = predicate
       ? (world: World) => Boolean(predicate(world))
       : () => true
     this.monitors = new SparseSet<Monitor>()
     this.queries = new SparseSet<Query>()
-    this.systemImpl = systemImpl
+    this.run = run
   }
 }

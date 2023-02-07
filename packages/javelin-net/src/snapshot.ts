@@ -4,7 +4,7 @@ import {MTU_SIZE} from "./const.js"
 import {EntityEncoder} from "./encode.js"
 import {SubjectPrioritizer} from "./interest.js"
 import {NormalizedModel} from "./model.js"
-import {ServerSnapshots} from "./prediction_resources.js"
+import {PredictionStage} from "./prediction_resources.js"
 import {PredictionSnapshotsImpl} from "./prediction_snapshots.js"
 import {makeMessage} from "./protocol.js"
 import {Sendable} from "./sendable.js"
@@ -51,7 +51,7 @@ export let snapshotMessage = makeMessage({
     stream.writeU16At(subjectCount, subjectCountOffset)
   },
   decode(stream, world, _, length) {
-    let snapshots = world.getResource(ServerSnapshots)
+    let snapshots = world.getResource(PredictionStage)
     let {isoComponentsToLocal} = world.getResource(NormalizedModel)
     let snapshotTimestamp = stream.readI16() as Timestamp
     let subjectComponentsLength = stream.readU8()
@@ -160,4 +160,4 @@ export let makeSnapshotInterest = (
   subjectType: j.Type,
   subjectPrioritizer: SubjectPrioritizer = () => 1,
 ): SnapshotInterest =>
-  new SnapshotInterestImpl(subjectType, subjectPrioritizer, 1 / 20)
+  new SnapshotInterestImpl(subjectType, subjectPrioritizer, 1)

@@ -17,11 +17,11 @@ export let defaultFixedTimestepConfig: FixedTimestepImplConfig = {
 }
 
 export enum FixedGroup {
-  Early = "FixedEarly",
-  EarlyUpdate = "FixedEarlyUpdate",
-  Update = "FixedUpdate",
-  LateUpdate = "FixedLateUpdate",
-  Late = "FixedLate",
+  Early = "fixed_early",
+  EarlyUpdate = "fixed_early_update",
+  Update = "fixed_update",
+  LateUpdate = "fixed_late_update",
+  Late = "fixed_late",
 }
 
 export type FixedTimestepConfig = Partial<FixedTimestepImplConfig>

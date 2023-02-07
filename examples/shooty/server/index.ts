@@ -4,7 +4,7 @@ import {createServer} from "http"
 import {WebSocketServer} from "ws"
 import {identityMessage} from "../shared/identity.js"
 import {Input, model, Position, Velocity} from "../shared/model.js"
-import {playerPlugin} from "./player.js"
+import {movePlayerSystem} from "./player.js"
 
 let http = createServer()
 let wss = new WebSocketServer({server: http})
@@ -46,7 +46,7 @@ let app = j
       world.add(client, Owns(clientActor))
     })
   })
-  .use(playerPlugin)
+  .addSystem(movePlayerSystem)
   .use(jn.serverPlugin)
   .use(app => {
     let protocol = app.getResource(jn.Protocol)!

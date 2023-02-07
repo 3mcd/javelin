@@ -1,5 +1,6 @@
 import * as j from "@javelin/ecs"
 import * as jn from "@javelin/net"
+import {movePlayerSystem} from "../../server/player.js"
 import {Identity, identityMessage} from "../../shared/identity.js"
 import {Input, model, Position, Vector2} from "../../shared/model.js"
 
@@ -33,9 +34,15 @@ let app = j
     world => world.tryGetResource(Identity) !== undefined,
   )
   .addSystem(world => {
-    let remote = world.getResource(jn.ServerWorld)
-    remote.query(Position).each((entity, pos) => {
-      renderEntity(entity, pos)
+    let serverWorld = world.getResource(jn.ServerWorld)
+    serverWorld.query(Position).each((entity, pos) => {
+      renderEntity(entity, pos.x, pos.y, "normal")
+    })
+  })
+  .addSystem(world => {
+    let correctedWorld = world.getResource(jn.CorrectedWorld)
+    correctedWorld.query(Position).each((entity, pos) => {
+      renderEntity(entity, pos.x, pos.y, "corrected")
     })
   })
   .use(jn.clientPlugin)
@@ -43,6 +50,23 @@ let app = j
     let protocol = app.getResource(jn.Protocol)!
     protocol.register(identityMessage, 99)
   })
+  .addSystemToGroup(jn.PredictionGroup.Update, movePlayerSystem)
+  .addSystemToGroup(jn.PredictionGroup.Render, world => {
+    let alpha = world.getResource(jn.PredictionBlendProgress)
+    let a = world.getResource(jn.ServerWorld)
+    let b = world.getResource(jn.PredictionRenderWorld)
+    a.query(Position).each((entity, pos) => {
+      let correctedPos = b.get(entity, Position)!
+      renderEntity(
+        entity,
+        lerp(pos.x, correctedPos.x, alpha),
+        lerp(pos.y, correctedPos.y, alpha),
+        "blended",
+      )
+    })
+  })
+
+let lerp = (x: number, y: number, a: number) => x * (1 - a) + y * a
 
 let loop = () => {
   app.step()
@@ -51,14 +75,33 @@ let loop = () => {
 
 loop()
 
-let entityNodes = [] as HTMLDivElement[]
-let renderEntity = (entity: j.Entity, pos: Vector2) => {
-  let entityNode = entityNodes[entity]
+type Mode = "normal" | "corrected" | "blended"
+
+let entityNodes = {} as Record<string, HTMLDivElement>
+let renderEntity = (entity: j.Entity, x: number, y: number, mode: Mode) => {
+  let entityId = entity + mode
+  let entityNode = entityNodes[entityId]
   if (entityNode === undefined) {
     entityNode = document.createElement("div")
-    entityNode.classList.add("entity")
-    entityNodes[entity] = entityNode
+    entityNode.classList.add("entity", mode)
+    entityNodes[entityId] = entityNode
     document.body.appendChild(entityNode)
+    ;[...document.body.children]
+      .sort((a, b) => {
+        let res = +a.textContent![0] - +b.textContent![0]
+        if (res === 0) {
+          res =
+            +a.classList.contains("blended") - +b.classList.contains("blended")
+        }
+        if (res === 0) {
+          res =
+            +a.classList.contains("corrected") -
+            +b.classList.contains("corrected")
+        }
+
+        return res
+      })
+      .forEach(node => document.body.appendChild(node))
   }
-  entityNode.textContent = `${entity}: ${pos.x.toFixed(2)},${pos.y.toFixed(2)}`
+  entityNode.textContent = `${entity}: ${x.toFixed(2)},${y.toFixed(2)}`
 }
