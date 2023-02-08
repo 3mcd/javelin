@@ -1,11 +1,13 @@
 import * as j from "@javelin/ecs"
 import {exists, SparseSet} from "@javelin/lib"
-import type {Protocol as _Protocol} from "./protocol.js"
+import type {NetworkProtocol as _NetworkProtocol} from "./protocol.js"
+import {Timestamp} from "./timestamp.js"
 import {TimestampBuffer} from "./timestamp_buffer.js"
 
-export let Protocol = j.resource<_Protocol>()
+export let NetworkProtocol = j.resource<_NetworkProtocol>()
 
 export let CommandStage = j.resource<SparseSet<TimestampBuffer>>()
+export let LastCompletedTimestamp = j.resource<Timestamp>()
 
 export let ensureCommandBuffer = (
   commandStage: SparseSet<TimestampBuffer>,

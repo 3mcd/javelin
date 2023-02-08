@@ -90,7 +90,7 @@ let acquireEnemyTarget = (
 }
 
 let spawnEnemiesSystem = (world: j.World) => {
-  let tick = world.getResource(j.FixedTick)
+  let tick = world.getResource(j.FixedStep)
   let enemySpawnCount = Math.ceil(tick / ENEMY_SPAWN_FACTOR)
   world
     .query(Player)
@@ -167,7 +167,7 @@ export let enemyPlugin = (app: j.App) =>
       j.FixedGroup.EarlyUpdate,
       spawnEnemiesSystem,
       null,
-      world => world.getResource(j.FixedTick) % ENEMY_SPAWN_FREQUENCY === 0,
+      world => world.getResource(j.FixedStep) % ENEMY_SPAWN_FREQUENCY === 0,
     )
     .addSystemToGroup(j.FixedGroup.Update, acquireEnemyTargetsSystem)
     .addSystemToGroup(

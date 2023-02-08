@@ -10,7 +10,7 @@ import {makeMessage} from "./protocol.js"
 import {Sendable} from "./sendable.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
 import {ReadStream} from "./structs/stream.js"
-import {makeTimestampFromTime, Timestamp} from "./timestamp.js"
+import {Timestamp} from "./timestamp.js"
 
 let subjectComponents: j.Component[] = []
 
@@ -164,4 +164,4 @@ export let makeSnapshotInterest = (
   subjectType: j.Type,
   subjectPrioritizer: SubjectPrioritizer = () => 1,
 ): SnapshotInterest =>
-  new SnapshotInterestImpl(subjectType, subjectPrioritizer, 1)
+  new SnapshotInterestImpl(subjectType, subjectPrioritizer, 1 / 20)

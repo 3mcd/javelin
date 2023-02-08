@@ -11,14 +11,19 @@ import {
   NormalizedNetworkModel,
   normalizeNetworkModel,
 } from "./model.js"
-import {LastCompletedTimestamp} from "./prediction.js"
 import {presenceMessage} from "./presence.js"
-import {CommandStage, Protocol} from "./resources.js"
+import {
+  CommandStage,
+  ensureCommandBuffer,
+  NetworkProtocol,
+} from "./resources.js"
 import {eligibleForSend} from "./sendable.js"
 import {makeDefaultProtocol} from "./shared.js"
 import {snapshotMessage} from "./snapshot.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
-import {makeTimestamp, makeTimestampFromTime, Timestamp} from "./timestamp.js"
+import {makeTimestamp, Timestamp} from "./timestamp.js"
+import {TimestampBuffer} from "./timestamp_buffer.js"
+import {Transport as _Transport} from "./transport.js"
 
 export type CommandValidator = <T>(
   world: j.World,
@@ -27,6 +32,8 @@ export type CommandValidator = <T>(
   command: j.ComponentValue<T>,
 ) => boolean
 export let CommandValidator = j.resource<CommandValidator>()
+let ValidatedCommandStage =
+  j.resource<SparseSet<TimestampBuffer<AddressedCommand>>>()
 
 let AwarenessState = j.value<_AwarenessState>()
 let InitializedClient = j.type(Client, AwarenessState)
@@ -34,6 +41,14 @@ let InitializedClient = j.type(Client, AwarenessState)
 let readStream = new ReadStream(new Uint8Array())
 let writeStreamReliable = new WriteStream()
 let writeStreamUnreliable = new WriteStream()
+
+let sendAndReset = (stream: WriteStream, transport: _Transport) => {
+  if (stream.offset > 0) {
+    let message = stream.bytes()
+    transport.push(message, true)
+    stream.reset()
+  }
+}
 
 let controlFixedTimestepSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
@@ -48,7 +63,7 @@ let initClientAwarenessesSystem = (world: j.World) => {
 }
 
 let processClientMessagesSystem = (world: j.World) => {
-  let protocol = world.getResource(Protocol)
+  let protocol = world.getResource(NetworkProtocol)
   world
     .query(InitializedClient)
     .as(Transport)
@@ -63,7 +78,7 @@ let processClientMessagesSystem = (world: j.World) => {
 
 let processClientClockSyncRequestsSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
-  let protocol = world.getResource(Protocol)
+  let protocol = world.getResource(NetworkProtocol)
   let encodeClockSync = protocol.encoder(clockSyncMessage)
   world
     .query(Client)
@@ -72,23 +87,16 @@ let processClientClockSyncRequestsSystem = (world: j.World) => {
       if (clockSyncPayload.clientTime > 0) {
         clockSyncPayload.serverTime = time.currentTime
         encodeClockSync(writeStreamReliable, clockSyncPayload)
-        let clockSyncMessage = writeStreamReliable.bytes()
-        transport.push(clockSyncMessage, true)
-        writeStreamReliable.reset()
+        sendAndReset(writeStreamReliable, transport)
         clockSyncPayload.clientTime = 0
       }
     })
 }
 
 let dispatchClientCommandsSystem = (world: j.World) => {
-  // let timestamp = makeTimestampFromTime(
-  //   world.getResource(j.FixedTime).currentTime,
-  //   1 / 60,
-  // )
-  let timestamp = makeTimestamp(world.getResource(j.FixedTick))
-  world.setResource(LastCompletedTimestamp, timestamp)
+  let timestamp = makeTimestamp(world.getResource(j.FixedStep))
   let commands = world.getResource(j.Commands)
-  let commandStage = world.getResource(CommandStage)
+  let commandStage = world.getResource(ValidatedCommandStage)
   let commandBuffers = commandStage.values()
   let commandBufferTypeHashes = commandStage.keys()
   for (let i = 0; i < commandBuffers.length; i++) {
@@ -101,66 +109,71 @@ let dispatchClientCommandsSystem = (world: j.World) => {
   }
 }
 
-// Does j.FixedTick correspond to the last completed timestamp?
-
-let sendServerMessagesSystem = (world: j.World) => {
+let sendPresenceMessages = (world: j.World) => {
   let time = world.getResource(j.FixedTime)
-  let timestamp = world.getResource(LastCompletedTimestamp)
-  let protocol = world.getResource(Protocol)
+  let protocol = world.getResource(NetworkProtocol)
   let encodePresence = protocol.encoder(presenceMessage)
-  let encodeInterest = protocol.encoder(interestMessage)
-  let enocdeSnapshotInterest = protocol.encoder(snapshotMessage)
-  if (!timestamp) {
-    return
-  }
   world
     .query(InitializedClient)
     .as(Transport, AwarenessState)
-    .each(function sendServerMessages(client, transport, awareness) {
+    .each(function sendPresenceMessage(client, transport, awareness) {
       for (let i = 0; i < awareness.presences.length; i++) {
         let presence = awareness.presences[i]
         presence.step(world, client, awareness.subjects, writeStreamReliable)
         if (eligibleForSend(presence, time.currentTime)) {
           encodePresence(writeStreamReliable, presence)
-          if (writeStreamReliable.offset > 0) {
-            let presenceMessage = writeStreamReliable.bytes()
-            transport.push(presenceMessage, true)
-            writeStreamReliable.reset()
-          }
+          sendAndReset(writeStreamReliable, transport)
           presence.lastSendTime = time.currentTime
         }
       }
+    })
+}
+
+export let sendInterestMessages = (world: j.World) => {
+  let time = world.getResource(j.FixedTime)
+  let protocol = world.getResource(NetworkProtocol)
+  let encodeInterest = protocol.encoder(interestMessage)
+  world
+    .query(InitializedClient)
+    .as(Transport, AwarenessState)
+    .each(function sendInterestMessage(client, transport, awareness) {
       for (let i = 0; i < awareness.interests.length; i++) {
         let interest = awareness.interests[i]
         interest.step(world, client, awareness.subjects)
         if (eligibleForSend(interest, time.currentTime)) {
           encodeInterest(writeStreamReliable, interest)
-          if (writeStreamReliable.offset > 0) {
-            let interestMessage = writeStreamReliable.bytes()
-            transport.push(interestMessage, true)
-            writeStreamReliable.reset()
-          }
+          sendAndReset(writeStreamReliable, transport)
           interest.lastSendTime = time.currentTime
         }
       }
+    })
+}
+
+let sendSnapshotMessages = (world: j.World) => {
+  let time = world.getResource(j.FixedTime)
+  let timestamp = makeTimestamp(world.getResource(j.FixedStep))
+  let protocol = world.getResource(NetworkProtocol)
+  let encodeSnapshot = protocol.encoder(snapshotMessage)
+  world
+    .query(InitializedClient)
+    .as(Transport, AwarenessState)
+    .each(function sendSnapshotMessage(client, transport, awareness) {
       for (let i = 0; i < awareness.snapshotInterests.length; i++) {
         let snapshotInterest = awareness.snapshotInterests[i]
         snapshotInterest.step(world, client, awareness.subjects)
         if (eligibleForSend(snapshotInterest, time.currentTime)) {
-          enocdeSnapshotInterest(
-            writeStreamUnreliable,
-            snapshotInterest,
-            timestamp,
-          )
+          encodeSnapshot(writeStreamUnreliable, snapshotInterest, timestamp)
+          sendAndReset(writeStreamUnreliable, transport)
           snapshotInterest.lastSendTime = time.currentTime
         }
       }
-      if (writeStreamUnreliable.offset > 0) {
-        let snapshotInterestMessage = writeStreamUnreliable.bytes()
-        transport.push(snapshotInterestMessage, false)
-        writeStreamUnreliable.reset()
-      }
     })
+}
+
+let sendServerMessagesSystem = (world: j.World) => {
+  sendPresenceMessages(world)
+  sendInterestMessages(world)
+  sendSnapshotMessages(world)
 }
 
 let broadcastValidatedCommand = (
@@ -169,64 +182,63 @@ let broadcastValidatedCommand = (
   commandType: Singleton,
   commandTimestamp: Timestamp,
 ) => {
-  let protocol = world.getResource(Protocol)
+  let protocol = world.getResource(NetworkProtocol)
   let encodeCommand = protocol.encoder(commandMessage)
   world
     .query(InitializedClient)
     .as(Transport)
     .each((nextClient, nextClientTransport) => {
-      if (nextClient !== command.origin) {
+      if (nextClient !== command.source) {
         encodeCommand(
           writeStreamReliable,
           commandType,
           command,
           commandTimestamp,
         )
-        nextClientTransport.push(writeStreamReliable.bytes(), true)
-        writeStreamReliable.reset()
+        sendAndReset(writeStreamReliable, nextClientTransport)
       }
     })
 }
 
 let processClientCommandsSystem = (world: j.World) => {
   let commandStage = world.getResource(CommandStage)
-  let commandBuffers = commandStage.values()
+  let commandBuffers =
+    commandStage.values() as TimestampBuffer<AddressedCommand>[]
   let commandBufferTypeHashes = commandStage.keys()
   let commandValidator = world.getResource(CommandValidator)
+  let validatedCommandStage = world.getResource(ValidatedCommandStage)
   for (let i = 0; i < commandBuffers.length; i++) {
     let commandBuffer = commandBuffers[i]
     let commandBufferTypeHash = commandBufferTypeHashes[i]
     let commandBufferType = Type.cache[commandBufferTypeHash]
-    commandBuffer.forEachBuffer((commands, commandTimestamp) => {
-      for (let i = commands.length - 1; i >= 0; i--) {
-        let command = commands[i] as AddressedCommand
-        if (
-          commandValidator(world, command.origin, commandBufferType, command)
-        ) {
-          broadcastValidatedCommand(
-            world,
-            command,
-            commandBufferType,
-            commandTimestamp,
-          )
-        } else {
-          commands.splice(i, 1)
-        }
+    commandBuffer.drainAll((command, commandTimestamp) => {
+      if (commandValidator(world, command.source, commandBufferType, command)) {
+        broadcastValidatedCommand(
+          world,
+          command,
+          commandBufferType,
+          commandTimestamp,
+        )
+        ensureCommandBuffer(validatedCommandStage, commandBufferType).insert(
+          command,
+          commandTimestamp,
+        )
       }
     })
   }
 }
 
 export let serverPlugin = (app: j.App) => {
-  if (!app.hasResource(Protocol)) {
+  if (!app.hasResource(NetworkProtocol)) {
     let protocol = makeDefaultProtocol(app.world)
-    app.addResource(Protocol, protocol)
+    app.addResource(NetworkProtocol, protocol)
   }
   if (!app.hasResource(CommandValidator)) {
     app.addResource(CommandValidator, () => true)
   }
   app
     .addResource(CommandStage, new SparseSet())
+    .addResource(ValidatedCommandStage, new SparseSet())
     .addResource(
       NormalizedNetworkModel,
       normalizeNetworkModel(expect(app.getResource(NetworkModel))),
@@ -234,24 +246,16 @@ export let serverPlugin = (app: j.App) => {
     .addSystemToGroup(
       j.Group.Early,
       controlFixedTimestepSystem,
-      j.after(advanceTimeSystem).before(j.advanceFixedTimestepSystem),
+      j.after(advanceTimeSystem).before(j.controlFixedTimestepSystem),
     )
+    .addSystemToGroup(j.FixedGroup.Early, processClientMessagesSystem)
     .addSystemToGroup(
-      j.Group.Early,
-      processClientMessagesSystem,
-      j.after(controlFixedTimestepSystem),
-    )
-    .addSystemToGroup(j.Group.Early, processClientClockSyncRequestsSystem)
-    .addSystemToGroup(
-      j.Group.Early,
-      processClientCommandsSystem,
+      j.FixedGroup.Early,
+      processClientClockSyncRequestsSystem,
       j.after(processClientMessagesSystem),
     )
-    .addSystemToGroup(
-      j.Group.Early,
-      dispatchClientCommandsSystem,
-      j.after(processClientCommandsSystem),
-    )
-    .addSystemToGroup(j.Group.Late, initClientAwarenessesSystem)
-    .addSystemToGroup(j.Group.Late, sendServerMessagesSystem)
+    .addSystemToGroup(j.FixedGroup.Early, processClientCommandsSystem)
+    .addSystemToGroup(j.FixedGroup.Update, dispatchClientCommandsSystem)
+    .addSystemToGroup(j.FixedGroup.Late, initClientAwarenessesSystem)
+    .addSystemToGroup(j.FixedGroup.Late, sendServerMessagesSystem)
 }

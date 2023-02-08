@@ -1,5 +1,5 @@
 import {expect, test} from "vitest"
-import {FixedTimestepImpl, TerminationCondition} from "./fixed_timestep"
+import {FixedTimestepper, TerminationCondition} from "./fixed_timestepper"
 
 type CartesianProduct<T> = {
   [K in keyof T]: T[K] extends (infer _)[] ? _ : never
@@ -19,7 +19,7 @@ function testTermination(
   terminationCondition: TerminationCondition,
   frames = 1,
 ) {
-  let timestep = new FixedTimestepImpl({
+  let timestep = new FixedTimestepper({
     timeStep: TIME_STEP,
     maxUpdateDelta: 0.25,
     maxDrift: 1 / 60,
@@ -77,7 +77,7 @@ let defaultConfig = {
 }
 
 let update = (
-  timestep: FixedTimestepImpl,
+  timestep: FixedTimestepper,
   frames: number,
   time: number,
   drift: number,
@@ -101,7 +101,7 @@ test("ignores drift when timestep drifts within the frame", () => {
     interestingTimes,
     interestingFramesPerUpdate,
   )) {
-    let timestep = new FixedTimestepImpl(defaultConfig)
+    let timestep = new FixedTimestepper(defaultConfig)
     timestep.reset(time)
     expect(timestep.measureDrift(time)).toBeCloseTo(0)
     expect(timestep.measureDrift(time - drift)).toBeCloseTo(drift)
@@ -119,7 +119,7 @@ test("corrects timestamp when timestep drifts beyond a frame", () => {
     interestingTimes,
     interestingFramesPerUpdate,
   )) {
-    let timestep = new FixedTimestepImpl(defaultConfig)
+    let timestep = new FixedTimestepper(defaultConfig)
     timestep.reset(time)
     expect(timestep.measureDrift(time)).toBeCloseTo(0)
     expect(timestep.measureDrift(time - drift)).toBeCloseTo(drift)
@@ -149,7 +149,7 @@ test("skips timestamps when drift is beyond threshold", () => {
   )) {
     let expectedStepCount =
       drift >= 0 ? 0 : Math.ceil(maxUpdateDelta / TIME_STEP) + 1
-    let timestep = new FixedTimestepImpl({
+    let timestep = new FixedTimestepper({
       timeStep: TIME_STEP,
       maxUpdateDelta,
       maxDrift: maxDrift,
@@ -166,7 +166,7 @@ test("skips timestamps when drift is beyond threshold", () => {
 
 test("should not drift while delta is changing", () => {
   for (let time of interestingTimes) {
-    let timestep = new FixedTimestepImpl(defaultConfig)
+    let timestep = new FixedTimestepper(defaultConfig)
     timestep.reset(time)
     expect(timestep.measureDrift(time)).toBeCloseTo(0)
     for (let frames of interestingFramesPerUpdate) {

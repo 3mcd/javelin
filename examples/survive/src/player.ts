@@ -89,5 +89,5 @@ export let playerPlugin = (app: j.App) =>
       j.FixedGroup.EarlyUpdate,
       playerWeaponsSystem,
       null,
-      (world: j.World) => world.getResource(j.FixedTick) % 100 === 0,
+      (world: j.World) => world.getResource(j.FixedStep) % 100 === 0,
     )

@@ -5,7 +5,7 @@ import {MTU_SIZE} from "./const.js"
 import {EntityEncoder} from "./encode.js"
 import {SubjectPrioritizer} from "./interest.js"
 import {NormalizedNetworkModel} from "./model.js"
-import {CorrectedWorld} from "./prediction_resources.js"
+import {CorrectedWorld, PredictedWorld} from "./prediction_resources.js"
 import {makeMessage} from "./protocol.js"
 import {Sendable} from "./sendable.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
@@ -53,7 +53,8 @@ export let presenceMessage = makeMessage({
     stream.writeU16At(subjectCount, subjectCountOffset)
   },
   decode(stream, world) {
-    let serverWorld = world.getResource(ServerWorld)
+    let predictedWorld = world.getResource(PredictedWorld)
+    let correctedWorld = world.getResource(CorrectedWorld)
     let {isoComponentsToLocal} = world.getResource(NormalizedNetworkModel)
     // (1)
     let subjectComponentsLength = stream.readU8()
@@ -63,26 +64,29 @@ export let presenceMessage = makeMessage({
       subjectComponents[i] = isoComponentsToLocal[stream.readU32()]
     }
     let subjectType = j.type.apply(null, subjectComponents)
-    let subjectEncoder = EntityEncoder.getEntityEncoder(
-      serverWorld,
+    let predictedWorldSubjectEncoder = EntityEncoder.getEntityEncoder(
+      predictedWorld,
+      subjectType,
+    )
+    let correctedWorldSubjectEncoder = EntityEncoder.getEntityEncoder(
+      correctedWorld,
       subjectType,
     )
     // (3)
     let subjectCount = stream.readU16()
     // (4)
-    let o = stream.offset
+    let offset = stream.offset
     for (let i = 0; i < subjectCount; i++) {
-      subjectEncoder.decodeEntityPresence(stream)
+      predictedWorldSubjectEncoder.decodeEntityPresence(stream)
     }
-    // ??
-    let cw = world.getResource(CorrectedWorld)
-    let se = EntityEncoder.getEntityEncoder(cw, subjectType)
-    stream.offset = o
+    stream.offset = offset
     for (let i = 0; i < subjectCount; i++) {
-      se.decodeEntityPresence(stream)
+      correctedWorldSubjectEncoder.decodeEntityPresence(stream)
     }
-    cw[_emitStagedChanges]()
-    cw[_commitStagedChanges]()
+    correctedWorld[_emitStagedChanges]()
+    correctedWorld[_commitStagedChanges]()
+    predictedWorld[_emitStagedChanges]()
+    predictedWorld[_commitStagedChanges]()
   },
 })
 

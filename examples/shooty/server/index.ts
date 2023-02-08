@@ -41,7 +41,7 @@ let app = j
     return false
   })
   .addSystemToGroup(j.FixedGroup.EarlyUpdate, world => {
-    let protocol = world.getResource(jn.Protocol)
+    let protocol = world.getResource(jn.NetworkProtocol)
     world.monitor(jn.Client).eachIncluded(client => {
       let clientTransport = world.get(client, jn.Transport)!
       let clientActor = world.create(Kinetic)
@@ -52,10 +52,13 @@ let app = j
       world.add(client, Owns(clientActor))
     })
   })
-  .addSystemToGroup(j.Group.Update, movePlayerSystem)
+  .addSystemToGroup(j.FixedGroup.Update, world => {
+    // @ts-ignore
+    movePlayerSystem(world, true)
+  })
   .use(jn.serverPlugin)
   .use(app => {
-    let protocol = app.getResource(jn.Protocol)!
+    let protocol = app.getResource(jn.NetworkProtocol)!
     protocol.register(identityMessage, 99)
   })
 

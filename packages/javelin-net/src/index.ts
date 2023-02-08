@@ -16,5 +16,5 @@ export {
   makeWriteStream as writeStream,
 } from "./structs/stream.js"
 export * from "./client_resources.js"
-export {PredictionGroup, LastCompletedTimestamp} from "./prediction.js"
+export {PredictionGroup} from "./prediction.js"
 export {CorrectedWorld, PredictedWorld} from "./prediction_resources.js"

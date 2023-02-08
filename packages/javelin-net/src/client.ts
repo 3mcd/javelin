@@ -16,7 +16,7 @@ import {
 } from "./model.js"
 import {clientPredictionPlugin} from "./prediction.js"
 import {makeProtocol} from "./protocol.js"
-import {Protocol} from "./resources.js"
+import {NetworkProtocol} from "./resources.js"
 import {DEFAULT_MESSAGES} from "./shared.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
 import {makeTimestampFromTime} from "./timestamp.js"
@@ -26,7 +26,7 @@ let readStream = new ReadStream(new Uint8Array())
 let noop = () => {}
 
 let processClientMessagesSystem = (world: j.World) => {
-  let protocol = world.getResource(Protocol)
+  let protocol = world.getResource(NetworkProtocol)
   world.query(Transport).each((client, transport) => {
     let message: Maybe<Uint8Array>
     while (exists((message = transport.pull()))) {
@@ -48,23 +48,14 @@ let processClockSyncResponsesSystem = (world: j.World) => {
   })
 }
 
-let controlFixedTimestepSystem = (world: j.World) => {
-  let time = world.getResource(j.Time)
-  let serverOffset = world.getResource(ClockSync).getMeanOffset()
-  if (serverOffset < Infinity) {
-    let serverTime = time.currentTime + serverOffset + 0.3
-    world.setResource(j.FixedTimestepTargetTime, serverTime)
-  }
-}
-
 let clockSyncPayload = {
   clientTime: 0,
   serverTime: 0,
 }
 
-let sendClientClockSyncRequestsSystem = (world: j.World) => {
+let sendClockSyncRequestsSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
-  let protocol = world.getResource(Protocol)
+  let protocol = world.getResource(NetworkProtocol)
   let encodeClockSync = protocol.encoder(clockSyncMessage)
   world.query(Transport).each((_, transport) => {
     clockSyncPayload.clientTime = time.currentTime
@@ -75,11 +66,20 @@ let sendClientClockSyncRequestsSystem = (world: j.World) => {
   world.setResource(ClockSyncRequestTime, time.currentTime)
 }
 
+let controlFixedTimestepSystem = (world: j.World) => {
+  let time = world.getResource(j.Time)
+  let serverOffset = world.getResource(ClockSync).getMeanOffset()
+  if (serverOffset < Infinity) {
+    let serverTime = time.currentTime + serverOffset + 0.3
+    world.setResource(j.FixedTimestepTargetTime, serverTime)
+  }
+}
+
 let sendClientCommandsSystem = (world: j.World) => {
   let time = world.getResource(j.FixedTime)
   let timestamp = makeTimestampFromTime(time.currentTime, 1 / 60)
   let model = world.getResource(NormalizedNetworkModel)
-  let protocol = world.getResource(Protocol)
+  let protocol = world.getResource(NetworkProtocol)
   let commands = world.getResource(j.Commands)
   let encodeCommand = protocol.encoder(commandMessage)
   world.query(Transport).each((_, transport) => {
@@ -133,9 +133,9 @@ let shouldRequestClockSync = (world: j.World) => {
 }
 
 export let clientPlugin = (app: j.App) => {
-  if (!app.hasResource(Protocol)) {
+  if (!app.hasResource(NetworkProtocol)) {
     let protocol = makeDefaultProtocol(app.world)
-    app.addResource(Protocol, protocol)
+    app.addResource(NetworkProtocol, protocol)
   }
   app
     .addResource(ClockSync, makeClockSync())
@@ -150,7 +150,7 @@ export let clientPlugin = (app: j.App) => {
     .addSystemToGroup(j.Group.Early, processClockSyncResponsesSystem)
     .addSystemToGroup(
       j.Group.Early,
-      sendClientClockSyncRequestsSystem,
+      sendClockSyncRequestsSystem,
       null,
       shouldRequestClockSync,
     )

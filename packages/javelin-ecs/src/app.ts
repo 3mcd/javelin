@@ -1,18 +1,18 @@
 import {assert, expect, Maybe} from "@javelin/lib"
 import {commandPlugin} from "./command.js"
-import {fixedTimestepPlugin} from "./fixed_timestep_plugin.js"
+import {fixedTimestepPlugin} from "./fixed_timestep.js"
 import {makeResource, Resource} from "./resource.js"
 import {
   Constraints,
-  makeConstraintsWithAfter,
-  makeConstraintsWithBefore,
+  makeConstraintsFromAfter,
+  makeConstraintsFromBefore,
   Predicate,
   Schedule,
   SystemGroup,
 } from "./schedule.js"
 import {SystemImpl} from "./system.js"
-import {tickPlugin} from "./tick_plugin.js"
-import {timePlugin} from "./time_plugin.js"
+import {stepPlugin} from "./step.js"
+import {timePlugin} from "./time.js"
 import {
   CurrentSystem,
   CurrentSystemGroup,
@@ -72,32 +72,32 @@ let defaultGroupsPlugin = (app: App) => {
   app
     .addSystemGroup(
       DefaultGroup.Init,
-      makeConstraintsWithBefore(DefaultGroup.Early),
+      makeConstraintsFromBefore(DefaultGroup.Early),
       () => initGroupEnabled,
     )
     .addSystemGroup(
       DefaultGroup.Early,
-      makeConstraintsWithAfter(DefaultGroup.Init).before(
+      makeConstraintsFromAfter(DefaultGroup.Init).before(
         DefaultGroup.EarlyUpdate,
       ),
     )
     .addSystemGroup(
       DefaultGroup.EarlyUpdate,
-      makeConstraintsWithAfter(DefaultGroup.Early).before(DefaultGroup.Update),
+      makeConstraintsFromAfter(DefaultGroup.Early).before(DefaultGroup.Update),
     )
     .addSystemGroup(
       DefaultGroup.Update,
-      makeConstraintsWithAfter(DefaultGroup.EarlyUpdate).before(
+      makeConstraintsFromAfter(DefaultGroup.EarlyUpdate).before(
         DefaultGroup.LateUpdate,
       ),
     )
     .addSystemGroup(
       DefaultGroup.LateUpdate,
-      makeConstraintsWithAfter(DefaultGroup.Update).before(DefaultGroup.Late),
+      makeConstraintsFromAfter(DefaultGroup.Update).before(DefaultGroup.Late),
     )
     .addSystemGroup(
       DefaultGroup.Late,
-      makeConstraintsWithAfter(DefaultGroup.LateUpdate),
+      makeConstraintsFromAfter(DefaultGroup.LateUpdate),
     )
     .addSystemToGroup(DefaultGroup.Init, disableInitGroupSystem)
 }
@@ -105,7 +105,8 @@ let defaultGroupsPlugin = (app: App) => {
 export class App {
   #systemGroupScheduleIsStale
   #systemGroupSchedule
-  #systemGroupsById;
+  #systemGroupsById
+  #systemGroupsByLabel;
 
   [_systemGroups]: SystemGroup[]
 
@@ -113,8 +114,9 @@ export class App {
 
   constructor(resources?: Map<Resource<unknown>, unknown>) {
     this.#systemGroupSchedule = new Schedule<string>()
-    this.#systemGroupsById = new Map<string, SystemGroup>()
+    this.#systemGroupsByLabel = new Map<string, SystemGroup>()
     this.#systemGroupScheduleIsStale = true
+    this.#systemGroupsById = [] as SystemGroup[]
     this[_systemGroups] = []
     this.world = new World()
     for (let [resource, value] of resources ?? []) {
@@ -122,17 +124,17 @@ export class App {
     }
     this.use(defaultGroupsPlugin)
       .use(commandPlugin)
-      .use(tickPlugin)
+      .use(stepPlugin)
       .use(timePlugin)
       .use(fixedTimestepPlugin)
-      .addResource(SystemGroups, this.#systemGroupsById)
+      .addResource(SystemGroups, this.#systemGroupsByLabel)
   }
 
   #updateSystemGroupSchedule() {
     if (this.#systemGroupScheduleIsStale) {
       let systemGroups = this.#systemGroupSchedule.build()
       this[_systemGroups] = systemGroups.map(groupId =>
-        expect(this.#systemGroupsById.get(groupId)),
+        expect(this.#systemGroupsByLabel.get(groupId)),
       )
       this.#systemGroupScheduleIsStale = false
     }
@@ -160,16 +162,18 @@ export class App {
   }
 
   addSystemGroup(
-    systemGroupId: string,
+    systemGroupLabel: string,
     constraints?: Maybe<Constraints<string>>,
     predicate?: Maybe<Predicate>,
+    systemConstraints?: Maybe<Constraints<SystemImpl>>,
   ) {
-    expect(!this.#systemGroupsById.has(systemGroupId))
-    let systemGroup = new SystemGroup(predicate)
-    this.#systemGroupsById.set(systemGroupId, systemGroup)
+    expect(!this.#systemGroupsByLabel.has(systemGroupLabel))
+    let systemGroup = new SystemGroup(predicate, systemConstraints)
+    this.#systemGroupsById[systemGroup.id] = systemGroup
+    this.#systemGroupsByLabel.set(systemGroupLabel, systemGroup)
     Constraints.insert(
       this.#systemGroupSchedule,
-      systemGroupId,
+      systemGroupLabel,
       constraints ?? new Constraints(),
     )
     this.#systemGroupScheduleIsStale = true
@@ -191,7 +195,7 @@ export class App {
     constraints?: Maybe<Constraints<SystemImpl>>,
     predicate?: Maybe<Predicate>,
   ): App {
-    let systemGroup = expect(this.#systemGroupsById.get(groupId))
+    let systemGroup = expect(this.#systemGroupsByLabel.get(groupId))
     systemGroup.addSystem(system, constraints, predicate)
     return this
   }
@@ -206,44 +210,70 @@ export class App {
   }
 
   removeSystem(system: SystemImpl, groupId = DefaultGroup.Update) {
-    let systemGroup = expect(this.#systemGroupsById.get(groupId))
+    let systemGroup = expect(this.#systemGroupsByLabel.get(groupId))
     systemGroup.removeSystem(system)
   }
 
-  step() {
-    let {world} = this
-    this.#updateSystemGroupSchedule()
-    for (let i = 0; i < this[_systemGroups].length; i++) {
-      let systemGroup = this[_systemGroups][i]
-      let systemGroupRuns = systemGroup.runs(world)
-      if (systemGroupRuns > 0) {
-        // The `CurrentSystemGroup` resource is used by the world to dispatch commands.
-        this.world.setResource(CurrentSystemGroup, systemGroup)
-      }
-      while (systemGroupRuns-- > 0) {
-        for (let j = 0; j < systemGroup.systems.length; j++) {
-          let system = systemGroup.systems[j]
-          if (system.isEnabled(world)) {
-            // The `CurrentSystem` resource is used by the world to attach new
-            // queries and monitors to their originating systems.
-            this.world.setResource(CurrentSystem, system)
-            system.run(world)
-            // Clear each of the system's monitors after the system is
-            // complete.
-            let monitors = system.monitors.values()
-            for (let k = 0; k < monitors.length; k++) {
-              let monitor = monitors[k]
-              monitor.clear()
-            }
-            // Notify immediate monitors of intra-step entity modifications.
-            this.world[_emitStagedChanges]()
-          }
+  #systemGroupRuns: number[] = []
+
+  #runSystemGroup(systemGroup: SystemGroup) {
+    // The `CurrentSystemGroup` resource is used by the world to dispatch commands.
+    this.world.setResource(CurrentSystemGroup, systemGroup)
+    for (let j = 0; j < systemGroup.systems.length; j++) {
+      let system = systemGroup.systems[j]
+      if (system.isEnabled(this.world)) {
+        // The `CurrentSystem` resource is used by the world to attach new
+        // queries and monitors to their originating systems.
+        this.world.setResource(CurrentSystem, system)
+        system.run(this.world)
+        let monitors = system.monitors.values()
+        for (let k = 0; k < monitors.length; k++) {
+          let monitor = monitors[k]
+          monitor.clear()
         }
-        systemGroup.drainCommands()
+        // Notify immediate monitors of intra-step entity modifications.
+        this.world[_emitStagedChanges]()
       }
     }
-    // Notify monitors of inter-step entity modifications.
-    this.world[_commitStagedChanges]()
+    systemGroup.drainCommands()
+  }
+
+  step() {
+    this.#updateSystemGroupSchedule()
+    let systemGroupCursor = 0
+    let systemGroupLength = this[_systemGroups].length
+    let systemGroupRunsRemaining = 0
+    // Try to run each system group once. This allows earlier systems to
+    // initialize resources required by later system groups to calculate their
+    // number of runs.
+    for (let i = 0; i < systemGroupLength; i++) {
+      let systemGroup = this[_systemGroups][i]
+      let systemGroupRuns = systemGroup.runs(this.world)
+      if (systemGroupRuns > 0) {
+        this.#runSystemGroup(systemGroup)
+        systemGroupRuns--
+      }
+      // Store remaining runs and accumulate total run counter.
+      this.#systemGroupRuns[i] = systemGroupRuns
+      systemGroupRunsRemaining += systemGroupRuns
+      if (i === this.#systemGroupRuns.length - 1) {
+        this.world[_commitStagedChanges]()
+      }
+    }
+    // Carry out remaining runs.
+    while (systemGroupRunsRemaining > 0) {
+      let systemGroupIndex = systemGroupCursor % systemGroupLength
+      let systemGroup = this[_systemGroups][systemGroupIndex]
+      if (this.#systemGroupRuns[systemGroupIndex] > 0) {
+        this.#runSystemGroup(systemGroup)
+        this.#systemGroupRuns[systemGroupIndex]--
+        systemGroupRunsRemaining--
+      }
+      if (systemGroupIndex === this.#systemGroupRuns.length - 1) {
+        this.world[_commitStagedChanges]()
+      }
+      systemGroupCursor++
+    }
     return this
   }
 }

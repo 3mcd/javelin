@@ -9,7 +9,11 @@ import {
   SnapshotStage,
   SnapshotTimestamp,
 } from "./prediction_resources.js"
-import {CommandStage, ensureCommandBuffer} from "./resources.js"
+import {
+  CommandStage,
+  ensureCommandBuffer,
+  LastCompletedTimestamp,
+} from "./resources.js"
 import {
   incrementTimestamp,
   makeTimestampFromTime,
@@ -31,7 +35,6 @@ type PredictionStatus =
 
 export let PredictionStatus = j.resource<PredictionStatus>()
 export let PredictionBlendProgress = j.resource<number>()
-export let LastCompletedTimestamp = j.resource<Timestamp>()
 
 export enum PredictionGroup {
   Update = "prediction_update",
@@ -44,8 +47,10 @@ let makePredictionCommandsProxy = (
 ): j.Commands => {
   let empty = [] as unknown[]
   return {
-    dispatch(commandType: j.Singleton, command: unknown) {
-      // TODO: not sure what to do here yet
+    dispatch() {
+      throw new Error(
+        "Failed to dispatch command: commands cannot be dispatched from a predicted system",
+      )
     },
     of<T>(commandType: j.Singleton<T>): j.ComponentValue<T>[] {
       let commandTimestamp = world.getResource(LastCompletedTimestamp)
@@ -78,6 +83,7 @@ export let simulateSystem = (world: j.World) => {
   ) {
     console.warn("Predicted world is behind corrected world")
   }
+
   simulate(predictedWorld, predictedGroup)
 
   while (
@@ -161,6 +167,14 @@ let applySnapshotsSystem = (world: j.World) => {
   }
 
   let correctedWorld = world.getResource(CorrectedWorld)
+  let predictedWorld = world.getResource(PredictedWorld)
+
+  world.setResource(CorrectedWorld, predictedWorld)
+  world.setResource(PredictedWorld, correctedWorld)
+
+  predictedWorld = world.getResource(PredictedWorld)
+  correctedWorld = world.getResource(CorrectedWorld)
+
   let commandBuffers = world.getResource(CommandStage).values()
 
   let latestSnapshotTimestamp: Maybe<Timestamp>
@@ -189,7 +203,7 @@ let applySnapshotsSystem = (world: j.World) => {
 }
 
 let blendSystem = (world: j.World) => {
-  let currBlendProgress = world.tryGetResource(PredictionBlendProgress) ?? 0
+  let currBlendProgress = world.getResource(PredictionBlendProgress)
   if (currBlendProgress >= 1) {
     world.setResource(PredictionStatus, "awaiting_snapshot")
   } else {
@@ -222,15 +236,18 @@ export let clientPredictionPlugin = (app: j.App) => {
     makePredictionCommandsProxy(correctedWorld, commandStage),
   )
   app
-    .addResource(SnapshotStage, new SparseSet())
     .addResource(PredictionStatus, "initial")
+    .addResource(PredictionBlendProgress, 0)
+    .addResource(SnapshotStage, new SparseSet())
     .addResource(CommandStage, commandStage)
     .addResource(PredictedWorld, predictedWorld)
     .addResource(CorrectedWorld, correctedWorld)
     .addSystemGroup(PredictionGroup.Update, null, () => false)
     .addSystemGroup(
       PredictionGroup.Render,
-      j.after(j.FixedGroup.LateUpdate).before(j.Group.Late as any),
+      j
+        .after<j.FixedGroup | j.Group>(j.FixedGroup.LateUpdate)
+        .before(j.Group.Late),
       world =>
         world.getResource(PredictionStatus) === "blending" ||
         world.getResource(PredictionStatus) === "awaiting_snapshot" ||

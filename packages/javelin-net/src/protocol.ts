@@ -23,7 +23,7 @@ export type Message<E extends unknown[] = unknown[], D = unknown> = {
 
 type DecodeIteratee = <D>(messageType: Message<unknown[], D>, value: D) => void
 
-export type Protocol = {
+export type NetworkProtocol = {
   encoder<E extends unknown[]>(message: Message<E>): EncodeApi<E>
   decode(stream: ReadStream, iteratee: DecodeIteratee, client: j.Entity): void
   register(message: Message<any[], unknown>, messageId: number): void
@@ -54,7 +54,7 @@ let compileEncoder = (messageId: number, encode: Function, world: j.World) => {
   return Function("f", "w", body)(encode, world)
 }
 
-export let makeProtocol = (world: j.World): Protocol => {
+export let makeProtocol = (world: j.World): NetworkProtocol => {
   let encoders = new Map<Message, EncodeApi<unknown[]>>()
   let decoders = [] as Decode<unknown>[]
   let messages = [] as Message[]

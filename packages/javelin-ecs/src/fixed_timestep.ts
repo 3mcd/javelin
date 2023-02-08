@@ -1,160 +1,140 @@
-export enum TerminationCondition {
-  /**
-   * Configures a `FixedTimestep` to stop on or just before the target time.
-   */
-  LastUndershoot,
-  /**
-   * Configures a `FixedTimestep` to stop on or just after the target time.
-   */
-  FirstOvershoot,
+import {App, DefaultGroup} from "./app.js"
+import {
+  FixedTimestepper,
+  FixedTimestepperConfig,
+  TerminationCondition,
+} from "./fixed_timestepper.js"
+import {makeResource} from "./resource.js"
+import {makeConstraintsFromAfter} from "./schedule.js"
+import {advanceTimeSystem, Time} from "./time.js"
+import {World} from "./world.js"
+
+export {TerminationCondition}
+
+export enum FixedGroup {
+  Init = "fixed_init",
+  Early = "fixed_early",
+  EarlyUpdate = "fixed_early_update",
+  Update = "fixed_update",
+  LateUpdate = "fixed_late_update",
+  Late = "fixed_late",
 }
 
-export type FixedTimestepConfig = {
-  /**
-   * Due to floating-point rounding errors, and the `maxUpdateDelta` limit, the
-   * `FixedTimestep` might slowly drift away from the target time. `FixedTimestep`
-   * compensates for small amounts of drift by calculating fewer or more steps than
-   * usual. If the discepancy becomes too large, `FixedTimestep` will perform a
-   * "time-skip" without publishing the corresponding steps. This option defines the
-   * threshold for drift before a time-skip occurs.
-   */
-  maxDrift: number
+export type FixedTimestepConfig = Partial<FixedTimestepperConfig>
+export let FixedTimestepConfig = makeResource<Partial<FixedTimestepConfig>>()
+export let FixedTimestep = makeResource<FixedTimestepper>()
+export let FixedTimestepTargetTime = makeResource<number>()
+export let FixedTimestepControlled = makeResource<boolean>()
+export let FixedTime = makeResource<Time>()
+export let FixedStep = makeResource<number>()
 
-  /**
-   * The maximum time to step forward in a single call to `FixedTimestep#update`. This
-   * option exists to avoid freezing the process when the `FixedTimestep`'s current time
-   * drifts too far from the target time.
-   */
-  maxUpdateDelta: number
-
-  /**
-   * Decides whether to keep the current time slightly over or behind the target time.
-   */
-  terminationCondition: TerminationCondition
-
-  /**
-   * The number of seconds that should make up a single fixed step on any
-   * machine.
-   */
-  timeStep: number
+let defaultFixedTimestepConfig: FixedTimestepperConfig = {
+  timeStep: 1 / 60,
+  maxDrift: 1,
+  terminationCondition: TerminationCondition.FirstOvershoot,
+  maxUpdateDelta: 0.1,
 }
 
-let roundUpTo = (x: number, t: number) => Math.ceil(x / t) * t
-let roundDownTo = (x: number, t: number) => Math.floor(x / t) * t
+export let controlFixedTimestepSystem = (world: World) => {
+  let fixedTimestep = world.getResource(FixedTimestep)
+  let fixedTimestepTargetTime = world.getResource(FixedTimestepTargetTime)
+  fixedTimestep.reset(fixedTimestepTargetTime)
+  world.setResource(FixedStep, fixedTimestep.currentStep)
+  world.setResource(FixedTimestepControlled, true)
+}
 
-export class FixedTimestepImpl {
-  #currentTime
-  #lastSkipTime
-  #lastOvershootTime
-  #step
-  #steps
-  readonly #maxDrift
-  readonly #maxUpdateDelta
-  readonly #terminationCondition
-  readonly #timeStep
+export let advanceFixedTimestepSystem = (world: World) => {
+  let {currentTime, deltaTime} = world.getResource(Time)
+  let fixedTimestep = world.getResource(FixedTimestep)
+  let targetTime = world.tryGetResource(FixedTimestepTargetTime) ?? currentTime
+  fixedTimestep.advance(deltaTime, targetTime)
+}
 
-  constructor(config: FixedTimestepConfig) {
-    this.#currentTime = 0
-    this.#lastSkipTime = 0
-    this.#lastOvershootTime = 0
-    this.#step = 0
-    this.#steps = 0
-    this.#timeStep = config.timeStep
-    this.#terminationCondition = config.terminationCondition
-    this.#maxDrift = config.maxDrift
-    this.#maxUpdateDelta = config.maxUpdateDelta
+export let advanceFixedStepSystem = (world: World) => {
+  world.setResource(FixedStep, world.getResource(FixedStep) + 1)
+}
+
+export let advanceFixedTimeSystem = (world: World) => {
+  let fixedTimestep = world.getResource(FixedTimestep)
+  let fixedTime = world.getResource(FixedTime)
+  let fixedStep = world.getResource(FixedStep)
+  fixedTime.previousTime = fixedStep * (fixedTimestep.timeStep - 1)
+  fixedTime.currentTime = fixedStep * fixedTimestep.timeStep
+  fixedTime.deltaTime = fixedTimestep.timeStep
+}
+
+let fixedGroupRuns = (world: World) => world.getResource(FixedTimestep).steps
+
+export let fixedTimestepPlugin = (app: App) => {
+  let fixedTimestepConfig = {
+    ...defaultFixedTimestepConfig,
+    ...app.getResource(FixedTimestepConfig),
   }
-
-  #shouldTerminate(lastOvershootTime: number) {
-    switch (this.#terminationCondition) {
-      case TerminationCondition.LastUndershoot:
-        return lastOvershootTime > 0
-      case TerminationCondition.FirstOvershoot:
-        return this.#lastOvershootTime >= 0
-    }
-  }
-
-  #advance(deltaTime: number) {
-    let steps = 0
-    this.#lastOvershootTime -= deltaTime
-    while (true) {
-      let nextOvershootTime = this.#lastOvershootTime + this.#timeStep
-      if (this.#shouldTerminate(nextOvershootTime)) {
-        break
-      }
-      this.#lastOvershootTime = nextOvershootTime
-      this.#currentTime += this.#timeStep
-      steps++
-    }
-    this.#steps = steps
-    this.#step += steps
-  }
-
-  measureDrift(targetTime: number) {
-    return this.#currentTime - this.#lastOvershootTime - targetTime
-  }
-
-  #compensateDeltaTime(deltaTime: number, targetTime: number) {
-    let drift = this.measureDrift(targetTime - deltaTime)
-    if (Math.abs(drift) - this.#timeStep * 0.5 < -Number.EPSILON) {
-      drift = 0
-    }
-    let compensatedDeltaTimeUncapped = Math.max(deltaTime - drift, 0)
-    let compensatedDeltaTime =
-      compensatedDeltaTimeUncapped > this.#maxUpdateDelta
-        ? this.#maxUpdateDelta
-        : compensatedDeltaTimeUncapped
-    return compensatedDeltaTime
-  }
-
-  advance(deltaTime: number, targetTime: number) {
-    let compensatedDeltaTime = this.#compensateDeltaTime(deltaTime, targetTime)
-    let steps = this.#advance(compensatedDeltaTime)
-    // Skip time if necessary.
-    let drift = this.measureDrift(targetTime)
-    if (Math.abs(drift) >= this.#maxDrift) {
-      this.reset(targetTime)
-      // this.#lastSkipTime = this.#currentTime
-    }
-    return steps
-  }
-
-  reset(targetTime: number) {
-    let targetDecomposedTime = 0
-    switch (this.#terminationCondition) {
-      case TerminationCondition.FirstOvershoot:
-        targetDecomposedTime = roundUpTo(targetTime, this.#timeStep)
-        break
-      case TerminationCondition.LastUndershoot:
-        targetDecomposedTime = roundDownTo(targetTime, this.#timeStep)
-        break
-    }
-    this.#currentTime = targetDecomposedTime
-    this.#lastOvershootTime = targetDecomposedTime - targetTime
-    this.#step = targetDecomposedTime / this.#timeStep
-  }
-
-  get currentStep() {
-    return this.#step
-  }
-
-  get steps() {
-    return this.#steps
-  }
-
-  get timeStep() {
-    return this.#timeStep
-  }
-
-  get currentTime() {
-    return this.#currentTime
-  }
-
-  get lastOvershootTime() {
-    return this.#lastOvershootTime
-  }
-
-  get lastSkipTime() {
-    return this.#lastSkipTime
-  }
+  let fixedTimestep = new FixedTimestepper(fixedTimestepConfig)
+  app
+    .addResource(FixedStep, 0)
+    .addResource(FixedTimestep, fixedTimestep)
+    .addResource(FixedTime, {
+      previousTime: 0,
+      currentTime: 0,
+      deltaTime: 0,
+    })
+    .addResource(FixedTimestepControlled, false)
+    // Fixed timestep control
+    .addSystemToGroup(
+      DefaultGroup.Early,
+      controlFixedTimestepSystem,
+      null,
+      world =>
+        world.getResource(FixedTimestepControlled) === false &&
+        world.hasResource(FixedTimestepTargetTime),
+    )
+    .addSystemToGroup(
+      DefaultGroup.Early,
+      advanceFixedTimestepSystem,
+      makeConstraintsFromAfter(controlFixedTimestepSystem).after(
+        advanceTimeSystem,
+      ),
+    )
+    // Fixed step initialization
+    .addSystemGroup(
+      FixedGroup.Init,
+      makeConstraintsFromAfter(DefaultGroup.Early).before(
+        DefaultGroup.EarlyUpdate,
+      ),
+      fixedGroupRuns,
+    )
+    .addSystemToGroup(FixedGroup.Init, advanceFixedStepSystem)
+    // Fixed system groups
+    .addSystemToGroup(
+      FixedGroup.Init,
+      advanceFixedTimeSystem,
+      makeConstraintsFromAfter(advanceFixedStepSystem),
+    )
+    // Fixed steps
+    .addSystemGroup(
+      FixedGroup.Early,
+      makeConstraintsFromAfter(FixedGroup.Init),
+      fixedGroupRuns,
+    )
+    .addSystemGroup(
+      FixedGroup.EarlyUpdate,
+      makeConstraintsFromAfter(FixedGroup.Init),
+      fixedGroupRuns,
+    )
+    .addSystemGroup(
+      FixedGroup.Update,
+      makeConstraintsFromAfter(FixedGroup.EarlyUpdate),
+      fixedGroupRuns,
+    )
+    .addSystemGroup(
+      FixedGroup.LateUpdate,
+      makeConstraintsFromAfter(FixedGroup.Update),
+      fixedGroupRuns,
+    )
+    .addSystemGroup(
+      FixedGroup.Late,
+      makeConstraintsFromAfter(FixedGroup.LateUpdate),
+      fixedGroupRuns,
+    )
 }

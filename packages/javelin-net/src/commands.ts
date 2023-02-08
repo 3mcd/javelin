@@ -15,7 +15,7 @@ type EncodeCommand = <T>(command: T, stream: WriteStream) => void
 type DecodeCommand = <T>(stream: ReadStream) => T
 
 export type AddressedCommand = {
-  origin: j.Entity
+  source: j.Entity
 }
 
 class CommandEncoder {
@@ -63,7 +63,8 @@ export let commandMessage = makeMessage({
     let commandBuffer = ensureCommandBuffer(commandBuffers, commandType)
     let commandEncoder = CommandEncoder.getEncoder(commandType)
     let command: AddressedCommand = commandEncoder.decode(stream)
-    command.origin = client
+    command.source = client
+    console.log(command)
     commandBuffer.insert(command, commandTimestamp as Timestamp)
   },
 })

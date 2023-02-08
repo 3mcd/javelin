@@ -47,24 +47,24 @@ let app = j
   })
   .use(jn.clientPlugin)
   .use(app => {
-    let protocol = app.getResource(jn.Protocol)!
+    let protocol = app.getResource(jn.NetworkProtocol)!
     protocol.register(identityMessage, 99)
   })
   .addSystemToGroup(jn.PredictionGroup.Update, movePlayerSystem)
-// .addSystemToGroup(jn.PredictionGroup.Render, world => {
-//   let alpha = world.getResource(jn.PredictionBlendProgress)
-//   let a = world.getResource(jn.PredictedWorld)
-//   let b = world.getResource(jn.CorrectedWorld)
-//   a.query(Position).each((entity, pos) => {
-//     let correctedPos = b.get(entity, Position)!
-//     renderEntity(
-//       entity,
-//       lerp(pos.x, correctedPos.x, alpha),
-//       lerp(pos.y, correctedPos.y, alpha),
-//       "blended",
-//     )
-//   })
-// })
+  .addSystemToGroup(jn.PredictionGroup.Render, world => {
+    let alpha = world.getResource(jn.PredictionBlendProgress)
+    let a = world.getResource(jn.PredictedWorld)
+    let b = world.getResource(jn.CorrectedWorld)
+    a.query(Position).each((entity, pos) => {
+      let correctedPos = b.get(entity, Position)!
+      renderEntity(
+        entity,
+        lerp(pos.x, correctedPos.x, alpha),
+        lerp(pos.y, correctedPos.y, alpha),
+        "blended",
+      )
+    })
+  })
 
 let lerp = (x: number, y: number, a: number) => x * (1 - a) + y * a
 

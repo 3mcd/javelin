@@ -46,6 +46,13 @@ export class Constraints<T> {
     this.#constraints.push({kind: "after", task})
     return this
   }
+
+  concat(constraints: Constraints<T>) {
+    let nextConstraints = new Constraints<T>()
+    nextConstraints.#constraints.push(...constraints)
+    nextConstraints.#constraints.push(...this.#constraints)
+    return nextConstraints
+  }
 }
 
 export class Schedule<T> {
@@ -107,6 +114,8 @@ export class Schedule<T> {
   }
 }
 
+let systemGroupIds = 0
+
 export class SystemGroup {
   #commandQueues
   #predicate
@@ -114,14 +123,22 @@ export class SystemGroup {
   #systemScheduleStale
   #systems
   #systemsByImpl
+  #systemConstraints
 
-  constructor(predicate?: Maybe<Predicate>) {
+  readonly id
+
+  constructor(
+    predicate?: Maybe<Predicate>,
+    systemConstraints?: Maybe<Constraints<SystemImpl>>,
+  ) {
+    this.id = systemGroupIds++
     this.#systemScheduleStale = false
     this.#systemSchedule = new Schedule<SystemImpl>()
     this.#systemsByImpl = new Map<SystemImpl, System>()
     this.#predicate = predicate
     this.#systems = [] as System[]
     this.#commandQueues = new SparseSet<unknown[]>()
+    this.#systemConstraints = systemConstraints
   }
 
   #ensureCommandQueue(command: Singleton) {
@@ -144,14 +161,14 @@ export class SystemGroup {
     predicate?: Maybe<Predicate>,
   ) {
     let system = new System(impl, predicate)
+    let systemConstraints = constraints ?? new Constraints<SystemImpl>()
+    if (exists(this.#systemConstraints)) {
+      systemConstraints = systemConstraints.concat(this.#systemConstraints)
+    }
     assert(!this.#systemsByImpl.has(impl))
     this.#systemsByImpl.set(impl, system)
     this.#systemScheduleStale = true
-    Constraints.insert(
-      this.#systemSchedule,
-      impl,
-      constraints ?? new Constraints<SystemImpl>(),
-    )
+    Constraints.insert(this.#systemSchedule, impl, systemConstraints)
   }
 
   removeSystem(impl: SystemImpl) {
@@ -193,10 +210,10 @@ export class SystemGroup {
   }
 }
 
-export function makeConstraintsWithBefore<T>(task: T): Constraints<T> {
+export function makeConstraintsFromBefore<T>(task: T): Constraints<T> {
   return new Constraints<T>().before(task)
 }
 
-export function makeConstraintsWithAfter<T>(task: T): Constraints<T> {
+export function makeConstraintsFromAfter<T>(task: T): Constraints<T> {
   return new Constraints<T>().after(task)
 }
