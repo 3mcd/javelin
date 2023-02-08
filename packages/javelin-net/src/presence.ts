@@ -4,7 +4,7 @@ import {ServerWorld} from "./client_resources.js"
 import {MTU_SIZE} from "./const.js"
 import {EntityEncoder} from "./encode.js"
 import {SubjectPrioritizer} from "./interest.js"
-import {NormalizedModel} from "./model.js"
+import {NormalizedNetworkModel} from "./model.js"
 import {CorrectedWorld} from "./prediction_resources.js"
 import {makeMessage} from "./protocol.js"
 import {Sendable} from "./sendable.js"
@@ -18,7 +18,7 @@ let subjectComponents: j.Component[] = []
  */
 export let presenceMessage = makeMessage({
   encode(stream, world: j.World, presence: PresenceState) {
-    let {localComponentsToIso} = world.getResource(NormalizedModel)
+    let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
     let {subjectType} = presence
     let subjectComponents = subjectType.normalized.components
     let subjectQueueLength = presence.subjectQueue.length
@@ -54,7 +54,7 @@ export let presenceMessage = makeMessage({
   },
   decode(stream, world) {
     let serverWorld = world.getResource(ServerWorld)
-    let {isoComponentsToLocal} = world.getResource(NormalizedModel)
+    let {isoComponentsToLocal} = world.getResource(NormalizedNetworkModel)
     // (1)
     let subjectComponentsLength = stream.readU8()
     subjectComponents.length = subjectComponentsLength

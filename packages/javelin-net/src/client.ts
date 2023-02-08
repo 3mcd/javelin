@@ -1,5 +1,5 @@
 import * as j from "@javelin/ecs"
-import {exists, expect, Maybe} from "@javelin/lib"
+import {exists, Maybe} from "@javelin/lib"
 import {
   ClockSync,
   ClockSyncRequestInterval,
@@ -9,12 +9,17 @@ import {
 import {ClockSyncImpl, clockSyncMessage} from "./clock_sync.js"
 import {commandMessage} from "./commands.js"
 import {ClockSyncPayload, Transport} from "./components.js"
-import {Model, NormalizedModel, normalizeModel} from "./model.js"
+import {
+  NetworkModel,
+  NormalizedNetworkModel,
+  normalizeNetworkModel,
+} from "./model.js"
 import {clientPredictionPlugin} from "./prediction.js"
 import {makeProtocol} from "./protocol.js"
 import {Protocol} from "./resources.js"
 import {DEFAULT_MESSAGES} from "./shared.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
+import {makeTimestampFromTime} from "./timestamp.js"
 
 let writeStreamReliable = new WriteStream()
 let readStream = new ReadStream(new Uint8Array())
@@ -71,7 +76,9 @@ let sendClientClockSyncRequestsSystem = (world: j.World) => {
 }
 
 let sendClientCommandsSystem = (world: j.World) => {
-  let model = world.getResource(NormalizedModel)
+  let time = world.getResource(j.FixedTime)
+  let timestamp = makeTimestampFromTime(time.currentTime, 1 / 60)
+  let model = world.getResource(NormalizedNetworkModel)
   let protocol = world.getResource(Protocol)
   let commands = world.getResource(j.Commands)
   let encodeCommand = protocol.encoder(commandMessage)
@@ -80,7 +87,12 @@ let sendClientCommandsSystem = (world: j.World) => {
       let commandType = model.commandTypes[i]
       let commandQueue = commands.of(commandType)
       for (let i = 0; i < commandQueue.length; i++) {
-        encodeCommand(writeStreamReliable, commandType, commandQueue[i])
+        encodeCommand(
+          writeStreamReliable,
+          commandType,
+          commandQueue[i],
+          timestamp,
+        )
       }
     }
     let bytes = writeStreamReliable.bytes()
@@ -97,59 +109,62 @@ export let stepServerWorldSystem = (world: j.World) => {
   serverWorld[j._commitStagedChanges]()
 }
 
-export let clientPlugin = (app: j.App) => {
-  let clockSync = new ClockSyncImpl({
+let makeDefaultProtocol = (world: j.World) => {
+  let protocol = makeProtocol(world)
+  for (let i = 0; i < DEFAULT_MESSAGES.length; i++) {
+    protocol.register(DEFAULT_MESSAGES[i], i)
+  }
+  return protocol
+}
+
+let makeClockSync = () => {
+  return new ClockSyncImpl({
     expectedOutlierRate: 0.2,
     maxDeviation: 0.1,
     requiredSampleCount: 8,
   })
-  let serverWorld = app.getResource(ServerWorld)
-  if (!exists(serverWorld)) {
-    serverWorld = new j.World()
-    serverWorld[j._emitStagedChanges]()
-    serverWorld[j._commitStagedChanges]()
-  }
-  app.addResource(ServerWorld, serverWorld)
-  app.addResource(
-    NormalizedModel,
-    normalizeModel(expect(app.getResource(Model))),
-  )
+}
+
+let shouldRequestClockSync = (world: j.World) => {
+  let time = world.getResource(j.Time)
+  let clockSyncRequestTime = world.getResource(ClockSyncRequestTime)
+  let clockSyncRequestInterval = world.getResource(ClockSyncRequestInterval)
+  return time.currentTime > clockSyncRequestTime + clockSyncRequestInterval
+}
+
+export let clientPlugin = (app: j.App) => {
   if (!app.hasResource(Protocol)) {
-    let protocol = makeProtocol(app.world)
-    for (let i = 0; i < DEFAULT_MESSAGES.length; i++) {
-      protocol.register(DEFAULT_MESSAGES[i], i)
-    }
+    let protocol = makeDefaultProtocol(app.world)
     app.addResource(Protocol, protocol)
   }
-  if (!app.hasResource(ClockSyncRequestInterval)) {
-    app.addResource(ClockSyncRequestInterval, 0.2)
-  }
   app
-    .addResource(ClockSync, clockSync)
+    .addResource(ClockSync, makeClockSync())
     .addResource(ClockSyncRequestTime, 0)
+    .addResource(ClockSyncRequestInterval, 0.2)
+    .addResource(ServerWorld, new j.World())
+    .addResource(
+      NormalizedNetworkModel,
+      normalizeNetworkModel(app.getResource(NetworkModel) ?? []),
+    )
     .addSystemToGroup(j.Group.Early, processClientMessagesSystem)
     .addSystemToGroup(j.Group.Early, processClockSyncResponsesSystem)
     .addSystemToGroup(
       j.Group.Early,
       sendClientClockSyncRequestsSystem,
       null,
-      world => {
-        let time = world.getResource(j.Time)
-        let clockSyncRequestTime = world.getResource(ClockSyncRequestTime)
-        let clockSyncRequestInterval = world.getResource(
-          ClockSyncRequestInterval,
-        )
-        return (
-          time.currentTime > clockSyncRequestTime + clockSyncRequestInterval
-        )
-      },
+      shouldRequestClockSync,
     )
     .addSystemToGroup(
       j.Group.Early,
       controlFixedTimestepSystem,
       j.before(j.advanceFixedTimestepSystem),
     )
-    .addSystemToGroup(j.Group.LateUpdate, stepServerWorldSystem)
-    .addSystemToGroup(j.Group.Late, sendClientCommandsSystem)
+    .addSystemToGroup(j.FixedGroup.LateUpdate, stepServerWorldSystem)
+    .addSystemToGroup(
+      j.FixedGroup.Late,
+      sendClientCommandsSystem,
+      null,
+      world => world.hasResource(j.FixedTimestepTargetTime),
+    )
     .use(clientPredictionPlugin)
 }

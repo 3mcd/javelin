@@ -18,6 +18,7 @@ export {
   FixedTime,
   FixedTimestepConfig,
   FixedTimestepTargetTime,
+  TerminationCondition,
 } from "./fixed_timestep_plugin.js"
 export {Node} from "./graph.js"
 export {Monitor} from "./monitor.js"
@@ -26,7 +27,7 @@ export {
   makeConstraintsWithAfter as after,
   makeConstraintsWithBefore as before,
 } from "./schedule.js"
-export type {Constraints, Predicate} from "./schedule.js"
+export type {Constraints, Predicate, SystemGroup} from "./schedule.js"
 export type {Format, Schema, Struct} from "./schema.js"
 export type {SystemImpl as System} from "./system.js"
 export {advanceTickSystem, Tick} from "./tick_plugin.js"

@@ -58,6 +58,10 @@ export class PredictionSnapshotsImpl {
     this.checkpoints.insert(checkpoint, timestamp)
   }
 
+  hasSnapshot() {
+    return this.snapshots.length > 0
+  }
+
   apply(world: j.World) {
     if (this.snapshots.length === 0) {
       return

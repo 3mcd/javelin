@@ -131,9 +131,10 @@ export class FixedTimestepImpl {
     }
     this.#currentTime = targetDecomposedTime
     this.#lastOvershootTime = targetDecomposedTime - targetTime
+    this.#step = targetDecomposedTime / this.#timeStep
   }
 
-  get step() {
+  get currentStep() {
     return this.#step
   }
 

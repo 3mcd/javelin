@@ -111,12 +111,15 @@ export class App {
 
   readonly world: World
 
-  constructor(world: World) {
+  constructor(resources?: Map<Resource<unknown>, unknown>) {
     this.#systemGroupSchedule = new Schedule<string>()
     this.#systemGroupsById = new Map<string, SystemGroup>()
     this.#systemGroupScheduleIsStale = true
     this[_systemGroups] = []
-    this.world = world
+    this.world = new World()
+    for (let [resource, value] of resources ?? []) {
+      this.addResource(resource, value)
+    }
     this.use(defaultGroupsPlugin)
       .use(commandPlugin)
       .use(tickPlugin)
@@ -245,4 +248,5 @@ export class App {
   }
 }
 
-export let makeApp = (world = new World()) => new App(world)
+export let makeApp = (resources?: Map<Resource<unknown>, unknown>) =>
+  new App(resources)

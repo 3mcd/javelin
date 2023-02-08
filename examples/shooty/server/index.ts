@@ -20,7 +20,16 @@ let kineticInterest = jn.snapshotInterest(Kinetic, (_entity, subject) =>
 let Owns = j.relation()
 
 let app = j
-  .app()
+  .app(
+    new Map([
+      [
+        j.FixedTimestepConfig,
+        {
+          terminationCondition: j.TerminationCondition.LastUndershoot,
+        },
+      ],
+    ]),
+  )
   .addResource(jn.NetworkModel, model)
   .addResource(jn.CommandValidator, (world, client, commandType, command) => {
     switch (commandType) {
@@ -30,9 +39,6 @@ let app = j
       }
     }
     return false
-  })
-  .addInitSystem(world => {
-    world.create(Kinetic)
   })
   .addSystemToGroup(j.FixedGroup.EarlyUpdate, world => {
     let protocol = world.getResource(jn.Protocol)
@@ -46,7 +52,7 @@ let app = j
       world.add(client, Owns(clientActor))
     })
   })
-  .addSystem(movePlayerSystem)
+  .addSystemToGroup(j.Group.Update, movePlayerSystem)
   .use(jn.serverPlugin)
   .use(app => {
     let protocol = app.getResource(jn.Protocol)!

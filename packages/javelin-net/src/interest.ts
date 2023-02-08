@@ -2,7 +2,7 @@ import * as j from "@javelin/ecs"
 import {ServerWorld} from "./client_resources.js"
 import {MTU_SIZE} from "./const.js"
 import {EntityEncoder} from "./encode.js"
-import {NormalizedModel} from "./model.js"
+import {NormalizedNetworkModel} from "./model.js"
 import {makeMessage} from "./protocol.js"
 import {Sendable} from "./sendable.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
@@ -17,7 +17,7 @@ let subjectComponents: j.Component[] = []
 
 export let interestMessage = makeMessage({
   encode(stream, world: j.World, interest: InterestState) {
-    let {localComponentsToIso} = world.getResource(NormalizedModel)
+    let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
     let {subjectType} = interest
     let subjectComponents = subjectType.normalized.components
     let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
@@ -54,7 +54,7 @@ export let interestMessage = makeMessage({
   },
   decode(stream, world) {
     let serverWorld = world.getResource(ServerWorld)
-    let {isoComponentsToLocal} = world.getResource(NormalizedModel)
+    let {isoComponentsToLocal} = world.getResource(NormalizedNetworkModel)
     // (1)
     let subjectComponentsLength = stream.readU8()
     subjectComponents.length = subjectComponentsLength

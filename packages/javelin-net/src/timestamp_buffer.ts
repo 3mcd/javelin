@@ -10,7 +10,8 @@ import {
   timestampIsWithinAcceptableRange,
 } from "./timestamp.js"
 
-type TimestampBufferIteratee<T> = (value: T, timestamp: Timestamp) => void
+type TimestampBufferIteratee<T> = (values: T[], timestamp: Timestamp) => void
+type TimestampBufferValueIteratee<T> = (value: T, timestamp: Timestamp) => void
 
 const DELETE_OP = {delete: true}
 
@@ -40,7 +41,7 @@ export class TimestampBuffer<T = unknown> {
     }
   }
 
-  drainAll(callback?: TimestampBufferIteratee<T>): void {
+  drainAll(callback?: TimestampBufferValueIteratee<T>): void {
     if (callback) {
       this.#map.forEach(function drainAndEmitValues(values, timestamp) {
         for (let i = 0; i < values.length; i++) {
@@ -51,12 +52,15 @@ export class TimestampBuffer<T = unknown> {
     this.#map.clear()
   }
 
-  drainTo(timestamp: Timestamp, callback?: TimestampBufferIteratee<T>): void {
+  drainTo(
+    timestamp: Timestamp,
+    callback?: TimestampBufferValueIteratee<T>,
+  ): void {
     let min = this.#map.minKey()
     this.#map.editRange(
       min!,
       timestamp,
-      false,
+      true,
       function drainAndEmitValues(timestamp, values) {
         if (exists(values)) {
           for (let i = 0; i < values.length; i++) {
@@ -66,6 +70,10 @@ export class TimestampBuffer<T = unknown> {
         return DELETE_OP
       },
     )
+  }
+
+  forEachBuffer(callback: TimestampBufferIteratee<T>): void {
+    this.#map.forEach(callback)
   }
 
   insert(value: T, timestamp: Timestamp): void {

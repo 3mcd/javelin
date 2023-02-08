@@ -3,9 +3,9 @@ import {exists} from "@javelin/lib"
 import {MTU_SIZE} from "./const.js"
 import {EntityEncoder} from "./encode.js"
 import {SubjectPrioritizer} from "./interest.js"
-import {NormalizedModel} from "./model.js"
-import {PredictionStage} from "./prediction_resources.js"
-import {PredictionSnapshotsImpl} from "./prediction_snapshots.js"
+import {NormalizedNetworkModel} from "./model.js"
+import {SnapshotStage} from "./prediction_resources.js"
+import {PredictionSnapshotsImpl} from "./prediction_stage.js"
 import {makeMessage} from "./protocol.js"
 import {Sendable} from "./sendable.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
@@ -15,13 +15,17 @@ import {makeTimestampFromTime, Timestamp} from "./timestamp.js"
 let subjectComponents: j.Component[] = []
 
 export let snapshotMessage = makeMessage({
-  encode(stream, world: j.World, interest: SnapshotInterestState) {
+  encode(
+    stream,
+    world: j.World,
+    interest: SnapshotInterestState,
+    timestamp: Timestamp,
+  ) {
     let mtuDiff = MTU_SIZE - stream.offset
     if (mtuDiff <= 0) {
       return
     }
-    let time = world.getResource(j.Time)
-    let {localComponentsToIso} = world.getResource(NormalizedModel)
+    let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
     let {subjectType} = interest
     let subjectComponents = subjectType.normalized.components
     let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
@@ -35,7 +39,7 @@ export let snapshotMessage = makeMessage({
         interest.subjectQueue.length * subjectEncoder.bytesPerEntity,
       )
     stream.grow(growAmount)
-    stream.writeI16(makeTimestampFromTime(time.currentTime, 1 / 60))
+    stream.writeI16(timestamp)
     stream.writeU8(subjectComponents.length)
     for (let i = 0; i < subjectComponents.length; i++) {
       let isoComponent = localComponentsToIso[subjectComponents[i]]
@@ -51,8 +55,8 @@ export let snapshotMessage = makeMessage({
     stream.writeU16At(subjectCount, subjectCountOffset)
   },
   decode(stream, world, _, length) {
-    let snapshots = world.getResource(PredictionStage)
-    let {isoComponentsToLocal} = world.getResource(NormalizedModel)
+    let snapshots = world.getResource(SnapshotStage)
+    let {isoComponentsToLocal} = world.getResource(NormalizedNetworkModel)
     let snapshotTimestamp = stream.readI16() as Timestamp
     let subjectComponentsLength = stream.readU8()
     subjectComponents.length = subjectComponentsLength

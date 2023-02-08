@@ -90,21 +90,21 @@ export let compileWriteValueExp = (
   writeStreamExp: string,
   valueExp: string,
 ) => {
-  let writeValueExp = ""
+  let exp = ""
   if (typeof schema === "string") {
-    writeValueExp = compileWriteExp(schema, writeStreamExp, valueExp)
-    writeValueExp += ";"
+    exp = compileWriteExp(schema, writeStreamExp, valueExp)
+    exp += ";"
   } else {
     for (let schemaKey of Reflect.get(schema, j._keys)) {
-      writeValueExp += compileWriteExp(
+      exp += compileWriteExp(
         schema[schemaKey],
         writeStreamExp,
         `${valueExp}.${schemaKey}`,
       )
-      writeValueExp += ";"
+      exp += ";"
     }
   }
-  return writeValueExp
+  return exp
 }
 
 export let compileReadValueExp = (schema: j.Schema, readStreamExp: string) => {
@@ -165,9 +165,9 @@ export let compileEncodeEntity = (
       "s.writeU32(e);" +
       componentSchemas
         .map((schema, i) => {
-          let encodeExp = `let v${i}=V${i}[e];`
-          encodeExp += compileWriteValueExp(schema, "s", `v${i}`)
-          return encodeExp
+          let exp = `let v${i}=V${i}[e];`
+          exp += compileWriteValueExp(schema, "s", `v${i}`)
+          return exp
         })
         .join("") +
       "}",

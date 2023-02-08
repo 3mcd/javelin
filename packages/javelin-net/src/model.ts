@@ -3,16 +3,18 @@ import * as j from "@javelin/ecs"
 export type NetworkTerm = j.Singleton | j.Relation
 export type NetworkTerms = NetworkTerm[]
 
-export let Model = j.resource<NetworkTerms>()
+export let NetworkModel = j.resource<NetworkTerms>()
 
-type NormalizedModel = {
+type NormalizedNetworkModel = {
   readonly isoComponentsToLocal: j.Component[]
   readonly localComponentsToIso: number[]
   readonly commandTypes: j.Command[]
 }
-export let NormalizedModel = j.resource<NormalizedModel>()
+export let NormalizedNetworkModel = j.resource<NormalizedNetworkModel>()
 
-export let normalizeModel = (networkTerms: NetworkTerms): NormalizedModel => {
+export let normalizeNetworkModel = (
+  networkTerms: NetworkTerms,
+): NormalizedNetworkModel => {
   let isoComponentsToLocal = [] as j.Component[]
   let localComponentsToIso = [] as number[]
   let commandTypes = [] as j.Command[]

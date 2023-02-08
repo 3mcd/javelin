@@ -22,7 +22,7 @@ let app = j
     world.create(j.type(jn.Server), jn.makeWebsocketTransport(socket))
   })
   .addSystemToGroup(
-    j.FixedGroup.EarlyUpdate,
+    j.FixedGroup.Early,
     world => {
       let commands = world.getResource(j.Commands)
       let identity = world.getResource(Identity)
@@ -34,9 +34,9 @@ let app = j
     world => world.tryGetResource(Identity) !== undefined,
   )
   .addSystem(world => {
-    let serverWorld = world.getResource(jn.ServerWorld)
+    let serverWorld = world.getResource(jn.PredictedWorld)
     serverWorld.query(Position).each((entity, pos) => {
-      renderEntity(entity, pos.x, pos.y, "normal")
+      renderEntity(entity, pos.x, pos.y, "predicted")
     })
   })
   .addSystem(world => {
@@ -51,20 +51,20 @@ let app = j
     protocol.register(identityMessage, 99)
   })
   .addSystemToGroup(jn.PredictionGroup.Update, movePlayerSystem)
-  .addSystemToGroup(jn.PredictionGroup.Render, world => {
-    let alpha = world.getResource(jn.PredictionBlendProgress)
-    let a = world.getResource(jn.ServerWorld)
-    let b = world.getResource(jn.PredictionRenderWorld)
-    a.query(Position).each((entity, pos) => {
-      let correctedPos = b.get(entity, Position)!
-      renderEntity(
-        entity,
-        lerp(pos.x, correctedPos.x, alpha),
-        lerp(pos.y, correctedPos.y, alpha),
-        "blended",
-      )
-    })
-  })
+// .addSystemToGroup(jn.PredictionGroup.Render, world => {
+//   let alpha = world.getResource(jn.PredictionBlendProgress)
+//   let a = world.getResource(jn.PredictedWorld)
+//   let b = world.getResource(jn.CorrectedWorld)
+//   a.query(Position).each((entity, pos) => {
+//     let correctedPos = b.get(entity, Position)!
+//     renderEntity(
+//       entity,
+//       lerp(pos.x, correctedPos.x, alpha),
+//       lerp(pos.y, correctedPos.y, alpha),
+//       "blended",
+//     )
+//   })
+// })
 
 let lerp = (x: number, y: number, a: number) => x * (1 - a) + y * a
 
@@ -75,7 +75,7 @@ let loop = () => {
 
 loop()
 
-type Mode = "normal" | "corrected" | "blended"
+type Mode = "predicted" | "corrected" | "blended"
 
 let entityNodes = {} as Record<string, HTMLDivElement>
 let renderEntity = (entity: j.Entity, x: number, y: number, mode: Mode) => {

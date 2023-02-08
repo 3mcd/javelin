@@ -5,12 +5,18 @@ import {
   compileEncodeValue,
   getBytesPerTypeValues,
 } from "./encode.js"
-import {NormalizedModel} from "./model.js"
+import {NormalizedNetworkModel} from "./model.js"
 import {makeMessage} from "./protocol.js"
+import {CommandStage, ensureCommandBuffer} from "./resources.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
+import {Timestamp} from "./timestamp.js"
 
 type EncodeCommand = <T>(command: T, stream: WriteStream) => void
 type DecodeCommand = <T>(stream: ReadStream) => T
+
+export type AddressedCommand = {
+  origin: j.Entity
+}
 
 class CommandEncoder {
   static #encoders = [] as CommandEncoder[]
@@ -33,20 +39,31 @@ class CommandEncoder {
 }
 
 export let commandMessage = makeMessage({
-  encode(stream, world, commandType: Singleton, command: unknown) {
-    let {localComponentsToIso} = world.getResource(NormalizedModel)
+  encode(
+    stream,
+    world,
+    commandType: Singleton,
+    command: unknown,
+    commandTimestamp: Timestamp,
+  ) {
+    let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
     let commandEncoder = CommandEncoder.getEncoder(commandType)
     let commandComponent = commandType.normalized.components[0]
-    stream.grow(4 + 2 + commandEncoder.bytesPerValue)
+    stream.grow(2 + 4 + 2 + commandEncoder.bytesPerValue)
+    stream.writeI16(commandTimestamp)
     stream.writeU32(localComponentsToIso[commandComponent])
     commandEncoder.encode(command, stream)
   },
-  decode(stream, world) {
-    let {isoComponentsToLocal} = world.getResource(NormalizedModel)
+  decode(stream, world, client) {
+    let commandBuffers = world.getResource(CommandStage)
+    let {isoComponentsToLocal} = world.getResource(NormalizedNetworkModel)
+    let commandTimestamp = stream.readI16()
     let commandComponent = isoComponentsToLocal[stream.readU32()]
     let commandType = j.type(commandComponent)
+    let commandBuffer = ensureCommandBuffer(commandBuffers, commandType)
     let commandEncoder = CommandEncoder.getEncoder(commandType)
-    let command = commandEncoder.decode(stream)
-    return [commandType, command]
+    let command: AddressedCommand = commandEncoder.decode(stream)
+    command.origin = client
+    commandBuffer.insert(command, commandTimestamp as Timestamp)
   },
 })

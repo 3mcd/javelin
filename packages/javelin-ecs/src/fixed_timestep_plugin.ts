@@ -9,6 +9,8 @@ import {makeConstraintsWithAfter} from "./schedule.js"
 import {advanceTimeSystem, Time} from "./time_plugin.js"
 import {World} from "./world.js"
 
+export {TerminationCondition}
+
 export let defaultFixedTimestepConfig: FixedTimestepImplConfig = {
   timeStep: 1 / 60,
   maxDrift: 1,
@@ -31,6 +33,7 @@ export let FixedTimestepControlled = makeResource<boolean>()
 export let FixedTimestep = makeResource<FixedTimestepImpl>()
 export let FixedStep = makeResource<number>()
 export let FixedTime = makeResource<Time>()
+export let FixedStepTarget = makeResource<number>()
 
 /**
  * Mark the fixed timestep as controlled when the `FixedTimestepTargetTime` resource is
@@ -58,37 +61,39 @@ export let advanceFixedTimestepSystem = (world: World) => {
  */
 export let initFixedTickSystem = (world: World) => {
   let fixedTimestep = world.getResource(FixedTimestep)
-  world.setResource(FixedStep, fixedTimestep.step - fixedTimestep.steps)
+  let fixedSteps = fixedTimestep.steps
+  let targetStep = fixedTimestep.currentStep
+  world.setResource(FixedStep, targetStep - fixedSteps)
+  world.setResource(FixedStepTarget, targetStep)
 }
 
 /**
  * Increment the fixed steps at the end of each fixed group.
  */
 export let incrementFixedGroupTickSystem = (world: World) => {
-  let fixedTick = world.getResource(FixedStep)
-  world.setResource(FixedStep, fixedTick + 1)
+  let fixedStep = world.getResource(FixedStep)
+  world.setResource(FixedStep, fixedStep + 1)
 }
 
 /**
  * Synchronize the `FixedTime` resource with the fixed group's tick.
  */
 export let advanceFixedGroupTimeSystem = (world: World) => {
-  let fixedTime = world.getResource(FixedTime)
-  let fixedTick = world.getResource(FixedStep)
   let fixedTimestep = world.getResource(FixedTimestep)
-  fixedTime.previousTime = fixedTime.currentTime
-  fixedTime.currentTime = fixedTick * fixedTimestep.timeStep
+  let fixedTime = world.getResource(FixedTime)
+  let fixedStep = world.getResource(FixedStep)
+  let currentTime = fixedStep * fixedTimestep.timeStep
+  fixedTime.previousTime = currentTime - fixedTimestep.timeStep
+  fixedTime.currentTime = currentTime
   fixedTime.deltaTime = fixedTimestep.timeStep
 }
 
 let fixedTimestepSteps = (world: World) =>
   world.getResource(FixedTimestep).steps
 
-let lastFixedGroupCompleted = (world: World) => {
-  let fixedTimestep = world.getResource(FixedTimestep)
-  let fixedTick = world.getResource(FixedStep)
-  return fixedTick === fixedTimestep.step
-}
+let lastFixedGroupCompleted = (world: World) =>
+  !world.hasResource(FixedStepTarget) ||
+  world.getResource(FixedStep) === world.getResource(FixedStepTarget)
 
 let initFixedGroup = (app: App, fixedGroup: FixedGroup) => {
   app
