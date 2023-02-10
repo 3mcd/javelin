@@ -2,37 +2,14 @@
   <head>
     <title>Call of Shooty</title>
     <style>
-      .entity {
-        padding: 8px;
-        margin: 8px;
-        background-color: #eee;
-        font-family: 'SF Mono', 'Courier New', Courier, monospace;
-      }
-      .entity:nth-child(2n) {
-        background-color: #ddd;
-      }
-      .entity.corrected {
-        background-color: #C4A7E7;
-      }
-      .entity.blended {
-        background-color: #F6C177;
-      }
-      .entity.corrected:after {
-        color: #191724;
-        content: ' (corrected)';
-        font-style: italic;
-        float: right;
-      }
-      .entity.blended:after {
-        color: #191724;
-        content: ' (blended)';
-        font-style: italic;
-        float: right;
+      body {
+        margin: 0;
+        background: #070803;
       }
     </style>
   </head>
   <body>
-    <p>Hit 'W' to move</p>
+    <canvas></canvas>
     <script type="module" src="src/index.ts"></script>
   </body>
 </html>

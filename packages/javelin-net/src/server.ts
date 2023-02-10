@@ -5,6 +5,7 @@ import {AwarenessState as _AwarenessState} from "./awareness.js"
 import {clockSyncMessage} from "./clock_sync.js"
 import {AddressedCommand, commandMessage} from "./commands.js"
 import {Awareness, Client, ClockSyncPayload, Transport} from "./components.js"
+import {LAG_COMPENSATION_LATENCY} from "./const.js"
 import {interestMessage} from "./interest.js"
 import {
   NetworkModel,
@@ -21,7 +22,6 @@ import {eligibleForSend} from "./sendable.js"
 import {makeDefaultProtocol} from "./shared.js"
 import {snapshotMessage} from "./snapshot.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
-import {makeTimestamp, Timestamp} from "./timestamp.js"
 import {TimestampBuffer} from "./timestamp_buffer.js"
 import {Transport as _Transport} from "./transport.js"
 
@@ -52,7 +52,10 @@ let sendAndReset = (stream: WriteStream, transport: _Transport) => {
 
 let controlFixedTimestepSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
-  world.setResource(j.FixedTimestepTargetTime, time.currentTime - 0.3)
+  world.setResource(
+    j.FixedTimestepTargetTime,
+    time.currentTime - LAG_COMPENSATION_LATENCY,
+  )
 }
 
 let initClientAwarenessesSystem = (world: j.World) => {
@@ -94,7 +97,7 @@ let processClientClockSyncRequestsSystem = (world: j.World) => {
 }
 
 let dispatchClientCommandsSystem = (world: j.World) => {
-  let timestamp = makeTimestamp(world.getResource(j.FixedStep))
+  let timestamp = world.getResource(j.FixedStep)
   let commands = world.getResource(j.Commands)
   let commandStage = world.getResource(ValidatedCommandStage)
   let commandBuffers = commandStage.values()
@@ -151,7 +154,7 @@ export let sendInterestMessages = (world: j.World) => {
 
 let sendSnapshotMessages = (world: j.World) => {
   let time = world.getResource(j.FixedTime)
-  let timestamp = makeTimestamp(world.getResource(j.FixedStep))
+  let timestamp = world.getResource(j.FixedStep)
   let protocol = world.getResource(NetworkProtocol)
   let encodeSnapshot = protocol.encoder(snapshotMessage)
   world
@@ -180,7 +183,7 @@ let broadcastValidatedCommand = (
   world: j.World,
   command: AddressedCommand,
   commandType: Singleton,
-  commandTimestamp: Timestamp,
+  commandTimestamp: number,
 ) => {
   let protocol = world.getResource(NetworkProtocol)
   let encodeCommand = protocol.encoder(commandMessage)
@@ -248,13 +251,13 @@ export let serverPlugin = (app: j.App) => {
       controlFixedTimestepSystem,
       j.after(advanceTimeSystem).before(j.controlFixedTimestepSystem),
     )
-    .addSystemToGroup(j.FixedGroup.Early, processClientMessagesSystem)
+    .addSystemToGroup(j.Group.Early, processClientMessagesSystem)
     .addSystemToGroup(
-      j.FixedGroup.Early,
+      j.Group.Early,
       processClientClockSyncRequestsSystem,
       j.after(processClientMessagesSystem),
     )
-    .addSystemToGroup(j.FixedGroup.Early, processClientCommandsSystem)
+    .addSystemToGroup(j.Group.Early, processClientCommandsSystem)
     .addSystemToGroup(j.FixedGroup.Update, dispatchClientCommandsSystem)
     .addSystemToGroup(j.FixedGroup.Late, initClientAwarenessesSystem)
     .addSystemToGroup(j.FixedGroup.Late, sendServerMessagesSystem)

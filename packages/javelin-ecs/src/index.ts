@@ -1,7 +1,9 @@
+import {Singleton} from "./type.js"
+
 export {DefaultGroup as Group, makeApp as app, SystemGroups} from "./app.js"
 export type {App, Constrain, Plugin} from "./app.js"
 export {Commands, isCommand, makeCommand as command} from "./command.js"
-export type {Command} from "./command.js"
+export type {Command, CommandsOfIteratee} from "./command.js"
 export {getSchema, _dynamic, _keys} from "./component.js"
 export type {
   Component,
@@ -19,6 +21,7 @@ export {
   FixedTimestepConfig,
   FixedTimestepTargetTime,
   TerminationCondition,
+  FixedTimestep,
 } from "./fixed_timestep.js"
 export {Node} from "./graph.js"
 export {Monitor} from "./monitor.js"
@@ -57,3 +60,6 @@ export {
   _qualifyEntity,
   _reserveEntity,
 } from "./world.js"
+
+import type {Value as ComponentValue} from "./component.js"
+export type Value<T> = T extends Singleton<infer U> ? ComponentValue<U> : never

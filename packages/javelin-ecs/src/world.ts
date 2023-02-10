@@ -18,7 +18,15 @@ import {makeResource, Resource} from "./resource.js"
 import {SystemGroup} from "./schedule.js"
 import {System} from "./system.js"
 import {Transaction, TransactionIteratee} from "./transaction.js"
-import {hashQueryTerms, QueryTerms, Singleton, Type} from "./type.js"
+import {
+  getRelation,
+  hashQueryTerms,
+  isRelationship,
+  QueryTerms,
+  Relation,
+  Singleton,
+  Type,
+} from "./type.js"
 
 const makeEntityLabel = (entity: Entity, entityId = idLo(entity)) =>
   `entity ${entity} (${entityId})`
@@ -46,6 +54,10 @@ const ERR_PARENT_INVALID = (entity: Entity) =>
   `Failed to reparent entity: you may have tried to add a ChildOf relationship between ${makeEntityLabel(
     entity,
   )} and an invalid entity—has the parent been deleted?`
+const ERR_MISSING_RESOURCE =
+  "Failed to get resource: resource not added to world"
+const ERR_EXPECTED_RELATED_ENTITY =
+  "Failed to get related entity: entity does not have a related entity"
 
 /**
  * @private
@@ -516,18 +528,19 @@ export class World {
   }
 
   /**
-   * Create an entity with a provided id.
+   * Create an entity with a provided id and version.
    * @private
    */
   [_reserveEntity]<T extends Component[]>(
-    entityId: number,
+    entity: Entity,
     type: Type<T>,
     ...values: ValuesInit<T>
   ): Entity {
-    assert(this.#getEntityIdVersion(entityId) === undefined)
-    let entity = makeId(entityId, 0) as Entity
+    let entityId = idLo(entity)
+    let entityIdVersion = idHi(entity)
+    assert(!exists(this.#getEntityIdVersion(entityId)))
     let nextNode = this.graph.nodeOfType(type)
-    this.#incrementEntityIdVersion(entityId)
+    this.#entityIdVersions[entityId] = entityIdVersion
     this.#relocateEntity(entity, undefined, nextNode)
     this.#updateEntityDelta(entity, type, values)
     return entity
@@ -553,7 +566,7 @@ export class World {
    * the resource.
    */
   getResource<T>(resource: Resource<T>): T {
-    return expect(this.#resources[resource]) as T
+    return expect(this.#resources[resource], ERR_MISSING_RESOURCE) as T
   }
 
   /**
@@ -723,6 +736,21 @@ export class World {
   parentOf(entity: Entity): Maybe<Entity> {
     this.#validateEntityVersion(entity)
     return this.#entityParents[entity]
+  }
+
+  getRelatedEntity(entity: Entity, relation: Relation): Entity {
+    this.#validateEntityVersion(entity)
+    let entityNode = expect(this.#getEntityNode(entity))
+    for (let i = 0; i < entityNode.type.components.length; i++) {
+      let component = entityNode.type.components[i]
+      if (isRelationship(component)) {
+        let entityRelation = getRelation(idHi(component))
+        if (entityRelation === relation) {
+          return expect(this[_qualifyEntity](idLo(component)))
+        }
+      }
+    }
+    throw new Error(ERR_EXPECTED_RELATED_ENTITY)
   }
 
   /**

@@ -3,9 +3,9 @@ import {Input, Position} from "../shared/model.js"
 
 export function movePlayerSystem(world: j.World) {
   let commands = world.getResource(j.Commands)
-  commands.of(Input).forEach(command => {
+  commands.of(Input, command => {
     let pos = world.get(command.entity, Position)!
-    pos.x += 1
-    pos.y += 1
+    pos.x += command.h
+    pos.y += command.v
   })
 }

@@ -1,44 +1,30 @@
 import {exists} from "@javelin/lib"
 import {BTree as BTreeMap} from "./structs/btree_map.js"
-import {
-  calcTimestampRangeMax,
-  calcTimestampRangeMin,
-  compareTimestamps,
-  makeTimestamp,
-  Timestamp,
-  timestampIsGreaterThanOrEqualTo,
-  timestampIsWithinAcceptableRange,
-} from "./timestamp.js"
 
-type TimestampBufferIteratee<T> = (values: T[], timestamp: Timestamp) => void
-type TimestampBufferValueIteratee<T> = (value: T, timestamp: Timestamp) => void
+type TimestampBufferIteratee<T> = (values: T[], timestamp: number) => void
+type TimestampBufferValueIteratee<T> = (value: T, timestamp: number) => void
+type TimestampFilterIteratee<T> = (value: T, timestamp: number) => boolean
 
 const DELETE_OP = {delete: true}
 
+let timestampBufferPool: TimestampBuffer[] = []
+
+export let allocTimestampBuffer = <T>(): TimestampBuffer<T> => {
+  return (
+    (timestampBufferPool.pop() as TimestampBuffer<T>) ?? new TimestampBuffer()
+  )
+}
+
+export let freeTimestampBuffer = (timestampBuffer: TimestampBuffer) => {
+  timestampBufferPool.push(timestampBuffer)
+  timestampBuffer.drainAll()
+}
+
 export class TimestampBuffer<T = unknown> {
   #map
-  #timestamp
 
-  constructor(map?: BTreeMap<Timestamp, T[]>) {
-    this.#map =
-      map ?? new BTreeMap<Timestamp, T[]>(undefined, compareTimestamps)
-    this.#timestamp = makeTimestamp()
-  }
-
-  setTimestamp(timestamp: Timestamp): void {
-    this.#timestamp = timestamp
-    let minAcceptableTimestamp = calcTimestampRangeMin(timestamp)
-    let maxAcceptableTimestamp = calcTimestampRangeMax(timestamp)
-    // @ts-ignore
-    this.drainTo(minAcceptableTimestamp)
-    let key: Timestamp | undefined
-    while ((key = this.#map.maxKey())) {
-      if (timestampIsGreaterThanOrEqualTo(key, maxAcceptableTimestamp)) {
-        this.#map.delete(key)
-      } else {
-        break
-      }
-    }
+  constructor(map?: BTreeMap<number, T[]>) {
+    this.#map = map ?? new BTreeMap<number, T[]>(undefined)
   }
 
   drainAll(callback?: TimestampBufferValueIteratee<T>): void {
@@ -52,10 +38,7 @@ export class TimestampBuffer<T = unknown> {
     this.#map.clear()
   }
 
-  drainTo(
-    timestamp: Timestamp,
-    callback?: TimestampBufferValueIteratee<T>,
-  ): void {
+  drainTo(timestamp: number, callback?: TimestampBufferValueIteratee<T>): void {
     let min = this.#map.minKey()
     this.#map.editRange(
       min!,
@@ -72,20 +55,53 @@ export class TimestampBuffer<T = unknown> {
     )
   }
 
+  filter(maxTimestamp: number, callback: TimestampFilterIteratee<T>): void {
+    let minTimestamp = this.#map.minKey()!
+    this.#map.editRange(
+      minTimestamp,
+      maxTimestamp,
+      true,
+      function drainAndEmitValues(timestamp, values) {
+        if (exists(values)) {
+          for (let i = values.length - 1; i >= 0; i--) {
+            if (!callback(values[i], timestamp)) {
+              values.splice(i, 1)
+            }
+          }
+        }
+        if (!values || values?.length === 0) {
+          return DELETE_OP
+        }
+      },
+    )
+  }
+
+  forEachUpTo(maxTimestamp: number, callback: TimestampBufferValueIteratee<T>) {
+    let minTimestamp = this.#map.minKey()!
+    this.#map.forRange(
+      minTimestamp,
+      maxTimestamp,
+      true,
+      function drainAndEmitValues(timestamp, values) {
+        if (exists(values)) {
+          for (let i = 0; i < values.length; i++) {
+            callback(values[i], timestamp)
+          }
+        }
+      },
+    )
+  }
+
   forEachBuffer(callback: TimestampBufferIteratee<T>): void {
     this.#map.forEach(callback)
   }
 
-  insert(value: T, timestamp: Timestamp): void {
-    if (timestampIsWithinAcceptableRange(this.#timestamp, timestamp)) {
-      let values = this.#map.get(timestamp)
-      if (values === undefined) {
-        this.#map.set(timestamp, (values = []))
-      }
-      values.push(value)
-    } else {
-      console.warn("timestamp is outside the acceptable range")
+  insert(value: T, timestamp: number): void {
+    let values = this.#map.get(timestamp)
+    if (values === undefined) {
+      this.#map.set(timestamp, (values = []))
     }
+    values.push(value)
   }
 
   reset(from: TimestampBuffer<T>): void {
@@ -96,26 +112,24 @@ export class TimestampBuffer<T = unknown> {
     }
   }
 
-  at(timestamp: Timestamp): T[] | undefined {
+  at(timestamp: number): T[] | undefined {
     return this.#map.get(timestamp)
   }
 
-  [Symbol.iterator](): IterableIterator<[Timestamp, T[]]> {
+  [Symbol.iterator](): IterableIterator<[number, T[]]> {
     return this.#map.entries()
   }
 
   clone(): TimestampBuffer<T> {
-    return new TimestampBuffer(
-      this.#map.mapValues(commands => commands.slice()),
-    )
+    let timestampBuffer = allocTimestampBuffer<T>()
+    this.#map.forEach((commands, timestamp) => {
+      timestampBuffer.#map.set(timestamp, commands.slice())
+    })
+    return timestampBuffer
   }
 
   get length(): number {
     return this.#map.length
-  }
-
-  get timestamp() {
-    return this.#timestamp
   }
 
   get maxTimestamp() {

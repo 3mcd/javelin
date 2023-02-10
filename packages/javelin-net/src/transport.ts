@@ -22,10 +22,7 @@ export class WebsocketTransport implements Transport {
 
   push(message: Uint8Array) {
     if (this.#socket.readyState === this.#socket.CONNECTING) {
-      this.#outbox.unshift(
-        // The message isn't encoded immediately so we store a copy of it
-        message.slice(),
-      )
+      this.#outbox.unshift(message.slice())
       return
     }
     if (this.#socket.readyState === this.#socket.OPEN) {

@@ -62,9 +62,9 @@ export class SparseSet<T = unknown> {
     }
   }
 
-  each(iteratee: (t: T) => void) {
+  each(iteratee: (t: T, k: number) => void) {
     for (let i = 0; i < this.#dense.length; i++) {
-      iteratee(this.#dense[i])
+      iteratee(this.#dense[i], this.#indices[i])
     }
   }
 }

@@ -1,6 +1,6 @@
 import * as j from "@javelin/ecs"
 import {exists} from "@javelin/lib"
-import {MTU_SIZE} from "./const.js"
+import {MTU_SIZE, SNAPSHOT_SEND_PERIOD} from "./const.js"
 import {EntityEncoder} from "./encode.js"
 import {SubjectPrioritizer} from "./interest.js"
 import {NormalizedNetworkModel} from "./model.js"
@@ -10,7 +10,6 @@ import {makeMessage} from "./protocol.js"
 import {Sendable} from "./sendable.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
 import {ReadStream} from "./structs/stream.js"
-import {Timestamp} from "./timestamp.js"
 
 let subjectComponents: j.Component[] = []
 
@@ -19,7 +18,7 @@ export let snapshotMessage = makeMessage({
     stream,
     world: j.World,
     interest: SnapshotInterestState,
-    timestamp: Timestamp,
+    timestamp: number,
   ) {
     let mtuDiff = MTU_SIZE - stream.offset
     if (mtuDiff <= 0) {
@@ -30,7 +29,7 @@ export let snapshotMessage = makeMessage({
     let subjectComponents = subjectType.normalized.components
     let subjectEncoder = EntityEncoder.getEntityEncoder(world, subjectType)
     let growAmount =
-      2 + // timestamp
+      4 + // timestamp
       1 + // subject type length
       2 + // subject count
       subjectType.normalized.components.length * 4 +
@@ -39,7 +38,7 @@ export let snapshotMessage = makeMessage({
         interest.subjectQueue.length * subjectEncoder.bytesPerEntity,
       )
     stream.grow(growAmount)
-    stream.writeI16(timestamp)
+    stream.writeU32(timestamp)
     stream.writeU8(subjectComponents.length)
     for (let i = 0; i < subjectComponents.length; i++) {
       let isoComponent = localComponentsToIso[subjectComponents[i]]
@@ -57,7 +56,7 @@ export let snapshotMessage = makeMessage({
   decode(stream, world, _, length) {
     let snapshots = world.getResource(SnapshotStage)
     let {isoComponentsToLocal} = world.getResource(NormalizedNetworkModel)
-    let snapshotTimestamp = stream.readI16() as Timestamp
+    let snapshotTimestamp = stream.readU32() as number
     let subjectComponentsLength = stream.readU8()
     subjectComponents.length = subjectComponentsLength
     for (let i = 0; i < subjectComponentsLength; i++) {
@@ -164,4 +163,8 @@ export let makeSnapshotInterest = (
   subjectType: j.Type,
   subjectPrioritizer: SubjectPrioritizer = () => 1,
 ): SnapshotInterest =>
-  new SnapshotInterestImpl(subjectType, subjectPrioritizer, 1 / 20)
+  new SnapshotInterestImpl(
+    subjectType,
+    subjectPrioritizer,
+    SNAPSHOT_SEND_PERIOD,
+  )

@@ -22,9 +22,11 @@ export let isCommand = (commandType: Singleton): boolean => {
   return exists(commands[commandComponent])
 }
 
+export type CommandsOfIteratee<T> = (command: Value<T>) => void
+
 export type Commands = {
   dispatch(commandType: Singleton, command: unknown): void
-  of<T>(commandType: Singleton<T>): Value<T>[]
+  of<T>(commandType: Singleton<T>, callback: CommandsOfIteratee<T>): void
 }
 
 export let Commands = makeResource<Commands>()
@@ -37,9 +39,12 @@ export let commandPlugin = (app: App) => {
         systemGroups[i].pushCommand(commandType, command)
       }
     },
-    of<T>(commandType: Singleton<T>): Value<T>[] {
+    of<T>(commandType: Singleton<T>, iteratee: CommandsOfIteratee<T>) {
       let systemGroup = app.getResource(CurrentSystemGroup)
-      return expect(systemGroup).getCommandQueue(commandType)
+      let commandQueue = expect(systemGroup).getCommandQueue(commandType)
+      for (let i = 0; i < commandQueue.length; i++) {
+        iteratee(commandQueue[i])
+      }
     },
   }
   app.addResource(Commands, commands)

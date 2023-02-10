@@ -9,6 +9,7 @@ import {
 import {ClockSyncImpl, clockSyncMessage} from "./clock_sync.js"
 import {commandMessage} from "./commands.js"
 import {ClockSyncPayload, Transport} from "./components.js"
+import {LAG_COMPENSATION_LATENCY} from "./const.js"
 import {
   NetworkModel,
   NormalizedNetworkModel,
@@ -19,7 +20,6 @@ import {makeProtocol} from "./protocol.js"
 import {NetworkProtocol} from "./resources.js"
 import {DEFAULT_MESSAGES} from "./shared.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
-import {makeTimestampFromTime} from "./timestamp.js"
 
 let writeStreamReliable = new WriteStream()
 let readStream = new ReadStream(new Uint8Array())
@@ -70,14 +70,13 @@ let controlFixedTimestepSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
   let serverOffset = world.getResource(ClockSync).getMeanOffset()
   if (serverOffset < Infinity) {
-    let serverTime = time.currentTime + serverOffset + 0.3
+    let serverTime = time.currentTime + serverOffset + LAG_COMPENSATION_LATENCY
     world.setResource(j.FixedTimestepTargetTime, serverTime)
   }
 }
 
 let sendClientCommandsSystem = (world: j.World) => {
-  let time = world.getResource(j.FixedTime)
-  let timestamp = makeTimestampFromTime(time.currentTime, 1 / 60)
+  let timestamp = world.getResource(j.FixedStep)
   let model = world.getResource(NormalizedNetworkModel)
   let protocol = world.getResource(NetworkProtocol)
   let commands = world.getResource(j.Commands)
@@ -85,15 +84,9 @@ let sendClientCommandsSystem = (world: j.World) => {
   world.query(Transport).each((_, transport) => {
     for (let i = 0; i < model.commandTypes.length; i++) {
       let commandType = model.commandTypes[i]
-      let commandQueue = commands.of(commandType)
-      for (let i = 0; i < commandQueue.length; i++) {
-        encodeCommand(
-          writeStreamReliable,
-          commandType,
-          commandQueue[i],
-          timestamp,
-        )
-      }
+      commands.of(commandType, command => {
+        encodeCommand(writeStreamReliable, commandType, command, timestamp)
+      })
     }
     let bytes = writeStreamReliable.bytes()
     if (bytes.length > 0) {

@@ -9,13 +9,21 @@ import {movePlayerSystem} from "./player.js"
 let http = createServer()
 let wss = new WebSocketServer({server: http})
 
+let distance = (ax: number, ay: number, bx: number, by: number) => {
+  let dx = ax - bx
+  let dy = ay - by
+  return Math.sqrt(dx * dx + dy * dy)
+}
+
 let Kinetic = j.type(Position, Velocity)
-let kineticPresence = jn.presence(Kinetic, (_entity, subject) =>
-  subject % 3 === 0 ? 100 : 10,
-)
-let kineticInterest = jn.snapshotInterest(Kinetic, (_entity, subject) =>
-  subject % 2 === 0 ? 100 : 10,
-)
+let kineticPresence = jn.presence(Kinetic)
+let kineticInterest = jn.snapshotInterest(Kinetic, (entity, subject, world) => {
+  let actor = world.getRelatedEntity(entity, Owns)
+  if (actor === subject) return 1
+  let aPos = world.get(actor, Position)!
+  let bPos = world.get(subject, Position)!
+  return 1 / distance(aPos.x, aPos.y, bPos.x, bPos.y)
+})
 
 let Owns = j.relation()
 
@@ -34,8 +42,12 @@ let app = j
   .addResource(jn.CommandValidator, (world, client, commandType, command) => {
     switch (commandType) {
       case Input: {
-        let entity = (command as {entity: j.Entity}).entity
-        return world.has(client, Owns(entity))
+        let {h, v, entity} = command as j.Value<typeof Input>
+        return (
+          world.has(client, Owns(entity)) &&
+          Math.abs(h) <= 1 &&
+          Math.abs(v) <= 1
+        )
       }
     }
     return false
@@ -52,10 +64,7 @@ let app = j
       world.add(client, Owns(clientActor))
     })
   })
-  .addSystemToGroup(j.FixedGroup.Update, world => {
-    // @ts-ignore
-    movePlayerSystem(world, true)
-  })
+  .addSystemToGroup(j.FixedGroup.Update, movePlayerSystem)
   .use(jn.serverPlugin)
   .use(app => {
     let protocol = app.getResource(jn.NetworkProtocol)!

@@ -6,7 +6,71 @@ import {Input, model, Position, Vector2} from "../../shared/model.js"
 
 let socket = new WebSocket("ws://localhost:8080")
 
-let keys: Record<string, boolean> = {}
+let keys: Record<string, boolean> = {
+  w: false,
+  a: false,
+  s: false,
+  d: false,
+}
+
+let lerp = (x: number, y: number, a: number) => x * (1 - a) + y * a
+
+let Viewport = j.resource<Vector2>()
+let Canvas = j.resource<HTMLCanvasElement>()
+let CanvasContext = j.resource<CanvasRenderingContext2D>()
+
+let drawCircle = (
+  canvasContext: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+  color: string,
+  fill = false,
+) => {
+  canvasContext.save()
+  canvasContext.translate(x, y)
+  canvasContext.strokeStyle = color
+  canvasContext.lineWidth = 0.2
+  canvasContext.beginPath()
+  canvasContext.arc(0, 0, radius, 0, 2 * Math.PI)
+  canvasContext.stroke()
+  if (fill) {
+    canvasContext.globalAlpha = 0.1
+    canvasContext.fillStyle = color
+    canvasContext.fill()
+  }
+  canvasContext.restore()
+}
+
+let resizeViewportSystem = (world: j.World) => {
+  let viewport = world.getResource(Viewport)
+  let canvas = world.getResource(Canvas)
+  let onResize = () => {
+    let rect = canvas.getBoundingClientRect()
+    viewport.x = rect.width
+    viewport.y = rect.height
+  }
+  document.addEventListener("resize", onResize)
+  onResize()
+}
+
+let drawPlayersSystem = (world: j.World) => {
+  let context = world.getResource(CanvasContext)
+  let alpha = world.getResource(jn.PredictionBlendProgress)
+  let a = world.getResource(jn.PredictedWorld)
+  let b = world.getResource(jn.CorrectedWorld)
+  a.query(Position).each((entity, pos) => {
+    let correctedPos = b.get(entity, Position)!
+    drawCircle(
+      context,
+      lerp(pos.x, correctedPos.x, alpha),
+      lerp(pos.y, correctedPos.y, alpha),
+      1,
+      "red",
+      true,
+    )
+  })
+}
 
 document.addEventListener("keydown", e => {
   keys[e.key] = true
@@ -15,8 +79,23 @@ document.addEventListener("keyup", e => {
   keys[e.key] = false
 })
 
-let app = j
-  .app()
+let canvas = document.querySelector("canvas")!
+let canvasContext = canvas.getContext("2d")!
+
+let onResize = () => {
+  canvas.width = window.innerWidth
+  canvas.height = window.innerHeight
+  canvasContext.scale(10, 10)
+}
+onResize()
+
+window.addEventListener("resize", onResize)
+
+let app = j.app()
+app
+  .addResource(Canvas, canvas)
+  .addResource(CanvasContext, canvasContext)
+  .addResource(Viewport, {x: 0, y: 0})
   .addResource(jn.NetworkModel, model)
   .addInitSystem(world => {
     world.create(j.type(jn.Server), jn.makeWebsocketTransport(socket))
@@ -26,47 +105,28 @@ let app = j
     world => {
       let commands = world.getResource(j.Commands)
       let identity = world.getResource(Identity)
-      if (keys.w) {
-        commands.dispatch(Input, {entity: identity})
+      let h = +keys.d - +keys.a
+      let v = +keys.s - +keys.w
+      if (h !== 0 || v !== 0) {
+        commands.dispatch(Input, {entity: identity, h, v})
       }
     },
     null,
     world => world.tryGetResource(Identity) !== undefined,
   )
-  .addSystem(world => {
-    let serverWorld = world.getResource(jn.PredictedWorld)
-    serverWorld.query(Position).each((entity, pos) => {
-      renderEntity(entity, pos.x, pos.y, "predicted")
-    })
-  })
-  .addSystem(world => {
-    let correctedWorld = world.getResource(jn.CorrectedWorld)
-    correctedWorld.query(Position).each((entity, pos) => {
-      renderEntity(entity, pos.x, pos.y, "corrected")
-    })
-  })
   .use(jn.clientPlugin)
   .use(app => {
     let protocol = app.getResource(jn.NetworkProtocol)!
     protocol.register(identityMessage, 99)
   })
   .addSystemToGroup(jn.PredictionGroup.Update, movePlayerSystem)
-  .addSystemToGroup(jn.PredictionGroup.Render, world => {
-    let alpha = world.getResource(jn.PredictionBlendProgress)
-    let a = world.getResource(jn.PredictedWorld)
-    let b = world.getResource(jn.CorrectedWorld)
-    a.query(Position).each((entity, pos) => {
-      let correctedPos = b.get(entity, Position)!
-      renderEntity(
-        entity,
-        lerp(pos.x, correctedPos.x, alpha),
-        lerp(pos.y, correctedPos.y, alpha),
-        "blended",
-      )
-    })
+  .addSystemToGroup(jn.PredictionGroup.Render, drawPlayersSystem)
+  .addInitSystem(resizeViewportSystem)
+  .addSystemToGroup(j.Group.LateUpdate, world => {
+    let viewport = world.getResource(Viewport)
+    let context = world.getResource(CanvasContext)
+    context.clearRect(0, 0, viewport.x, viewport.y)
   })
-
-let lerp = (x: number, y: number, a: number) => x * (1 - a) + y * a
 
 let loop = () => {
   app.step()
@@ -74,34 +134,3 @@ let loop = () => {
 }
 
 loop()
-
-type Mode = "predicted" | "corrected" | "blended"
-
-let entityNodes = {} as Record<string, HTMLDivElement>
-let renderEntity = (entity: j.Entity, x: number, y: number, mode: Mode) => {
-  let entityId = entity + mode
-  let entityNode = entityNodes[entityId]
-  if (entityNode === undefined) {
-    entityNode = document.createElement("div")
-    entityNode.classList.add("entity", mode)
-    entityNodes[entityId] = entityNode
-    document.body.appendChild(entityNode)
-    ;[...document.body.children]
-      .sort((a, b) => {
-        let res = +a.textContent![0] - +b.textContent![0]
-        if (res === 0) {
-          res =
-            +a.classList.contains("blended") - +b.classList.contains("blended")
-        }
-        if (res === 0) {
-          res =
-            +a.classList.contains("corrected") -
-            +b.classList.contains("corrected")
-        }
-
-        return res
-      })
-      .forEach(node => document.body.appendChild(node))
-  }
-  entityNode.textContent = `${entity}: ${x.toFixed(2)},${y.toFixed(2)}`
-}
