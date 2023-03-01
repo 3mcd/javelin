@@ -16,7 +16,7 @@ import {
   normalizeNetworkModel,
 } from "./model.js"
 import {clientPredictionPlugin} from "./prediction.js"
-import {makeProtocol} from "./protocol.js"
+import {makeNetworkProtocol} from "./protocol.js"
 import {NetworkProtocol} from "./resources.js"
 import {DEFAULT_MESSAGES} from "./shared.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
@@ -55,8 +55,8 @@ let clockSyncPayload = {
 
 let sendClockSyncRequestsSystem = (world: j.World) => {
   let time = world.getResource(j.Time)
-  let protocol = world.getResource(NetworkProtocol)
-  let encodeClockSync = protocol.encoder(clockSyncMessage)
+  let networkProtocol = world.getResource(NetworkProtocol)
+  let encodeClockSync = networkProtocol.encoder(clockSyncMessage)
   world.query(Transport).each((_, transport) => {
     clockSyncPayload.clientTime = time.currentTime
     encodeClockSync(writeStreamReliable, clockSyncPayload)
@@ -77,13 +77,13 @@ let controlFixedTimestepSystem = (world: j.World) => {
 
 let sendClientCommandsSystem = (world: j.World) => {
   let timestamp = world.getResource(j.FixedStep)
-  let model = world.getResource(NormalizedNetworkModel)
-  let protocol = world.getResource(NetworkProtocol)
+  let networkModel = world.getResource(NormalizedNetworkModel)
+  let networkProtocol = world.getResource(NetworkProtocol)
   let commands = world.getResource(j.Commands)
-  let encodeCommand = protocol.encoder(commandMessage)
+  let encodeCommand = networkProtocol.encoder(commandMessage)
   world.query(Transport).each((_, transport) => {
-    for (let i = 0; i < model.commandTypes.length; i++) {
-      let commandType = model.commandTypes[i]
+    for (let i = 0; i < networkModel.commandTypes.length; i++) {
+      let commandType = networkModel.commandTypes[i]
       commands.of(commandType, command => {
         encodeCommand(writeStreamReliable, commandType, command, timestamp)
       })
@@ -102,21 +102,20 @@ export let stepServerWorldSystem = (world: j.World) => {
   serverWorld[j._commitStagedChanges]()
 }
 
-let makeDefaultProtocol = (world: j.World) => {
-  let protocol = makeProtocol(world)
+let makeDefaultNetworkProtocol = (world: j.World) => {
+  let networkProtocol = makeNetworkProtocol(world)
   for (let i = 0; i < DEFAULT_MESSAGES.length; i++) {
-    protocol.register(DEFAULT_MESSAGES[i], i)
+    networkProtocol.register(DEFAULT_MESSAGES[i], i)
   }
-  return protocol
+  return networkProtocol
 }
 
-let makeClockSync = () => {
-  return new ClockSyncImpl({
+let makeClockSync = () =>
+  new ClockSyncImpl({
     expectedOutlierRate: 0.2,
     maxDeviation: 0.1,
     requiredSampleCount: 8,
   })
-}
 
 let shouldRequestClockSync = (world: j.World) => {
   let time = world.getResource(j.Time)
@@ -127,7 +126,7 @@ let shouldRequestClockSync = (world: j.World) => {
 
 export let clientPlugin = (app: j.App) => {
   if (!app.hasResource(NetworkProtocol)) {
-    let protocol = makeDefaultProtocol(app.world)
+    let protocol = makeDefaultNetworkProtocol(app.world)
     app.addResource(NetworkProtocol, protocol)
   }
   app

@@ -4,8 +4,8 @@ import {MTU_SIZE, SNAPSHOT_SEND_PERIOD} from "./const.js"
 import {EntityEncoder} from "./encode.js"
 import {SubjectPrioritizer} from "./interest.js"
 import {NormalizedNetworkModel} from "./model.js"
-import {SnapshotStage} from "./prediction_resources.js"
-import {PredictionSnapshotsImpl} from "./prediction_stage.js"
+import {PredictionScopes} from "./prediction_resources.js"
+import {makePredictionScope} from "./prediction_scope.js"
 import {makeMessage} from "./protocol.js"
 import {Sendable} from "./sendable.js"
 import {PriorityQueueInt} from "./structs/priority_queue_int.js"
@@ -54,7 +54,7 @@ export let snapshotMessage = makeMessage({
     stream.writeU16At(subjectCount, subjectCountOffset)
   },
   decode(stream, world, _, length) {
-    let snapshots = world.getResource(SnapshotStage)
+    let predictionScopes = world.getResource(PredictionScopes)
     let {isoComponentsToLocal} = world.getResource(NormalizedNetworkModel)
     let snapshotTimestamp = stream.readU32() as number
     let subjectComponentsLength = stream.readU8()
@@ -63,13 +63,13 @@ export let snapshotMessage = makeMessage({
       let localComponent = isoComponentsToLocal[stream.readU32()]
       subjectComponents[i] = localComponent
     }
-    let subjectType = j.type.apply(null, subjectComponents)
-    let subjectSnapshots = snapshots.get(subjectType.hash)
-    if (!exists(subjectSnapshots)) {
-      subjectSnapshots = new PredictionSnapshotsImpl(subjectType)
-      snapshots.set(subjectType.hash, subjectSnapshots)
+    let type = j.type.apply(null, subjectComponents)
+    let scope = predictionScopes.get(type.hash)
+    if (!exists(scope)) {
+      scope = makePredictionScope(type)
+      predictionScopes.set(type.hash, scope)
     }
-    subjectSnapshots.insert(stream.into(length), snapshotTimestamp)
+    scope.snapshots.insert(stream.into(length), snapshotTimestamp)
   },
 })
 
@@ -77,11 +77,12 @@ export let decodeSnapshot = (
   world: j.World,
   stream: ReadStream,
   type: j.Type,
+  entities: Set<j.Entity>,
 ) => {
   let subjectEncoder = EntityEncoder.getEntityEncoder(world, type)
   let subjectCount = stream.readU16()
   for (let i = 0; i < subjectCount; i++) {
-    subjectEncoder.decodeEntityUpdate(stream)
+    subjectEncoder.decodeEntityUpdate(stream, entities)
   }
 }
 
@@ -113,15 +114,18 @@ export class SnapshotInterestStateImpl implements SnapshotInterestState {
   }
 
   step(world: j.World, entity: j.Entity, subjects: Set<j.Entity>) {
+    world.monitorImmediate(this.subjectType).eachExcluded(subject => {
+      this.subjectQueue.remove(subject)
+    })
     world.query(this.subjectType).each(subject => {
-      if (!subjects.has(subject)) {
-        this.subjectQueue.remove(subject)
-      } else {
+      if (subjects.has(subject)) {
         let currSubjectPriority = this.subjectQueue.getPriority(subject)
         let nextSubjectPriority =
           (currSubjectPriority ?? 0) +
           this.subjectPrioritizer(entity, subject, world)
         this.subjectQueue.push(subject, nextSubjectPriority)
+      } else {
+        this.subjectQueue.remove(subject)
       }
     })
   }

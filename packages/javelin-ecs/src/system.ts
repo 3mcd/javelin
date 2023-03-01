@@ -9,6 +9,7 @@ export type SystemImpl = (world: World) => void
 export class System {
   readonly isEnabled: (world: World) => boolean
   readonly monitors
+  readonly immediateMonitors
   readonly queries
   readonly run
 
@@ -17,6 +18,7 @@ export class System {
       ? (world: World) => Boolean(predicate(world))
       : () => true
     this.monitors = new SparseSet<Monitor>()
+    this.immediateMonitors = new SparseSet<Monitor>()
     this.queries = new SparseSet<Query>()
     this.run = run
   }

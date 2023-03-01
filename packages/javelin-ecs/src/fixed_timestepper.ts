@@ -44,8 +44,8 @@ let roundDownTo = (x: number, t: number) => Math.floor(x / t) * t
 
 export class FixedTimestepper {
   #currentTime
+  #currentOvershootTime
   #lastSkipTime
-  #lastOvershootTime
   #step
   #steps
   readonly #maxDrift
@@ -56,7 +56,7 @@ export class FixedTimestepper {
   constructor(config: FixedTimestepperConfig) {
     this.#currentTime = 0
     this.#lastSkipTime = 0
-    this.#lastOvershootTime = 0
+    this.#currentOvershootTime = 0
     this.#step = 0
     this.#steps = 0
     this.#timeStep = config.timeStep
@@ -70,19 +70,19 @@ export class FixedTimestepper {
       case TerminationCondition.LastUndershoot:
         return lastOvershootTime > 0
       case TerminationCondition.FirstOvershoot:
-        return this.#lastOvershootTime >= 0
+        return this.#currentOvershootTime >= 0
     }
   }
 
   #advance(deltaTime: number) {
     let steps = 0
-    this.#lastOvershootTime -= deltaTime
+    this.#currentOvershootTime -= deltaTime
     while (true) {
-      let nextOvershootTime = this.#lastOvershootTime + this.#timeStep
+      let nextOvershootTime = this.#currentOvershootTime + this.#timeStep
       if (this.#shouldTerminate(nextOvershootTime)) {
         break
       }
-      this.#lastOvershootTime = nextOvershootTime
+      this.#currentOvershootTime = nextOvershootTime
       this.#currentTime += this.#timeStep
       steps++
     }
@@ -91,7 +91,7 @@ export class FixedTimestepper {
   }
 
   measureDrift(targetTime: number) {
-    return this.#currentTime - this.#lastOvershootTime - targetTime
+    return this.#currentTime - this.#currentOvershootTime - targetTime
   }
 
   #compensateDeltaTime(deltaTime: number, targetTime: number) {
@@ -114,7 +114,7 @@ export class FixedTimestepper {
     let drift = this.measureDrift(targetTime)
     if (Math.abs(drift) >= this.#maxDrift) {
       this.reset(targetTime)
-      // this.#lastSkipTime = this.#currentTime
+      this.#lastSkipTime = this.#currentTime
     }
     return steps
   }
@@ -130,7 +130,7 @@ export class FixedTimestepper {
         break
     }
     this.#currentTime = targetDecomposedTime
-    this.#lastOvershootTime = targetDecomposedTime - targetTime
+    this.#currentOvershootTime = targetDecomposedTime - targetTime
     this.#step = targetDecomposedTime / this.#timeStep
   }
 
@@ -151,10 +151,10 @@ export class FixedTimestepper {
   }
 
   get lastOvershootTime() {
-    return this.#lastOvershootTime
+    return this.#currentOvershootTime
   }
 
-  get lastSkipTime() {
-    return this.#lastSkipTime
+  lastAdvanceResultedInTimeskip() {
+    return this.#lastSkipTime === this.#currentTime
   }
 }

@@ -1,21 +1,35 @@
 import * as j from "@javelin/ecs"
-import {advanceFixedTimestepSystem} from "@javelin/ecs"
+import {
+  advanceFixedTimestepSystem,
+  FixedTimestep,
+  _queryMask,
+} from "@javelin/ecs"
 import {exists, expect, Maybe, SparseSet} from "@javelin/lib"
 import {ServerWorld} from "./client_resources.js"
-import {MAX_STEPS_PER_FRAME} from "./const.js"
+import {BLEND_LATENCY, MAX_STEPS_PER_FRAME} from "./const.js"
 import {NormalizedNetworkModel} from "./model.js"
 import {
+  allocDisplay,
+  blendDisplays,
+  createDisplay,
+  Display,
+  freeDisplay,
+} from "./prediction_display.js"
+import {
   CorrectedWorld,
+  NormalizedPredictionConfig,
   PredictedWorld,
-  SnapshotStage,
+  PredictionConfig,
+  PredictionScopes,
 } from "./prediction_resources.js"
+import {applySnapshots, updateDisplay} from "./prediction_scope.js"
 import {
   allocCommandStage,
   cloneCommandStage,
   CommandStage,
   ensureCommandBuffer,
   freeCommandStage,
-  LastCompletedTimestamp,
+  LastCompletedStep,
 } from "./resources.js"
 import {TimestampBuffer} from "./timestamp_buffer.js"
 
@@ -25,14 +39,33 @@ type PredictionStatus =
   | "awaiting_snapshot"
   | "blending"
   | "fast_forwarding"
-  | "fast_forwarding_overshot"
-  | "fast_forwarding_obsolete"
 
-export let PredictionStatus = j.resource<PredictionStatus>()
+class PredictionDisplayApi {
+  #display: Maybe<Display>
+
+  setDisplay(display: Display) {
+    if (exists(this.#display)) {
+      freeDisplay(this.#display)
+    }
+    this.#display = display
+  }
+
+  get<T extends j.Singleton>(
+    entity: j.Entity,
+    component: T,
+  ): Maybe<j.Value<T>> {
+    return this.#display?.[component.components[0]]?.get(entity) as Maybe<
+      j.Value<T>
+    >
+  }
+}
+
+export let CorrectedEntities = j.resource<Set<j.Entity>>()
+export let NewPredictionDisplay = j.resource<Display>()
+export let OldPredictionDisplay = j.resource<Display>()
 export let PredictionBlendProgress = j.resource<number>()
-export let BlendStartFrame = j.resource<number>()
-
-let CorrectedEntities = j.resource<Set<j.Entity>>()
+export let PredictionDisplay = j.resource<PredictionDisplayApi>()
+export let PredictionStatus = j.resource<PredictionStatus>()
 
 export enum PredictionGroup {
   Update = "prediction_update",
@@ -48,12 +81,12 @@ let makePredictionCommandsProxy = (world: j.World): j.Commands => {
     },
     of<T>(commandType: j.Singleton<T>, iteratee: j.CommandsOfIteratee<T>) {
       let commandStage = world.getResource(CommandStage)
-      let commandBuffer = commandStage.get(commandType.hash)
-      let prevTimestamp = world.getResource(LastCompletedTimestamp)
-      let currTimestamp = prevTimestamp + 1
-      ;(
-        commandBuffer as Maybe<TimestampBuffer<j.ComponentValue<T>>>
-      )?.forEachUpTo(currTimestamp, iteratee)
+      let commandBuffer = commandStage.get(commandType.hash) as Maybe<
+        TimestampBuffer<j.ComponentValue<T>>
+      >
+      let prevStep = world.getResource(LastCompletedStep)
+      let currStep = prevStep + 1
+      commandBuffer?.forEachUpTo(currStep, iteratee)
     },
   }
 }
@@ -66,17 +99,18 @@ let swapPredictionWorlds = (world: j.World) => {
 }
 
 let stepPredictionWorld = (world: j.World, systemGroup: j.SystemGroup) => {
-  let prevTimestamp = world.getResource(LastCompletedTimestamp)
-  let currTimestamp = prevTimestamp + 1
-  systemGroup.systems.forEach(system => {
+  let prevStep = world.getResource(LastCompletedStep)
+  let currStep = prevStep + 1
+  for (let i = 0; i < systemGroup.systems.length; i++) {
+    let system = systemGroup.systems[i]
     system.run(world)
-  })
-  world.setResource(LastCompletedTimestamp, currTimestamp)
+  }
   let commandStage = world.getResource(CommandStage)
   let commandBuffers = commandStage.values()
   for (let i = 0; i < commandBuffers.length; i++) {
-    commandBuffers[i].drainTo(currTimestamp)
+    commandBuffers[i].drainTo(currStep)
   }
+  world.setResource(LastCompletedStep, currStep)
 }
 
 export let stepPredictionWorldsSystem = (world: j.World) => {
@@ -86,40 +120,41 @@ export let stepPredictionWorldsSystem = (world: j.World) => {
     world.getResource(j.SystemGroups).get(PredictionGroup.Update),
   )
   if (
-    predictedWorld.getResource(LastCompletedTimestamp) <
-    correctedWorld.getResource(LastCompletedTimestamp)
+    predictedWorld.getResource(LastCompletedStep) <
+    correctedWorld.getResource(LastCompletedStep)
   ) {
     console.warn("Predicted world is behind corrected world")
   }
 
   stepPredictionWorld(predictedWorld, predictedSystemGroup)
 
-  let i = 0
+  let completedSteps = 0
+  let prevQueryMask = _queryMask.current
+  _queryMask.current = world.getResource(CorrectedEntities)
 
+  // Fast-forward the corrected entities by a maximum of MAX_STEPS_PER_FRAME.
   while (
-    correctedWorld.getResource(LastCompletedTimestamp) <
-      predictedWorld.getResource(LastCompletedTimestamp) &&
-    i++ < MAX_STEPS_PER_FRAME
+    correctedWorld.getResource(LastCompletedStep) <
+      predictedWorld.getResource(LastCompletedStep) &&
+    completedSteps++ < MAX_STEPS_PER_FRAME
   ) {
     stepPredictionWorld(correctedWorld, predictedSystemGroup)
   }
 
+  _queryMask.current = prevQueryMask
+
   if (
     world.getResource(PredictionStatus) === "fast_forwarding" &&
-    correctedWorld.getResource(LastCompletedTimestamp) ===
-      predictedWorld.getResource(LastCompletedTimestamp)
+    correctedWorld.getResource(LastCompletedStep) ===
+      predictedWorld.getResource(LastCompletedStep)
   ) {
     world.setResource(PredictionBlendProgress, 0)
     world.setResource(PredictionStatus, "blending")
-    world.setResource(
-      BlendStartFrame,
-      correctedWorld.getResource(LastCompletedTimestamp),
-    )
   }
 }
 
 export let forwardCommandsSystem = (world: j.World) => {
-  let model = world.getResource(NormalizedNetworkModel)
+  let networkModel = world.getResource(NormalizedNetworkModel)
   let commands = world.getResource(j.Commands)
   let commandStage = world.getResource(CommandStage)
   let commandTimestamp = world.getResource(j.FixedStep)
@@ -130,8 +165,8 @@ export let forwardCommandsSystem = (world: j.World) => {
     .getResource(CorrectedWorld)
     .getResource(CommandStage)
 
-  for (let i = 0; i < model.commandTypes.length; i++) {
-    let commandType = model.commandTypes[i]
+  for (let i = 0; i < networkModel.commandTypes.length; i++) {
+    let commandType = networkModel.commandTypes[i]
     commands.of(commandType, command => {
       ensureCommandBuffer(commandStage, commandType).insert(
         command,
@@ -160,53 +195,63 @@ let initWorldsSystem = (world: j.World) => {
   let timestamp = world.getResource(j.FixedStep)
   let predictedWorld = world.getResource(PredictedWorld)
   let correctedWorld = world.getResource(CorrectedWorld)
-  predictedWorld.setResource(LastCompletedTimestamp, timestamp)
-  correctedWorld.setResource(LastCompletedTimestamp, timestamp)
+  predictedWorld.setResource(LastCompletedStep, timestamp)
+  correctedWorld.setResource(LastCompletedStep, timestamp)
   world.setResource(PredictionStatus, "awaiting_snapshot")
 }
 
-let applySnapshotsSystem = (world: j.World) => {
-  let snapshotStage = world.getResource(SnapshotStage).values()
-  let snapshotStageHasSnapshot = false
+let timeskipWorldsSystem = (world: j.World) => {
+  let correctedWorld = world.getResource(CorrectedWorld)
+  let predictedWorld = world.getResource(PredictedWorld)
+  let timestamp = world.getResource(j.FixedStep)
+  if (
+    correctedWorld.getResource(LastCompletedStep) ===
+    predictedWorld.getResource(LastCompletedStep)
+  ) {
+    correctedWorld.setResource(LastCompletedStep, timestamp)
+  }
+  predictedWorld.setResource(LastCompletedStep, timestamp)
+}
 
-  for (let i = 0; i < snapshotStage.length; i++) {
-    if (snapshotStage[i].hasSnapshot()) {
-      snapshotStageHasSnapshot = true
+let applySnapshotsSystem = (world: j.World) => {
+  let correctedEntities = world.getResource(CorrectedEntities)
+  let predictionScopes = world.getResource(PredictionScopes).values()
+  let predictionScopesHaveSnapshot = false
+
+  for (let i = 0; i < predictionScopes.length; i++) {
+    if (predictionScopes[i].snapshots.length > 0) {
+      predictionScopesHaveSnapshot = true
       break
     }
   }
 
-  if (!snapshotStageHasSnapshot) {
+  if (!predictionScopesHaveSnapshot) {
     return
   }
 
+  correctedEntities.clear()
+
   swapPredictionWorlds(world)
 
-  let predictedWorld = world.getResource(CorrectedWorld)
-  let correctedWorld = world.getResource(CorrectedWorld)
   let commandStage = world.getResource(CommandStage)
   let commandBuffers = commandStage.values()
-  let latestSnapshotTimestamp: Maybe<number>
+  let correctedWorld = world.getResource(CorrectedWorld)
+  let lastSnapshotStep: Maybe<number>
 
-  predictedWorld.getResource(CorrectedEntities).clear()
-  correctedWorld.getResource(CorrectedEntities).clear()
-
-  for (let i = 0; i < snapshotStage.length; i++) {
-    let serverSnapshot = snapshotStage[i]
-    let serverSnapshotTimestamp = serverSnapshot.apply(correctedWorld)
-    if (!exists(serverSnapshotTimestamp)) {
-      continue
-    }
-    if (
-      !exists(latestSnapshotTimestamp) ||
-      serverSnapshotTimestamp > latestSnapshotTimestamp
-    ) {
-      latestSnapshotTimestamp = serverSnapshotTimestamp
+  for (let i = 0; i < predictionScopes.length; i++) {
+    let predictionScope = predictionScopes[i]
+    let snapshotStep = applySnapshots(
+      predictionScope,
+      correctedWorld,
+      correctedEntities,
+    )
+    if (!exists(lastSnapshotStep) || snapshotStep > lastSnapshotStep) {
+      lastSnapshotStep = snapshotStep
     }
   }
 
   for (let i = 0; i < commandBuffers.length; i++) {
-    commandBuffers[i].drainTo(expect(latestSnapshotTimestamp))
+    commandBuffers[i].drainTo(expect(lastSnapshotStep))
   }
 
   let currCorrectedCommandStage = correctedWorld.getResource(CommandStage)
@@ -215,42 +260,141 @@ let applySnapshotsSystem = (world: j.World) => {
   freeCommandStage(currCorrectedCommandStage)
 
   correctedWorld.setResource(CommandStage, nextCorrectedCommandStage)
-  correctedWorld.setResource(LastCompletedTimestamp, latestSnapshotTimestamp)
+  correctedWorld.setResource(LastCompletedStep, lastSnapshotStep)
 
   world.setResource(PredictionBlendProgress, 0)
   world.setResource(PredictionStatus, "fast_forwarding")
 }
 
+let displaySystem = (world: j.World) => {
+  let predictedWorld = world.getResource(PredictedWorld)
+  let correctedWorld = world.getResource(CorrectedWorld)
+  let predictionConfig = world.getResource(NormalizedPredictionConfig)
+  let predictionScopes = world.getResource(PredictionScopes).values()
+  let blendedDisplayAlpha = world.getResource(PredictionBlendProgress)
+  let blendedDisplay = allocDisplay()
+  if (world.hasResource(OldPredictionDisplay)) {
+    freeDisplay(world.getResource(OldPredictionDisplay))
+  }
+  world.setResource(
+    OldPredictionDisplay,
+    world.getResource(NewPredictionDisplay),
+  )
+  world.setResource(NewPredictionDisplay, blendedDisplay)
+  switch (world.getResource(PredictionStatus)) {
+    case "fast_forwarding": {
+      for (let i = 0; i < predictionScopes.length; i++) {
+        let predictionScope = predictionScopes[i]
+        updateDisplay(predictionScope, predictedWorld, blendedDisplay)
+      }
+      break
+    }
+    case "awaiting_snapshot":
+    case "blending": {
+      for (let i = 0; i < predictionScopes.length; i++) {
+        let {type} = predictionScopes[i]
+        let oldDisplay = createDisplay(predictedWorld, type)
+        let newDisplay = createDisplay(correctedWorld, type)
+        blendDisplays(
+          type,
+          oldDisplay,
+          newDisplay,
+          blendedDisplay,
+          blendedDisplayAlpha,
+          predictionConfig,
+        )
+        freeDisplay(oldDisplay)
+        freeDisplay(newDisplay)
+      }
+      break
+    }
+  }
+}
+
 let blendSystem = (world: j.World) => {
-  world.setResource(PredictionBlendProgress, 1)
-  world.setResource(PredictionStatus, "awaiting_snapshot")
+  let fixedTimestep = world.getResource(j.FixedTimestep)
+  let currBlendProgress = world.getResource(PredictionBlendProgress)
+  let nextBlendProgress = Math.min(
+    currBlendProgress + fixedTimestep.timeStep / BLEND_LATENCY,
+    1,
+  )
+  world.setResource(PredictionBlendProgress, nextBlendProgress)
+  if (nextBlendProgress === 1) {
+    world.setResource(PredictionStatus, "awaiting_snapshot")
+  }
+}
+
+let tweenSystem = (world: j.World) => {
+  let predictionConfig = world.getResource(NormalizedPredictionConfig)
+  let fixedTimestp = world.getResource(FixedTimestep)
+  let oldDisplay = world.getResource(OldPredictionDisplay)
+  let newDisplay = world.getResource(NewPredictionDisplay)
+  let blendedDisplay = allocDisplay()
+  let blendedDisplayTweenAlpha =
+    1 - fixedTimestp.lastOvershootTime / fixedTimestp.timeStep
+  if (exists(oldDisplay) && exists(newDisplay)) {
+    world.getResource(PredictionScopes).each(scope => {
+      blendDisplays(
+        scope.type,
+        oldDisplay,
+        newDisplay,
+        blendedDisplay,
+        blendedDisplayTweenAlpha,
+        predictionConfig,
+      )
+    })
+  } else if (exists(oldDisplay)) {
+    blendedDisplay = oldDisplay
+  }
+  world.getResource(PredictionDisplay).setDisplay(blendedDisplay)
+}
+
+let initPredictionWorld = (world: j.World) => {
+  let commandStage = allocCommandStage()
+  let commandProxy = makePredictionCommandsProxy(world)
+  world.setResource(CommandStage, commandStage)
+  world.setResource(j.Commands, commandProxy)
+  world.setResource(LastCompletedStep, 0)
+}
+
+let normalizePredictionConfig = (
+  predictionConfig: Partial<PredictionConfig>,
+) => {
+  let normalizedPredictionConfig: NormalizedPredictionConfig = {
+    components: [],
+  }
+  if (exists(predictionConfig.components)) {
+    for (let i = 0; i < predictionConfig.components.length; i++) {
+      let [componentType, componentConfig] = predictionConfig.components[i]
+      let component = componentType.components[0]
+      normalizedPredictionConfig.components[component] = componentConfig
+    }
+  }
+  return normalizedPredictionConfig
 }
 
 export let clientPredictionPlugin = (app: j.App) => {
+  let predictionConfig = app.getResource(PredictionConfig) ?? {}
   let predictedWorld = expect(app.getResource(ServerWorld))
-  let predictedWorldCommandStage = allocCommandStage()
   let correctedWorld = new j.World()
-  let correctedWorldCommandStage = allocCommandStage()
   let commandStage = allocCommandStage()
-  predictedWorld.setResource(
-    j.Commands,
-    makePredictionCommandsProxy(predictedWorld),
-  )
-  correctedWorld.setResource(
-    j.Commands,
-    makePredictionCommandsProxy(correctedWorld),
-  )
-  predictedWorld.setResource(CommandStage, predictedWorldCommandStage)
-  correctedWorld.setResource(CommandStage, correctedWorldCommandStage)
-  predictedWorld.setResource(CorrectedEntities, new Set())
-  correctedWorld.setResource(CorrectedEntities, new Set())
+  initPredictionWorld(predictedWorld)
+  initPredictionWorld(correctedWorld)
   app
+    .addResource(
+      NormalizedPredictionConfig,
+      normalizePredictionConfig(predictionConfig),
+    )
+    .addResource(PredictionDisplay, new PredictionDisplayApi())
+    .addResource(PredictionScopes, new SparseSet())
     .addResource(PredictionStatus, "initial")
     .addResource(PredictionBlendProgress, 0)
-    .addResource(SnapshotStage, new SparseSet())
     .addResource(CommandStage, commandStage)
     .addResource(PredictedWorld, predictedWorld)
     .addResource(CorrectedWorld, correctedWorld)
+    .addResource(CorrectedEntities, new Set())
+    .addResource(OldPredictionDisplay, [])
+    .addResource(NewPredictionDisplay, [])
     .addSystemGroup(PredictionGroup.Update, null, () => false)
     .addSystemGroup(
       PredictionGroup.Render,
@@ -266,6 +410,13 @@ export let clientPredictionPlugin = (app: j.App) => {
       initWorldsSystem,
       j.after(advanceFixedTimestepSystem),
       world => world.getResource(PredictionStatus) === "synced",
+    )
+    .addSystemToGroup(
+      j.Group.Early,
+      timeskipWorldsSystem,
+      j.after(advanceFixedTimestepSystem),
+      world =>
+        world.getResource(j.FixedTimestep).lastAdvanceResultedInTimeskip(),
     )
     .addSystemToGroup(
       j.FixedGroup.EarlyUpdate,
@@ -288,9 +439,11 @@ export let clientPredictionPlugin = (app: j.App) => {
         world.getResource(PredictionStatus) !== "synced",
     )
     .addSystemToGroup(
-      j.Group.LateUpdate,
+      j.FixedGroup.Update,
       blendSystem,
-      null,
+      j.after(stepPredictionWorldsSystem),
       world => world.getResource(PredictionStatus) === "blending",
     )
+    .addSystemToGroup(j.FixedGroup.Update, displaySystem, j.after(blendSystem))
+    .addSystemToGroup(j.Group.LateUpdate, tweenSystem)
 }

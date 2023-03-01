@@ -54,7 +54,7 @@ let compileEncoder = (messageId: number, encode: Function, world: j.World) => {
   return Function("f", "w", body)(encode, world)
 }
 
-export let makeProtocol = (world: j.World): NetworkProtocol => {
+export let makeNetworkProtocol = (world: j.World): NetworkProtocol => {
   let encoders = new Map<Message, EncodeApi<unknown[]>>()
   let decoders = [] as Decode<unknown>[]
   let messages = [] as Message[]

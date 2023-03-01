@@ -101,7 +101,10 @@ export class PriorityQueueInt<T extends number> {
     return this.#heap[0]
   }
 
-  remove(item: number) {
+  remove(item: T) {
+    if (!this.has(item)) {
+      return
+    }
     this.#remove(this.#indices[item])
   }
 

@@ -161,14 +161,18 @@ let sendSnapshotMessages = (world: j.World) => {
     .query(InitializedClient)
     .as(Transport, AwarenessState)
     .each(function sendSnapshotMessage(client, transport, awareness) {
+      let shouldSend = false
       for (let i = 0; i < awareness.snapshotInterests.length; i++) {
         let snapshotInterest = awareness.snapshotInterests[i]
         snapshotInterest.step(world, client, awareness.subjects)
         if (eligibleForSend(snapshotInterest, time.currentTime)) {
+          shouldSend = true
           encodeSnapshot(writeStreamUnreliable, snapshotInterest, timestamp)
-          sendAndReset(writeStreamUnreliable, transport)
           snapshotInterest.lastSendTime = time.currentTime
         }
+      }
+      if (shouldSend) {
+        sendAndReset(writeStreamUnreliable, transport)
       }
     })
 }

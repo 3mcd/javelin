@@ -17,6 +17,14 @@ import {
   QueryTerms,
 } from "./type.js"
 
+type QueryMask = {
+  current: null | Set<Entity>
+}
+
+export let _queryMask: QueryMask = {
+  current: null,
+}
+
 export type QueryEachIteratee<T extends QueryTerms> = (
   entity: Entity,
   ...values: QueryEachResults<ComponentsOf<T>>
@@ -51,6 +59,7 @@ let compileEachIterator = <T extends Component[]>(
   return Function(
     "N",
     "V",
+    "M",
     COMPILED_LABEL +
       components.map((component, i) => `let v${i}=V[${component}];`).join("") +
       "return function eachEntity(f){" +
@@ -58,13 +67,14 @@ let compileEachIterator = <T extends Component[]>(
       "let e=N[i];" +
       "for(let j=e.length-1;j>=0;j--){" +
       "let _=e[j];" +
+      "if(M.current!==null&&!M.current.has(_))continue;" +
       "f(_," +
       components.map((_, i) => `v${i}[_]`).join(",") +
       ")" +
       "}" +
       "}" +
       "}",
-  )(query.entities.values(), query.stores) as QueryEachIterator<T>
+  )(query.entities.values(), query.stores, _queryMask) as QueryEachIterator<T>
 }
 
 export interface QueryAPI<T extends QueryTerms = QueryTerms> {

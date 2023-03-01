@@ -28,21 +28,15 @@ let kineticInterest = jn.snapshotInterest(Kinetic, (entity, subject, world) => {
 let Owns = j.relation()
 
 let app = j
-  .app(
-    new Map([
-      [
-        j.FixedTimestepConfig,
-        {
-          terminationCondition: j.TerminationCondition.LastUndershoot,
-        },
-      ],
-    ]),
-  )
+  .app()
   .addResource(jn.NetworkModel, model)
   .addResource(jn.CommandValidator, (world, client, commandType, command) => {
     switch (commandType) {
       case Input: {
         let {h, v, entity} = command as j.Value<typeof Input>
+        if (!(world.exists(entity) && world.exists(client))) {
+          return false
+        }
         return (
           world.has(client, Owns(entity)) &&
           Math.abs(h) <= 1 &&
@@ -63,6 +57,10 @@ let app = j
       stream.destroy()
       world.add(client, Owns(clientActor))
     })
+    world.monitorImmediate(jn.Client).eachExcluded(client => {
+      let clientActor = world.getRelatedEntity(client, Owns)
+      world.delete(clientActor)
+    })
   })
   .addSystemToGroup(j.FixedGroup.Update, movePlayerSystem)
   .use(jn.serverPlugin)
@@ -73,7 +71,7 @@ let app = j
 
 wss.on("connection", socket => {
   let client = app.world.create()
-  let clientTransport = jn.makeWebsocketTransport(
+  let clientTransport = jn.websocketTransport(
     socket as unknown as globalThis.WebSocket,
   )
   let clientAwareness = jn.awareness(kineticPresence, kineticInterest)

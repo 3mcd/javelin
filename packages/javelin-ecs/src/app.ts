@@ -106,7 +106,8 @@ export class App {
   #systemGroupScheduleIsStale
   #systemGroupSchedule
   #systemGroupsById
-  #systemGroupsByLabel;
+  #systemGroupsByLabel
+  #systemGroupRuns;
 
   [_systemGroups]: SystemGroup[]
 
@@ -117,6 +118,7 @@ export class App {
     this.#systemGroupsByLabel = new Map<string, SystemGroup>()
     this.#systemGroupScheduleIsStale = true
     this.#systemGroupsById = [] as SystemGroup[]
+    this.#systemGroupRuns = [] as number[]
     this[_systemGroups] = []
     this.world = new World()
     for (let [resource, value] of resources ?? []) {
@@ -214,8 +216,6 @@ export class App {
     systemGroup.removeSystem(system)
   }
 
-  #systemGroupRuns: number[] = []
-
   #runSystemGroup(systemGroup: SystemGroup) {
     // The `CurrentSystemGroup` resource is used by the world to dispatch commands.
     this.world.setResource(CurrentSystemGroup, systemGroup)
@@ -231,6 +231,11 @@ export class App {
           let monitor = monitors[k]
           monitor.clear()
         }
+        let immediateMonitors = system.immediateMonitors.values()
+        for (let k = 0; k < immediateMonitors.length; k++) {
+          let immediateMonitor = immediateMonitors[k]
+          immediateMonitor.clear()
+        }
         // Notify immediate monitors of intra-step entity modifications.
         this.world[_emitStagedChanges]()
       }
@@ -243,6 +248,8 @@ export class App {
     let systemGroupCursor = 0
     let systemGroupLength = this[_systemGroups].length
     let systemGroupRunsRemaining = 0
+    // Notify monitors of any changes that happened outside of the main loop.
+    this.world[_emitStagedChanges]()
     // Try to run each system group once. This allows earlier systems to
     // initialize resources required by later system groups to calculate their
     // number of runs.
@@ -256,10 +263,9 @@ export class App {
       // Store remaining runs and accumulate total run counter.
       this.#systemGroupRuns[i] = systemGroupRuns
       systemGroupRunsRemaining += systemGroupRuns
-      if (i === this.#systemGroupRuns.length - 1) {
-        this.world[_commitStagedChanges]()
-      }
     }
+    // Commit changes from the initial run.
+    this.world[_commitStagedChanges]()
     // Carry out remaining runs.
     while (systemGroupRunsRemaining > 0) {
       let systemGroupIndex = systemGroupCursor % systemGroupLength

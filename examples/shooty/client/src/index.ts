@@ -4,7 +4,7 @@ import {movePlayerSystem} from "../../server/player.js"
 import {Identity, identityMessage} from "../../shared/identity.js"
 import {Input, model, Position, Vector2} from "../../shared/model.js"
 
-let socket = new WebSocket("ws://localhost:8080")
+let socket = new WebSocket(`ws://${window.location.hostname}:8080`)
 
 let keys: Record<string, boolean> = {
   w: false,
@@ -35,7 +35,7 @@ let drawCircle = (
   canvasContext.arc(0, 0, radius, 0, 2 * Math.PI)
   canvasContext.stroke()
   if (fill) {
-    canvasContext.globalAlpha = 0.1
+    canvasContext.globalAlpha = 0.5
     canvasContext.fillStyle = color
     canvasContext.fill()
   }
@@ -55,21 +55,17 @@ let resizeViewportSystem = (world: j.World) => {
 }
 
 let drawPlayersSystem = (world: j.World) => {
+  let display = world.getResource(jn.PredictionDisplay)
   let context = world.getResource(CanvasContext)
-  let alpha = world.getResource(jn.PredictionBlendProgress)
-  let a = world.getResource(jn.PredictedWorld)
-  let b = world.getResource(jn.CorrectedWorld)
-  a.query(Position).each((entity, pos) => {
-    let correctedPos = b.get(entity, Position)!
-    drawCircle(
-      context,
-      lerp(pos.x, correctedPos.x, alpha),
-      lerp(pos.y, correctedPos.y, alpha),
-      1,
-      "red",
-      true,
-    )
-  })
+  world
+    .getResource(jn.PredictedWorld)
+    .query(Position)
+    .each(entity => {
+      let pos = display.get(entity, Position)
+      if (pos) {
+        drawCircle(context, pos.x, pos.y, 1, "blue", true)
+      }
+    })
 }
 
 document.addEventListener("keydown", e => {
@@ -97,8 +93,21 @@ app
   .addResource(CanvasContext, canvasContext)
   .addResource(Viewport, {x: 0, y: 0})
   .addResource(jn.NetworkModel, model)
+  .addResource(jn.PredictionConfig, {
+    components: [
+      [
+        Position,
+        {
+          blend(a: Vector2, b: Vector2, c: Vector2, alpha) {
+            c.x = lerp(a.x, b.x, alpha)
+            c.y = lerp(a.y, b.y, alpha)
+          },
+        },
+      ],
+    ],
+  })
   .addInitSystem(world => {
-    world.create(j.type(jn.Server), jn.makeWebsocketTransport(socket))
+    world.create(j.type(jn.Server), jn.websocketTransport(socket))
   })
   .addSystemToGroup(
     j.FixedGroup.Early,

@@ -48,6 +48,9 @@ export let advanceFixedTimestepSystem = (world: World) => {
   let fixedTimestep = world.getResource(FixedTimestep)
   let targetTime = world.tryGetResource(FixedTimestepTargetTime) ?? currentTime
   fixedTimestep.advance(deltaTime, targetTime)
+  if (fixedTimestep.lastAdvanceResultedInTimeskip()) {
+    world.setResource(FixedStep, fixedTimestep.currentStep)
+  }
 }
 
 export let advanceFixedStepSystem = (world: World) => {

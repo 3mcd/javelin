@@ -11,7 +11,7 @@ export let NetworkProtocol = j.resource<_NetworkProtocol>()
 
 export type CommandStage = SparseSet<TimestampBuffer>
 export let CommandStage = j.resource<SparseSet<TimestampBuffer>>()
-export let LastCompletedTimestamp = j.resource<number>()
+export let LastCompletedStep = j.resource<number>()
 
 export let ensureCommandBuffer = (
   commandStage: CommandStage,

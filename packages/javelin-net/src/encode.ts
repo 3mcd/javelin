@@ -2,10 +2,10 @@ import * as j from "@javelin/ecs"
 import {COMPILED_LABEL, exists, expect, assert} from "@javelin/lib"
 import {ReadStream, WriteStream} from "./structs/stream.js"
 
-type EncodeEntity = (entity: j.Entity, writeStream: WriteStream) => void
-type DecodeEntity = (readStream: ReadStream) => void
-type EncodeValue = (value: unknown, writeStream: WriteStream) => void
-type DecodeValue = (readStream: ReadStream) => void
+type EncodeEntity = (entity: j.Entity, stream: WriteStream) => void
+type DecodeEntity = (stream: ReadStream, entities?: Set<j.Entity>) => void
+type EncodeValue = (value: unknown, stream: WriteStream) => void
+type DecodeValue = (stream: ReadStream) => void
 type EncoderMap = Record<number, EntityEncoder>
 
 let valuesLengths: Record<number, number> = {}
@@ -210,7 +210,7 @@ export let compileDecodeEntityUpdate = (
   let componentStores = components.map(component =>
     world[j._getComponentStore](component),
   )
-  let componentValuesExp = componentSchemas
+  let decodeComponentValuesExp = componentSchemas
     .map((schema, i) => {
       let exp = ""
       exp += `if(H(e,${components[i]})){`
@@ -231,16 +231,16 @@ export let compileDecodeEntityUpdate = (
     })
     .join("")
   let decodeEntity = Function(
-    "S",
     "V",
     "H",
     COMPILED_LABEL +
       components.map((_, i) => `let v${i}=V[${i}];`).join("") +
-      "return function decodeEntityUpdate(s){" +
+      "return function decodeEntityUpdate(s,u){" +
       "let e=s.readU32();" +
-      componentValuesExp +
+      "u.add(e);" +
+      decodeComponentValuesExp +
       "}",
-  )(type, componentStores, world[j._hasComponent].bind(world))
+  )(componentStores, world[j._hasComponent].bind(world))
   return decodeEntity
 }
 

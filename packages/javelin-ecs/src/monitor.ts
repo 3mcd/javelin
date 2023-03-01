@@ -16,11 +16,7 @@ export class Monitor {
   includedLength
   excludedLength
 
-  constructor(
-    node: Node,
-    phase: string,
-    excludedComponents: Component[] = [],
-  ) {
+  constructor(node: Node, phase: string, excludedComponents: Component[] = []) {
     this.#excludedComponents = excludedComponents
     this.excludedLength = 0
     this.#excludedEntityBatches = [] as Set<Entity>[]
@@ -32,18 +28,16 @@ export class Monitor {
         this.#includeBatch(new Set(node.entities))
       }
     })
-    this.#unsubscribeEntitiesIncluded = node.onEntitiesIncluded.add(
-      event => this.#handleIncludeEvent(event),
+    this.#unsubscribeEntitiesIncluded = node.onEntitiesIncluded.add(event =>
+      this.#handleIncludeEvent(event),
     )
-    this.#unsubscribeEntitiesExcluded = node.onEntitiesExcluded.add(
-      event => this.#handleExcludeEvent(event),
+    this.#unsubscribeEntitiesExcluded = node.onEntitiesExcluded.add(event =>
+      this.#handleExcludeEvent(event),
     )
   }
 
   #matchesEvent(event: TransactionEvent) {
-    return (
-      this.#phase === event.phase && this.#matchesNode(event.node)
-    )
+    return this.#phase === event.phase && this.#matchesNode(event.node)
   }
 
   #matchesNode(node: Node) {

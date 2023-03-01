@@ -1,12 +1,12 @@
 import * as j from "@javelin/ecs"
 import {suite, test, expect} from "vitest"
-import {makeProtocol, makeMessage} from "./protocol.js"
+import {makeNetworkProtocol, makeMessage} from "./protocol.js"
 import {ReadStream, WriteStream} from "./structs/stream.js"
 
 suite("NetworkProtocol2", () => {
   test("test", () => {
     let world = new j.World()
-    let protocol = makeProtocol(world)
+    let protocol = makeNetworkProtocol(world)
     let message = makeMessage({
       encode(stream, _, a: number, b: number) {
         stream.grow(8)

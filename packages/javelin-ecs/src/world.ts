@@ -28,32 +28,12 @@ import {
   Type,
 } from "./type.js"
 
-const makeEntityLabel = (entity: Entity, entityId = idLo(entity)) =>
-  `entity ${entity} (${entityId})`
-
 const ERR_AT_ENTITY_CAP = `Failed to allocate entity id: surpassed the limit of ${LO_MASK.toLocaleString()} living entities`
-const ERR_MISSING_COMPONENT = (entity: Entity) =>
-  `Failed to get component for entity: you may have tried to read or write a component value before ${makeEntityLabel(
-    entity,
-  )} was initialized`
-const ERR_EXPECTED_VALUE_COMPONENT = (component: Component) =>
-  `Failed to get component value array: component with id ${component} is not a value component`
-const ERR_INVALID_ENTITY_VERSION = (entity: Entity, entityId: number) =>
-  `Failed to validate entity: ${makeEntityLabel(
-    entity,
-    entityId,
-  )} is invalid—has it been deleted?`
-const ERR_EXPECTED_ENTITY_HAS_COMPONENT = (
-  entity: Entity,
-  component: Component,
-) =>
-  `Failed to update component value: ${makeEntityLabel(
-    entity,
-  )} does not have component with id ${component}`
-const ERR_PARENT_INVALID = (entity: Entity) =>
-  `Failed to reparent entity: you may have tried to add a ChildOf relationship between ${makeEntityLabel(
-    entity,
-  )} and an invalid entity—has the parent been deleted?`
+const ERR_MISSING_COMPONENT = `Failed to get component for entity: you may have tried to read or write a component value before an entity was initialized`
+const ERR_EXPECTED_VALUE_COMPONENT = `Failed to get component value array: component is not a value component`
+const ERR_INVALID_ENTITY_VERSION = `Failed to validate entity: entity version is invalid—has it been deleted?`
+const ERR_EXPECTED_ENTITY_HAS_COMPONENT = `Failed to update component value: does not have component`
+const ERR_PARENT_INVALID = `Failed to reparent entity: you may have tried to create a ChildOf relationship with an invalid parent—has the parent been deleted?`
 const ERR_MISSING_RESOURCE =
   "Failed to get resource: resource not added to world"
 const ERR_EXPECTED_RELATED_ENTITY =
@@ -146,7 +126,11 @@ export class World {
 
   #freeEntityId(entity: Entity): void {
     let entityId = idLo(entity)
+    let entityVersion = this.#entityIdVersions[entityId]
     this.#freeEntityIds.push(entityId)
+    this.#entityIdVersions[entityId] = exists(entityVersion)
+      ? entityVersion + 1
+      : 0
   }
 
   #validateEntityVersion(entity: Entity): number {
@@ -154,20 +138,13 @@ export class World {
     let entityIdVersion = idHi(entity)
     assert(
       this.#entityIdVersions[entityId] === entityIdVersion,
-      ERR_INVALID_ENTITY_VERSION(entity, entityId),
+      ERR_INVALID_ENTITY_VERSION,
     )
     return entityId
   }
 
   #getEntityIdVersion(entityId: number): Maybe<number> {
     return this.#entityIdVersions[entityId]
-  }
-
-  #incrementEntityIdVersion(entityId: number): void {
-    let entityVersion = this.#entityIdVersions[entityId]
-    this.#entityIdVersions[entityId] = exists(entityVersion)
-      ? entityVersion + 1
-      : 0
   }
 
   #setEntityComponentValue(
@@ -293,10 +270,10 @@ export class World {
     let entityChildren = this.#entityChildren[entityId]
     // Recursively delete the deleted entity's children, if any.
     if (exists(entityChildren)) {
-      for (let childEntity of entityChildren) {
+      entityChildren.forEach(childEntity => {
         let childEntityNode = expect(this.#entityNodes[childEntity])
         this.#commitDelete(childEntity, childEntityNode)
-      }
+      })
       entityChildren.clear()
     }
     // Free the deleted entity's component values.
@@ -311,7 +288,6 @@ export class World {
     this.#freeEntityDelta(entity)
     this.#freeEntityParent(entity)
     this.#freeEntityId(entity)
-    this.#incrementEntityIdVersion(entityId)
     // Remove the deleted entity from the archetype graph and free its prior
     // node if it is no longer of use.
     prevNode.removeEntity(entity)
@@ -355,7 +331,7 @@ export class World {
           let parentEntityId = idLo(component)
           let parentEntity = expect(
             this[_qualifyEntity](parentEntityId),
-            ERR_PARENT_INVALID(entity),
+            ERR_PARENT_INVALID,
           )
           this.#setEntityParent(entity, parentEntity)
         }
@@ -422,19 +398,19 @@ export class World {
 
   #initMonitor(
     monitor: Monitor,
-    hash: number,
-    node: Node,
-    system: System,
+    monitors: SparseSet<Monitor>,
+    monitorHash: number,
+    monitorNode: Node,
   ): void {
     let unbindMonitor = (deletedNode: Node) => {
-      if (node === deletedNode) {
-        system.monitors.delete(hash)
+      if (monitorNode === deletedNode) {
+        monitors.delete(monitorHash)
       }
     }
     // Free the monitor when its node is deleted.
-    node.onNodeDeleted.add(unbindMonitor)
+    monitorNode.onNodeDeleted.add(unbindMonitor)
     // Link the monitor to its originating system.
-    system.monitors.set(hash, monitor)
+    monitors.set(monitorHash, monitor)
   }
 
   /**
@@ -455,7 +431,7 @@ export class World {
    * @private
    */
   [_getComponentStore]<T>(component: Component<T>): T[] {
-    assert(hasSchema(component), ERR_EXPECTED_VALUE_COMPONENT(component))
+    assert(hasSchema(component), ERR_EXPECTED_VALUE_COMPONENT)
     return (this.#componentStores[component] ??= []) as T[]
   }
 
@@ -498,6 +474,7 @@ export class World {
     // Adjust entities within the archetype graph, update component stores, and
     // notify interested parties (like monitors).
     this.#applyTransaction.drainEntities(this.graph, Phase.Apply, commitBatch)
+    // Prune empty nodes.
     if (this.#disposableNodes.size > 0) {
       this.#disposableNodes.forEach(nodeToPrune => {
         // The node may have been populated after it was flagged for deletion, so
@@ -538,7 +515,6 @@ export class World {
   ): Entity {
     let entityId = idLo(entity)
     let entityIdVersion = idHi(entity)
-    assert(!exists(this.#getEntityIdVersion(entityId)))
     let nextNode = this.graph.nodeOfType(type)
     this.#entityIdVersions[entityId] = entityIdVersion
     this.#relocateEntity(entity, undefined, nextNode)
@@ -676,10 +652,7 @@ export class World {
   get(entity: Entity, type: Singleton<Tag>): Maybe<boolean>
   get(entity: Entity, type: Type) {
     this.#validateEntityVersion(entity)
-    let entityNode = expect(
-      this.#getEntityNode(entity),
-      ERR_MISSING_COMPONENT(entity),
-    )
+    let entityNode = expect(this.#getEntityNode(entity), ERR_MISSING_COMPONENT)
     let component = type.components[0]
     return entityNode.hasComponent(component)
       ? hasSchema(component)
@@ -694,23 +667,17 @@ export class World {
    */
   set<T>(entity: Entity, type: Singleton<T>, value: Value<T>): void {
     this.#validateEntityVersion(entity)
-    let entityNode = expect(
-      this.#getEntityNode(entity),
-      ERR_MISSING_COMPONENT(entity),
-    )
+    let entityNode = expect(this.#getEntityNode(entity), ERR_MISSING_COMPONENT)
     let component = type.components[0]
     assert(
       entityNode.hasComponent(component),
-      ERR_EXPECTED_ENTITY_HAS_COMPONENT(entity, component),
+      ERR_EXPECTED_ENTITY_HAS_COMPONENT,
     )
     this.#setEntityComponentValue(entity, component, value)
   }
 
   has(entity: Entity, type: Type): boolean {
-    let entityNode = expect(
-      this.#getEntityNode(entity),
-      ERR_MISSING_COMPONENT(entity),
-    )
+    let entityNode = expect(this.#getEntityNode(entity), ERR_MISSING_COMPONENT)
     if (exists(entityNode)) {
       for (let i = 0; i < type.components.length; i++) {
         let component = type.components[i]
@@ -782,8 +749,8 @@ export class World {
   monitor() {
     let monitorSystem = this.getResource(CurrentSystem)
     let monitorTerms = arguments as unknown as QueryTerms
-    let monitorTermsHash = hashQueryTerms(monitorTerms)
-    let monitor = monitorSystem.monitors.get(monitorTermsHash)
+    let monitorHash = hashQueryTerms(monitorTerms)
+    let monitor = monitorSystem.monitors.get(monitorHash)
     if (!exists(monitor)) {
       let monitorType = new Type(monitorTerms)
       let monitorNode = this.graph.nodeOfType(monitorType)
@@ -792,7 +759,12 @@ export class World {
         Phase.Apply,
         monitorType.excludedComponents,
       )
-      this.#initMonitor(monitor, monitorTermsHash, monitorNode, monitorSystem)
+      this.#initMonitor(
+        monitor,
+        monitorSystem.monitors,
+        monitorHash,
+        monitorNode,
+      )
     }
     return monitor
   }
@@ -807,8 +779,8 @@ export class World {
   monitorImmediate() {
     let monitorSystem = this.getResource(CurrentSystem)
     let monitorTerms = arguments as unknown as QueryTerms
-    let monitorTermsHash = hashQueryTerms(monitorTerms)
-    let monitor = monitorSystem.monitors.get(monitorTermsHash)
+    let monitorHash = hashQueryTerms(monitorTerms)
+    let monitor = monitorSystem.immediateMonitors.get(monitorHash)
     if (!exists(monitor)) {
       let monitorType = new Type(monitorTerms)
       let monitorNode = this.graph.nodeOfType(monitorType)
@@ -817,7 +789,12 @@ export class World {
         Phase.Stage,
         monitorType.excludedComponents,
       )
-      this.#initMonitor(monitor, monitorTermsHash, monitorNode, monitorSystem)
+      this.#initMonitor(
+        monitor,
+        monitorSystem.immediateMonitors,
+        monitorHash,
+        monitorNode,
+      )
     }
     return monitor
   }

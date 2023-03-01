@@ -21,45 +21,64 @@ export let presenceMessage = makeMessage({
     let {localComponentsToIso} = world.getResource(NormalizedNetworkModel)
     let {subjectType} = presence
     let subjectComponents = subjectType.normalized.components
-    let subjectQueueLength = presence.subjectQueue.length
-    if (subjectQueueLength === 0) {
+    let excludedSubjectCount = presence.excludedSubjectQueue.length
+    let includedSubjectCount = presence.includedSubjectQueue.length
+    if (includedSubjectCount === 0 && excludedSubjectCount === 0) {
       return
     }
     let mtuDiff = MTU_SIZE - stream.offset
     if (mtuDiff <= 0) {
       return
     }
-    let growAmount =
-      1 + // components length
-      2 + // subject count
-      subjectComponents.length * 4 +
-      Math.min(mtuDiff, subjectQueueLength * 4)
-    stream.grow(growAmount)
-    // (1)
-    stream.writeU8(subjectComponents.length)
-    // (2)
-    for (let i = 0; i < subjectComponents.length; i++) {
-      stream.writeU32(localComponentsToIso[subjectComponents[i]])
+    grow: {
+      let growAmount =
+        1 + // components length
+        2 + // subject count
+        subjectComponents.length * 4 +
+        Math.min(mtuDiff, excludedSubjectCount * 4 + includedSubjectCount * 4)
+      stream.grow(growAmount)
     }
-    // (3)
-    let subjectCount = 0
-    let subjectCountOffset = stream.writeU16(0)
-    while (stream.offset < MTU_SIZE && !presence.subjectQueue.isEmpty()) {
-      let subject = presence.subjectQueue.pop()!
-      // (4)
-      stream.writeU32(subject)
-      subjectCount++
+    components: {
+      stream.writeU8(subjectComponents.length)
+      for (let i = 0; i < subjectComponents.length; i++) {
+        stream.writeU32(localComponentsToIso[subjectComponents[i]])
+      }
     }
-    stream.writeU16At(subjectCount, subjectCountOffset)
+    excluded_subjects: {
+      let excludedSubjectCount = 0
+      let excludedSubjectCountOffset = stream.writeU16(0)
+      while (
+        stream.offset < MTU_SIZE &&
+        !presence.excludedSubjectQueue.isEmpty()
+      ) {
+        let subject = presence.excludedSubjectQueue.pop()!
+        // (4)
+        stream.writeU32(subject)
+        excludedSubjectCount++
+      }
+      stream.writeU16At(excludedSubjectCount, excludedSubjectCountOffset)
+    }
+    included_subjects: {
+      let includedSubjectCount = 0
+      let includedSubjectCountOffset = stream.writeU16(0)
+      while (
+        stream.offset < MTU_SIZE &&
+        !presence.includedSubjectQueue.isEmpty()
+      ) {
+        let subject = presence.includedSubjectQueue.pop()!
+        // (4)
+        stream.writeU32(subject)
+        includedSubjectCount++
+      }
+      stream.writeU16At(includedSubjectCount, includedSubjectCountOffset)
+    }
   },
   decode(stream, world) {
     let predictedWorld = world.getResource(PredictedWorld)
     let correctedWorld = world.getResource(CorrectedWorld)
     let {isoComponentsToLocal} = world.getResource(NormalizedNetworkModel)
-    // (1)
     let subjectComponentsLength = stream.readU8()
     subjectComponents.length = subjectComponentsLength
-    // (2)
     for (let i = 0; i < subjectComponentsLength; i++) {
       subjectComponents[i] = isoComponentsToLocal[stream.readU32()]
     }
@@ -72,16 +91,24 @@ export let presenceMessage = makeMessage({
       correctedWorld,
       subjectType,
     )
-    // (3)
-    let subjectCount = stream.readU16()
-    // (4)
-    let offset = stream.offset
-    for (let i = 0; i < subjectCount; i++) {
-      predictedWorldSubjectEncoder.decodeEntityPresence(stream)
+    excluded_subjects: {
+      let excludedSubjectCount = stream.readU16()
+      for (let i = 0; i < excludedSubjectCount; i++) {
+        let excludedSubject = stream.readU32() as j.Entity
+        predictedWorld.remove(excludedSubject, subjectType)
+        correctedWorld.remove(excludedSubject, subjectType)
+      }
     }
-    stream.offset = offset
-    for (let i = 0; i < subjectCount; i++) {
-      correctedWorldSubjectEncoder.decodeEntityPresence(stream)
+    included_subjects: {
+      let includedSubjectCount = stream.readU16()
+      let offset = stream.offset
+      for (let i = 0; i < includedSubjectCount; i++) {
+        predictedWorldSubjectEncoder.decodeEntityPresence(stream)
+      }
+      stream.offset = offset
+      for (let i = 0; i < includedSubjectCount; i++) {
+        correctedWorldSubjectEncoder.decodeEntityPresence(stream)
+      }
     }
     correctedWorld[_emitStagedChanges]()
     correctedWorld[_commitStagedChanges]()
@@ -91,9 +118,10 @@ export let presenceMessage = makeMessage({
 })
 
 export interface PresenceState extends Sendable {
+  readonly excludedSubjectQueue: PriorityQueueInt<j.Entity>
+  readonly includedSubjectQueue: PriorityQueueInt<j.Entity>
   readonly subjectPrioritizer: SubjectPrioritizer
   readonly subjectType: j.Type
-  readonly subjectQueue: PriorityQueueInt<j.Entity>
   step(
     world: j.World,
     entity: j.Entity,
@@ -105,8 +133,9 @@ export interface PresenceState extends Sendable {
 export class PresenceStateImpl implements PresenceState {
   #new
 
+  readonly excludedSubjectQueue
+  readonly includedSubjectQueue
   readonly subjectPrioritizer
-  readonly subjectQueue
   readonly subjectType
 
   lastSendTime
@@ -118,7 +147,8 @@ export class PresenceStateImpl implements PresenceState {
     sendRate: number,
   ) {
     this.#new = true
-    this.subjectQueue = new PriorityQueueInt<j.Entity>()
+    this.excludedSubjectQueue = new PriorityQueueInt<j.Entity>()
+    this.includedSubjectQueue = new PriorityQueueInt<j.Entity>()
     this.subjectPrioritizer = subjectPrioritizer
     this.subjectType = subjectType
     this.lastSendTime = 0
@@ -129,27 +159,28 @@ export class PresenceStateImpl implements PresenceState {
     if (this.#new) {
       world.query(this.subjectType).each(subject => {
         let subjectPriority = this.subjectPrioritizer(entity, subject, world)
-        this.subjectQueue.push(subject, subjectPriority)
         subjects.add(subject)
+        this.includedSubjectQueue.push(subject, subjectPriority)
       })
       this.#new = false
     } else {
-      world
-        .monitor(this.subjectType)
-        .eachIncluded(subject => {
-          let subjectPriority = this.subjectPrioritizer(entity, subject, world)
-          this.subjectQueue.push(subject, subjectPriority)
-          subjects.add(subject)
-        })
-        .eachExcluded(subject => {
-          subjects.delete(subject)
-          this.subjectQueue.remove(subject)
-        })
+      world.monitor(this.subjectType).eachIncluded(subject => {
+        let subjectPriority = this.subjectPrioritizer(entity, subject, world)
+        subjects.add(subject)
+        this.includedSubjectQueue.push(subject, subjectPriority)
+        this.excludedSubjectQueue.remove(subject)
+      })
+      world.monitorImmediate(this.subjectType).eachExcluded(subject => {
+        let subjectPriority = this.subjectPrioritizer(entity, subject, world)
+        subjects.delete(subject)
+        this.includedSubjectQueue.remove(subject)
+        this.excludedSubjectQueue.push(subject, subjectPriority)
+      })
     }
     subjects.forEach(subject => {
       let subjectPriority = this.subjectPrioritizer(entity, subject, world)
       if (subjectPriority <= 0) {
-        this.subjectQueue.remove(subject)
+        this.includedSubjectQueue.remove(subject)
       }
     })
   }
