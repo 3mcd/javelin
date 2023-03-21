@@ -51,7 +51,7 @@ Entity relationships with built-in support for heirarchies.
 
 ```ts
 let parent = world.create()
-let child = world.create(j.Childquery(parent))
+let child = world.create(j.ChildOf(parent))
 world.delete(parent) // also deletes `child`
 ```
 
