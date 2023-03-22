@@ -20,7 +20,8 @@ let logEntitySystem = (world: j.World) => {
 The entities a monitor recieves can be narrowed using query terms.
 
 ```ts
-world.monitor(Client).eachIncluded((client, clientSocket) => {
+world.monitor(Client).eachIncluded((client) => {
+  let clientSocket = world.get(client, Socket)
   clientSocket.send("ping")
 })
 ```
@@ -38,7 +39,8 @@ Because [entity operations are deferred](./entities.md#entity-transaction) to th
 If you wish to access component values of an entity that no longer matches a monitor's terms, you can use a world's `monitorImmediate` method. `monitorImmediate` returns a monitor that is configured to run within the current step.
 
 ```ts
-world.monitorImmediate(Enemy).eachExcluded((enemy, enemyPos) => {
+world.monitorImmediate(Enemy).eachExcluded((enemy) => {
+  let enemyPos = world.get(enemy, Position)
   world.create(LootBag, enemyPos)
 })
 ```
