@@ -5,9 +5,9 @@ import {
   type,
 } from "@javelin/ecs"
 import * as React from "react"
-import {useEntitiesMonitor} from "../../hooks/use-monitor/useMonitor"
+import { useApp } from "../../Javelin"
+import { useEntitiesMonitor } from "../../hooks/use-monitor/useMonitor"
 import useIsomorphicLayoutEffect from "../../hooks/useIsomorphicLayoutEffect"
-import {useApp} from "../../Javelin"
 
 const EntityContext = React.createContext<JavelinEntity>(
   null as unknown as JavelinEntity,
@@ -20,15 +20,15 @@ export interface EntityProps {
 }
 
 export const Entity: React.FC<React.PropsWithChildren<EntityProps>> = ({
-  entity: useProvidedEntity,
+  entity: userProvidedEntity,
   children,
 }) => {
   const app = useApp()
 
   const entityRef = React.useRef<JavelinEntity>(null!)
   if (entityRef.current === null) {
-    if (useProvidedEntity) {
-      entityRef.current = useProvidedEntity
+    if (typeof userProvidedEntity === "number") {
+      entityRef.current = userProvidedEntity
     } else {
       entityRef.current = app.world.create()
     }
@@ -38,7 +38,7 @@ export const Entity: React.FC<React.PropsWithChildren<EntityProps>> = ({
     return () => {
       app.world.remove(entityRef.current, type())
     }
-  }, [useProvidedEntity])
+  }, [userProvidedEntity])
 
   return (
     <EntityContext.Provider value={entityRef.current}>
